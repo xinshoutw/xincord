@@ -29,14 +29,14 @@ from xincord.core.plugins import discover
 from xincord.core.storage import Store
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Coroutine, Sequence
 
 logger = logging.getLogger(__name__)
 
 LEVELS = logging.getLevelNamesMapping()
 PLUGINS = Path("plugins")
 DATABASE = Path("data/xincord.db")  # alone in data/, so a container can keep it in a volume
-SIGNALS = (signal.SIGINT, signal.SIGTERM)
+STOP_SIGNALS = (signal.SIGINT, signal.SIGTERM)
 
 
 @dataclass(frozen=True)
@@ -111,16 +111,22 @@ async def _check(bot: Bot, enabled: Sequence[str]) -> int:
 
 
 async def _serve(bot: Bot, token: str) -> int:
-    """Run the bot until a stop signal closes it."""
+    """Run the bot until a stop signal closes it; SIGHUP reloads."""
     loop = asyncio.get_running_loop()
-    closing: list[asyncio.Task[None]] = []
+    tasks: set[asyncio.Task[object]] = set()
+
+    def spawn(coroutine: Coroutine[object, object, object]) -> None:
+        task = loop.create_task(coroutine)
+        tasks.add(task)
+        task.add_done_callback(tasks.discard)
 
     def stop() -> None:
         logger.info("Stopping")
-        closing.append(loop.create_task(bot.close()))
+        spawn(bot.close())
 
-    for signum in SIGNALS:
+    for signum in STOP_SIGNALS:
         loop.add_signal_handler(signum, stop)
+    loop.add_signal_handler(signal.SIGHUP, lambda: spawn(bot.reload()))
     try:
         async with bot:
             await bot.start(token)
@@ -128,7 +134,7 @@ async def _serve(bot: Bot, token: str) -> int:
     except (discord.LoginFailure, discord.PrivilegedIntentsRequired) as error:
         return _failed(f"Cannot connect to Discord: {error}")
     finally:
-        for signum in SIGNALS:
+        for signum in (*STOP_SIGNALS, signal.SIGHUP):
             loop.remove_signal_handler(signum)
     return 0
 

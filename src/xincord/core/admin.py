@@ -4,10 +4,16 @@ Kotlin:
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/cli/JLineManager.kt:60-93
 """
 
+from typing import TYPE_CHECKING, cast
+
 import discord
 from discord import app_commands
 
+if TYPE_CHECKING:
+    from xincord.core.bot import Bot
+
 NOT_OWNER = "Only the bot owner can use this command."
+MAX_CHOICES = 25  # Discord shows at most 25 autocomplete suggestions
 
 
 class Xincord(
@@ -23,11 +29,18 @@ class Xincord(
     @app_commands.describe(plugin="Plugin to reload with the plugins that depend on it")
     async def reload(self, interaction: discord.Interaction, plugin: str | None = None) -> None:
         """Reload for the owner and reply with the summary."""
-        raise NotImplementedError
+        bot = cast("Bot", interaction.client)
+        # The command tree has deferred the response ephemerally.
+        if not await bot.is_owner(interaction.user):
+            await interaction.followup.send(NOT_OWNER, ephemeral=True)
+            return
+        await interaction.followup.send(await bot.reload(plugin), ephemeral=True)
 
     @reload.autocomplete("plugin")
     async def plugin_names(
         self, interaction: discord.Interaction, current: str
     ) -> list[app_commands.Choice[str]]:
         """Suggest the loaded plugins whose name contains ``current``."""
-        raise NotImplementedError
+        bot = cast("Bot", interaction.client)
+        names = [name for name in bot.loaded if current.casefold() in name.casefold()]
+        return [app_commands.Choice(name=name, value=name) for name in names[:MAX_CHOICES]]

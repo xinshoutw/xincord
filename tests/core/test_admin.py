@@ -54,7 +54,6 @@ def interaction(bot: Bot, user_id: int) -> tuple[discord.Interaction, FakeFollow
     return cast("discord.Interaction", fake), followup
 
 
-@pytest.mark.xfail(strict=True, reason="Owner-only reload command")
 async def test_command_payload(store: Store, tmp_path: Path) -> None:
     """Requirement: Owner-only reload command."""
     bot = Bot([], root=tmp_path, store=store)
@@ -71,7 +70,6 @@ async def test_command_payload(store: Store, tmp_path: Path) -> None:
     assert all(payload["name"] != "xincord" for payload in guild_payload)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Owner-only reload command")
 @pytest.mark.parametrize(("user_id", "reply"), [(OWNER, "Reloaded: Alpha."), (7, NOT_OWNER)])
 async def test_owner_and_others(
     store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, user_id: int, reply: str
@@ -95,7 +93,6 @@ async def test_owner_and_others(
     assert reloads == (["Alpha"] if user_id == OWNER else [])
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Owner-only reload command")
 async def test_plugin_suggestions(fake_plugins: FakePlugins, store: Store, tmp_path: Path) -> None:
     """Requirement: Owner-only reload command."""
     fake_plugins.add("Alpha", RECORD)
@@ -109,7 +106,6 @@ async def test_plugin_suggestions(fake_plugins: FakePlugins, store: Store, tmp_p
     assert [(choice.name, choice.value) for choice in choices] == [("Alpha", "Alpha")]
 
 
-@pytest.mark.xfail(strict=True, reason="SIGHUP reloads")
 async def test_hang_up_signal(installed: FakePlugins, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: SIGHUP reloads."""
     installed.add("Alpha", RECORD)

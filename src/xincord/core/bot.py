@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, cast, override
 import discord
 from discord.ext import commands
 
+from xincord.core.admin import Xincord
 from xincord.core.command_tree import CommandTree
 from xincord.core.component_ids import ComponentIdError, upgrade_view
 from xincord.core.config import (
@@ -83,6 +84,7 @@ class Bot(commands.Bot):
     async def setup_hook(self) -> None:
         """Set the command translator and load the plugins before the gateway connects."""
         await self.tree.set_translator(Translator())
+        self.tree.add_command(Xincord(extras={"global": True}))
         await self.load_plugins()
         logger.info("Plugins loaded: %s", ", ".join(self.loaded) or "none")
 
