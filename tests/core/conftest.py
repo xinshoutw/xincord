@@ -7,19 +7,11 @@ import pytest
 
 from plugin_fakes import FakePlugins
 from xincord.core.plugins import GROUP
-from xincord.core.storage import Store
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, Iterator
+    from collections.abc import Iterator
     from importlib.metadata import EntryPoint
     from pathlib import Path
-
-
-@pytest.fixture
-async def store() -> AsyncGenerator[Store]:
-    opened = await Store.open(":memory:")
-    yield opened
-    await opened.close()
 
 
 @pytest.fixture

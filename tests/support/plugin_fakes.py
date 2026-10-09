@@ -63,6 +63,17 @@ class FakePlugins:
         return Bot(plugins, root=root, store=store, force_lang=force_lang)
 
 
+async def load_plugin(name: str, root: Path, store: Store) -> Bot:
+    """Load the installed plugin ``name`` through its entry point, as startup does, offline.
+
+    ``setup_hook`` sets the command translator and runs the plugin's ``setup``; ``root`` takes
+    the place of ``plugins/``.
+    """
+    bot = Bot(discover([name]), root=root, store=store)
+    await bot.setup_hook()
+    return bot
+
+
 WAIT = 5  # seconds before until() gives up
 
 

@@ -5,7 +5,7 @@
 
 ## 2. Installation
 
-- [ ] 2.1 xfail tests for "The plugin installs as _Example", with the shared `store` fixture and
+- [x] 2.1 xfail tests for "The plugin installs as _Example", with the shared `store` fixture and
       `load_plugin` helper
 - [ ] 2.2 Add the package, its `setup` and the `_Example` entry point; remove the markers
 
