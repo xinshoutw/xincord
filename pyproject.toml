@@ -35,6 +35,7 @@ dev = [
 
 [tool.ruff]
 line-length = 100
+src = ["src", "packages/xincord-plugins/src", "scripts", "tests"]
 # Research notes quote code verbatim; keep them as written.
 extend-exclude = ["docs/porting/analysis"]
 
