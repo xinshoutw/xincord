@@ -24,8 +24,11 @@ first plugins calibrate this checklist: fix it here when reality differs.
    `xfail(strict=True)` -> implement and remove the marker -> commit. Pure logic is tested without
    discord.py; Cogs and views get Protocol fakes.
 5. **Wire it up.** Register the extension in the `xincord.plugins` entry-point group in
-   `packages/xincord-plugins/pyproject.toml` and declare its metadata (name, version,
-   dependencies, intents, legacy component prefix).
+   `packages/xincord-plugins/pyproject.toml`, named after the v3 plugin (`AutoRole = ...`).
+   Declare `DEPENDS`, `SOFT_DEPENDS` and `INTENTS` as module constants, and keep import time free
+   of work. In `setup(bot)`, get `bot.plugin_context(__name__)` and load `config(Model)` from the
+   bundled `config.yaml` and `lang(default_locale)`. Drop v3's `enabled` key: the core config's
+   `plugins` list decides.
 6. **Golden tests.** Declare the plugin's `ComponentIds(namespace, fields, legacy_prefix=...,
    legacy_hex=...)` with the v3 fields first, in v3 declaration order (append only). Decode real
    v3 IDs from the inventory and check that each upgrades to the expected new ID. Render every

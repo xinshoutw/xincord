@@ -10,7 +10,8 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 
 | Kotlin / JDA (v3) | Python / discord.py (xincord) | Decision |
 |---|---|---|
-| Plugin jar + `info.yaml`, classloader per plugin | extension module + `commands.Cog`, metadata as module constants, entry point in group `xincord.plugins` | B2, B3 |
+| Plugin jar + `info.yaml`, classloader per plugin | extension module + `commands.Cog`, metadata as module constants (`DEPENDS`, `SOFT_DEPENDS`, `INTENTS`), entry point in group `xincord.plugins` named after the plugin | B2, B3 |
+| `enabled` key in each plugin config | the core config's `plugins` list; `setup(bot)` calls `bot.plugin_context(__name__)` for `config(Model)` and `lang(locale)` | B3, B6 |
 | "API plugins" (SQLiteAPI, GoogleSheetAPI, AudioAPI) | ordinary dependencies or nothing | B12 |
 | Load order from `depend` / `soft_depend` | `graphlib.TopologicalSorter`; a failing plugin disables only itself | B3 |
 | `GatewayIntent` presets | `discord.Intents` aggregated from enabled plugins before connecting | B4 |
@@ -70,6 +71,8 @@ styles at once.
   typed `\u` escape into the real character, which the CJK hook then rejects.
 - **prek pygrep** compiles patterns as bytes, so a `\u` escape in a pattern fails; match UTF-8 byte
   ranges instead.
+- **Plugin modules run twice.** Discovery imports a plugin to read its constants, and
+  `load_extension` executes it again; keep import time free of work.
 - **Stopped views.** A discord.py view created outside a running event loop never reports
   `is_finished()`; tests that check rendered views must be `async`.
 - **Global `core.hooksPath`.** prek refuses to install while a global `core.hooksPath` is set; use
@@ -109,3 +112,7 @@ Every deliberate difference, added by the change that introduces it.
 | Component IDs | values containing `:` or `;` could not be parsed back | values are percent-encoded | core-component-ids |
 | Component IDs | values went through the shared placeholder substitutor | values are written verbatim | core-component-ids |
 | Component IDs | no version; old IDs had to stay valid forever | versioned; legacy IDs still parse and are rewritten when first used | core-component-ids |
+| Plugin loading | plugins loaded in reverse dependency order | dependencies load first | core-plugin-loading |
+| Plugin loading | one plugin's broken config or lang file could stop the whole bot | only that plugin and its dependents are skipped | core-plugin-loading |
+| Plugin switches | an `enabled` key in each plugin config, checked by every handler; disabled plugins still exported their files | the core config's `plugins` list; disabled plugins are never imported | core-plugin-loading |
+| Intents | GUILD_MEMBERS always requested | requested only when an enabled plugin declares it | core-plugin-loading |

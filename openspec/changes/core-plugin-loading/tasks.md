@@ -23,6 +23,6 @@
 
 ## 5. Close
 
-- [ ] 5.1 Update `docs/porting-guide.md`
+- [x] 5.1 Update `docs/porting-guide.md`
 - [ ] 5.2 Gate passes, push, CI green
 - [ ] 5.3 Archive the change and run `openspec validate --all --strict`
