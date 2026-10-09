@@ -52,7 +52,6 @@ def reloads(monkeypatch: pytest.MonkeyPatch) -> list[str | None]:
     return calls
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Console commands")
 async def test_reload_commands(
     store: Store, tmp_path: Path, reloads: list[str | None], caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -67,7 +66,6 @@ async def test_reload_commands(
     assert stops == 1
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Console commands")
 @pytest.mark.parametrize("keys", ["stop\n", "EXIT\n", "shutdown\n", CTRL_D])
 async def test_stopping(store: Store, tmp_path: Path, reloads: list[str | None], keys: str) -> None:
     """Requirement: Console commands."""
@@ -79,7 +77,6 @@ async def test_stopping(store: Store, tmp_path: Path, reloads: list[str | None],
     assert reloads == []  # nothing after the stop is read
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Console commands")
 async def test_interrupt(
     store: Store, tmp_path: Path, reloads: list[str | None], caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -94,7 +91,6 @@ async def test_interrupt(
     assert stops == 1
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Console completion")
 async def test_completing(fake_plugins: FakePlugins, store: Store, tmp_path: Path) -> None:
     """Requirement: Console completion."""
     fake_plugins.add("Alpha", SETUP)
