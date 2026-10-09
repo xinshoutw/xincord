@@ -388,14 +388,6 @@ async def test_hot_load_needs_the_intents(
     assert fake_plugins.calls() == ["Alpha", "Late"]
 
 
-ROUTED = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Component and modal interactions reach their plugin",
-)
-LIFECYCLE = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Routes follow the plugin's lifecycle"
-)
 TICKET = """
 from xincord.core.component_ids import ComponentIds
 
@@ -440,7 +432,6 @@ def interaction(
     return cast("discord.Interaction", FakeInteraction(kind, {"custom_id": custom_id}))
 
 
-@ROUTED
 async def test_routed_interactions(fake_plugins: FakePlugins, store: Store, tmp_path: Path) -> None:
     """Requirement: Component and modal interactions reach their plugin."""
     fake_plugins.add("Ticket", TICKET)
@@ -458,7 +449,6 @@ async def test_routed_interactions(fake_plugins: FakePlugins, store: Store, tmp_
     ]
 
 
-@ROUTED
 async def test_unowned_and_failing_interactions(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -479,7 +469,6 @@ async def test_unowned_and_failing_interactions(
     assert "Ticket" in caplog.text
 
 
-@LIFECYCLE
 async def test_reload_replaces_the_handler(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:
@@ -494,7 +483,6 @@ async def test_reload_replaces_the_handler(
     assert len(fake_plugins.calls()) == 1
 
 
-@LIFECYCLE
 async def test_failed_load_leaves_no_route(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:

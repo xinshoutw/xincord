@@ -2,7 +2,7 @@
 
 - [x] 1.1 xfail tests for "Component and modal interactions reach their plugin" and "Routes follow
       the plugin's lifecycle"
-- [ ] 1.2 Implement `Bot.route` and `Bot.on_interaction`; remove the markers
+- [x] 1.2 Implement `Bot.route` and `Bot.on_interaction`; remove the markers
 
 ## 2. Upgrade
 

@@ -5,18 +5,17 @@ Kotlin:
 """
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
+import discord
 from discord.ext import commands
 
 from xincord.core.command_tree import CommandTree
 from xincord.core.plugins import PluginContext, PluginError, required_intents
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable, Sequence
+    from collections.abc import Awaitable, Callable, Mapping, Sequence
     from pathlib import Path
-
-    import discord
 
     from xincord.core.component_ids import ComponentIds, ParsedId
     from xincord.core.plugins import PluginInfo
@@ -25,6 +24,8 @@ if TYPE_CHECKING:
     type Handler = Callable[[discord.Interaction, ParsedId], Awaitable[None]]
 
 logger = logging.getLogger(__name__)
+
+ROUTED = (discord.InteractionType.component, discord.InteractionType.modal_submit)
 
 
 class Bot(commands.Bot):
@@ -59,6 +60,7 @@ class Bot(commands.Bot):
         self._force_lang = force_lang
         self._contexts: dict[str, PluginContext] = {}
         self._loaded: dict[str, PluginInfo] = {}
+        self._routes: dict[str, list[tuple[ComponentIds, Handler]]] = {}
 
     @property
     def loaded(self) -> tuple[str, ...]:
@@ -85,10 +87,34 @@ class Bot(commands.Bot):
         Raises:
             PluginError: No plugin loads from ``module``.
         """
+        name = self.plugin_context(module).info.name
+        self._routes.setdefault(name, []).append((ids, handler))
 
     async def on_interaction(self, interaction: discord.Interaction) -> None:
         """Route component and modal interactions to the plugin that owns their ID."""
-        raise NotImplementedError
+        if interaction.type not in ROUTED:
+            return
+        custom_id = cast("Mapping[str, object]", interaction.data or {}).get("custom_id")
+        if not isinstance(custom_id, str):
+            return
+        for plugin, routes in self._routes.items():
+            for ids, handler in routes:
+                if ids.owns(custom_id):
+                    await self._handle(plugin, ids, handler, interaction, custom_id)
+                    return
+
+    async def _handle(
+        self,
+        plugin: str,
+        ids: ComponentIds,
+        handler: Handler,
+        interaction: discord.Interaction,
+        custom_id: str,
+    ) -> None:
+        try:
+            await handler(interaction, ids.parse(custom_id))
+        except Exception:
+            logger.exception("Plugin %s failed to handle %s", plugin, custom_id)
 
     async def load_plugins(self) -> list[str]:
         """Load the plugins in order and return the names of those that did not load."""
@@ -137,6 +163,8 @@ class Bot(commands.Bot):
         for info in self._loaded.values():
             if info.name != name and affected.isdisjoint((*info.depends, *info.soft_depends)):
                 continue
+            # Whichever setup runs next registers the routes again.
+            self._routes.pop(info.name, None)
             try:
                 # discord.py restores the previous module when the new one fails.
                 await self.reload_extension(info.module)
@@ -153,6 +181,7 @@ class Bot(commands.Bot):
             await self.load_extension(info.module)
         except commands.ExtensionError as error:
             del self._contexts[info.module]
+            self._routes.pop(info.name, None)
             msg = f"plugin {info.name} failed to load: {error}"
             raise PluginError(msg) from error
         self._loaded[info.name] = info
