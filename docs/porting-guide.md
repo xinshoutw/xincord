@@ -22,6 +22,7 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | Command localization via `StringLocalizer` and Kotlin property paths | `app_commands.Translator` fed from `lang/<locale>/register.yaml` keys | B7 |
 | `MessageCreator` YAML templates | templates module: v1 YAML tags and Components V2 | B10 |
 | `Placeholder` / commons-text substitutor | single-level `%key%` substitution with a fresh context per render | B10 |
+| `checkComponentIdPrefix` / `checkModalIdPrefix` in every plugin listener | `bot.route(__name__, ids, handler)` in `setup`; the handler gets the interaction and a `ParsedId` | B9 |
 | `ComponentIdManager` (`{prefix}{a..z}:{value};...`) | `ComponentIds`: `{namespace}:1:{letter}={value};...` plus the permanent v3 decoder; `upgrade_view` rewrites legacy IDs | B9 |
 | JSON files and embedded MongoDB | SQLite (`sqlite3` + `asyncio.to_thread`), key-value table plus per-plugin tables | B8 |
 | kotlinx/Jackson YAML config | pydantic v2 models over PyYAML; unknown keys warn | B6 |
@@ -118,3 +119,4 @@ Every deliberate difference, added by the change that introduces it.
 | Plugin switches | an `enabled` key in each plugin config, checked by every handler; disabled plugins still exported their files | the core config's `plugins` list; disabled plugins are never imported | core-plugin-loading |
 | Intents | GUILD_MEMBERS always requested | requested only when an enabled plugin declares it | core-plugin-loading |
 | Command upload | guild commands overwritten in every guild at every start | uploaded only when a scope's payload hash changed, or when forced | core-command-tree |
+| Component routing | every plugin received every component and modal event and filtered by prefix | only the owning plugin's handler runs; a message is upgraded to new IDs after a legacy one is used | core-component-routing |
