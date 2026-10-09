@@ -216,11 +216,17 @@ def _divide(left: BigDecimal, right: BigDecimal) -> BigDecimal:
     return BigDecimal(_round_half_up(numerator, denominator), DIVISION_PLACES)
 
 
+def _power(base: BigDecimal, exponent: BigDecimal) -> BigDecimal:
+    """Raise ``base`` to a whole ``exponent``."""
+    raise NotImplementedError
+
+
 BINARY: dict[str, Callable[[BigDecimal, BigDecimal], BigDecimal]] = {
     "+": _add,
     "-": _subtract,
     "*": _multiply,
     "/": _divide,
+    "^": _power,
 }
 _DIGITS_LIMIT = 10**DIGITS_MAX
 _RESULT_LIMIT = 10**RESULT_MAX
