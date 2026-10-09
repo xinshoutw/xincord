@@ -29,6 +29,9 @@ fractional exponents; localized error messages; rate limiting.
   never read.
 - `DEFAULT_LOCALE = "zh-TW"`, as v3 hard-coded (`Event.kt:27`, `BasicCalculator.kt:17`). No
   intents, no dependencies, no component IDs (v3 had no components).
+- v3's `reload()` rebuilt the localizer and the `MessageCreator` (`Event.kt:32-47`); the core's
+  reload runs `setup` again, which does the same. discord.py dispatches the command by name,
+  which replaces v3's `checkCommandString` (`Event.kt:57-61`).
 - `lang/<locale>/register.yaml`, `message/basic-calculate.yaml` and `message/error.yaml` are v3's,
   with final newlines added. The en-US `formula` description is corrected (see below). The embed
   image (`https://blog.xinshou.tw/favicon.ico`) and the footer stay: they are v3's branding in
@@ -153,10 +156,23 @@ Kept on purpose: non-ASCII digits (`３`, `١٢`) are read as part of a number a
 message names the token. Users whose locale has no lang directory get the zh-TW embeds, as in v3
 and _Example.
 
+### Inventory audit
+
+Every section of the inventory maps to this change: the command (section 3) to the requirements
+on the command, the answer and the errors; the expression language (7a) to trimming, reading,
+results, powers and the golden files; the templates and placeholders (7) to the answer and error
+scenarios and `golden.yaml`; the lifecycle (2), config (6), components (4), persistence (8) and
+intents (10) to the decisions above; the concurrency notes (11) and the defects (12) to "v3
+behaved differently", with items 8 and 10 kept on purpose; the testability notes (13) to the
+golden tests and the Discord fakes. Rate limiting and the empty `src/index.css` are out of scope.
+
 ## Risks / Trade-offs
 
 - The fixes change answers that v3 users may remember (`2*-3`, `2^3^2`); the owner reviews them in
   `docs/porting/owner-review.md`.
+- Within the limits, the slowest formulas found take about 0.4 s on the development Mac (as many
+  `9^52000/9^26000` terms as fit in 1018 characters, added up; the sum fails with `Too many
+  digits`); the worker thread keeps the gateway responsive meanwhile.
 - The 50,000-digit limit refuses some formulas v3 answered slowly, such as `(1+1/10000)^10000`
   (100,000 digits in v3's representation).
 - English error messages in zh-TW embeds, as in v3.

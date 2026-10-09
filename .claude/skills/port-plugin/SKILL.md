@@ -36,7 +36,9 @@ Names: `<Plugin>` is the v3 name (`AutoRole`, `_Example`), `<kebab>` its kebab c
 5. **Wire it up.** Entry point, `setup`, command, routes: see the conventions.
 6. **Golden tests.** v3's text per locale in `golden.yaml`; v3 component IDs from the inventory
    decode and upgrade to the expected new IDs (a plugin with v3 components); every shipped template
-   renders in each locale.
+   renders in each locale. Recorded v3 answers (BasicCalculator's JSONL) are copied unchanged; a
+   record that a fixed v3 defect changes must agree with an independent implementation in the test
+   (`tests/plugins/basic_calculator/test_golden.py`), never be edited.
 7. **Check the package.** `uv build --package xincord-plugins -o <scratch dir>` lists `config.yaml`
    and `lang/` in the wheel. Stronger: install both wheels in a scratch venv and run
    `xincord --no-online` in an empty directory whose `config.yaml` enables the plugin.
@@ -61,7 +63,9 @@ packages/xincord-plugins/src/xincord/plugins/<package>/
 ```
 
 - Import the plugin's own modules relatively (`from .cog import Example`). Split `cog.py` when it
-  grows: pure logic in its own module (tested without discord.py), storage in `store.py`.
+  grows: pure logic in its own module (tested without discord.py, as
+  `basic_calculator/calculator.py`), storage in `store.py`. Run CPU-bound work with
+  `asyncio.to_thread`.
 - Entry point: `<Plugin> = "xincord.plugins.<package>"` under
   `[project.entry-points."xincord.plugins"]` in `packages/xincord-plugins/pyproject.toml`. The name
   is the v3 name: the `plugins:` entry, the `plugins/<Plugin>/` directory and the log name. `uv run`
@@ -112,6 +116,10 @@ async def setup(bot: Bot) -> None:
   True}`; a command that opens a modal sets `extras={"defer": False}`. The tree defers the others
   ephemerally before the callback runs: answer with `interaction.edit_original_response(...)` or
   `interaction.followup.send(...)`.
+- A v3 reply posted with `event.channel.sendMessage(...)` after the defer: send it to
+  `interaction.channel` when that has `send` (a `runtime_checkable` Protocol, so fakes need no
+  discord base class; forums and categories have none), then `delete_original_response()`; on
+  `discord.HTTPException`, edit the deferred response into it instead (BasicCalculator's `_post`).
 
 ### Templates and placeholders
 
@@ -146,7 +154,10 @@ async def setup(bot: Bot) -> None:
   `setup`, no network); `cog` is `bot.get_cog(...)`. To test operator edits and v3 files, write
   them under `tmp_path / "plugins" / "<Plugin>"` first and call `load_plugin` in the test.
 - `tests/support/discord_fakes.py`: `FakeInteraction` records what the plugin sends in `sent`;
-  `FakeUser`, `buttons(view)` and `embed_dict(embed)`. Extend it instead of writing new fakes.
+  `FakeChannel` records `channel.send` into a shared `sent` list or raises its `error`
+  (`forbidden()`); `FakeUser`, `buttons(view)` and `embed_dict(embed)`. Extend it instead of
+  writing new fakes. pytest runs in importlib mode, so a test module cannot import another one:
+  tests that share helpers stay in one module (BasicCalculator's `test_replies.py`).
   Call cog methods directly (`cog.example_command(...)`), check a command's wiring through
   `bot.tree.get_command(...)` (its `binding` is the cog), and send components through
   `bot.on_interaction(...)`, which includes the routing.
@@ -156,7 +167,11 @@ async def setup(bot: Bot) -> None:
 - A test that loads the plugin cannot reach a stub that raises without breaking the load: mark it
   `xfail(strict=True, reason=...)` without `raises`. Give handlers that tests call directly a stub
   and `raises=NotImplementedError`. A test that would already pass (such as "no response") must
-  call a stub.
+  call a stub. A stub whose annotations need `discord` keeps that import under `TYPE_CHECKING`
+  and plain types (ruff's TC rules); the imports move to runtime with the code that uses them.
+- Pure functions get one requirement each when they can be stubbed separately (BasicCalculator:
+  trimming, reading, results, powers, then `calculate` with the golden files), so that each xfail
+  commit fails for its own stub.
 - Never unload or reload the real plugin in a test: discord.py re-imports its modules, and later
   tests compare against classes from the old ones. The core's reload tests use fake plugins.
 - ruff, pyright, pytest and coverage already cover `packages/` and `tests/`; nothing to configure

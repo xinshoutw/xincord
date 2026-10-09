@@ -79,6 +79,17 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - Tests live in `tests/plugins/<package>/` and load the real plugin through its entry point
   (`plugin_fakes.load_plugin`); Discord fakes are in `tests/support/discord_fakes.py`; v3's text
   per locale is golden data in `tests/fixtures/plugins/<package>/golden.yaml`.
+- Logic that needs no Discord lives in its own module and is tested directly
+  (`basic_calculator/calculator.py`); the cog only renders and sends. CPU-bound work runs in
+  `asyncio.to_thread`.
+- A plugin whose only v3 key was `enabled` ships no `config.yaml` (BasicCalculator).
+- A v3 reply posted with `event.channel.sendMessage` goes to `interaction.channel` when it has a
+  `send` method (BasicCalculator's `Postable` protocol: forums and categories have none), then the
+  deferred response is deleted; on `discord.HTTPException` the reply replaces the deferred
+  response instead.
+- Recorded v3 answers (BasicCalculator's JSONL) are copied to `tests/fixtures/plugins/<package>/`
+  unchanged. Records that a fixed v3 defect changes are checked against an independent
+  implementation in the test, never edited.
 
 ## Pitfalls
 
@@ -93,8 +104,22 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   overwrites the way JDA does; merge them explicitly (Ticket).
 - **IntervalPusher.** `tasks.loop` schedules from each start, not after each completion as Kotlin
   did. discord.py has no REST ping; time `GET /users/@me` to keep `%ping%`.
-- **BasicCalculator.** `decimal` defaults to 28 digits; use `Fraction` or exact decimal arithmetic.
-  The golden files in `docs/porting/analysis/inventory/fixtures/` decide.
+- **Exact decimals.** `decimal` defaults to 28 digits, and `Fraction` reduces with a gcd that costs
+  75 to 180 ms per operation at 100,000 digits. BasicCalculator models Java's `BigDecimal` as an
+  unscaled integer and a scale, which costs a few milliseconds there.
+- **Big integers.** Python refuses `str()` and `int()` conversions of more than 4,300 digits
+  (`ValueError`); bound the size before converting. Bound a power before computing it: Python
+  computes `10**999999999` if asked.
+- **Kotlin character classes.** `Char.isWhitespace()` is `str.isspace()` without U+0085;
+  `Char.isDigit()` is `str.isdecimal()`; Kotlin strings are UTF-16, so v3 saw a character outside
+  the BMP as two surrogates.
+- **`str.splitlines()`** also splits at U+0085, U+2028 and other separators; split JSONL and other
+  line-based data with `split("\n")`.
+- **ruff S105** reports a variable or constant named like `token` that is compared with or assigned
+  a string ("possible hardcoded password"); name it after what it holds instead.
+- **CRLF in v3 files.** Some v3 resources have CRLF line endings (BasicCalculator's zh-TW
+  `register.yaml`). Git stores them as LF, but the copied working file keeps CRLF; convert copied
+  files to LF.
 - **Lookup keys.** Kotlin's `StringLocalizer` uses camelCase property paths; Python uses the YAML
   keys directly.
 - **CJK in tests.** Build samples with `chr(0x4E2D)` or YAML fixtures. Agent tools may decode a
@@ -187,3 +212,15 @@ Every deliberate difference, added by the change that introduces it.
 | _Example | `example_key` was required but never read; a config without it stopped the bot | optional, `example_value` by default, shown in the reply | port-example |
 | _Example | the reply needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers the command | port-example |
 | _Example | the reply was the embed alone | a third field shows `example_key`, and a button under the embed counts presses | port-example |
+| BasicCalculator | a minus after an operator subtracted from a synthetic `0` (`2*-3` was `-3`, `2^-1` was `0`, `1/-2` divided by zero) | it negates (`-6`, `0.5`, `-0.5`) | port-basic-calculator |
+| BasicCalculator | `^` grouped from the left (`2^3^2` was 64) | from the right (512) | port-basic-calculator |
+| BasicCalculator | `^` truncated its exponent to 32 bits (`2^0.5` was 1, `2^4294967297` was 2) | whole exponents only: `Exponent must be an integer` or `Too many digits` | port-basic-calculator |
+| BasicCalculator | division by zero and negative or huge exponents threw, and "thinking..." stayed | an error embed; negative exponents divide 1 by the power | port-basic-calculator |
+| BasicCalculator | no limits: `10^999999999` stalled the gateway thread, and formulas or results over 1018 characters got no reply | `formula` takes at most 1018 characters, numbers over 50,000 digits fail with `Too many digits`, and the calculation runs in a worker thread | port-basic-calculator |
+| BasicCalculator | `%...%` in a failing formula was expanded, and `%bc_question%` gave no reply | the formula is shown as typed | port-basic-calculator |
+| BasicCalculator | the `bc_` keys stayed in the member's cached placeholders | each render uses its own values | port-basic-calculator |
+| BasicCalculator | `%bc_answer_round%` was the whole answer | the part before the decimal point | port-basic-calculator |
+| BasicCalculator | "thinking..." stayed when the bot could not post in the channel | the answer replaces the deferred response | port-basic-calculator |
+| BasicCalculator | the en-US `formula` description said "bracket is ignorable" | it says that the multiplication sign can be omitted | port-basic-calculator |
+| BasicCalculator | the reply needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers the command | port-basic-calculator |
+| BasicCalculator | an unknown character outside the BMP was reported as half a surrogate pair | the whole character | port-basic-calculator |

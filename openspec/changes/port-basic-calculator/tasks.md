@@ -53,9 +53,9 @@
 ## 11. Conventions and docs
 
 - [x] 11.1 Check that the built wheel ships `lang/` and that `xincord --no-online` loads the plugin
-- [ ] 11.2 Porting guide rows and pitfalls, skill corrections, and the measured worst case in the
+- [x] 11.2 Porting guide rows and pitfalls, skill corrections, and the measured worst case in the
       design
-- [ ] 11.3 Audit the inventory against the scenarios and the design
+- [x] 11.3 Audit the inventory against the scenarios and the design
 
 ## 12. Close
 
