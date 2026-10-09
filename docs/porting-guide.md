@@ -31,6 +31,8 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `java -jar` with Clikt options | the `xincord` console script (`xincord.core.cli`, argparse); `--no-online` loads the plugins without connecting and exits | B15 |
 | `BotLoader`: build JDA, wait for ready, then load the plugins | `Bot.setup_hook` sets the translator and loads the plugins before the gateway connects; `on_ready` and `on_guild_join` upload the commands | B3, B5 |
 | `BotLoader.reload()`: stop JDA and start everything again | `Bot.reload(plugin=None)` in place: the loaded plugins follow `config.yaml`, or one plugin reloads with its dependents; triggered by SIGHUP, the owner's `/xincord reload` and the console | B15 |
+| `StatusChanger` thread over `TYPE;text;ms` strings | `xincord.core.status.rotate` task, started on ready and restarted by a full reload | |
+| `InteractionLogger` and `ConsoleLogger` listeners | `xincord.core.interaction_log.log` from `Bot.on_interaction`, after routing | |
 | JDA's default mentions (all types ping) | the bot's `allowed_mentions`: users and the replied-to user; a message opts in with its own | B19 |
 | Ktor Web-Dashboard | not ported | B13 |
 
@@ -146,3 +148,6 @@ Every deliberate difference, added by the change that introduces it.
 | Reload | only the console (whole bot) or the Web Dashboard (one plugin) could reload | SIGHUP and the owner's `/xincord reload [plugin]` (the console follows) | core-reload |
 | Console | started without a terminal too, and end of input stopped the bot | runs only when stdin and stdout are terminals | core-console |
 | Console | `reload` took no plugin and completion covered the command names | `reload <plugin>`, and the loaded plugins complete after `reload` | core-console |
+| Interaction log | modal submissions were posted to log channels with `cl_type` `BTN` | `MODAL` | core-status-log |
+| Interaction log | log channel messages used JDA's default mentions, so `%user_mention%` pinged | log messages never ping | core-status-log |
+| Status rotation | a single activity was set again after every delay | set once | core-status-log |
