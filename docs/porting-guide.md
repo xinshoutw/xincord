@@ -20,7 +20,7 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | Command localization via `StringLocalizer` and Kotlin property paths | `app_commands.Translator` fed from `lang/<locale>/register.yaml` keys | B7 |
 | `MessageCreator` YAML templates | templates module: v1 YAML tags and Components V2 | B10 |
 | `Placeholder` / commons-text substitutor | single-level `%key%` substitution with a fresh context per render | B10 |
-| `ComponentIdManager` (`{prefix}{a..z}:{value};...`) | new versioned ID format plus a permanent legacy decoder | B9 |
+| `ComponentIdManager` (`{prefix}{a..z}:{value};...`) | `ComponentIds`: `{namespace}:1:{letter}={value};...` plus the permanent v3 decoder; `upgrade_view` rewrites legacy IDs | B9 |
 | JSON files and embedded MongoDB | SQLite (`sqlite3` + `asyncio.to_thread`), key-value table plus per-plugin tables | B8 |
 | kotlinx/Jackson YAML config | pydantic v2 models over PyYAML; unknown keys warn | B6 |
 | Coroutines, `launch`, scheduled executors | `asyncio` tasks, `discord.ext.tasks.loop` | |
@@ -106,3 +106,6 @@ Every deliberate difference, added by the change that introduces it.
 | Components V2 | V2 components were checked when a message was rendered | validated when the plugin loads | core-components-v2 |
 | Components V2 | without `is_components_v2`, a top-level `model_key` in `components_v2` could supply a whole action row | only action rows there; models work inside them | core-components-v2 |
 | Components V2 | an embed model's timestamp became ISO text in the container footer | Discord `<t:...:f>` markup, shown in the reader's time zone | core-components-v2 |
+| Component IDs | values containing `:` or `;` could not be parsed back | values are percent-encoded | core-component-ids |
+| Component IDs | values went through the shared placeholder substitutor | values are written verbatim | core-component-ids |
+| Component IDs | no version; old IDs had to stay valid forever | versioned; legacy IDs still parse and are rewritten when first used | core-component-ids |

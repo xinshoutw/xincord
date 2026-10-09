@@ -26,8 +26,10 @@ first plugins calibrate this checklist: fix it here when reality differs.
 5. **Wire it up.** Register the extension in the `xincord.plugins` entry-point group in
    `packages/xincord-plugins/pyproject.toml` and declare its metadata (name, version,
    dependencies, intents, legacy component prefix).
-6. **Golden tests.** Decode real v3 component IDs from the inventory with the legacy decoder.
-   Render every shipped template in each locale.
+6. **Golden tests.** Declare the plugin's `ComponentIds(namespace, fields, legacy_prefix=...,
+   legacy_hex=...)` with the v3 fields first, in v3 declaration order (append only). Decode real
+   v3 IDs from the inventory and check that each upgrades to the expected new ID. Render every
+   shipped template in each locale.
 7. **Document.** Add the mapping notes, new pitfalls and the differences table rows to
    `docs/porting-guide.md`. Write the manual smoke checklist for a test guild in the change's
    `design.md`.
