@@ -12,5 +12,5 @@
 
 - [x] 3.1 Manual check from the design, with the owner's go-ahead to start the Docker engine
 - [x] 3.2 Update the README and `docs/porting-guide.md`
-- [ ] 3.3 Gate passes, push, CI green
-- [ ] 3.4 Archive the change and run `openspec validate --all --strict`
+- [x] 3.3 Gate passes, push, CI green
+- [x] 3.4 Archive the change and run `openspec validate --all --strict`

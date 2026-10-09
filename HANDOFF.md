@@ -1,6 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 in the third Phase 2 session, after `core-status-log`. Read this file first, then
+Updated 2026-10-10 at the end of the third Phase 2 session, after `container`. Core is complete. Read this file first, then
 `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and binding; do not re-open
 them unless you find a serious problem, and then ask the owner.
 
@@ -127,7 +127,12 @@ starting with Core. Motivation: easier maintenance and faster iteration.
     Component and modal IDs come from a `build_id(uid_map)` callable the plugin passes in. Views
     and modals are stopped before they are returned, so discord.py never dispatches their
     interactions; the core will route them (Core change `command-tree`).
-- **Still to build:** see section 5: Docker (B16) and all plugins.
+- **Deployment (`container`):** `Dockerfile` (two stages on `python:3.14.8-slim-trixie`, uv 0.12.24,
+  `uv sync --locked --no-dev --all-packages --no-editable`, user `xincord` in `/bot`, entry point
+  `xincord`), `.dockerignore`, and `compose.yaml` (service `bot`: `./bot` bind-mounted at `/bot`,
+  named volume `data` = `xincord_data` at `/bot/data`, `stdin_open`, `tty`, `init`,
+  `restart: unless-stopped`, 30 s stop grace, json-file logs 10 MB x 3).
+- **Still to build:** all plugins (section 5).
 
 ## 5. Status and next steps
 
@@ -136,23 +141,18 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `project-skeleton`, `core-config`, `core-storage`, `core-i18n`, `core-placeholders`,
 `core-templates`, `core-components-v2`, `core-component-ids`, `core-plugin-loading`,
 `core-command-tree`, `core-component-routing`, `core-interaction-values`, `core-startup`,
-`core-reload`, `core-console`, `core-status-log`. Each one's `design.md` in `openspec/changes/archive/` records its decisions and "v3 behaved
+`core-reload`, `core-console`, `core-status-log`, `container`. Each one's `design.md` in `openspec/changes/archive/` records its decisions and "v3 behaved
 differently" notes; `docs/porting-guide.md` has the differences table.
 
-### Next Core changes, in order
+### Next: the plugins
 
-The runtime (B15, B19) is done: `core-startup`, `core-reload`, `core-console` and
-`core-status-log`. The `/bot-info` source link (C3) belongs to the BotInfo plugin's config.
-
-1. **container (B16), in progress:** the active change `openspec/changes/container/` has its
-   proposal, the `Dockerfile`, `.dockerignore`, `compose.yaml` and static tests
-   (`tests/test_container.py`) committed locally, not pushed. Left: the manual check in its
-   `design.md` (the owner approved `orb start`, building and running `--no-online`, then removing
-   the test container, the `xincord_data` volume and `bot/`, then `orb stop`), the README and
-   porting-guide rows, listing the operator-visible changes, push, CI, archive.
-
-Then the plugins in C1 order (_Example first, as the template for the new API), using the
-`port-plugin` skill. Update `docs/porting-guide.md` after each one.
+Core is complete. Port the plugins in C1 order with the `port-plugin` skill
+(`.claude/skills/port-plugin/SKILL.md`), one OpenSpec change each (`port-<plugin-kebab>`):
+_Example first (rewritten as the template for the new API), then BasicCalculator, AutoRole,
+BotInfo (with the configurable AGPL source link, C3), SimpleCommand, WelcomeByeGuild,
+IntervalPusher, Feedbacker, Economy, DynamicVoiceChannel, VoiceLogger, ChatLogger, Giveaway,
+Ticket, TicketAddons, NtustManager, NtustCourse, MusicPlayer (with Lavalink in `compose.yaml`).
+Update `docs/porting-guide.md` after each one.
 
 ### Working tips from this session
 
@@ -171,6 +171,9 @@ Then the plugins in C1 order (_Example first, as the template for the new API), 
   happy until the field exists.
 - Test commands with `app_commands.Command(name=..., callback=...)` in a typed factory: decorated
   module-level commands are partially unknown to pyright.
+- Docker: the CLI uses the OrbStack context; the engine is usually stopped. Ask before `orb start`,
+  and `orb stop` afterwards. `docker compose run --rm -T bot --no-online` checks an image without a
+  token; `docker compose down -v` removes the test volume.
 - Run the gate and check its exit status directly. Piping it into `tail` before `&&` once hid a
   failure and let a bad commit through (it was amended before pushing).
 - OpenSpec is not installed globally: `OPENSPEC_TELEMETRY=0 npx --yes @fission-ai/openspec@1.14.1
@@ -185,8 +188,9 @@ Answered on 2026-10-10: the license is `AGPL-3.0-or-later` (set in both `pyproje
 the owner still adds LICENSE); OpenSpec stays on npx; the user-visible changes listed before were
 accepted. For `core-startup` the owner chose: `--no-online` checks and exits; logs go to stderr
 only (no log file). For `core-reload`: English copy for `/xincord`, and a full reload unloads the
-plugins removed from the list. The `core-console` and `core-status-log` behavior was accepted
-as listed.
+plugins removed from the list. The `core-console`, `core-status-log` and `container` behavior was
+accepted as listed. Still open: a run with a real token under compose (step 3 of the manual check
+in `openspec/changes/archive/2026-10-10-container/design.md`).
 
 1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
    (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script
