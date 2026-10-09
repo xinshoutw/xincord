@@ -2,17 +2,21 @@
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:28
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:64-160
+    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:64-206
 """
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterator, Sequence
 
 # Discord's 1024-character embed field value, minus the code fence the templates put around the
 # formula and the result.
 FORMULA_MAX = 1018
+RESULT_MAX = FORMULA_MAX
+# The most digits a value keeps in its unscaled number, and the most decimal places, so that a
+# formula such as 10^999999999 fails at once instead of stalling the bot.
+DIGITS_MAX = 50_000
 NEXT_LINE = chr(0x85)  # whitespace for Python's str.isspace(), not for Kotlin's isWhitespace()
 TRAILING = "?= "  # v3's trimEnd('?', '=', ' ')
 NEGATE = "neg"  # the postfix token of a minus that negates
@@ -128,3 +132,16 @@ def _close_bracket(stack: list[str], output: list[str]) -> None:
     if not stack:
         raise CalcError(UNMATCHED_BRACKET)
     stack.pop()
+
+
+def evaluate_postfix(tokens: Sequence[str]) -> str:
+    """Compute postfix tokens exactly, as v3's stack machine did with ``BigDecimal``.
+
+    Returns:
+        The result rounded half up to 5 places, without trailing zeros.
+
+    Raises:
+        CalcError: A token is not a number, an operator lacks operands, a division is by zero, or
+            a number grows too large.
+    """
+    raise NotImplementedError
