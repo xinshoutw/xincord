@@ -70,6 +70,8 @@ styles at once.
   typed `\u` escape into the real character, which the CJK hook then rejects.
 - **prek pygrep** compiles patterns as bytes, so a `\u` escape in a pattern fails; match UTF-8 byte
   ranges instead.
+- **Stopped views.** A discord.py view created outside a running event loop never reports
+  `is_finished()`; tests that check rendered views must be `async`.
 - **Global `core.hooksPath`.** prek refuses to install while a global `core.hooksPath` is set; use
   `git config --local core.hooksPath .git/hooks`.
 
@@ -101,3 +103,6 @@ Every deliberate difference, added by the change that introduces it.
 | Templates | a locale directory missing one template raised at render time | per-file fallback to the default locale | core-templates |
 | Templates | render-time values were added to the shared global substitutor for good | values apply to one render only | core-templates |
 | Templates | bad styles, missing `uid`s and bad timestamps failed when a message was sent | they fail when the plugin loads | core-templates |
+| Components V2 | V2 components were checked when a message was rendered | validated when the plugin loads | core-components-v2 |
+| Components V2 | without `is_components_v2`, a top-level `model_key` in `components_v2` could supply a whole action row | only action rows there; models work inside them | core-components-v2 |
+| Components V2 | an embed model's timestamp became ISO text in the container footer | Discord `<t:...:f>` markup, shown in the reader's time zone | core-components-v2 |
