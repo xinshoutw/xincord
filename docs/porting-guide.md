@@ -27,7 +27,7 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | JSON files and embedded MongoDB | SQLite (`sqlite3` + `asyncio.to_thread`), key-value table plus per-plugin tables | B8 |
 | kotlinx/Jackson YAML config | pydantic v2 models over PyYAML; unknown keys warn | B6 |
 | Coroutines, `launch`, scheduled executors | `asyncio` tasks, `discord.ext.tasks.loop` | |
-| JLine console, `--ignore-update` | prompt_toolkit console, SIGHUP reload, `/xincord reload`; no version check | B15 |
+| JLine console (`JLineManager`, `JLineAppender`), `--ignore-update` | prompt_toolkit console (`xincord.core.console`; logs print above the prompt through `patch_stdout`), SIGHUP reload, `/xincord reload`; no version check | B15 |
 | `java -jar` with Clikt options | the `xincord` console script (`xincord.core.cli`, argparse); `--no-online` loads the plugins without connecting and exits | B15 |
 | `BotLoader`: build JDA, wait for ready, then load the plugins | `Bot.setup_hook` sets the translator and loads the plugins before the gateway connects; `on_ready` and `on_guild_join` upload the commands | B3, B5 |
 | `BotLoader.reload()`: stop JDA and start everything again | `Bot.reload(plugin=None)` in place: the loaded plugins follow `config.yaml`, or one plugin reloads with its dependents; triggered by SIGHUP, the owner's `/xincord reload` and the console | B15 |
@@ -144,3 +144,5 @@ Every deliberate difference, added by the change that introduces it.
 | Mentions | every mention type pinged, including `@everyone` and roles | users and the replied-to user only, unless a message opts in | core-startup |
 | Reload | the console's `reload` disconnected and rebuilt everything; a plugin that failed stayed off | reloads in place without disconnecting; a plugin whose new version fails keeps its previous one | core-reload |
 | Reload | only the console (whole bot) or the Web Dashboard (one plugin) could reload | SIGHUP and the owner's `/xincord reload [plugin]` (the console follows) | core-reload |
+| Console | started without a terminal too, and end of input stopped the bot | runs only when stdin and stdout are terminals | core-console |
+| Console | `reload` took no plugin and completion covered the command names | `reload <plugin>`, and the loaded plugins complete after `reload` | core-console |
