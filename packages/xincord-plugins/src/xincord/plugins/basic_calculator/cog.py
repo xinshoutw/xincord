@@ -6,15 +6,16 @@ Kotlin:
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from xincord.core.placeholders import actor_values
 from xincord.core.templates import render_message
 
-from .calculator import CalcError, calculate, normalize
+from .calculator import FORMULA_MAX, CalcError, calculate, normalize
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -44,8 +45,32 @@ class BasicCalculator(commands.Cog):
         self.lang = lang
         self.templates = templates
 
-    async def basic_calculate(self, interaction: discord.Interaction, formula: str) -> None:
-        """Post the answer to the channel and delete the deferred response."""
+    def command(self) -> app_commands.Command[Any, ..., None]:
+        """Build ``/basic-calculate``, localized from ``register.yaml``."""
+        lang = self.lang
+        command: app_commands.Command[Any, ..., None] = app_commands.Command(
+            name=lang.command("basic-calculate", "basic-calculate.name"),
+            description=lang.command(
+                "calculate + - * / ^ ( ) math problem", "basic-calculate.description"
+            ),
+            callback=self.basic_calculate,
+        )
+        app_commands.rename(
+            formula=lang.command("formula", "basic-calculate.options.formula.name")
+        )(command)
+        return app_commands.describe(
+            formula=lang.command("What's problem?", "basic-calculate.options.formula.description")
+        )(command)
+
+    async def basic_calculate(
+        self,
+        interaction: discord.Interaction,
+        formula: app_commands.Range[str, None, FORMULA_MAX],
+    ) -> None:
+        """Post the answer to the channel and delete the deferred response.
+
+        On an error, edit the deferred response into the error instead.
+        """
         question = normalize(formula)
         values = _values(interaction) | {"bc_question": question}
         try:

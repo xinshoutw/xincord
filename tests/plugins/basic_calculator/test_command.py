@@ -8,7 +8,6 @@ Kotlin:
 
 from typing import TYPE_CHECKING, Any, cast
 
-import pytest
 from discord import app_commands
 
 from discord_fakes import FakeChannel, FakeInteraction
@@ -27,7 +26,6 @@ if TYPE_CHECKING:
     # discord.py calls a cog command's function with the cog, its binding.
     type Callback = Callable[[BasicCalculator, discord.Interaction, str], Awaitable[None]]
 
-XFAIL = pytest.mark.xfail(strict=True, reason="The command is a localized guild command")
 GOLDEN = golden("basic_calculator")
 DATA = {
     "type": 1,
@@ -41,7 +39,6 @@ def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
     return {key: actual.get(key) for key in expected}
 
 
-@XFAIL
 async def test_command_payload(bot: Bot) -> None:
     """Requirement: The command is a localized guild command."""
     global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
@@ -55,7 +52,6 @@ async def test_command_payload(bot: Bot) -> None:
     assert [listed(option, wanted) for option, wanted in options] == expected["options"]
 
 
-@XFAIL
 async def test_command_callback(bot: Bot, cog: BasicCalculator) -> None:
     """Requirement: The command is a localized guild command."""
     command = bot.tree.get_command("basic-calculate")
