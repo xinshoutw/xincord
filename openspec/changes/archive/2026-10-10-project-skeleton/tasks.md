@@ -26,5 +26,5 @@
 
 ## 5. Close
 
-- [ ] 5.1 Gate passes, push, CI green
-- [ ] 5.2 Archive the change and run `openspec validate --all --strict`
+- [x] 5.1 Gate passes, push, CI green
+- [x] 5.2 Archive the change and run `openspec validate --all --strict`
