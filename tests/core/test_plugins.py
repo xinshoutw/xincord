@@ -23,16 +23,6 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
 
-DISCOVERED = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Plugins are discovered through entry points"
-)
-ORDERED = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Plugins load in dependency order"
-)
-INTENTS = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Intents are aggregated before connecting"
-)
-
 
 @dataclass
 class FakePlugins:
@@ -77,7 +67,6 @@ def fake_plugins(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Fa
         del sys.modules[name]
 
 
-@DISCOVERED
 def test_enabled_plugins_are_discovered(fake_plugins: FakePlugins) -> None:
     """Requirement: Plugins are discovered through entry points."""
     module = fake_plugins.add(
@@ -98,7 +87,6 @@ def test_enabled_plugins_are_discovered(fake_plugins: FakePlugins) -> None:
     ]
 
 
-@DISCOVERED
 def test_installed_group_is_the_default(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Plugins are discovered through entry points."""
     with caplog.at_level(logging.ERROR):
@@ -107,7 +95,6 @@ def test_installed_group_is_the_default(caplog: pytest.LogCaptureFixture) -> Non
     assert "NotInstalled" in caplog.text
 
 
-@DISCOVERED
 @pytest.mark.parametrize(
     "source",
     [
@@ -135,7 +122,6 @@ def test_broken_plugins_are_left_out(
         assert name in caplog.text
 
 
-@ORDERED
 def test_dependencies_first(fake_plugins: FakePlugins) -> None:
     """Requirement: Plugins load in dependency order."""
     fake_plugins.add("Alpha")
@@ -147,7 +133,6 @@ def test_dependencies_first(fake_plugins: FakePlugins) -> None:
     assert [info.name for info in infos] == ["Alpha", "Beta", "Gamma"]
 
 
-@ORDERED
 def test_missing_dependencies_and_cycles(
     fake_plugins: FakePlugins, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -169,7 +154,6 @@ def test_missing_dependencies_and_cycles(
         assert name in caplog.text
 
 
-@INTENTS
 def test_plugin_intents_are_added(fake_plugins: FakePlugins) -> None:
     """Requirement: Intents are aggregated before connecting."""
     fake_plugins.add("Alpha", "import discord\nINTENTS = discord.Intents(members=True)\n")

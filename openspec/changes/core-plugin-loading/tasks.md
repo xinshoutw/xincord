@@ -2,7 +2,7 @@
 
 - [x] 1.1 xfail tests for "Plugins are discovered through entry points", "Plugins load in
       dependency order" and "Intents are aggregated before connecting"
-- [ ] 1.2 Implement `discover` and `required_intents`; remove the markers
+- [x] 1.2 Implement `discover` and `required_intents`; remove the markers
 
 ## 2. Loading
 
