@@ -20,6 +20,7 @@ from xincord.core.templates.base import (
     resolve_model,
     select_option,
 )
+from xincord.core.templates.render_v2 import layout_view, row_items
 from xincord.core.templates.schema import ButtonsRow, StringSelectRow
 
 if TYPE_CHECKING:
@@ -34,6 +35,7 @@ if TYPE_CHECKING:
         RowSpec,
         TextInputSpec,
     )
+    from xincord.core.templates.schema_v2 import ActionRowV2
 
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
@@ -53,7 +55,8 @@ class Message:
 
     content: str
     embeds: tuple[discord.Embed, ...] = ()
-    view: discord.ui.View | None = None
+    view: discord.ui.View | discord.ui.LayoutView | None = None
+    files: tuple[discord.File, ...] = ()
 
 
 def render_message(
@@ -82,11 +85,23 @@ def render_message(
         return resolve_model(models, template.model_key, Message)
     moment = now or datetime.now(UTC)
     embeds = (_embed(spec, values, models, moment) for spec in template.embeds)
-    view = _view(template.components, values, build_id, models) if template.components else None
+    v1_rows = () if template.components_v2 else template.components
+    rows = [_row(row, values, build_id, models) for row in v1_rows]
+    view: discord.ui.View | discord.ui.LayoutView | None = None
+    files: tuple[discord.File, ...] = ()
+    if template.is_components_v2:
+        view, files = layout_view(template.components_v2, rows, values, build_id, models)
+    else:
+        rows += [
+            row_items(cast("ActionRowV2", row), values, build_id, models)
+            for row in template.components_v2
+        ]
+        view = _view(rows) if rows else None
     return Message(
         content=render(template.content, values),
         embeds=tuple(embed for embed in embeds if embed is not None),
         view=view,
+        files=files,
     )
 
 
@@ -164,16 +179,11 @@ def _timestamp(text: str | None, moment: datetime) -> datetime | None:
     return moment if text == "%now%" else EPOCH + timedelta(milliseconds=int(text))
 
 
-def _view(
-    rows: tuple[RowSpec, ...],
-    values: Mapping[str, str],
-    build_id: IdBuilder | None,
-    models: Mapping[str, object] | None,
-) -> discord.ui.View:
+def _view(rows: Sequence[list[Item]]) -> discord.ui.View:
     """Build a stopped view, so discord.py sends it but never dispatches its interactions."""
     view = discord.ui.View(timeout=None)
     for index, row in enumerate(rows):
-        for item in _row(row, values, build_id, models):
+        for item in row:
             item.row = index
             view.add_item(item)
     view.stop()
