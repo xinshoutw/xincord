@@ -3,20 +3,35 @@
 Kotlin:
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/Main.kt:17-39
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/util/Arguments.kt:11-60
+    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/SettingsLoader.kt:21-33
+    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/BotLoader.kt:36-107
 """
 
 import argparse
 import asyncio
 import logging
+import signal
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import discord
 
+from xincord.core.bot import Bot
+from xincord.core.config import ConfigError, CoreConfig, default_core_config, load_config
+from xincord.core.plugins import discover
+from xincord.core.storage import Store
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+logger = logging.getLogger(__name__)
+
 LEVELS = logging.getLevelNamesMapping()
+CONFIG = Path("config.yaml")
+PLUGINS = Path("plugins")
+DATABASE = Path("data/xincord.db")  # alone in data/, so a container can keep it in a volume
+SIGNALS = (signal.SIGINT, signal.SIGTERM)
 
 
 @dataclass(frozen=True)
@@ -61,7 +76,61 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 async def run(options: Options) -> int:
     """Start the bot from the working directory and return the exit status once it stops."""
-    raise NotImplementedError
+    try:
+        config = load_config(CONFIG, CoreConfig, default_core_config())
+    except ConfigError as error:
+        return _failed(str(error))
+    token = options.token or config.token
+    if not (token or options.no_online):
+        return _failed(f"No bot token: set token in {CONFIG} or pass --token")
+    store = await Store.open(DATABASE)
+    try:
+        plugins = discover(config.plugins)
+        bot = Bot(plugins, root=PLUGINS, store=store, force_lang=options.force_lang)
+        if options.no_online:
+            return await _check(bot, config.plugins)
+        return await _serve(bot, token)
+    finally:
+        await store.close()
+
+
+async def _check(bot: Bot, enabled: Sequence[str]) -> int:
+    """Load the plugins without connecting; succeed if every enabled one loaded."""
+    async with bot:
+        await bot.setup_hook()
+        missing = [name for name in enabled if name not in bot.loaded]
+    if missing:
+        return _failed(f"Plugins not loaded: {', '.join(missing)}")
+    logger.info("The config and the plugins loaded; not connecting (--no-online)")
+    return 0
+
+
+async def _serve(bot: Bot, token: str) -> int:
+    """Run the bot until a stop signal closes it."""
+    loop = asyncio.get_running_loop()
+    closing: list[asyncio.Task[None]] = []
+
+    def stop() -> None:
+        logger.info("Stopping")
+        closing.append(loop.create_task(bot.close()))
+
+    for signum in SIGNALS:
+        loop.add_signal_handler(signum, stop)
+    try:
+        async with bot:
+            await bot.start(token)
+            await bot.close()  # wait for a close that a signal started
+    except (discord.LoginFailure, discord.PrivilegedIntentsRequired) as error:
+        return _failed(f"Cannot connect to Discord: {error}")
+    finally:
+        for signum in SIGNALS:
+            loop.remove_signal_handler(signum)
+    return 0
+
+
+def _failed(message: str) -> int:
+    logger.error("%s", message)
+    return 1
 
 
 if __name__ == "__main__":

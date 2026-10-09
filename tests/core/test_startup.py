@@ -86,7 +86,6 @@ def watch_closes(monkeypatch: pytest.MonkeyPatch) -> list[Store]:
     return closed
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Startup")
 @pytest.mark.usefixtures("installed")
 @pytest.mark.parametrize(("option", "used"), [("abc", "abc"), (None, "from-config")])
 async def test_token_precedence(
@@ -106,7 +105,6 @@ async def test_token_precedence(
     assert Path("data/xincord.db").is_file()
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Startup")
 async def test_setup_before_connecting(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:
@@ -120,7 +118,6 @@ async def test_setup_before_connecting(
     assert isinstance(bot.tree.translator, Translator)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Startup")
 @pytest.mark.usefixtures("installed")
 @pytest.mark.parametrize(
     ("config", "logged"),
@@ -138,7 +135,6 @@ async def test_config_failures(
     assert Path("config.yaml").is_file()
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Startup")
 @pytest.mark.usefixtures("installed")
 @pytest.mark.parametrize(
     "error",
@@ -170,7 +166,6 @@ async def never_connect(_self: Bot, _token: str) -> None:
     raise AssertionError
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Offline check")
 async def test_all_plugins_load(installed: FakePlugins, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Offline check."""
     installed.add("Alpha", PLUGIN, BUNDLE)
@@ -183,7 +178,6 @@ async def test_all_plugins_load(installed: FakePlugins, monkeypatch: pytest.Monk
     assert installed.calls() == ["setup", "teardown"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Offline check")
 @pytest.mark.parametrize("plugins", ["[Alpha, Ghost]", "[Alpha, Broken]"])
 async def test_a_plugin_does_not_load(
     installed: FakePlugins, monkeypatch: pytest.MonkeyPatch, plugins: str
@@ -197,7 +191,6 @@ async def test_a_plugin_does_not_load(
     assert await run(Options(no_online=True)) == 1
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Graceful stop")
 @pytest.mark.parametrize("signum", [signal.SIGTERM, signal.SIGINT])
 async def test_stop_signal(
     installed: FakePlugins, monkeypatch: pytest.MonkeyPatch, signum: signal.Signals

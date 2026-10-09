@@ -12,7 +12,7 @@
 
 - [x] 3.1 xfail tests for "Startup loads the configured plugins", "Offline check" and "Graceful
       stop"
-- [ ] 3.2 Implement `run` and `Bot.setup_hook`; remove the markers
+- [x] 3.2 Implement `run` and `Bot.setup_hook`; remove the markers
 
 ## 4. Bot defaults
 

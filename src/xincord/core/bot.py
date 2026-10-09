@@ -12,6 +12,7 @@ from discord.ext import commands
 
 from xincord.core.command_tree import CommandTree
 from xincord.core.component_ids import ComponentIdError, upgrade_view
+from xincord.core.i18n import Translator
 from xincord.core.plugins import PluginContext, PluginError, required_intents
 
 if TYPE_CHECKING:
@@ -66,7 +67,9 @@ class Bot(commands.Bot):
     @override
     async def setup_hook(self) -> None:
         """Set the command translator and load the plugins before the gateway connects."""
-        raise NotImplementedError
+        await self.tree.set_translator(Translator())
+        await self.load_plugins()
+        logger.info("Plugins loaded: %s", ", ".join(self.loaded) or "none")
 
     @property
     def loaded(self) -> tuple[str, ...]:
