@@ -2,24 +2,24 @@
 
 import re
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Annotated, Literal, Self
 
+import discord
 import yaml
 from pydantic import ConfigDict, Field, model_validator
 
 from xincord.core.config import Model, parse_model
-from xincord.core.placeholders import CHANNEL_TYPES
+from xincord.core.placeholders import CHANNEL_TYPES, render
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping
-    from datetime import datetime
     from pathlib import Path
-
-    import discord
 
     from xincord.core.i18n import Lang
 
 COLOR = re.compile(r"(?:#|0[xX])[0-9a-fA-F]{1,6}")
+EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 ENTITY_TARGETS = ("USER", "ROLE", "CHANNEL")
 JDA_CHANNEL_TYPES = frozenset(CHANNEL_TYPES.values())
 
@@ -403,4 +403,100 @@ def render_message(
         TemplateError: A model is missing or of the wrong kind, a rendered color is invalid, or
             components need an ID builder that was not given.
     """
+    if template.model_key is not None:
+        return _model(models, template.model_key, Message)
+    moment = now or datetime.now(UTC)
+    embeds = (_embed(spec, values, models, moment) for spec in template.embeds)
+    view = _view(template.components, values, build_id, models) if template.components else None
+    return Message(
+        content=render(template.content, values),
+        embeds=tuple(embed for embed in embeds if embed is not None),
+        view=view,
+    )
+
+
+def _embed(
+    spec: EmbedSpec,
+    values: Mapping[str, str],
+    models: Mapping[str, object] | None,
+    moment: datetime,
+) -> discord.Embed | None:
+    if spec.model_key is not None:
+        return _model(models, spec.model_key, discord.Embed)
+
+    def link(url: str | None) -> str | None:
+        rendered = render(url, values) if url is not None else ""
+        return rendered if rendered.startswith("http") else None
+
+    embed = discord.Embed(
+        title=render(spec.title.text, values) if spec.title else None,
+        url=link(spec.title.url) if spec.title else None,
+        description=render(spec.description, values) if spec.description else None,
+        colour=_color(spec.color_code, values),
+        timestamp=_timestamp(spec.timestamp, moment),
+    )
+    if spec.author:
+        embed.set_author(
+            name=render(spec.author.name, values),
+            url=link(spec.author.url),
+            icon_url=link(spec.author.icon_url),
+        )
+    if thumbnail := link(spec.thumbnail_url):
+        embed.set_thumbnail(url=thumbnail)
+    if image := link(spec.image_url):
+        embed.set_image(url=image)
+    if spec.footer:
+        embed.set_footer(text=render(spec.footer.text, values), icon_url=link(spec.footer.icon_url))
+    for field in spec.fields:
+        if field.model_key is not None:
+            model = _model(models, field.model_key, EmbedField)
+            embed.add_field(name=model.name, value=model.value, inline=model.inline)
+        else:
+            name, value = render(field.name or "", values), render(field.value or "", values)
+            embed.add_field(name=name, value=value, inline=field.inline)
+    return embed if _has_content(embed) else None
+
+
+def _has_content(embed: discord.Embed) -> bool:
+    """Mirror JDA's ``EmbedBuilder.isEmpty()``: a color alone does not count."""
+    return any(
+        (
+            embed.title,
+            embed.description,
+            embed.timestamp,
+            embed.thumbnail.url,
+            embed.author.name,
+            embed.footer.text,
+            embed.image.url,
+            embed.fields,
+        ),
+    )
+
+
+def _color(code: str | None, values: Mapping[str, str]) -> int | None:
+    if code is None:
+        return None
+    rendered = render(code, values)
+    if not COLOR.fullmatch(rendered):
+        msg = f"color_code {rendered!r} is not #RRGGBB or 0xRRGGBB"
+        raise TemplateError(msg)
+    return int(rendered[1:] if rendered.startswith("#") else rendered[2:], 16)
+
+
+def _timestamp(text: str | None, moment: datetime) -> datetime | None:
+    if text is None:
+        return None
+    return moment if text == "%now%" else EPOCH + timedelta(milliseconds=int(text))
+
+
+def _model[T](models: Mapping[str, object] | None, key: str, kind: type[T]) -> T:
+    raise NotImplementedError
+
+
+def _view(
+    rows: tuple[RowSpec, ...],
+    values: Mapping[str, str],
+    build_id: IdBuilder | None,
+    models: Mapping[str, object] | None,
+) -> discord.ui.View:
     raise NotImplementedError

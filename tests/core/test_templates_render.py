@@ -17,15 +17,6 @@ if TYPE_CHECKING:
     from xincord.core.templates import Message
 
 
-def xfail(requirement: str) -> pytest.MarkDecorator:
-    return pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=requirement)
-
-
-TEXT = xfail("Message text is rendered with placeholders")
-URLS = xfail("URL fields need an http result")
-EMPTY = xfail("Empty embeds are dropped")
-FORMATS = xfail("Colors and timestamps follow v3")
-
 VALUES = {
     "user_name": "Alice",
     "dash": "-",
@@ -41,8 +32,9 @@ def render(tmp_path: Path, text: str, values: dict[str, str] = VALUES) -> Messag
     return render_message(load_message(path), values, now=NOW)
 
 
-@TEXT
 def test_content_and_embed_text(tmp_path: Path) -> None:
+    """Requirement: Message text is rendered with placeholders."""
+
     message = render(
         tmp_path,
         """\
@@ -65,8 +57,9 @@ embeds:
     assert message.view is None
 
 
-@URLS
 def test_placeholder_without_icon(tmp_path: Path) -> None:
+    """Requirement: URL fields need an http result."""
+
     message = render(
         tmp_path,
         """\
@@ -87,17 +80,19 @@ embeds:
     assert embed.footer.icon_url == "https://example.com/f.png"
 
 
-@EMPTY
 @pytest.mark.parametrize(
     "embed",
     ['{color_code: "#ffffff"}', '{image_url: "%dash%"}', '{description: ""}'],
 )
 def test_empty_embeds_are_dropped(tmp_path: Path, embed: str) -> None:
+    """Requirement: Empty embeds are dropped."""
+
     assert render(tmp_path, f"embeds:\n  - {embed}\n").embeds == ()
 
 
-@FORMATS
 def test_color_and_epoch_timestamp(tmp_path: Path) -> None:
+    """Requirement: Colors and timestamps follow v3."""
+
     message = render(
         tmp_path,
         'embeds:\n  - {description: x, color_code: "0x9bd9d5", timestamp: "1723675788491"}\n',
@@ -109,8 +104,9 @@ def test_color_and_epoch_timestamp(tmp_path: Path) -> None:
     assert embed.timestamp == datetime(2024, 8, 14, 22, 49, 48, 491000, tzinfo=UTC)
 
 
-@FORMATS
 def test_now_and_placeholder_color(tmp_path: Path) -> None:
+    """Requirement: Colors and timestamps follow v3."""
+
     message = render(
         tmp_path,
         'embeds:\n  - {description: x, color_code: "%color%", timestamp: "%now%"}\n',
@@ -122,7 +118,8 @@ def test_now_and_placeholder_color(tmp_path: Path) -> None:
     assert embed.timestamp == NOW
 
 
-@FORMATS
 def test_invalid_rendered_color_fails(tmp_path: Path) -> None:
+    """Requirement: Colors and timestamps follow v3."""
+
     with pytest.raises(TemplateError, match="color"):
         render(tmp_path, 'embeds:\n  - {description: x, color_code: "%dash%"}\n')
