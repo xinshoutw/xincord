@@ -15,14 +15,14 @@ from typing import TYPE_CHECKING, cast
 import discord
 import pytest
 
-from plugin_fakes import until, watch_syncs, write_config
+from plugin_fakes import until, watch_closes, watch_syncs, write_config
 from xincord.core.bot import Bot
 from xincord.core.cli import Options, run
 from xincord.core.i18n import Translator
-from xincord.core.storage import Store
 
 if TYPE_CHECKING:
     from plugin_fakes import FakePlugins
+    from xincord.core.storage import Store
 
 PLUGIN = """
 from xincord.core.config import Model
@@ -49,18 +49,6 @@ BROKEN = """
 async def setup(bot):
     raise RuntimeError("boom")
 """
-
-
-def watch_closes(monkeypatch: pytest.MonkeyPatch) -> list[Store]:
-    closed: list[Store] = []
-    close = Store.close
-
-    async def recording(self: Store) -> None:
-        closed.append(self)
-        await close(self)
-
-    monkeypatch.setattr(Store, "close", recording)
-    return closed
 
 
 @pytest.mark.usefixtures("installed")

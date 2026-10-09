@@ -79,8 +79,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     return asyncio.run(run(options))
 
 
-async def run(options: Options) -> int:
-    """Start the bot from the working directory and return the exit status once it stops."""
+async def run(options: Options, *, console: bool = False) -> int:
+    """Start the bot from the working directory and return the exit status once it stops.
+
+    Args:
+        options: The parsed command line.
+        console: Run the interactive console while the bot runs.
+    """
     try:
         config = load_config(CORE_CONFIG, CoreConfig, default_core_config())
     except ConfigError as error:
@@ -94,7 +99,7 @@ async def run(options: Options) -> int:
         bot = Bot(plugins, root=PLUGINS, store=store, force_lang=options.force_lang)
         if options.no_online:
             return await _check(bot, config.plugins)
-        return await _serve(bot, token)
+        return await _serve(bot, token, console=console)
     finally:
         await store.close()
 
@@ -110,8 +115,10 @@ async def _check(bot: Bot, enabled: Sequence[str]) -> int:
     return 0
 
 
-async def _serve(bot: Bot, token: str) -> int:
+async def _serve(bot: Bot, token: str, *, console: bool) -> int:
     """Run the bot until a stop signal closes it; SIGHUP reloads."""
+    if console:
+        raise NotImplementedError
     loop = asyncio.get_running_loop()
     tasks: set[asyncio.Task[object]] = set()
 

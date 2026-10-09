@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, cast
 
 from xincord.core.bot import Bot
 from xincord.core.plugins import GROUP, discover
+from xincord.core.storage import Store
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -17,7 +18,6 @@ if TYPE_CHECKING:
     import pytest
 
     from xincord.core.command_tree import CommandTree
-    from xincord.core.storage import Store
 
 
 @dataclass
@@ -94,3 +94,16 @@ def watch_syncs(
     monkeypatch.setattr(tree, "sync_global", sync_global)
     monkeypatch.setattr(tree, "sync_guild", sync_guild)
     return syncs
+
+
+def watch_closes(monkeypatch: pytest.MonkeyPatch) -> list[Store]:
+    """Record the stores that are closed."""
+    closed: list[Store] = []
+    close = Store.close
+
+    async def recording(self: Store) -> None:
+        closed.append(self)
+        await close(self)
+
+    monkeypatch.setattr(Store, "close", recording)
+    return closed

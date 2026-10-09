@@ -6,7 +6,7 @@
 
 ## 2. Wiring
 
-- [ ] 2.1 xfail tests for "Console only on a terminal"
+- [x] 2.1 xfail tests for "Console only on a terminal"
 - [ ] 2.2 Start the console from `cli` and set up logging inside `patch_stdout`; remove the
       markers
 
