@@ -2,10 +2,18 @@
 
 import logging
 from enum import StrEnum
-from typing import TYPE_CHECKING, cast
+from importlib.resources import files
+from typing import TYPE_CHECKING, Literal, Self, cast
 
 import yaml
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    PositiveFloat,
+    PositiveInt,
+    ValidationError,
+    model_validator,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -101,8 +109,15 @@ class Activity(Model):
 
     type: ActivityType
     text: str
-    seconds: float = 5
+    seconds: PositiveFloat = 5
     url: str | None = None
+
+    @model_validator(mode="after")
+    def _streaming_has_url(self) -> Self:
+        if self.type is ActivityType.STREAMING and not self.url:
+            msg = "a streaming activity needs a url"
+            raise ValueError(msg)
+        return self
 
 
 class Status(Model):
@@ -114,9 +129,9 @@ class Status(Model):
 class InteractionLogTarget(Model):
     """A channel that receives a line for each matching interaction."""
 
-    guild_id: int
-    channel_id: int
-    types: tuple[str, ...]
+    guild_id: PositiveInt
+    channel_id: PositiveInt
+    types: tuple[Literal["command", "button", "modal"], ...]
     format: str = "[%cl_type%] %user_name% `%cl_interaction_string%`"
 
 
@@ -130,4 +145,4 @@ class CoreConfig(Model):
 
 def default_core_config() -> str:
     """Return the text of the default core ``config.yaml``."""
-    raise NotImplementedError
+    return files(__package__).joinpath("resources/config.yaml").read_text(encoding="utf-8")

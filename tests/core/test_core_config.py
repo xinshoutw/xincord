@@ -10,8 +10,6 @@ from xincord.core.config import CoreConfig, default_core_config, load_config
 if TYPE_CHECKING:
     from pathlib import Path
 
-XFAIL = pytest.mark.xfail(strict=True, reason="Core config schema")
-
 
 def activity(**fields: object) -> dict[str, object]:
     return {"status": {"activities": [{"type": "playing", "text": "a game", **fields}]}}
@@ -26,7 +24,6 @@ def location(error: pytest.ExceptionInfo[ValidationError]) -> tuple[int | str, .
     return error.value.errors()[0]["loc"]
 
 
-@XFAIL
 def test_default_core_config_validates(tmp_path: Path) -> None:
     config = load_config(tmp_path / "config.yaml", CoreConfig, default_core_config())
 
@@ -57,7 +54,6 @@ def test_full_config_loads() -> None:
     assert config.interaction_log[0].types == ("command", "modal")
 
 
-@XFAIL
 def test_streaming_activity_needs_a_url() -> None:
     with pytest.raises(ValidationError) as error:
         CoreConfig.model_validate(activity(type="streaming"))
@@ -66,7 +62,6 @@ def test_streaming_activity_needs_a_url() -> None:
 
 
 @pytest.mark.parametrize("seconds", [0, -1])
-@XFAIL
 def test_activity_duration_must_be_positive(seconds: float) -> None:
     with pytest.raises(ValidationError) as error:
         CoreConfig.model_validate(activity(seconds=seconds))
@@ -74,7 +69,6 @@ def test_activity_duration_must_be_positive(seconds: float) -> None:
     assert location(error)[:3] == ("status", "activities", 0)
 
 
-@XFAIL
 def test_interaction_log_types_are_limited() -> None:
     with pytest.raises(ValidationError) as error:
         CoreConfig.model_validate(target(types=["command", "select"]))

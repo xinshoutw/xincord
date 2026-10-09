@@ -1,0 +1,23 @@
+# xincord core configuration. Plugin settings live in plugins/<Name>/config.yaml.
+
+# The bot token from the Discord developer portal. The --token option overrides it.
+token: ""
+
+status:
+  # Activities shown one after another, in a loop.
+  #   type: playing, streaming, listening, watching, custom or competing
+  #   seconds: how long the activity is shown (default 5)
+  #   url: required for streaming
+  activities:
+    - type: competing
+      text: Developing...
+      seconds: 5
+
+# Channels that receive a line for each interaction. Each target needs:
+#   guild_id, channel_id, types (command, button, modal) and a format with placeholders.
+# Example:
+#   - guild_id: 111111111111111111
+#     channel_id: 222222222222222222
+#     types: [command, button, modal]
+#     format: "[%cl_type%] %user_name% `%cl_interaction_string%`"
+interaction_log: []
