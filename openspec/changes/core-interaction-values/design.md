@@ -24,7 +24,8 @@ and the bare name for context menu commands.
 - **Component keys** come from the component with the interaction's custom ID on
   `interaction.message`, searched through rows, containers and section accessories. A component
   with a `style` is a button; `component_style` is the discord.py style name in upper case, which
-  matches JDA's names.
+  matches JDA's names. v3's `component_url` is dropped: link buttons never send interactions, so
+  it was always absent.
 - **Duck typing** keeps the module free of a runtime discord.py import, as the other key
   families are; `InteractionLike` names what is read, and a type-only test checks that
   `discord.Interaction` fits it.

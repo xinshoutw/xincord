@@ -9,7 +9,8 @@ needs `command_string`.
 
 - `interaction_values(interaction)` returns v3's interaction keys: `command_name`,
   `full_command_name`, `subcommand_name`, `command_string` (JDA's format), `language`,
-  `channel_id`, `channel_name`, `channel_category_name`, and `component_*` for buttons and selects.
+  `channel_id`, `channel_name`, `channel_category_name`, and `component_*` for buttons and
+  selects.
 
 Ported from:
 - `XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Placeholder.kt:59-142`

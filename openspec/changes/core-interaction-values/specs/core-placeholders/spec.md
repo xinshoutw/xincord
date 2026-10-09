@@ -22,8 +22,8 @@ name as `command_string`.
 ### Requirement: Component interaction values follow v3
 For a component interaction the placeholders SHALL give `component_id` and, from the component
 with that ID on the message, a button's `component_label`, `component_style` (the JDA style
-name), and `component_url`, `component_emoji` and `component_emoji_name` when set, or a select's
-`component_min`, `component_max` and `component_placeholder` when set.
+name), and `component_emoji` and `component_emoji_name` when set, or a select's `component_min`,
+`component_max` and `component_placeholder` when set.
 
 #### Scenario: Button and select
 - **WHEN** a button with a custom emoji inside a container, and a select with a placeholder, are

@@ -383,6 +383,44 @@ def event_values(event_type: str, prefix: str = "", at: datetime | None = None) 
     )
 
 
+class MessageLike(Protocol):
+    """The parts of :class:`discord.Message` that interaction values read."""
+
+    @property
+    def components(self) -> Sequence[object]:
+        """The message's top-level components."""
+        ...
+
+
+class InteractionLike(Protocol):
+    """The parts of :class:`discord.Interaction` that interaction values read."""
+
+    @property
+    def data(self) -> Mapping[str, object] | None:
+        """The raw interaction data."""
+        ...
+
+    @property
+    def locale(self) -> discord.Locale:
+        """The user's locale."""
+        ...
+
+    @property
+    def channel(self) -> object:
+        """The channel the interaction came from, if known."""
+        ...
+
+    @property
+    def message(self) -> MessageLike | None:
+        """The message of a component interaction."""
+        ...
+
+
+def interaction_values(interaction: InteractionLike) -> dict[str, str]:
+    """Return v3's interaction keys: ``language``, the channel, and the command or component."""
+    raise NotImplementedError
+
+
 def locale_names(locale: str) -> tuple[str, str]:
     """Return JDA's enum name and native name of a Discord locale such as ``zh-TW``."""
     name, native = _locales().get(locale, ("UNKNOWN", "Unknown"))
