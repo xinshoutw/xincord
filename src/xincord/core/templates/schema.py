@@ -14,7 +14,7 @@ from xincord.core.templates.base import (
     TemplateModel,
     require,
 )
-from xincord.core.templates.schema_v2 import ActionRowV2, ModelRefV2, TopLevelV2
+from xincord.core.templates.schema_v2 import ActionRowV2, TopLevelV2
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -220,7 +220,7 @@ class MessageTemplate(TemplateModel):
     @model_validator(mode="after")
     def _v2_mode(self) -> Self:
         if not self.is_components_v2:
-            if any(not isinstance(item, ActionRowV2 | ModelRefV2) for item in self.components_v2):
+            if any(not isinstance(item, ActionRowV2) for item in self.components_v2):
                 msg = "components_v2 holds only action rows unless is_components_v2 is true"
                 raise ValueError(msg)
         elif self.content.strip() or self.embeds:

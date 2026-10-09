@@ -9,7 +9,7 @@
       inferred" and "V2 interactive components follow v3"
 - [x] 2.2 Implement the V2 renderer and files; remove the markers
 - [x] 2.3 xfail tests for "V2 model keys insert runtime objects"
-- [ ] 2.4 Implement V2 models and the embed container; remove the markers
+- [x] 2.4 Implement V2 models and the embed container; remove the markers
 
 ## 3. Close
 

@@ -47,6 +47,7 @@ def test_type_names_are_normalized(tmp_path: Path) -> None:
             "components_v2: [{type: section, components: [" + TEXT + "],"
             " accessory: {url: 'https://example.com/a.png'}}]\n"
         ),
+        "components_v2: [{model_key: row}]\n",
         "is_components_v2: true\ncomponents_v2: [{type: carousel}]\n",
         "is_components_v2: true\ncomponents_v2: [{type: text_display}]\n",
         (

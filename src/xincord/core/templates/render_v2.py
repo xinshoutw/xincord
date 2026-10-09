@@ -15,8 +15,10 @@ from xincord.core.templates.base import (
     CHANNEL_TYPE_BY_NAME,
     TemplateError,
     custom_id,
+    lookup,
     optional_text,
     resolve_emoji,
+    resolve_model,
 )
 from xincord.core.templates.schema_v2 import (
     ActionRowV2,
@@ -49,6 +51,10 @@ if TYPE_CHECKING:
 type LayoutItem = discord.ui.Item[discord.ui.LayoutView]
 type V2Spec = TopLevelV2 | AccessoryV2 | ActionRowChildV2
 
+# Kinds of model each position accepts; an embed at the top level becomes a container.
+TOP_LEVEL = (discord.ui.Item, discord.Embed)
+ROW_ITEMS = (discord.ui.Button, BaseSelect)
+BLANK = "_ _"  # Discord's idiom for an empty line
 SELECTS = {
     frozenset({"USER"}): discord.ui.UserSelect[discord.ui.LayoutView],
     frozenset({"ROLE"}): discord.ui.RoleSelect[discord.ui.LayoutView],
@@ -73,7 +79,7 @@ def layout_view(
     for row in rows:
         view.add_item(discord.ui.ActionRow[discord.ui.LayoutView](*cast("list[LayoutItem]", row)))
     for spec in components:
-        view.add_item(renderer.component(spec))
+        view.add_item(renderer.component(spec, *TOP_LEVEL))
     view.stop()
     return view, tuple(renderer.files)
 
@@ -86,7 +92,7 @@ def row_items(
 ) -> list[Item]:
     """Render the buttons and selects of a V2 action row for a message without V2 mode."""
     renderer = _Renderer(values, build_id, models)
-    return [cast("Item", renderer.component(spec)) for spec in row.components]
+    return [cast("Item", renderer.component(spec, *ROW_ITEMS)) for spec in row.components]
 
 
 def _set_disabled(items: Iterable[LayoutItem], disabled: bool | None) -> None:  # noqa: FBT001
@@ -102,6 +108,48 @@ def _with_default(option: discord.SelectOption, *, default: bool) -> discord.Sel
     option = copy.copy(option)
     option.default = default
     return option
+
+
+def _link(text: str, url: str | None) -> str:
+    return f"[{text}]({url})" if url and url.strip() else text
+
+
+def _embed_header(embed: discord.Embed) -> str:
+    lines: list[str] = []
+    if embed.author.name:
+        lines.append("### " + _link(embed.author.name, embed.author.url))
+    if embed.title and embed.title.strip():
+        lines.append("## " + _link(embed.title, embed.url))
+    if embed.description and embed.description.strip():
+        lines.append(embed.description)
+    return "\n".join(lines)
+
+
+def _embed_container(embed: discord.Embed) -> LayoutItem:
+    """Show an embed model as a container, as v3 did."""
+    header = _embed_header(embed)
+    children: list[LayoutItem] = []
+    if thumbnail := embed.thumbnail.url or embed.author.icon_url:
+        text = discord.ui.TextDisplay[discord.ui.LayoutView](header if header.strip() else BLANK)
+        children.append(discord.ui.Section(text, accessory=discord.ui.Thumbnail(thumbnail)))
+    elif header.strip():
+        children.append(discord.ui.TextDisplay(header))
+    for field in embed.fields:
+        name, value = (field.name or "").strip(), (field.value or "").strip()
+        if content := "\n".join(part for part in (f"**{name}**" if name else "", value) if part):
+            children.append(discord.ui.TextDisplay(content))
+    if embed.image.url:
+        children.append(discord.ui.MediaGallery(discord.MediaGalleryItem(embed.image.url)))
+
+    # v3 printed the timestamp as ISO text; Discord's markup shows it in the reader's time zone.
+    moment = f"<t:{int(embed.timestamp.timestamp())}:f>" if embed.timestamp else ""
+    if footer := f" {chr(0x2022)} ".join(bit for bit in (embed.footer.text, moment) if bit):
+        if children:
+            children.append(discord.ui.Separator())
+        children.append(discord.ui.TextDisplay(f"*{footer}*"))
+
+    colour = embed.colour.value if embed.colour else None
+    return discord.ui.Container(*children or [discord.ui.TextDisplay(BLANK)], accent_colour=colour)
 
 
 class _Renderer:
@@ -121,12 +169,13 @@ class _Renderer:
     def text(self, text: str) -> str:
         return render(text, self.values)
 
-    def component(self, spec: V2Spec) -> LayoutItem:  # noqa: C901, PLR0911 - one case per type
+    def component(self, spec: V2Spec, *kinds: type[object]) -> LayoutItem:  # noqa: C901, PLR0911 - one case per type
+        """Render ``spec``; a model must be one of ``kinds`` (any item by default)."""
         match spec:
             case ModelRefV2():
-                return self.model(spec.model_key)
+                return self.model(spec.model_key, kinds or (discord.ui.Item,))
             case ActionRowV2():
-                children = [self.component(child) for child in spec.components]
+                children = [self.component(child, *ROW_ITEMS) for child in spec.components]
                 return discord.ui.ActionRow[discord.ui.LayoutView](*children, id=spec.id)
             case SectionV2():
                 return self.section(spec)
@@ -157,14 +206,23 @@ class _Renderer:
             case _:
                 return self.entity_select(spec)
 
-    def model(self, key: str) -> LayoutItem:
-        raise NotImplementedError
+    def model(self, key: str, kinds: tuple[type[object], ...]) -> LayoutItem:
+        model = lookup(self.models, key)
+        if not isinstance(model, kinds):
+            expected = " or ".join(kind.__name__ for kind in kinds)
+            msg = f"model {key!r} is a {type(model).__name__}, expected {expected}"
+            raise TemplateError(msg)
+        if isinstance(model, discord.Embed):
+            return _embed_container(model)
+        return cast("LayoutItem", model)
 
     def section(self, spec: SectionV2) -> LayoutItem:
-        children = [self.component(child) for child in spec.components or spec.content]
-        section = discord.ui.Section(
-            *children, accessory=self.component(spec.accessory), id=spec.id
-        )
+        children = [
+            self.component(child, discord.ui.TextDisplay)
+            for child in spec.components or spec.content
+        ]
+        accessory = self.component(spec.accessory, discord.ui.Button, discord.ui.Thumbnail)
+        section = discord.ui.Section(*children, accessory=accessory, id=spec.id)
         _set_disabled(section.walk_children(), spec.disabled)
         return section
 
@@ -195,7 +253,7 @@ class _Renderer:
 
     def gallery_item(self, spec: MediaGalleryItemV2) -> discord.MediaGalleryItem:
         if spec.model_key is not None:
-            raise NotImplementedError
+            return resolve_model(self.models, spec.model_key, discord.MediaGalleryItem)
         return discord.MediaGalleryItem(
             self.media(spec.file_path, spec.file_name, spec.url),
             description=optional_text(spec.description, self.values),
@@ -204,9 +262,8 @@ class _Renderer:
 
     def emoji(self, spec: str | EmojiV2 | None) -> discord.PartialEmoji | str | None:
         if isinstance(spec, EmojiV2):
-            if spec.model_key is not None:
-                raise NotImplementedError
-            return resolve_emoji(None, spec.formatted or spec.name, self.values, self.models)
+            text = spec.formatted or spec.name
+            return resolve_emoji(spec.model_key, text, self.values, self.models)
         return resolve_emoji(None, spec, self.values, self.models)
 
     def custom_id(self, spec: ButtonV2 | StringSelectV2 | EntitySelectV2) -> str:
@@ -233,7 +290,7 @@ class _Renderer:
 
     def option(self, spec: OptionV2) -> discord.SelectOption:
         if spec.model_key is not None:
-            raise NotImplementedError
+            return resolve_model(self.models, spec.model_key, discord.SelectOption)
         return discord.SelectOption(
             label=self.text(spec.label or ""),
             value=self.text(spec.value or ""),

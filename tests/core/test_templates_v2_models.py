@@ -16,10 +16,6 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
     from pathlib import Path
 
-pytestmark = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="V2 model keys insert runtime objects"
-)
-
 V2 = "is_components_v2: true\n"
 BULLET = chr(0x2022)
 
@@ -90,6 +86,7 @@ async def test_embed_model_as_a_container(tmp_path: Path) -> None:
     ("embed", "texts"),
     [
         (discord.Embed(), ["_ _"]),
+        (discord.Embed().add_field(name=" ", value=" "), ["_ _"]),
         (discord.Embed(title="Plain"), ["## Plain"]),
         (discord.Embed().set_footer(text="Only footer"), ["*Only footer*"]),
     ],

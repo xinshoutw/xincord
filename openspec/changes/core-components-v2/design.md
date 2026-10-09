@@ -35,6 +35,11 @@ least one component is required; without it, `components_v2` may only hold actio
 
 - v3 behaved differently: V2 components were checked only when a message was rendered; they are now
   validated when the plugin loads.
+- v3 behaved differently: without `is_components_v2`, a top-level `model_key` in `components_v2`
+  could supply a whole action row; xincord accepts only action rows there (models still work inside
+  them), because discord.py cannot move a prebuilt row into a regular view.
+- v3 behaved differently: an embed model's timestamp became ISO text in the footer line; xincord
+  writes Discord's `<t:...:f>` markup, which shows the reader's local time as the embed did.
 
 ## Risks / Trade-offs
 
