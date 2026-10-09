@@ -1,0 +1,23 @@
+## 1. Loading
+
+- [ ] 1.1 xfail tests for "Templates are validated when they load"
+- [ ] 1.2 Implement the YAML tags, the template models and `Templates.load`; remove the markers
+
+## 2. Message rendering
+
+- [ ] 2.1 xfail tests for "Message text is rendered with placeholders", "URL fields need an http
+      result", "Empty embeds are dropped" and "Colors and timestamps follow v3"
+- [ ] 2.2 Implement content and embed rendering; remove the markers
+- [ ] 2.3 xfail tests for "Components keep their rows" and "Model keys insert runtime objects"
+- [ ] 2.4 Implement components and models; remove the markers
+
+## 3. Modals
+
+- [ ] 3.1 xfail tests for "Modal templates render text inputs"
+- [ ] 3.2 Implement `render_modal`; remove the markers
+
+## 4. Close
+
+- [ ] 4.1 Update `docs/porting-guide.md`
+- [ ] 4.2 Gate passes, push, CI green
+- [ ] 4.3 Archive the change and run `openspec validate --all --strict`
