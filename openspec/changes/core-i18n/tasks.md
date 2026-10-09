@@ -11,7 +11,7 @@
 
 ## 3. Lookup and translation
 
-- [ ] 3.1 xfail tests for "Texts and templates fall back to the default locale" and "Commands are
+- [x] 3.1 xfail tests for "Texts and templates fall back to the default locale" and "Commands are
       localized from register.yaml without fallback"
 - [ ] 3.2 Implement the lookups and `Translator`; remove the markers
 

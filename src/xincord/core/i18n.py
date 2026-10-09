@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Self, cast
 
 import discord
 import yaml
+from discord import app_commands
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -25,7 +26,7 @@ class LangError(Exception):
     """A plugin's lang files are missing or malformed; the message names the file and key."""
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class Lang:
     """One plugin's localized text, keyed by Discord locale (``en-US``, ``zh-TW``, ...)."""
 
@@ -66,6 +67,43 @@ class Lang:
         for kind, tables in (("register", registers), ("text", texts), ("template", templates)):
             _compare_keys(plugin, default_locale, kind, tables)
         return cls(plugin, default_locale, registers, texts, templates)
+
+    def text(self, key: str, locale: str) -> str:
+        """Return a text (``<file stem>.<path>``) in ``locale``, else in the default locale.
+
+        Raises:
+            LookupError: Neither locale has the key.
+        """
+        raise NotImplementedError
+
+    def template(self, name: str, locale: str) -> Path:
+        """Return the file of a template (``message/<stem>``), falling back like :meth:`text`.
+
+        Raises:
+            LookupError: Neither locale has the template.
+        """
+        raise NotImplementedError
+
+    def localization(self, key: str, locale: str) -> str | None:
+        """Return a ``register.yaml`` value in exactly ``locale``, without fallback."""
+        raise NotImplementedError
+
+    def command(self, default: str, key: str) -> app_commands.locale_str:
+        """Return a command string that :class:`Translator` resolves through ``key``."""
+        raise NotImplementedError
+
+
+class Translator(app_commands.Translator):
+    """Resolves command strings created by :meth:`Lang.command`."""
+
+    async def translate(
+        self,
+        string: app_commands.locale_str,
+        locale: discord.Locale,
+        context: app_commands.TranslationContextTypes,
+    ) -> str | None:
+        """Return the string's register value in ``locale``, or None to keep the default."""
+        raise NotImplementedError
 
 
 def export_lang(bundled: Traversable, target: Path, *, force: bool) -> list[Path]:
