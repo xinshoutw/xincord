@@ -192,6 +192,10 @@ plugins removed from the list. The `core-console`, `core-status-log` and `contai
 accepted as listed. Still open: a run with a real token under compose (step 3 of the manual check
 in `openspec/changes/archive/2026-10-10-container/design.md`).
 
+From the plugin ports on, the owner asked for pushes without waiting for review: each port lists
+its user-visible changes, the choices made without the owner and the manual checks in
+`docs/porting/owner-review.md`, which the owner reviews afterwards.
+
 1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
    (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script
    fills that list; plugins that are not enabled no longer create files under `plugins/<Name>/`;
