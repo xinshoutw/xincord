@@ -1,7 +1,7 @@
 ## 1. Console
 
 - [x] 1.1 Add the `prompt-toolkit` dependency
-- [ ] 1.2 xfail tests for "Console commands" and "Console completion"
+- [x] 1.2 xfail tests for "Console commands" and "Console completion"
 - [ ] 1.3 Implement `xincord.core.console`; remove the markers
 
 ## 2. Wiring
