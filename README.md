@@ -13,6 +13,19 @@ service until every in-scope plugin passes its scenarios.
 | `xincord` | `xincord.core` | the plugin host, storage, i18n and message templates |
 | `xincord-plugins` | `xincord.plugins` | the official plugins |
 
+## Running
+
+```sh
+uv run xincord --help
+uv run xincord --token "<bot token>"
+```
+
+xincord works in the current directory: it writes `config.yaml` on the first start, keeps each
+plugin's files in `plugins/<Name>/` and its database in `data/xincord.db`. Set `token` (or pass
+`--token`) and list the plugins to load under `plugins`. `--no-online` loads the config and the
+plugins without connecting and exits with status 1 if one did not load. SIGINT or SIGTERM stops
+the bot.
+
 ## Development
 
 Requires [uv](https://docs.astral.sh/uv/) and Node.js 20.19 or newer (for OpenSpec).

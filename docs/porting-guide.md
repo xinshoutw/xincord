@@ -28,6 +28,9 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | kotlinx/Jackson YAML config | pydantic v2 models over PyYAML; unknown keys warn | B6 |
 | Coroutines, `launch`, scheduled executors | `asyncio` tasks, `discord.ext.tasks.loop` | |
 | JLine console, `--ignore-update` | prompt_toolkit console, SIGHUP reload, `/xincord reload`; no version check | B15 |
+| `java -jar` with Clikt options | the `xincord` console script (`xincord.core.cli`, argparse); `--no-online` loads the plugins without connecting and exits | B15 |
+| `BotLoader`: build JDA, wait for ready, then load the plugins | `Bot.setup_hook` sets the translator and loads the plugins before the gateway connects; `on_ready` and `on_guild_join` upload the commands | B3, B5 |
+| JDA's default mentions (all types ping) | the bot's `allowed_mentions`: users and the replied-to user; a message opts in with its own | B19 |
 | Ktor Web-Dashboard | not ported | B13 |
 
 ## Intents kept from the v4 attempt (A3)
@@ -75,6 +78,11 @@ styles at once.
   ranges instead.
 - **Plugin modules run twice.** Discovery imports a plugin to read its constants, and
   `load_extension` executes it again; keep import time free of work.
+- **Setup runs before connecting.** A plugin's `setup` runs in `setup_hook`, before the gateway
+  connects, so the guild cache is empty; with `--no-online` there is no login and `bot.user` is
+  None too. Work that needs guilds waits for `bot.wait_until_ready()` in a task or listens for
+  `on_ready`; background loops stop in `cog_unload`, because the offline check loads and
+  unloads plugins without ever becoming ready.
 - **Stopped views.** A discord.py view created outside a running event loop never reports
   `is_finished()`; tests that check rendered views must be `async`.
 - **Global `core.hooksPath`.** prek refuses to install while a global `core.hooksPath` is set; use
@@ -122,3 +130,11 @@ Every deliberate difference, added by the change that introduces it.
 | Component routing | every plugin received every component and modal event and filtered by prefix | only the owning plugin's handler runs; a message is upgraded to new IDs after a legacy one is used | core-component-routing |
 | Placeholders | `channel_category_name` came from `asTextChannel()`, which failed for commands in threads, voice-channel chats and announcement channels | taken from any channel's category, for components too | core-interaction-values |
 | Placeholders | `component_url` was defined but always absent: link buttons send no interactions | not provided | core-interaction-values |
+| Command line | `--no-online` read the core config, then idled with the console open | loads the config and the plugins without connecting, then exits with 0, or 1 if a plugin did not load | core-startup |
+| Command line | logback level names; an unknown name silently became DEBUG | Python level names in any case; an unknown name is a usage error | core-startup |
+| Command line | `--ignore-update` (`-I`) and `--auto-defer-interactions` / `--no-auto-defer-interactions` | removed: no version check, and commands opt out of the defer with `extras` | core-startup |
+| Logging | also written to `log/output.log`, rotated at 1 MB | stderr only | core-startup |
+| Startup | the token was compared with a placeholder string | the default token is empty; `--token` overrides the config | core-startup |
+| Startup | plugins loaded after JDA was ready, so `setup` could read the guild cache | plugins load before the gateway connects | core-startup |
+| Command upload | guild commands were uploaded at startup only when there were any, so the last removed one stayed | an empty payload is uploaded once | core-startup |
+| Mentions | every mention type pinged, including `@everyone` and roles | users and the replied-to user only, unless a message opts in | core-startup |

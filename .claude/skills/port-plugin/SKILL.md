@@ -31,6 +31,9 @@ first plugins calibrate this checklist: fix it here when reality differs.
    `plugins` list decides. v3 `globalCommands()` become commands with `extras={"global": True}`;
    a command that opens a modal sets `extras={"defer": False}`. Buttons, selects and modals reach
    the plugin through `bot.route(__name__, IDS, handler)`.
+   `setup` runs before the gateway connects (and without a login under `--no-online`): guilds
+   are not cached yet, so anything that needs them waits for `bot.wait_until_ready()` or
+   `on_ready`, and background loops stop in `cog_unload`.
 6. **Golden tests.** Declare the plugin's `ComponentIds(namespace, fields, legacy_prefix=...,
    legacy_hex=...)` with the v3 fields first, in v3 declaration order (append only). Decode real
    v3 IDs from the inventory and check that each upgrades to the expected new ID. Render every
