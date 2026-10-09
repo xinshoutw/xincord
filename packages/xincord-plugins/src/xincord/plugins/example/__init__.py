@@ -1,0 +1,35 @@
+"""_Example, the template plugin: copy this package to start a new plugin.
+
+``/example-command`` answers with its two options and the config's ``example_key`` in an
+ephemeral embed, under a button that counts its presses.
+
+Kotlin:
+    XsDiscordBotKt@3a59607:Plugins/_Example/src/main/kotlin/_example/Event.kt:14-62
+"""
+
+from typing import TYPE_CHECKING
+
+import discord
+
+from xincord.core.templates import Templates
+
+from .cog import Example
+from .config import Config
+
+if TYPE_CHECKING:
+    from xincord.core.bot import Bot
+
+# Read by the core before the plugin loads: the plugins this one needs, those it uses when they are
+# enabled, and the gateway intents it adds to discord.py's defaults.
+DEPENDS: tuple[str, ...] = ()
+SOFT_DEPENDS: tuple[str, ...] = ()
+INTENTS = discord.Intents.none()
+# Replies use the user's locale and fall back to this one, as in v3.
+DEFAULT_LOCALE = "zh-TW"
+
+
+async def setup(bot: Bot) -> None:
+    """Load the config, the lang files and the templates, then add the cog."""
+    context = bot.plugin_context(__name__)
+    lang = context.lang(DEFAULT_LOCALE)
+    await bot.add_cog(Example(context.config(Config), lang, Templates.load(lang)))

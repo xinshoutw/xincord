@@ -6,6 +6,10 @@ license = "AGPL-3.0-or-later"
 requires-python = ">=3.14"
 dependencies = ["xincord"]
 
+# One entry point per plugin, named after the v3 plugin; the core config's `plugins` list uses it.
+[project.entry-points."xincord.plugins"]
+_Example = "xincord.plugins.example"
+
 [build-system]
 requires = ["uv_build>=0.12.24,<0.13"]
 build-backend = "uv_build"

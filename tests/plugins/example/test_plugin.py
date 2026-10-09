@@ -8,8 +8,6 @@ Kotlin:
 from importlib.resources import files
 from typing import TYPE_CHECKING
 
-import pytest
-
 from xincord.core.plugins import PluginInfo, discover
 
 if TYPE_CHECKING:
@@ -27,13 +25,11 @@ LANG_FILES = (
 )
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as _Example")
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as _Example."""
     assert discover(["_Example"]) == [PluginInfo("_Example", "xincord.plugins.example")]
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as _Example")
 async def test_first_load_creates_the_files(bot: Bot, tmp_path: Path) -> None:
     """Requirement: The plugin installs as _Example."""
     directory = tmp_path / "plugins" / "_Example"
