@@ -4,8 +4,11 @@
 
 # The translated payload of /example-command; keys that are not listed here are not compared.
 command:
+  type: 1
   name: "example-command"
   description: "this is an example command"
+  nsfw: false
+  default_member_permissions: null
   name_localizations: {en-US: "example-command", zh-TW: "範例指令"}
   description_localizations: {en-US: "This is an example command", zh-TW: "這是一個範例指令"}
   options:

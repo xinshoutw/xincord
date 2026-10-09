@@ -42,7 +42,7 @@ in the user's locale, falling back to zh-TW, with `%_Example@option1%`, `%_Examp
 template's button at 0. Option text SHALL be inserted verbatim, in any channel.
 
 #### Scenario: Both options
-- **WHEN** an en-US user answers `first` and `2`
+- **WHEN** an en-US user runs the command with `first` and `2`
 - **THEN** the response is v3's en-US embed showing `first`, `2` and `example_value`, under a button
   that shows 0 and carries `example:1:a=count;b=0`
 
@@ -76,7 +76,8 @@ command SHALL keep the command tree's ephemeral defer and answer through the rep
 #### Scenario: Command payload
 - **WHEN** the plugin is loaded and the commands are translated
 - **THEN** the guild payload holds `example-command` with v3's names, descriptions and
-  localizations, `option1` required with a maximum length of 1024, and `option2` optional
+  localizations and no default member permissions, `option1` required with a maximum length of
+  1024, and `option2` optional
 
 #### Scenario: Command callback
 - **WHEN** the registered command's callback runs with `first` and no `option2`
