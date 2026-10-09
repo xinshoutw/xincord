@@ -63,15 +63,23 @@ class FakePlugins:
         return Bot(plugins, root=root, store=store, force_lang=force_lang)
 
 
+WAIT = 5  # seconds before until() gives up
+
+
 def write_config(text: str) -> None:
     """Write the core ``config.yaml`` in the working directory."""
     Path("config.yaml").write_text(text, encoding="utf-8")
 
 
 async def until(condition: Callable[[], bool]) -> None:
-    """Wait until ``condition`` holds, for example after a signal handler started a task."""
-    while not condition():  # noqa: ASYNC110 - the state has no event to wait on
-        await asyncio.sleep(0.01)
+    """Wait until ``condition`` holds, for example after a signal handler started a task.
+
+    Raises:
+        TimeoutError: It did not hold within ``WAIT`` seconds.
+    """
+    async with asyncio.timeout(WAIT):
+        while not condition():  # noqa: ASYNC110 - the state has no event to wait on
+            await asyncio.sleep(0.01)
 
 
 def watch_syncs(

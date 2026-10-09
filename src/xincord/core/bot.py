@@ -54,6 +54,7 @@ class Bot(commands.Bot):
         root: Path,
         store: Store,
         force_lang: bool = False,
+        config: CoreConfig | None = None,
     ) -> None:
         """Create a bot for ``plugins`` (from :func:`discover`) with the intents they need.
 
@@ -62,6 +63,7 @@ class Bot(commands.Bot):
             root: The directory that holds ``<Name>/`` for each plugin.
             store: The store shared by all plugins.
             force_lang: Replace exported lang files with the bundled ones.
+            config: The core config, for the status rotation and the interaction log.
         """
         # Application commands only: the prefix just satisfies commands.Bot.
         super().__init__(
@@ -79,6 +81,7 @@ class Bot(commands.Bot):
         self._loaded: dict[str, PluginInfo] = {}
         self._routes: dict[str, list[tuple[ComponentIds, Handler]]] = {}
         self._reloading = asyncio.Lock()
+        self._config = config or CoreConfig()
 
     @override
     async def setup_hook(self) -> None:

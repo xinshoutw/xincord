@@ -1,6 +1,6 @@
 ## 1. Status rotation
 
-- [ ] 1.1 xfail tests for "Status rotation"
+- [x] 1.1 xfail tests for "Status rotation"
 - [ ] 1.2 Implement `xincord.core.status`, the bot's config and the rotation task; remove the
       markers
 
