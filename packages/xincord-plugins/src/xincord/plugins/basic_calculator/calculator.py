@@ -5,6 +5,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:64-206
 """
 
+import math
 import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Self
@@ -38,6 +39,7 @@ NOT_A_NUMBER = "Unknown Token: {}"
 ILLEGAL_FORMULA = "Illegal formula"
 DIVISION_BY_ZERO = "Division by zero"
 TOO_MANY_DIGITS = "Too many digits"
+WHOLE_EXPONENT = "Exponent must be an integer"
 
 
 class CalcError(ValueError):
@@ -217,8 +219,23 @@ def _divide(left: BigDecimal, right: BigDecimal) -> BigDecimal:
 
 
 def _power(base: BigDecimal, exponent: BigDecimal) -> BigDecimal:
-    """Raise ``base`` to a whole ``exponent``."""
-    raise NotImplementedError
+    """Raise ``base`` to a whole ``exponent``; a negative one divides 1 by the power.
+
+    v3's ``pow(exponent.toInt())`` truncated the exponent to 32 bits and threw an uncaught
+    exception for a negative one.
+    """
+    whole, fraction = divmod(exponent.unscaled, 10**exponent.scale)
+    if fraction:
+        raise CalcError(WHOLE_EXPONENT)
+    count = abs(whole)
+    # Lower bounds of the power's decimal places and bits, so that 10^999999999 fails at once.
+    if (
+        count * base.scale > DIGITS_MAX
+        or count * (abs(base.unscaled).bit_length() - 1) > DIGITS_MAX * _LOG2_TEN
+    ):
+        raise CalcError(TOO_MANY_DIGITS)
+    power = _checked(BigDecimal(base.unscaled**count, base.scale * count))
+    return power if whole >= 0 else _divide(BigDecimal(1, 0), power)
 
 
 BINARY: dict[str, Callable[[BigDecimal, BigDecimal], BigDecimal]] = {
@@ -229,6 +246,7 @@ BINARY: dict[str, Callable[[BigDecimal, BigDecimal], BigDecimal]] = {
     "^": _power,
 }
 _DIGITS_LIMIT = 10**DIGITS_MAX
+_LOG2_TEN = math.log2(10)
 _RESULT_LIMIT = 10**RESULT_MAX
 
 

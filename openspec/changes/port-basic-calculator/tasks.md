@@ -26,7 +26,7 @@
 ## 6. Powers
 
 - [x] 6.1 xfail tests for "Powers take whole exponents"
-- [ ] 6.2 Implement powers; remove the markers
+- [x] 6.2 Implement powers; remove the markers
 
 ## 7. Golden files
 

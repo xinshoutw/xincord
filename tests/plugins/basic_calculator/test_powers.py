@@ -10,10 +10,6 @@ import pytest
 
 from xincord.plugins.basic_calculator.calculator import CalcError, evaluate_postfix, to_postfix
 
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Powers take whole exponents"
-)
-
 
 def result(formula: str) -> str:
     """The result of ``formula``."""
@@ -27,7 +23,6 @@ def error(formula: str) -> str:
     return str(caught.value)
 
 
-@XFAIL
 @pytest.mark.parametrize(
     ("formula", "expected"),
     [
@@ -49,7 +44,6 @@ def test_whole_exponents(formula: str, expected: str) -> None:
     assert result(formula) == expected
 
 
-@XFAIL
 @pytest.mark.parametrize(
     ("formula", "expected"),
     [
@@ -67,14 +61,12 @@ def test_negative_exponents(formula: str, expected: str) -> None:
     assert error("0^-1") == "Division by zero"
 
 
-@XFAIL
 @pytest.mark.parametrize("formula", ["2^0.5", "4^(1/2)", "4^-0.5", "0^0.5"])
 def test_fractional_exponents(formula: str) -> None:
     """Requirement: Powers take whole exponents."""
     assert error(formula) == "Exponent must be an integer"
 
 
-@XFAIL
 @pytest.mark.parametrize(
     "formula",
     ["10^999999999", "2^4294967297", "2^4294967296", "0.1^60000", "9^99999", "(-10)^-60000"],
@@ -87,7 +79,6 @@ def test_huge_powers(formula: str) -> None:
     assert time.perf_counter() - started < 1  # refused before computing
 
 
-@XFAIL
 def test_trivial_bases() -> None:
     """Requirement: Powers take whole exponents."""
     assert result("1^4294967297") == "1"
