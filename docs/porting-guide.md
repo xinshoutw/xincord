@@ -84,3 +84,9 @@ Every deliberate difference, added by the change that introduces it.
 
 | Area | v3 behavior | xincord behavior | Change |
 |---|---|---|---|
+| Config files | unknown keys fail the whole load (KAML strict mode) | unknown keys are logged as warnings | core-config |
+| Core config | `general_settings` / `builtin_settings` with `TYPE;text;ms` strings | `token`, `status.activities`, `interaction_log`; migrate with `python -m xincord.core.migrate_v3 <dir>` | core-config |
+| Status rotation | a `STREAMING` entry used its third field as both URL and delay, so nothing waited | separate `url` and `seconds` fields | core-config |
+| Status rotation | malformed entries were skipped at runtime on every cycle | rejected when the config loads | core-config |
+| Interaction log | unknown `log_type` values were ignored | validation error | core-config |
+| Default core config | shipped a real guild and channel ID | ships no interaction log targets | core-config |
