@@ -11,11 +11,14 @@ import argparse
 import asyncio
 import logging
 import signal
+import sys
+from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import discord
+from prompt_toolkit.patch_stdout import patch_stdout
 
 from xincord.core.bot import Bot
 from xincord.core.config import (
@@ -25,6 +28,7 @@ from xincord.core.config import (
     default_core_config,
     load_config,
 )
+from xincord.core.console import run_console
 from xincord.core.plugins import discover
 from xincord.core.storage import Store
 
@@ -75,8 +79,12 @@ def parse_args(argv: Sequence[str] | None = None) -> Options:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the bot with the command line ``argv`` and return the exit status."""
     options = parse_args(argv)
-    discord.utils.setup_logging(level=LEVELS[options.level])
-    return asyncio.run(run(options))
+    console = not options.no_online and sys.stdin.isatty() and sys.stdout.isatty()
+    # Set up logging inside the patch, so log lines go through prompt_toolkit's proxy and
+    # print above the prompt.
+    with patch_stdout(raw=True) if console else nullcontext():
+        discord.utils.setup_logging(level=LEVELS[options.level])
+        return asyncio.run(run(options, console=console))
 
 
 async def run(options: Options, *, console: bool = False) -> int:
@@ -116,16 +124,15 @@ async def _check(bot: Bot, enabled: Sequence[str]) -> int:
 
 
 async def _serve(bot: Bot, token: str, *, console: bool) -> int:
-    """Run the bot until a stop signal closes it; SIGHUP reloads."""
-    if console:
-        raise NotImplementedError
+    """Run the bot until a stop signal or the console closes it; SIGHUP reloads."""
     loop = asyncio.get_running_loop()
     tasks: set[asyncio.Task[object]] = set()
 
-    def spawn(coroutine: Coroutine[object, object, object]) -> None:
+    def spawn(coroutine: Coroutine[object, object, object]) -> asyncio.Task[object]:
         task = loop.create_task(coroutine)
         tasks.add(task)
         task.add_done_callback(tasks.discard)
+        return task
 
     def stop() -> None:
         logger.info("Stopping")
@@ -134,13 +141,19 @@ async def _serve(bot: Bot, token: str, *, console: bool) -> int:
     for signum in STOP_SIGNALS:
         loop.add_signal_handler(signum, stop)
     loop.add_signal_handler(signal.SIGHUP, lambda: spawn(bot.reload()))
+    prompt: asyncio.Task[object] | None = None
     try:
         async with bot:
+            if console:
+                prompt = spawn(run_console(bot, stop))
             await bot.start(token)
-            await bot.close()  # wait for a close that a signal started
+            await bot.close()  # wait for a close that a signal or the console started
     except (discord.LoginFailure, discord.PrivilegedIntentsRequired) as error:
         return _failed(f"Cannot connect to Discord: {error}")
     finally:
+        if prompt is not None:
+            prompt.cancel()  # the bot may have stopped without the console
+            await asyncio.gather(prompt, return_exceptions=True)
         for signum in (*STOP_SIGNALS, signal.SIGHUP):
             loop.remove_signal_handler(signum)
     return 0

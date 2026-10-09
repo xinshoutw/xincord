@@ -47,7 +47,8 @@ def test_the_xincord_command(monkeypatch: pytest.MonkeyPatch) -> None:
     def setup_logging(*, level: int) -> None:
         levels.append(level)
 
-    async def run(options: Options) -> int:
+    async def run(options: Options, *, console: bool = False) -> int:
+        assert not console  # pytest's stdin is not a terminal
         runs.append(options)
         return 3
 

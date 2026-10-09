@@ -134,7 +134,6 @@ class Terminal:
         return self.tty
 
 
-@pytest.mark.xfail(strict=True, reason="Console only on a terminal")
 @pytest.mark.parametrize(
     ("argv", "tty", "console"), [([], True, True), ([], False, False), (["-N"], True, False)]
 )
@@ -173,7 +172,6 @@ def test_terminal_detection(
         assert events == ["logging 20", "run console=False"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Console only on a terminal")
 @pytest.mark.parametrize(("keys", "signum"), [("stop\n", None), ("", signal.SIGTERM)])
 async def test_console_while_running(
     installed: FakePlugins,
