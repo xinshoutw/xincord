@@ -238,7 +238,6 @@ def watch_syncs(
     return syncs
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Uploads when ready")
 async def test_ready(store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Commands are uploaded when ready."""
     bot = Bot([], root=tmp_path, store=store)
@@ -251,7 +250,6 @@ async def test_ready(store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert syncs == [("global", False), (1, False), (2, False)]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Uploads when ready")
 async def test_joined_guild(store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Commands are uploaded when ready."""
     bot = Bot([], root=tmp_path, store=store)
@@ -262,7 +260,6 @@ async def test_joined_guild(store: Store, tmp_path: Path, monkeypatch: pytest.Mo
     assert syncs == [(3, True)]
 
 
-@pytest.mark.xfail(strict=True, reason="Mentions allow users only")
 async def test_default_allowed_mentions(store: Store, tmp_path: Path) -> None:
     """Requirement: Mentions allow users only."""
     mentions = Bot([], root=tmp_path, store=store).allowed_mentions

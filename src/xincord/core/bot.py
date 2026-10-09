@@ -28,6 +28,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 ROUTED = (discord.InteractionType.component, discord.InteractionType.modal_submit)
+# B19: messages ping users only; a message passes its own allowed_mentions to opt in.
+ALLOWED_MENTIONS = discord.AllowedMentions(
+    everyone=False, users=True, roles=False, replied_user=True
+)
 
 
 class Bot(commands.Bot):
@@ -55,6 +59,7 @@ class Bot(commands.Bot):
             intents=required_intents(plugins),
             help_command=None,
             tree_cls=CommandTree,
+            allowed_mentions=ALLOWED_MENTIONS,
         )
         self._plugins = tuple(plugins)
         self._root = root
@@ -73,11 +78,17 @@ class Bot(commands.Bot):
 
     async def on_ready(self) -> None:
         """Upload the commands that changed: the global ones, then each guild's."""
-        raise NotImplementedError
+        tree = cast("CommandTree", self.tree)
+        await tree.sync_global(self._store)
+        for guild in self.guilds:
+            await tree.sync_guild(self._store, guild.id)
+            logger.info("Guild loaded: %s (%s)", guild.name, guild.id)
+        logger.info("Bot ready")
 
     async def on_guild_join(self, guild: discord.Guild) -> None:
         """Upload the guild commands to a guild the bot joined."""
-        raise NotImplementedError
+        await cast("CommandTree", self.tree).sync_guild(self._store, guild.id, force=True)
+        logger.info("Guild joined: %s (%s)", guild.name, guild.id)
 
     @property
     def loaded(self) -> tuple[str, ...]:

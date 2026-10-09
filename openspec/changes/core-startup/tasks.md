@@ -17,7 +17,7 @@
 ## 4. Bot defaults
 
 - [x] 4.1 xfail tests for "Commands are uploaded when ready" and "Mentions allow users only"
-- [ ] 4.2 Implement `on_ready`, `on_guild_join` and the default allowed mentions; remove the
+- [x] 4.2 Implement `on_ready`, `on_guild_join` and the default allowed mentions; remove the
       markers
 
 ## 5. Close
