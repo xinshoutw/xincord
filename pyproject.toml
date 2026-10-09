@@ -4,7 +4,10 @@ version = "0.1.0"
 description = "A modular Discord bot built on discord.py."
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "pydantic>=2.14.0",
+    "pyyaml>=6.0.3",
+]
 
 [build-system]
 requires = ["uv_build>=0.12.24,<0.13"]
@@ -27,7 +30,6 @@ dev = [
     "pyright>=1.1.414",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
-    "pyyaml>=6.0.3",
     "ruff>=0.16.10",
     "types-pyyaml>=6.0.12.20260906",
     "xincord-plugins",
@@ -56,6 +58,8 @@ ignore = [
 convention = "google"
 
 [tool.ruff.lint.flake8-type-checking]
+# pydantic resolves field annotations when the model class is created.
+runtime-evaluated-base-classes = ["pydantic.BaseModel", "xincord.core.config.Model"]
 # discord.py evaluates the parameter annotations of these callbacks at import time, so their
 # imports must stay outside TYPE_CHECKING blocks.
 runtime-evaluated-decorators = [

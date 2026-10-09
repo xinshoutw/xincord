@@ -1,6 +1,6 @@
 ## 1. Loader
 
-- [ ] 1.1 xfail tests for "Config files are validated against a typed schema", "Missing config
+- [x] 1.1 xfail tests for "Config files are validated against a typed schema", "Missing config
       files are created from the default" and "Unknown keys warn instead of failing"
 - [ ] 1.2 Implement `load_config`, `Model` and `ConfigError`; remove the markers
 
