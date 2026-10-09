@@ -5,7 +5,7 @@
 ## 2. Command line
 
 - [x] 2.1 xfail tests for "Command line options"
-- [ ] 2.2 Implement `xincord.core.cli` (`Options`, `parse_args`, `main`) and the `xincord` script;
+- [x] 2.2 Implement `xincord.core.cli` (`Options`, `parse_args`, `main`) and the `xincord` script;
       remove the markers
 
 ## 3. Startup and stop

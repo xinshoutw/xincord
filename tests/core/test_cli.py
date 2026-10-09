@@ -13,10 +13,6 @@ import pytest
 from xincord.core import cli
 from xincord.core.cli import Options, main, parse_args
 
-pytestmark = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Command line options"
-)
-
 
 def test_defaults() -> None:
     assert parse_args([]) == Options(token=None, level="INFO", no_online=False, force_lang=False)
