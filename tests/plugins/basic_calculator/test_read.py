@@ -8,9 +8,6 @@ import pytest
 
 from xincord.plugins.basic_calculator.calculator import FORMULA_MAX, NEGATE, CalcError, to_postfix
 
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Formulas are read with v3's syntax"
-)
 IDEOGRAPHIC_SPACE = chr(0x3000)
 NEXT_LINE = chr(0x85)
 ARABIC_DIGITS = chr(0x661) + chr(0x662)
@@ -24,7 +21,6 @@ def message(formula: str) -> str:
     return str(caught.value)
 
 
-@XFAIL
 @pytest.mark.parametrize(
     ("formula", "postfix"),
     [
@@ -43,7 +39,6 @@ def test_implicit_multiplication(formula: str, postfix: list[str]) -> None:
     assert to_postfix(formula) == postfix
 
 
-@XFAIL
 @pytest.mark.parametrize(
     ("formula", "postfix"),
     [
@@ -60,7 +55,6 @@ def test_precedence(formula: str, postfix: list[str]) -> None:
     assert to_postfix(formula) == postfix
 
 
-@XFAIL
 @pytest.mark.parametrize(
     ("formula", "postfix"),
     [
@@ -80,14 +74,12 @@ def test_minus_after_an_operator(formula: str, postfix: list[str]) -> None:
     assert to_postfix(formula) == postfix
 
 
-@XFAIL
 def test_powers_group_from_the_right() -> None:
     """Requirement: Formulas are read with v3's syntax."""
     assert to_postfix("2^3^2") == ["2", "3", "2", "^", "^"]
     assert to_postfix("(2^3)^2") == ["2", "3", "^", "2", "^"]
 
 
-@XFAIL
 @pytest.mark.parametrize(
     ("formula", "error"),
     [
@@ -107,14 +99,12 @@ def test_reading_errors(formula: str, error: str) -> None:
     assert message(formula) == error
 
 
-@XFAIL
 def test_numbers_are_runs_of_digits() -> None:
     """Requirement: Formulas are read with v3's syntax."""
     assert to_postfix("1.2.3+.") == ["1.2.3", ".", "+"]
     assert to_postfix(f"{ARABIC_DIGITS}+1") == [ARABIC_DIGITS, "1", "+"]
 
 
-@XFAIL
 def test_long_formulas() -> None:
     """Requirement: Formulas are read with v3's syntax."""
     assert message("1" * (FORMULA_MAX + 1)) == "Formula too long"
