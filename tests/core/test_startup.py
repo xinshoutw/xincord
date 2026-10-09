@@ -7,9 +7,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/ListenerManager.kt:18-36
 """
 
-import asyncio
 import signal
-from importlib import metadata
 from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast
@@ -17,17 +15,14 @@ from typing import TYPE_CHECKING, cast
 import discord
 import pytest
 
+from plugin_fakes import until, watch_syncs, write_config
 from xincord.core.bot import Bot
 from xincord.core.cli import Options, run
 from xincord.core.i18n import Translator
-from xincord.core.plugins import GROUP
 from xincord.core.storage import Store
 
 if TYPE_CHECKING:
-    from importlib.metadata import EntryPoint
-
     from plugin_fakes import FakePlugins
-    from xincord.core.command_tree import CommandTree
 
 PLUGIN = """
 from xincord.core.config import Model
@@ -54,27 +49,6 @@ BROKEN = """
 async def setup(bot):
     raise RuntimeError("boom")
 """
-
-
-@pytest.fixture
-def installed(
-    fake_plugins: FakePlugins, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> FakePlugins:
-    """Make the fake plugins the installed ones and work in an empty directory."""
-
-    def entry_points(*, group: str) -> list[EntryPoint]:
-        assert group == GROUP
-        return fake_plugins.entry_points
-
-    monkeypatch.setattr(metadata, "entry_points", entry_points)
-    workdir = tmp_path / "bot"
-    workdir.mkdir()
-    monkeypatch.chdir(workdir)
-    return fake_plugins
-
-
-def write_config(text: str) -> None:
-    Path("config.yaml").write_text(text, encoding="utf-8")
 
 
 def watch_closes(monkeypatch: pytest.MonkeyPatch) -> list[Store]:
@@ -206,36 +180,13 @@ async def test_stop_signal(
     async def start(self: Bot, _token: str) -> None:
         await self.setup_hook()
         signal.raise_signal(signum)
-        # Stands in for the gateway loop, which ends once the client is closed.
-        while not self.is_closed():  # noqa: ASYNC110
-            await asyncio.sleep(0.01)
+        await until(self.is_closed)  # the gateway loop ends once the client is closed
 
     monkeypatch.setattr(Bot, "start", start)
 
     assert await run(Options()) == 0
     assert installed.calls() == ["setup", "teardown"]
     assert len(closed) == 1
-
-
-def watch_syncs(
-    bot: Bot, store: Store, monkeypatch: pytest.MonkeyPatch
-) -> list[tuple[str | int, bool]]:
-    syncs: list[tuple[str | int, bool]] = []
-    tree = cast("CommandTree", bot.tree)
-
-    async def sync_global(used: Store, *, force: bool = False) -> bool:
-        assert used is store
-        syncs.append(("global", force))
-        return True
-
-    async def sync_guild(used: Store, guild_id: int, *, force: bool = False) -> bool:
-        assert used is store
-        syncs.append((guild_id, force))
-        return True
-
-    monkeypatch.setattr(tree, "sync_global", sync_global)
-    monkeypatch.setattr(tree, "sync_guild", sync_guild)
-    return syncs
 
 
 async def test_ready(store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -1,19 +1,22 @@
-"""Fake plugin packages for tests that load plugins."""
+"""Fakes for tests that load plugins and run the bot."""
 
+import asyncio
 import importlib
-import sys
 import textwrap
 from dataclasses import dataclass, field
 from importlib.metadata import EntryPoint
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, cast
 
 from xincord.core.bot import Bot
 from xincord.core.plugins import GROUP, discover
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-    from pathlib import Path
+    from collections.abc import Callable, Sequence
 
+    import pytest
+
+    from xincord.core.command_tree import CommandTree
     from xincord.core.storage import Store
 
 
@@ -49,7 +52,7 @@ class FakePlugins:
 
     def calls(self) -> list[object]:
         """What the plugins' setup functions recorded so far."""
-        record: list[object] = sys.modules[self.package].calls
+        record: list[object] = importlib.import_module(self.package).calls
         return record
 
     def bot(
@@ -58,3 +61,36 @@ class FakePlugins:
         """Create a bot for the enabled plugins."""
         plugins = discover(enabled, self.entry_points)
         return Bot(plugins, root=root, store=store, force_lang=force_lang)
+
+
+def write_config(text: str) -> None:
+    """Write the core ``config.yaml`` in the working directory."""
+    Path("config.yaml").write_text(text, encoding="utf-8")
+
+
+async def until(condition: Callable[[], bool]) -> None:
+    """Wait until ``condition`` holds, for example after a signal handler started a task."""
+    while not condition():  # noqa: ASYNC110 - the state has no event to wait on
+        await asyncio.sleep(0.01)
+
+
+def watch_syncs(
+    bot: Bot, store: Store, monkeypatch: pytest.MonkeyPatch
+) -> list[tuple[str | int, bool]]:
+    """Record the bot's command uploads as ``(scope, force)`` instead of sending them."""
+    syncs: list[tuple[str | int, bool]] = []
+    tree = cast("CommandTree", bot.tree)
+
+    async def sync_global(used: Store, *, force: bool = False) -> bool:
+        assert used is store
+        syncs.append(("global", force))
+        return True
+
+    async def sync_guild(used: Store, guild_id: int, *, force: bool = False) -> bool:
+        assert used is store
+        syncs.append((guild_id, force))
+        return True
+
+    monkeypatch.setattr(tree, "sync_global", sync_global)
+    monkeypatch.setattr(tree, "sync_guild", sync_guild)
+    return syncs

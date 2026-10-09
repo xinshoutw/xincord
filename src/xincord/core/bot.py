@@ -90,6 +90,14 @@ class Bot(commands.Bot):
         await cast("CommandTree", self.tree).sync_guild(self._store, guild.id, force=True)
         logger.info("Guild joined: %s (%s)", guild.name, guild.id)
 
+    async def reload(self, plugin: str | None = None) -> str:
+        """Reload ``plugin`` with its dependents, or the core config and every plugin.
+
+        Returns:
+            A one-line summary, also logged. Failures are logged and summarized, not raised.
+        """
+        raise NotImplementedError
+
     @property
     def loaded(self) -> tuple[str, ...]:
         """The names of the loaded plugins, in load order."""
