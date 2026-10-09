@@ -1,6 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after the `core-component-ids` change was archived. Read this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The
+Updated 2026-10-10 after the `core-plugin-loading` change was archived. Read this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The
 decisions are accepted and binding; do not re-open them unless you find a serious problem, and
 then ask the owner.
 
@@ -61,9 +61,9 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   pre-push; the Claude Code Stop hook runs it too; CI runs it on every push.
 - **Core modules (all archived and green):**
   - `xincord.core.config`: `load_config`, `parse_model`, `unknown_keys`, `Model`, `ConfigError`,
-    the core schema `CoreConfig` (`token`, `status.activities`, `interaction_log`) and the default
-    `resources/config.yaml`. `xincord.core.migrate_v3` converts the v3 core config
-    (`python -m xincord.core.migrate_v3 <dir>`).
+    the core schema `CoreConfig` (`token`, `plugins`, `status.activities`, `interaction_log`) and
+    the default `resources/config.yaml`. `xincord.core.migrate_v3` converts the v3 core config and
+    lists the plugins whose v3 config had `enabled: true` (`python -m xincord.core.migrate_v3 <dir>`).
   - `xincord.core.storage`: `Store` over one SQLite connection on one worker thread; JSON values by
     namespace and key; `update` (atomic read-modify-write), `run` (plugin tables), `lock(key)`.
   - `xincord.core.i18n`: `export_lang`, `Lang.load` (locales, flattened YAML keys, Discord name
@@ -81,6 +81,15 @@ starting with Core. Motivation: easier maintenance and faster iteration.
     builds `{namespace}:1:{letter}={value};...` (percent-encoded, 100 characters max; `build` is
     the templates' `build_id`), parses new and v3 IDs into text fields (`ParsedId.legacy`), and
     `upgrade` / `upgrade_view` rewrite legacy IDs in a view rebuilt with `from_message`.
+  - `xincord.core.plugins`: `discover(enabled)` reads entry points (group `xincord.plugins`, name =
+    plugin name) and the module constants `DEPENDS`, `SOFT_DEPENDS`, `INTENTS`, drops broken
+    plugins, missing dependencies and cycles, and orders the rest with `graphlib`;
+    `required_intents`; `PluginContext` (`directory`, `store`, `config(Model)`, `lang(locale)`).
+  - `xincord.core.bot.Bot(commands.Bot)`: created from the discovered plugins with their intents;
+    `load_plugins()` (isolated failures, dependents skipped), `plugin_context(__name__)` for a
+    plugin's `setup(bot)`, `load_plugin(info)` (hot load: refuses new intents or missing
+    dependencies), `reload_plugin(name)` (with dependents; discord.py keeps the old version on
+    failure). Runtime will extend this class.
     Component and modal IDs come from a `build_id(uid_map)` callable the plugin passes in. Views
     and modals are stopped before they are returned, so discord.py never dispatches their
     interactions; the core will route them (Core change `command-tree`).
@@ -92,28 +101,26 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 ### Done (archived, pushed, CI green)
 
 `project-skeleton`, `core-config`, `core-storage`, `core-i18n`, `core-placeholders`,
-`core-templates`, `core-components-v2`, `core-component-ids`. Each one's `design.md` in `openspec/changes/archive/`
+`core-templates`, `core-components-v2`, `core-component-ids`, `core-plugin-loading`. Each one's `design.md` in `openspec/changes/archive/`
 records its decisions and "v3 behaved differently" notes; `docs/porting-guide.md` has the
 differences table.
 
 ### Next Core changes, in order
 
-1. **plugin-loading (B3, B4):** entry-point group `xincord.plugins`, metadata as module constants,
-   `graphlib` ordering, missing-dependency check, per-plugin isolation, config and lang under
-   `plugins/<Name>/` (use `load_config`, `export_lang`, `Lang.load`, `Templates.load`), intents
-   aggregated before connecting, enabled-plugin list in the core config.
-2. **command-tree (B5):** ephemeral auto-defer with opt-out through `extras`; autocomplete by
+1. **command-tree (B5):** ephemeral auto-defer with opt-out through `extras`; autocomplete by
    command name; hash-based sync; guild/global split; `Translator` on the tree; routing of
    component and modal interactions by `ComponentIds.owns` (new and legacy IDs), then
    `View.from_message` + `upgrade_view` + one message edit after a legacy ID was handled; the
    interaction placeholder keys left out of core-placeholders (`command_name`,
    `full_command_name`, `command_string`, `subcommand_name`, `language`, `channel_category_name`,
    `component_*`).
-3. **runtime (B15, B19, C3):** client setup, argparse CLI (`--token`, `--level`, `--no-online`,
-   `--force-renew-lang-resources`), signals, prompt_toolkit console, owner-only `/xincord reload`,
-   status rotation from `status.activities`, interaction log from `interaction_log` (`cl_type`,
-   `cl_interaction_string`), `AllowedMentions` for users only, database location.
-4. **container (B16):** Dockerfile (arm64) and compose (bot; Lavalink later), SQLite in a named
+2. **runtime (B15, B19, C3):** extend `xincord.core.bot.Bot` (discover from `CoreConfig.plugins`,
+   `load_plugins` in `setup_hook`), argparse CLI (`--token`, `--level`, `--no-online`,
+   `--force-renew-lang-resources`), signals, prompt_toolkit console, owner-only `/xincord reload`
+   (through `reload_plugin` and `load_plugin`), status rotation from `status.activities`,
+   interaction log from `interaction_log` (`cl_type`, `cl_interaction_string`),
+   `AllowedMentions` for users only, database location.
+3. **container (B16):** Dockerfile (arm64) and compose (bot; Lavalink later), SQLite in a named
    volume, `stdin_open` and `tty` for the console.
 
 Then the plugins in C1 order (_Example first, as the template for the new API), using the
