@@ -15,6 +15,7 @@ from xincord.core.placeholders import actor_values, interaction_values
 from xincord.core.templates import render_message
 
 if TYPE_CHECKING:
+    from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
     from xincord.core.templates import Templates
 
@@ -89,6 +90,10 @@ class Example(commands.Cog):
         await interaction.edit_original_response(
             content=reply.content, embeds=reply.embeds, view=counter.view
         )
+
+    async def count(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
+        """Stub until the counter exists."""
+        raise NotImplementedError
 
 
 def placeholder_values(interaction: discord.Interaction) -> dict[str, str]:

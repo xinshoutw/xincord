@@ -27,7 +27,7 @@
 
 ## 6. Counter
 
-- [ ] 6.1 xfail tests for "The counter button counts presses"
+- [x] 6.1 xfail tests for "The counter button counts presses"
 - [ ] 6.2 Implement the handler and route the IDs in `setup`; remove the markers
 
 ## 7. Conventions
