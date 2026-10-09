@@ -12,6 +12,7 @@ Kotlin:
 import math
 import re
 from dataclasses import dataclass
+from functools import cache
 from typing import TYPE_CHECKING, Self
 
 if TYPE_CHECKING:
@@ -35,7 +36,6 @@ PRECEDENCE = {"+": 1, "-": 1, "*": 2, "/": 2, NEGATE: 3, "^": 4}
 RIGHT_ASSOCIATIVE = frozenset("^")
 # Kotlin's toBigDecimalOrNull() accepted ASCII digits only, so other Unicode digits fail later.
 NUMBER = re.compile(r"[0-9]+\.?[0-9]*|\.[0-9]+")
-_DIGITS_LIMIT = 10**DIGITS_MAX
 _RESULT_LIMIT = 10**RESULT_MAX
 _LOG2_TEN = math.log2(10)
 
@@ -273,9 +273,15 @@ def _round_half_up(numerator: int, denominator: int) -> int:
 
 def _checked(value: BigDecimal) -> BigDecimal:
     """Refuse a value with more than ``DIGITS_MAX`` digits or decimal places."""
-    if value.scale > DIGITS_MAX or abs(value.unscaled) >= _DIGITS_LIMIT:
+    if value.scale > DIGITS_MAX or abs(value.unscaled) >= _digits_limit():
         raise CalcError(TOO_MANY_DIGITS)
     return value
+
+
+@cache
+def _digits_limit() -> int:
+    """``10**DIGITS_MAX``, computed when first needed: it takes milliseconds."""
+    return 10**DIGITS_MAX
 
 
 def _format(value: BigDecimal) -> str:
