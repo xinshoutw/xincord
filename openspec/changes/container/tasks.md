@@ -5,7 +5,7 @@
 
 ## 2. Compose
 
-- [ ] 2.1 xfail tests for "Compose service"
+- [x] 2.1 xfail tests for "Compose service"
 - [ ] 2.2 Add `compose.yaml` and ignore `bot/`; remove the markers
 
 ## 3. Close

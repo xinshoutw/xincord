@@ -2,6 +2,9 @@
 
 from pathlib import Path
 
+import pytest
+import yaml
+
 ROOT = Path(__file__).parent.parent
 
 
@@ -45,3 +48,21 @@ def test_build_context() -> None:
     ignored = {line.strip() for line in lines if line.strip() and not line.startswith("#")}
 
     assert {".git", ".venv", "**/__pycache__", ".pytest_cache", ".ruff_cache", "bot"} <= ignored
+
+
+@pytest.mark.xfail(strict=True, raises=FileNotFoundError, reason="Compose service")
+def test_service_definition() -> None:
+    """Requirement: Compose service."""
+    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
+    bot = compose["services"]["bot"]
+
+    assert bot["build"] == "."
+    assert bot["volumes"] == ["./bot:/bot", "data:/bot/data"]
+    assert (bot["stdin_open"], bot["tty"], bot["init"]) == (True, True, True)
+    assert bot["restart"] == "unless-stopped"
+    assert bot["stop_grace_period"] == "30s"
+    assert bot["logging"] == {
+        "driver": "json-file",
+        "options": {"max-size": "10m", "max-file": "3"},
+    }
+    assert "data" in compose["volumes"]
