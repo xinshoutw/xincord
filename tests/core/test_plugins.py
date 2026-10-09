@@ -18,22 +18,13 @@ import discord
 import pytest
 
 from xincord.core.bot import Bot
-from xincord.core.plugins import GROUP, PluginInfo, discover, required_intents
+from xincord.core.plugins import GROUP, PluginError, PluginInfo, discover, required_intents
 from xincord.core.storage import Store
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Iterator, Sequence
     from pathlib import Path
 
-LOADING = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="A failing plugin disables only itself"
-)
-INTENTS_ON_BOT = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Intents are aggregated before connecting"
-)
-FILES = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Plugin files live under plugins/<Name>/"
-)
 RECORD = """
 from .. import calls
 
@@ -217,7 +208,6 @@ def test_plugin_intents_are_added(fake_plugins: FakePlugins) -> None:
     assert intents == expected
 
 
-@INTENTS_ON_BOT
 async def test_bot_uses_the_aggregated_intents(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:
@@ -229,7 +219,6 @@ async def test_bot_uses_the_aggregated_intents(
     assert bot.intents == required_intents(discover(["Alpha"], fake_plugins.entry_points))
 
 
-@LOADING
 @pytest.mark.parametrize("beta", ["async def setup(bot):\n    raise RuntimeError('broken')\n", ""])
 async def test_one_plugin_fails(
     fake_plugins: FakePlugins,
@@ -255,7 +244,6 @@ async def test_one_plugin_fails(
     assert "Gamma" in caplog.text
 
 
-@FILES
 async def test_first_load_creates_the_files(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:
@@ -271,7 +259,6 @@ async def test_first_load_creates_the_files(
     assert fake_plugins.calls() == [("Hello", ("en-US",), directory, store)]
 
 
-@FILES
 async def test_edited_files_are_kept_unless_renewal_is_forced(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:
@@ -298,7 +285,6 @@ async def test_edited_files_are_kept_unless_renewal_is_forced(
     ]
 
 
-@FILES
 async def test_broken_config_disables_the_plugin(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -313,3 +299,11 @@ async def test_broken_config_disables_the_plugin(
 
     assert failed == ["Alpha"]
     assert str(config) in caplog.text
+
+
+async def test_unknown_context(store: Store, tmp_path: Path) -> None:
+    """Requirement: Plugin files live under plugins/<Name>/."""
+    bot = Bot([], root=tmp_path, store=store)
+
+    with pytest.raises(PluginError, match="nowhere"):
+        bot.plugin_context("nowhere")

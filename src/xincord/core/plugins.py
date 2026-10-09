@@ -12,9 +12,13 @@ import re
 from dataclasses import dataclass, field
 from graphlib import CycleError, TopologicalSorter
 from importlib import metadata
+from importlib.resources import files
 from typing import TYPE_CHECKING, TypeIs, cast
 
 import discord
+
+from xincord.core.config import load_config
+from xincord.core.i18n import Lang, export_lang
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
@@ -22,7 +26,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from xincord.core.config import Model
-    from xincord.core.i18n import Lang
     from xincord.core.storage import Store
 
 logger = logging.getLogger(__name__)
@@ -62,9 +65,11 @@ class PluginContext:
         """Load ``config.yaml`` as ``model``, created from the plugin's bundled default.
 
         Raises:
-            ConfigError: The file is missing from the bundle or invalid.
+            ConfigError: The file is invalid.
+            OSError: The plugin bundles no ``config.yaml``.
         """
-        raise NotImplementedError
+        default = files(self.info.module).joinpath("config.yaml").read_text(encoding="utf-8")
+        return load_config(self.directory / "config.yaml", model, default)
 
     def lang(self, default_locale: str) -> Lang:
         """Export the plugin's bundled ``lang`` directory where files are missing, then load it.
@@ -72,7 +77,9 @@ class PluginContext:
         Raises:
             LangError: The lang files are invalid.
         """
-        raise NotImplementedError
+        target = self.directory / "lang"
+        export_lang(files(self.info.module).joinpath("lang"), target, force=self.force_lang)
+        return Lang.load(self.info.name, target, default_locale)
 
 
 def discover(
