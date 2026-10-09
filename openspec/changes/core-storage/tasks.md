@@ -1,6 +1,6 @@
 ## 1. Key-value store
 
-- [ ] 1.1 xfail tests for "Values are stored by namespace and key", "Only JSON values are
+- [x] 1.1 xfail tests for "Values are stored by namespace and key", "Only JSON values are
       accepted" and "Awaited writes are durable"
 - [ ] 1.2 Implement `Store` open/close/get/put/delete/keys/items/run; remove the markers
 
