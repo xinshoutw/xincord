@@ -75,25 +75,40 @@ class Example(commands.Cog):
         self, interaction: discord.Interaction, option1: str, option2: int | None
     ) -> None:
         """Turn the deferred response into the example embed above a counter at 0."""
-        values = placeholder_values(interaction) | {
+        values = self._values(interaction, 0) | {
             "_Example@option1": option1,
             "_Example@option2": NONE if option2 is None else str(option2),
-            "_Example@example_key": self.config.example_key,
-            "_Example@count": "0",
         }
         locale = interaction.locale.value
         reply = render_message(self.templates.message("example", locale), values)
-        counter = render_message(
-            self.templates.message("counter", locale), values, build_id=IDS.build
-        )
         # The command tree deferred the response ephemerally, as v3's core did.
         await interaction.edit_original_response(
-            content=reply.content, embeds=reply.embeds, view=counter.view
+            content=reply.content, embeds=reply.embeds, view=self._counter(locale, values)
         )
 
     async def count(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
-        """Stub until the counter exists."""
-        raise NotImplementedError
+        """Show one press more on the button; ``setup`` routes the IDs of ``IDS`` here."""
+        if parsed.fields.get("action") != "count":
+            return
+        values = self._values(interaction, int(parsed.fields["count"]) + 1)
+        # Editing only the view keeps the embed above it.
+        await interaction.response.edit_message(
+            view=self._counter(interaction.locale.value, values)
+        )
+
+    def _values(self, interaction: discord.Interaction, count: int) -> dict[str, str]:
+        """Return the placeholder values that both templates can use."""
+        return placeholder_values(interaction) | {
+            "_Example@example_key": self.config.example_key,
+            "_Example@count": str(count),
+        }
+
+    def _counter(
+        self, locale: str, values: dict[str, str]
+    ) -> discord.ui.View | discord.ui.LayoutView | None:
+        """Render the counter button; its ID carries the count."""
+        message = self.templates.message("counter", locale)
+        return render_message(message, values, build_id=IDS.build).view
 
 
 def placeholder_values(interaction: discord.Interaction) -> dict[str, str]:

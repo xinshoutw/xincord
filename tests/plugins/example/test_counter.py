@@ -18,7 +18,6 @@ if TYPE_CHECKING:
     from xincord.plugins.example.cog import Example
 
 GOLDEN = golden("example")
-REASON = "The counter button counts presses"
 
 
 def press(
@@ -32,7 +31,6 @@ def press(
     )
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 @pytest.mark.parametrize("locale", [discord.Locale.american_english, discord.Locale.taiwan_chinese])
 async def test_press(bot: Bot, locale: discord.Locale) -> None:
     """Requirement: The counter button counts presses."""
@@ -47,7 +45,6 @@ async def test_press(bot: Bot, locale: discord.Locale) -> None:
     assert buttons(fields["view"]) == [(label, "example:1:a=count;b=5")]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_other_action(cog: Example) -> None:
     """Requirement: The counter button counts presses."""
     interaction = press("example:1:a=other")

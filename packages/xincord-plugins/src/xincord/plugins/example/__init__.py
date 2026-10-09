@@ -13,7 +13,7 @@ import discord
 
 from xincord.core.templates import Templates
 
-from .cog import Example
+from .cog import IDS, Example
 from .config import Config
 
 if TYPE_CHECKING:
@@ -29,10 +29,12 @@ DEFAULT_LOCALE = "zh-TW"
 
 
 async def setup(bot: Bot) -> None:
-    """Load the config, the lang files and the templates, then register the cog's command."""
+    """Load the config, the lang files and the templates, then register the cog's handlers."""
     context = bot.plugin_context(__name__)
     lang = context.lang(DEFAULT_LOCALE)
     cog = Example(context.config(Config), lang, Templates.load(lang))
     await bot.add_cog(cog)
     # A guild command: no extras={"global": True}. discord.py removes it when the plugin unloads.
     bot.tree.add_command(cog.command())
+    # Buttons with IDS's IDs reach cog.count; the core drops the route when the plugin unloads.
+    bot.route(__name__, IDS, cog.count)
