@@ -61,7 +61,6 @@ async def started(installed: FakePlugins, store: Store, enabled: list[str]) -> B
     return bot
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Reload follows the config")
 async def test_config_changed(installed: FakePlugins, store: Store) -> None:
     """Requirement: Reload follows the config."""
     for name in ("Alpha", "Beta", "Gamma"):
@@ -83,7 +82,6 @@ async def test_config_changed(installed: FakePlugins, store: Store) -> None:
     ]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Reload follows the config")
 async def test_failures(installed: FakePlugins, store: Store) -> None:
     """Requirement: Reload follows the config."""
     installed.add("Alpha", RECORDING)
@@ -100,7 +98,6 @@ async def test_failures(installed: FakePlugins, store: Store) -> None:
     assert installed.calls() == [("teardown", "alpha"), ("setup", "alpha")]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Reload follows the config")
 async def test_invalid_config(installed: FakePlugins, store: Store) -> None:
     """Requirement: Reload follows the config."""
     installed.add("Alpha", RECORDING)
@@ -114,9 +111,6 @@ async def test_invalid_config(installed: FakePlugins, store: Store) -> None:
     assert installed.calls() == []
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Reload one plugin with its dependents"
-)
 async def test_named_plugin(installed: FakePlugins, store: Store) -> None:
     """Requirement: Reload one plugin with its dependents."""
     installed.add("Alpha", RECORDING)
@@ -134,7 +128,6 @@ async def test_named_plugin(installed: FakePlugins, store: Store) -> None:
     ]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Reloads upload the commands")
 @pytest.mark.parametrize(("ready", "uploads"), [(True, [("global", True), (1, True)]), (False, [])])
 async def test_upload_after_reload(
     installed: FakePlugins,
@@ -157,7 +150,6 @@ async def test_upload_after_reload(
     assert syncs == uploads
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Reloads never overlap")
 async def test_concurrent_reloads(installed: FakePlugins, store: Store) -> None:
     """Requirement: Reloads upload the commands and never overlap."""
     installed.add("Slow", SLOW)

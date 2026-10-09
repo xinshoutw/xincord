@@ -18,7 +18,13 @@ from typing import TYPE_CHECKING
 import discord
 
 from xincord.core.bot import Bot
-from xincord.core.config import ConfigError, CoreConfig, default_core_config, load_config
+from xincord.core.config import (
+    CORE_CONFIG,
+    ConfigError,
+    CoreConfig,
+    default_core_config,
+    load_config,
+)
 from xincord.core.plugins import discover
 from xincord.core.storage import Store
 
@@ -28,7 +34,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 LEVELS = logging.getLevelNamesMapping()
-CONFIG = Path("config.yaml")
 PLUGINS = Path("plugins")
 DATABASE = Path("data/xincord.db")  # alone in data/, so a container can keep it in a volume
 SIGNALS = (signal.SIGINT, signal.SIGTERM)
@@ -77,12 +82,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 async def run(options: Options) -> int:
     """Start the bot from the working directory and return the exit status once it stops."""
     try:
-        config = load_config(CONFIG, CoreConfig, default_core_config())
+        config = load_config(CORE_CONFIG, CoreConfig, default_core_config())
     except ConfigError as error:
         return _failed(str(error))
     token = options.token or config.token
     if not (token or options.no_online):
-        return _failed(f"No bot token: set token in {CONFIG} or pass --token")
+        return _failed(f"No bot token: set token in {CORE_CONFIG} or pass --token")
     store = await Store.open(DATABASE)
     try:
         plugins = discover(config.plugins)

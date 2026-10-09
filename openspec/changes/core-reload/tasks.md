@@ -2,7 +2,7 @@
 
 - [x] 1.1 xfail tests for "Reload follows the config", "Reload one plugin with its dependents" and
       "Reloads upload the commands and never overlap"
-- [ ] 1.2 Implement `Bot.reload` and `CORE_CONFIG`; remove the markers
+- [x] 1.2 Implement `Bot.reload` and `CORE_CONFIG`; remove the markers
 
 ## 2. Triggers
 

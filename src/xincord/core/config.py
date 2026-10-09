@@ -3,6 +3,7 @@
 import logging
 from enum import StrEnum
 from importlib.resources import files
+from pathlib import Path
 from typing import TYPE_CHECKING, Literal, Self, cast
 
 import yaml
@@ -17,9 +18,10 @@ from pydantic import (
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
-    from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+CORE_CONFIG = Path("config.yaml")  # the core config, relative to the working directory
 
 
 class ConfigError(Exception):

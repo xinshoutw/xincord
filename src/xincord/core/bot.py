@@ -2,8 +2,10 @@
 
 Kotlin:
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/PluginLoader.kt:145-180
+    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/BotLoader.kt:112-159
 """
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING, cast, override
 
@@ -12,8 +14,15 @@ from discord.ext import commands
 
 from xincord.core.command_tree import CommandTree
 from xincord.core.component_ids import ComponentIdError, upgrade_view
+from xincord.core.config import (
+    CORE_CONFIG,
+    ConfigError,
+    CoreConfig,
+    default_core_config,
+    load_config,
+)
 from xincord.core.i18n import Translator
-from xincord.core.plugins import PluginContext, PluginError, required_intents
+from xincord.core.plugins import PluginContext, PluginError, discover, required_intents
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Mapping, Sequence
@@ -68,6 +77,7 @@ class Bot(commands.Bot):
         self._contexts: dict[str, PluginContext] = {}
         self._loaded: dict[str, PluginInfo] = {}
         self._routes: dict[str, list[tuple[ComponentIds, Handler]]] = {}
+        self._reloading = asyncio.Lock()
 
     @override
     async def setup_hook(self) -> None:
@@ -78,10 +88,8 @@ class Bot(commands.Bot):
 
     async def on_ready(self) -> None:
         """Upload the commands that changed: the global ones, then each guild's."""
-        tree = cast("CommandTree", self.tree)
-        await tree.sync_global(self._store)
+        await self._sync_commands(force=False)
         for guild in self.guilds:
-            await tree.sync_guild(self._store, guild.id)
             logger.info("Guild loaded: %s (%s)", guild.name, guild.id)
         logger.info("Bot ready")
 
@@ -96,7 +104,24 @@ class Bot(commands.Bot):
         Returns:
             A one-line summary, also logged. Failures are logged and summarized, not raised.
         """
-        raise NotImplementedError
+        async with self._reloading:
+            try:
+                if plugin is None:
+                    config = load_config(CORE_CONFIG, CoreConfig, default_core_config())
+                    reloaded, failed = await self._reload_all(config.plugins)
+                else:
+                    reloaded, failed = await self.reload_plugin(plugin), []
+            except (ConfigError, PluginError) as error:
+                logger.exception("Reload failed")
+                return f"Reload failed: {error}"
+            if self.is_ready():
+                # A manual reload also repairs the commands on Discord.
+                await self._sync_commands(force=True)
+        summary = f"Reloaded: {', '.join(reloaded) or 'none'}."
+        if failed:
+            summary += f" Failed: {', '.join(failed)} (see the log)."
+        logger.info("%s", summary)
+        return summary
 
     @property
     def loaded(self) -> tuple[str, ...]:
@@ -218,16 +243,54 @@ class Bot(commands.Bot):
         for info in self._loaded.values():
             if info.name != name and affected.isdisjoint((*info.depends, *info.soft_depends)):
                 continue
-            # Whichever setup runs next registers the routes again.
-            self._routes.pop(info.name, None)
-            try:
-                # discord.py restores the previous module when the new one fails.
-                await self.reload_extension(info.module)
-            except commands.ExtensionError as error:
-                msg = f"plugin {info.name} failed to reload: {error}"
-                raise PluginError(msg) from error
+            await self._reload(info)
             affected.add(info.name)
         return [info.name for info in self._loaded.values() if info.name in affected]
+
+    async def _reload_all(self, enabled: Sequence[str]) -> tuple[list[str], list[str]]:
+        """Make the loaded plugins match ``enabled``; return the reloaded and the failed ones."""
+        wanted = discover(enabled)
+        names = {info.name for info in wanted}
+        # Dependents load after their dependencies, so they unload first.
+        for name in reversed(self.loaded):
+            if name not in names:
+                await self._unload(name)
+        failed: list[str] = []
+        for info in wanted:
+            try:
+                if info.name in self._loaded:
+                    await self._reload(info)
+                else:
+                    await self.load_plugin(info)
+            except PluginError:
+                logger.exception("Plugin %s did not reload", info.name)
+                failed.append(info.name)
+        self._plugins = tuple(wanted)
+        failed += [name for name in dict.fromkeys(enabled) if name not in names]
+        return [name for name in self.loaded if name not in failed], failed
+
+    async def _reload(self, info: PluginInfo) -> None:
+        # Whichever setup runs next registers the routes again.
+        self._routes.pop(info.name, None)
+        try:
+            # discord.py restores the previous module when the new one fails.
+            await self.reload_extension(info.module)
+        except commands.ExtensionError as error:
+            msg = f"plugin {info.name} failed to reload: {error}"
+            raise PluginError(msg) from error
+
+    async def _unload(self, name: str) -> None:
+        info = self._loaded.pop(name)
+        self._routes.pop(name, None)
+        await self.unload_extension(info.module)
+        del self._contexts[info.module]
+        logger.info("Plugin %s unloaded", name)
+
+    async def _sync_commands(self, *, force: bool) -> None:
+        tree = cast("CommandTree", self.tree)
+        await tree.sync_global(self._store, force=force)
+        for guild in self.guilds:
+            await tree.sync_guild(self._store, guild.id, force=force)
 
     async def _load(self, info: PluginInfo) -> None:
         context = PluginContext(info, self._root / info.name, self._store, self._force_lang)
