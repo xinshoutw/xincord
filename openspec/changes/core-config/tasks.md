@@ -6,7 +6,7 @@
 
 ## 2. Core schema
 
-- [ ] 2.1 xfail tests for "Core config schema"
+- [x] 2.1 xfail tests for "Core config schema"
 - [ ] 2.2 Implement `CoreConfig` and the default `config.yaml`; remove the markers
 
 ## 3. Migration

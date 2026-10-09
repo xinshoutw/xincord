@@ -1,6 +1,7 @@
 """Load and validate YAML configuration files."""
 
 import logging
+from enum import StrEnum
 from typing import TYPE_CHECKING, cast
 
 import yaml
@@ -82,3 +83,51 @@ def _unknown_keys(value: object, prefix: str) -> Iterator[str]:
     elif isinstance(value, (list, tuple)):
         for index, item in enumerate(cast("Sequence[object]", value)):
             yield from _unknown_keys(item, f"{prefix}{index}.")
+
+
+class ActivityType(StrEnum):
+    """Kinds of bot activity."""
+
+    PLAYING = "playing"
+    STREAMING = "streaming"
+    LISTENING = "listening"
+    WATCHING = "watching"
+    CUSTOM = "custom"
+    COMPETING = "competing"
+
+
+class Activity(Model):
+    """One entry of the rotating bot activity."""
+
+    type: ActivityType
+    text: str
+    seconds: float = 5
+    url: str | None = None
+
+
+class Status(Model):
+    """The rotating bot activity."""
+
+    activities: tuple[Activity, ...] = ()
+
+
+class InteractionLogTarget(Model):
+    """A channel that receives a line for each matching interaction."""
+
+    guild_id: int
+    channel_id: int
+    types: tuple[str, ...]
+    format: str = "[%cl_type%] %user_name% `%cl_interaction_string%`"
+
+
+class CoreConfig(Model):
+    """The core ``config.yaml``."""
+
+    token: str = ""
+    status: Status = Status()
+    interaction_log: tuple[InteractionLogTarget, ...] = ()
+
+
+def default_core_config() -> str:
+    """Return the text of the default core ``config.yaml``."""
+    raise NotImplementedError
