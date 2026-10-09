@@ -45,8 +45,11 @@ the ID format out of this module.
   option: `discord.SelectOption`; modal: `discord.ui.Modal`; text input: `discord.ui.TextInput`.
 - **Emoji** strings go through `discord.PartialEmoji.from_str`, which accepts custom
   (`<:name:id>`) and Unicode emoji like JDA's `Emoji.fromFormatted`.
-- **Modal inputs** use discord.py's `TextInput(label=...)`; v3's JDA 6 wrapped each input in a
-  `Label` component, which renders the same.
+- **Modal inputs** are wrapped in `discord.ui.Label`, as JDA 6's `Label.of` did in v3; discord.py
+  2.7 deprecates `TextInput(label=...)`. A text input supplied through `model_key` still takes its
+  label from the template, so `label` is always required.
+- **Model keys are looked up verbatim**, even when they contain `%...%` (MusicPlayer's
+  `%music_player@player_track_list_model_key%`), as v3 did.
 
 ### v3 behaved differently
 

@@ -247,8 +247,8 @@ class TextInputSpec(TemplateModel):
     """A modal text input."""
 
     model_key: str | None = None
+    label: str
     uid: str | None = None
-    label: str | None = None
     value: str | None = None
     placeholder: str | None = None
     min_length: int = -1
@@ -258,7 +258,7 @@ class TextInputSpec(TemplateModel):
 
     @model_validator(mode="after")
     def _complete(self) -> Self:
-        _require(self, "uid", "label", "style")
+        _require(self, "uid", "style")
         return self
 
 
@@ -687,4 +687,43 @@ def render_modal(
     Raises:
         TemplateError: A model is missing or of the wrong kind, or ``build_id`` is None.
     """
-    raise NotImplementedError
+    if template.model_key is not None:
+        return _model(models, template.model_key, discord.ui.Modal)
+    modal = discord.ui.Modal(
+        title=render(template.title or "", values),
+        custom_id=_id(template.uid, values, build_id),
+        timeout=None,
+    )
+    for spec in template.text_inputs:
+        # A Label carries the input's title, as JDA 6's Label.of did in v3.
+        label = discord.ui.Label[discord.ui.Modal](
+            text=render(spec.label, values),
+            component=_text_input(spec, values, models),
+        )
+        modal.add_item(label)
+    modal.stop()
+    return modal
+
+
+def _text_input(
+    spec: TextInputSpec,
+    values: Mapping[str, str],
+    models: Mapping[str, object] | None,
+) -> discord.ui.TextInput[discord.ui.Modal]:
+    if spec.model_key is not None:
+        model = _lookup(models, spec.model_key)
+        if not isinstance(model, discord.ui.TextInput):
+            msg = f"model {spec.model_key!r} is a {type(model).__name__}, expected TextInput"
+            raise TemplateError(msg)
+        return cast("discord.ui.TextInput[discord.ui.Modal]", model)
+    value = render(spec.value or "", values)
+    placeholder = render(spec.placeholder or "", values)
+    return discord.ui.TextInput[discord.ui.Modal](
+        custom_id=render(spec.uid or "", values),
+        style=discord.TextStyle.paragraph if spec.style == "PARAGRAPH" else discord.TextStyle.short,
+        default=value if value.strip() else None,
+        placeholder=placeholder if placeholder.strip() else None,
+        min_length=spec.min_length if spec.min_length >= 0 else None,
+        max_length=spec.max_length if spec.max_length >= 0 else None,
+        required=spec.required,
+    )
