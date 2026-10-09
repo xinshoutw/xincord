@@ -1,6 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after the `core-components-v2` change was archived. Read this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The
+Updated 2026-10-10 after the `core-component-ids` change was archived. Read this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The
 decisions are accepted and binding; do not re-open them unless you find a serious problem, and
 then ask the owner.
 
@@ -77,6 +77,10 @@ starting with Core. Motivation: easier maintenance and faster iteration.
     (`load_message`, `load_modal`, `Templates.load`) and rendered to
     `Message(content, embeds, view, files)` and `discord.ui.Modal`. V2 mode renders a
     `discord.ui.LayoutView`; `files` carries the uploads that `file_path` media need.
+  - `xincord.core.component_ids`: `ComponentIds(namespace, fields, legacy_prefix=, legacy_hex=)`
+    builds `{namespace}:1:{letter}={value};...` (percent-encoded, 100 characters max; `build` is
+    the templates' `build_id`), parses new and v3 IDs into text fields (`ParsedId.legacy`), and
+    `upgrade` / `upgrade_view` rewrite legacy IDs in a view rebuilt with `from_message`.
     Component and modal IDs come from a `build_id(uid_map)` callable the plugin passes in. Views
     and modals are stopped before they are returned, so discord.py never dispatches their
     interactions; the core will route them (Core change `command-tree`).
@@ -88,31 +92,28 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 ### Done (archived, pushed, CI green)
 
 `project-skeleton`, `core-config`, `core-storage`, `core-i18n`, `core-placeholders`,
-`core-templates`, `core-components-v2`. Each one's `design.md` in `openspec/changes/archive/`
+`core-templates`, `core-components-v2`, `core-component-ids`. Each one's `design.md` in `openspec/changes/archive/`
 records its decisions and "v3 behaved differently" notes; `docs/porting-guide.md` has the
 differences table.
 
 ### Next Core changes, in order
 
-1. **component-ids (B9):** a new versioned format (100 characters max) plus the permanent v3
-   decoder (`{prefix}{a..z}:{value};...`, short keys in each plugin's field declaration order,
-   longs in lowercase hex); lazy upgrade by editing the message after handling a legacy ID; never
-   mass re-send. The codec provides the `build_id` that templates take. Golden tests per plugin
-   come with each plugin.
-2. **plugin-loading (B3, B4):** entry-point group `xincord.plugins`, metadata as module constants,
+1. **plugin-loading (B3, B4):** entry-point group `xincord.plugins`, metadata as module constants,
    `graphlib` ordering, missing-dependency check, per-plugin isolation, config and lang under
    `plugins/<Name>/` (use `load_config`, `export_lang`, `Lang.load`, `Templates.load`), intents
    aggregated before connecting, enabled-plugin list in the core config.
-3. **command-tree (B5):** ephemeral auto-defer with opt-out through `extras`; autocomplete by
+2. **command-tree (B5):** ephemeral auto-defer with opt-out through `extras`; autocomplete by
    command name; hash-based sync; guild/global split; `Translator` on the tree; routing of
-   component and modal interactions (new and legacy IDs); the interaction placeholder keys left out
-   of core-placeholders (`command_name`, `full_command_name`, `command_string`, `subcommand_name`,
-   `language`, `channel_category_name`, `component_*`).
-4. **runtime (B15, B19, C3):** client setup, argparse CLI (`--token`, `--level`, `--no-online`,
+   component and modal interactions by `ComponentIds.owns` (new and legacy IDs), then
+   `View.from_message` + `upgrade_view` + one message edit after a legacy ID was handled; the
+   interaction placeholder keys left out of core-placeholders (`command_name`,
+   `full_command_name`, `command_string`, `subcommand_name`, `language`, `channel_category_name`,
+   `component_*`).
+3. **runtime (B15, B19, C3):** client setup, argparse CLI (`--token`, `--level`, `--no-online`,
    `--force-renew-lang-resources`), signals, prompt_toolkit console, owner-only `/xincord reload`,
    status rotation from `status.activities`, interaction log from `interaction_log` (`cl_type`,
    `cl_interaction_string`), `AllowedMentions` for users only, database location.
-5. **container (B16):** Dockerfile (arm64) and compose (bot; Lavalink later), SQLite in a named
+4. **container (B16):** Dockerfile (arm64) and compose (bot; Lavalink later), SQLite in a named
    volume, `stdin_open` and `tty` for the console.
 
 Then the plugins in C1 order (_Example first, as the template for the new API), using the
