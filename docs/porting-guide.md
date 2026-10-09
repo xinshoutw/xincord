@@ -120,3 +120,5 @@ Every deliberate difference, added by the change that introduces it.
 | Intents | GUILD_MEMBERS always requested | requested only when an enabled plugin declares it | core-plugin-loading |
 | Command upload | guild commands overwritten in every guild at every start | uploaded only when a scope's payload hash changed, or when forced | core-command-tree |
 | Component routing | every plugin received every component and modal event and filtered by prefix | only the owning plugin's handler runs; a message is upgraded to new IDs after a legacy one is used | core-component-routing |
+| Placeholders | `channel_category_name` came from `asTextChannel()`, which failed for commands in threads, voice-channel chats and announcement channels | taken from any channel's category, for components too | core-interaction-values |
+| Placeholders | `component_url` was defined but always absent: link buttons send no interactions | not provided | core-interaction-values |
