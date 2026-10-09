@@ -10,7 +10,12 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from xincord.core.config import CoreConfig, load_config
-from xincord.core.migrate_v3 import main, migrate_core_config, migrate_directory
+from xincord.core.migrate_v3 import (
+    enabled_v3_plugins,
+    main,
+    migrate_core_config,
+    migrate_directory,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -149,3 +154,26 @@ def test_missing_token_and_file_are_reported(tmp_path: Path) -> None:
     assert new["token"] == ""
     assert report == ["general_settings.bot_token: missing, token left empty"]
     assert migrate_directory(tmp_path) == [f"{tmp_path / 'config.yaml'}: not found"]
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="v3 plugin switches migrate to the enabled list",
+)
+def test_enabled_v3_plugins(tmp_path: Path) -> None:
+    """Requirement: v3 plugin switches migrate to the enabled list."""
+    (tmp_path / "config.yaml").write_text(V3_TEXT, encoding="utf-8")
+    for name, text in (
+        ("Ticket", "enabled: false\n"),
+        ("AutoRole", "enabled: true\nguild_id: 1\n"),
+    ):
+        (tmp_path / "plugins" / name).mkdir(parents=True)
+        (tmp_path / "plugins" / name / "config.yaml").write_text(text, encoding="utf-8")
+    (tmp_path / "plugins" / "SQLiteAPI").mkdir()
+
+    assert enabled_v3_plugins(tmp_path) == ["AutoRole"]
+    report = migrate_directory(tmp_path)
+
+    assert load_config(tmp_path / "config.yaml", CoreConfig, "").plugins == ("AutoRole",)
+    assert any("AutoRole" in line for line in report)

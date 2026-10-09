@@ -74,3 +74,16 @@ def test_interaction_log_types_are_limited() -> None:
         CoreConfig.model_validate(target(types=["command", "select"]))
 
     assert location(error)[:2] == ("interaction_log", 0)
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="The core config lists the enabled plugins"
+)
+def test_plugins_list(tmp_path: Path) -> None:
+    """Requirement: The core config lists the enabled plugins."""
+    default = load_config(tmp_path / "config.yaml", CoreConfig, default_core_config())
+
+    configured = CoreConfig.model_validate({"plugins": ["AutoRole", "Ticket"]})
+
+    assert default.plugins == ()
+    assert configured.plugins == ("AutoRole", "Ticket")

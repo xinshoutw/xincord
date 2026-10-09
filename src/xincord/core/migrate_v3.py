@@ -119,6 +119,11 @@ def _list(value: object) -> list[object]:
     return cast("list[object]", value) if isinstance(value, list) else []
 
 
+def enabled_v3_plugins(root: Path) -> list[str]:
+    """Return the plugins whose v3 ``plugins/<Name>/config.yaml`` sets ``enabled: true``."""
+    raise NotImplementedError
+
+
 def migrate_directory(root: Path) -> list[str]:
     """Migrate ``root/config.yaml`` in place, keeping the original as ``config.v3.yaml``.
 
