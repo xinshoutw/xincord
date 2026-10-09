@@ -36,10 +36,7 @@ def layout(message: Message) -> discord.ui.LayoutView:
     return message.view
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="V2 messages render into a layout view"
-)
-def test_section_gallery_and_container(tmp_path: Path) -> None:
+async def test_section_gallery_and_container(tmp_path: Path) -> None:
     """Requirement: V2 messages render into a layout view."""
     text = V2 + (
         "components_v2:\n"
@@ -100,10 +97,7 @@ def test_section_gallery_and_container(tmp_path: Path) -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="V2 messages render into a layout view"
-)
-def test_full_example_renders() -> None:
+async def test_full_example_renders() -> None:
     """Requirement: V2 messages render into a layout view."""
     message = render_message(load_message(EXAMPLE), VALUES, build_id=build_id)
 
@@ -123,10 +117,7 @@ def test_full_example_renders() -> None:
     assert [item.id for item in items] == list(range(1001, 1011))
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="V2 messages render into a layout view"
-)
-def test_local_files(tmp_path: Path) -> None:
+async def test_local_files(tmp_path: Path) -> None:
     """Requirement: V2 messages render into a layout view."""
     (tmp_path / "report.txt").write_text("data", encoding="utf-8")
     (tmp_path / "chart.png").write_bytes(b"png")
@@ -149,10 +140,7 @@ def test_local_files(tmp_path: Path) -> None:
             file.close()
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="V2 messages render into a layout view"
-)
-def test_missing_local_file(tmp_path: Path) -> None:
+async def test_missing_local_file(tmp_path: Path) -> None:
     """Requirement: V2 messages render into a layout view."""
     missing = tmp_path / "missing.txt"
 
@@ -160,10 +148,7 @@ def test_missing_local_file(tmp_path: Path) -> None:
         render(tmp_path, V2 + f"components_v2: [{{type: file_display, file_path: '{missing}'}}]\n")
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="V2 messages render into a layout view"
-)
-def test_v1_rows_become_action_rows(tmp_path: Path) -> None:
+async def test_v1_rows_become_action_rows(tmp_path: Path) -> None:
     """Requirement: V2 messages render into a layout view."""
     rows = "components:\n  - !ButtonsComponent\n    buttons: [{uid: {a: b}, label: Go}]\n"
 
@@ -181,10 +166,7 @@ def test_v1_rows_become_action_rows(tmp_path: Path) -> None:
     assert layout(replaced).to_components() == [{"type": 10, "content": "x"}]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="V2 messages render into a layout view"
-)
-def test_v2_rows_without_v2_mode(tmp_path: Path) -> None:
+async def test_v2_rows_without_v2_mode(tmp_path: Path) -> None:
     """Requirement: V2 messages render into a layout view."""
     text = (
         "content: Hello\n"
@@ -207,10 +189,7 @@ def test_v2_rows_without_v2_mode(tmp_path: Path) -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Section accessories are inferred"
-)
-def test_untyped_accessories(tmp_path: Path) -> None:
+async def test_untyped_accessories(tmp_path: Path) -> None:
     """Requirement: Section accessories are inferred."""
     text = V2 + (
         "components_v2:\n"
@@ -274,10 +253,7 @@ components_v2:
 )
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="V2 interactive components follow v3"
-)
-def test_styles_and_ids(tmp_path: Path) -> None:
+async def test_styles_and_ids(tmp_path: Path) -> None:
     """Requirement: V2 interactive components follow v3."""
     buttons, string, mentionable, channel = layout(render(tmp_path, INTERACTIVE)).children
 
@@ -323,19 +299,16 @@ def test_styles_and_ids(tmp_path: Path) -> None:
     assert where.channel_types == [discord.ChannelType.text, discord.ChannelType.forum]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="V2 interactive components follow v3"
-)
-def test_disabled_container_and_section(tmp_path: Path) -> None:
+async def test_disabled_container_and_section(tmp_path: Path) -> None:
     """Requirement: V2 interactive components follow v3."""
     text = V2 + (
         "components_v2:\n"
         "  - type: container\n"
         "    disabled: true\n"
         "    components:\n"
+        "      - {type: action_row, components: [{type: button, custom_id: a}]}\n"
         "      - type: action_row\n"
         "        components:\n"
-        "          - {type: button, custom_id: a}\n"
         "          - {type: string_select, custom_id: b, options: [{label: x, value: x}]}\n"
         "      - type: section\n"
         "        components: [{type: text_display, content: t}]\n"
@@ -357,10 +330,7 @@ def test_disabled_container_and_section(tmp_path: Path) -> None:
     assert all(item.disabled for item in interactive)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="V2 interactive components follow v3"
-)
-def test_uid_needs_an_id_builder(tmp_path: Path) -> None:
+async def test_uid_needs_an_id_builder(tmp_path: Path) -> None:
     """Requirement: V2 interactive components follow v3."""
     path = tmp_path / "template.yml"
     path.write_text(

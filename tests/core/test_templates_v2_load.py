@@ -89,13 +89,18 @@ def test_model_keys_and_variants_load(tmp_path: Path) -> None:
         "        custom_id: b\n"
         "        select_target_type: user\n"
         "        default_values: [{id: 1, type: user}]\n"
-        "  - {type: media_gallery, items: [{model_key: item}, {file_name: a.png}]}\n",
+        "  - {type: media_gallery, items: [{model_key: item}, {file_name: a.png}]}\n"
+        "  - {type: container, accent_color: 255}\n"
+        "  - {type: container, accent_color: '255'}\n"
+        "  - {type: container, accent_color: '0xff'}\n",
         encoding="utf-8",
     )
 
     template = load_message(path)
 
-    assert len(template.components_v2) == 4
+    assert len(template.components_v2) == 7
+    containers = template.components_v2[4:]
+    assert [getattr(container, "accent_color", None) for container in containers] == [255] * 3
 
 
 V2 = "is_components_v2: true\ncomponents_v2:\n  - "
@@ -119,6 +124,11 @@ V2 = "is_components_v2: true\ncomponents_v2:\n  - "
         "{type: separator, spacing: HUGE}",
         "{type: file_display}",
         "{type: container, accent_color: blue}",
+        "{type: action_row, components: [{type: button, style: 6, sku: premium}]}",
+        (
+            "{type: action_row, components: [{type: entity_select, custom_id: a,"
+            " select_targets: [ROLE], default_values: [{id: admin, type: role}]}]}"
+        ),
     ],
 )
 def test_invalid_components(tmp_path: Path, entry: str) -> None:

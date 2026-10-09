@@ -121,8 +121,8 @@ class ButtonV2(V2Model):
         if self.style_number == LINK:
             require(self, "url")
         elif self.style_number == PREMIUM:
-            if self.sku is None and self.sku_id is None:
-                msg = "a premium button needs sku or sku_id"
+            if not (self.sku or self.sku_id or "").isdigit():
+                msg = "a premium button needs a numeric sku or sku_id"
                 raise ValueError(msg)
         elif self.custom_id is None and self.uid is None:
             msg = "needs custom_id or uid"
@@ -172,7 +172,7 @@ class StringSelectV2(_SelectV2):
 class DefaultValueV2(TemplateModel):
     """A preselected entity of an entity select."""
 
-    id: str
+    id: int
     type: str
 
     @field_validator("type")
@@ -330,17 +330,19 @@ class ContainerV2(V2Model):
     """A container with an optional accent color."""
 
     components: tuple[ContainerChildV2, ...] = ()
-    accent_color: int | str | None = None
+    accent_color: int | None = None
     spoiler: bool | None = None
     disabled: bool | None = None
 
-    @field_validator("accent_color")
+    @field_validator("accent_color", mode="before")
     @classmethod
-    def _color(cls, value: int | str | None) -> int | str | None:
-        if isinstance(value, str) and not (COLOR.fullmatch(value) or value.isdigit()):
+    def _color(cls, value: object) -> object:
+        if not isinstance(value, str) or value.isdigit():
+            return value
+        if not COLOR.fullmatch(value):
             msg = f"accent_color {value!r} is not #RRGGBB, 0xRRGGBB or a number"
             raise ValueError(msg)
-        return value
+        return int(value[1:] if value.startswith("#") else value[2:], 16)
 
 
 type TopLevelV2 = Annotated[

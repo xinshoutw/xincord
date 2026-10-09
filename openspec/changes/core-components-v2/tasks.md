@@ -7,7 +7,7 @@
 
 - [x] 2.1 xfail tests for "V2 messages render into a layout view", "Section accessories are
       inferred" and "V2 interactive components follow v3"
-- [ ] 2.2 Implement the V2 renderer and files; remove the markers
+- [x] 2.2 Implement the V2 renderer and files; remove the markers
 - [ ] 2.3 xfail tests for "V2 model keys insert runtime objects"
 - [ ] 2.4 Implement V2 models and the embed container; remove the markers
 
