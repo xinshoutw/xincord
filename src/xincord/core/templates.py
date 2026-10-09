@@ -1,6 +1,7 @@
 """Message and modal templates: YAML loading, validation and rendering to discord.py objects."""
 
 import re
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Annotated, Literal, Self
 
 import yaml
@@ -10,8 +11,11 @@ from xincord.core.config import Model, parse_model
 from xincord.core.placeholders import CHANNEL_TYPES
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Mapping
+    from datetime import datetime
     from pathlib import Path
+
+    import discord
 
     from xincord.core.i18n import Lang
 
@@ -354,3 +358,49 @@ class Templates:
     def modal(self, name: str, locale: str) -> ModalTemplate:
         """Return modal template ``name`` in ``locale``, else in the default locale."""
         return self._modals[self._lang.template(f"modal/{name}", locale)]
+
+
+type IdBuilder = Callable[[Mapping[str, str]], str]
+
+
+@dataclass(frozen=True)
+class EmbedField:
+    """An embed field, for templates that insert fields through ``model_key``."""
+
+    name: str
+    value: str
+    inline: bool = False
+
+
+@dataclass(frozen=True)
+class Message:
+    """A rendered message: pass its parts to ``send`` or ``edit``."""
+
+    content: str
+    embeds: tuple[discord.Embed, ...] = ()
+    view: discord.ui.View | None = None
+
+
+def render_message(
+    template: MessageTemplate,
+    values: Mapping[str, str],
+    *,
+    build_id: IdBuilder | None = None,
+    models: Mapping[str, object] | None = None,
+    now: datetime | None = None,
+) -> Message:
+    """Render a message template.
+
+    Args:
+        template: The parsed template.
+        values: Placeholder values for this render only.
+        build_id: Turns a rendered ``uid`` map into a component ID; required for components that
+            are not links.
+        models: Runtime objects for ``model_key`` entries.
+        now: The time ``%now%`` stands for; defaults to the current time.
+
+    Raises:
+        TemplateError: A model is missing or of the wrong kind, a rendered color is invalid, or
+            components need an ID builder that was not given.
+    """
+    raise NotImplementedError
