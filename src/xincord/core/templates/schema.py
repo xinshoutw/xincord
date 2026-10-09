@@ -1,6 +1,5 @@
 """Template schemas and the YAML loader."""
 
-import re
 from typing import TYPE_CHECKING, Annotated, Literal, Self
 
 import yaml
@@ -9,17 +8,17 @@ from pydantic import Field, model_validator
 from xincord.core.config import parse_model
 from xincord.core.templates.base import (
     CHANNEL_TYPE_BY_NAME,
+    COLOR,
     ENTITY_TARGETS,
     TemplateError,
     TemplateModel,
     require,
 )
+from xincord.core.templates.schema_v2 import ActionRowV2, ModelRefV2, TopLevelV2
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
-
-COLOR = re.compile(r"(?:#|0[xX])[0-9a-fA-F]{1,6}")
 
 
 class AuthorSpec(TemplateModel):
@@ -216,12 +215,20 @@ class MessageTemplate(TemplateModel):
     embeds: tuple[EmbedSpec, ...] = ()
     components: tuple[RowSpec, ...] = ()
     is_components_v2: bool = False
-    components_v2: tuple[dict[str, object], ...] = ()
+    components_v2: tuple[TopLevelV2, ...] = ()
 
     @model_validator(mode="after")
-    def _components_v2(self) -> Self:
-        if self.is_components_v2 or self.components_v2:
-            raise NotImplementedError
+    def _v2_mode(self) -> Self:
+        if not self.is_components_v2:
+            if any(not isinstance(item, ActionRowV2 | ModelRefV2) for item in self.components_v2):
+                msg = "components_v2 holds only action rows unless is_components_v2 is true"
+                raise ValueError(msg)
+        elif self.content.strip() or self.embeds:
+            msg = "content and embeds must be empty when is_components_v2 is true"
+            raise ValueError(msg)
+        elif not (self.components or self.components_v2):
+            msg = "is_components_v2 needs at least one component"
+            raise ValueError(msg)
         return self
 
 

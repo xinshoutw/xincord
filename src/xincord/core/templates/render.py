@@ -9,6 +9,7 @@ import discord
 from xincord.core.placeholders import render
 from xincord.core.templates.base import (
     CHANNEL_TYPE_BY_NAME,
+    COLOR,
     IdBuilder,
     Item,
     TemplateError,
@@ -19,7 +20,7 @@ from xincord.core.templates.base import (
     resolve_model,
     select_option,
 )
-from xincord.core.templates.schema import COLOR, ButtonsRow, StringSelectRow
+from xincord.core.templates.schema import ButtonsRow, StringSelectRow
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence

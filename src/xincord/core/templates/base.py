@@ -1,5 +1,6 @@
 """Shared pieces of the template schemas and renderers."""
 
+import re
 from typing import TYPE_CHECKING
 
 import discord
@@ -13,6 +14,7 @@ if TYPE_CHECKING:
 
     from xincord.core.templates.schema import OptionSpec
 
+COLOR = re.compile(r"(?:#|0[xX])[0-9a-fA-F]{1,6}")
 ENTITY_TARGETS = ("USER", "ROLE", "CHANNEL")
 # JDA channel type names that discord.py can put in a channel select.
 CHANNEL_TYPE_BY_NAME = {

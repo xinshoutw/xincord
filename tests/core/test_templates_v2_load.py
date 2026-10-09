@@ -11,12 +11,6 @@ import pytest
 
 from xincord.core.templates import TemplateError, load_message
 
-pytestmark = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Components V2 templates are validated when they load",
-)
-
 EXAMPLE = Path(__file__).parent.parent / "fixtures" / "templates" / "components_v2_example.yml"
 TEXT = "{type: text_display, content: a}"
 
@@ -76,6 +70,60 @@ def test_type_names_are_normalized(tmp_path: Path) -> None:
 def test_v2_mode_rules(tmp_path: Path, text: str) -> None:
     path = tmp_path / "template.yml"
     path.write_text(text, encoding="utf-8")
+
+    with pytest.raises(TemplateError, match=str(path)):
+        load_message(path)
+
+
+def test_model_keys_and_variants_load(tmp_path: Path) -> None:
+    path = tmp_path / "template.yml"
+    path.write_text(
+        "is_components_v2: true\n"
+        "components_v2:\n"
+        "  - {model_key: header}\n"
+        "  - {type: section, content: [{model_key: text}], accessory: {model_key: button}}\n"
+        "  - type: action_row\n"
+        "    components:\n"
+        "      - {type: button, custom_id: a, emoji: {name: x}}\n"
+        "      - type: entity_select\n"
+        "        custom_id: b\n"
+        "        select_target_type: user\n"
+        "        default_values: [{id: 1, type: user}]\n"
+        "  - {type: media_gallery, items: [{model_key: item}, {file_name: a.png}]}\n",
+        encoding="utf-8",
+    )
+
+    template = load_message(path)
+
+    assert len(template.components_v2) == 4
+
+
+V2 = "is_components_v2: true\ncomponents_v2:\n  - "
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        "text",
+        "{type: action_row, components: [{type: button, custom_id: a, emoji: {}}]}",
+        "{type: action_row, components: [{type: string_select}]}",
+        (
+            "{type: action_row, components: [{type: entity_select, custom_id: a,"
+            " select_targets: [USER], default_values: [{id: 1, type: guild}]}]}"
+        ),
+        (
+            "{type: action_row, components: [{type: entity_select, custom_id: a,"
+            " select_targets: [CHANNEL], channel_types: [ATTIC]}]}"
+        ),
+        "{type: media_gallery, items: [{description: x}]}",
+        "{type: separator, spacing: HUGE}",
+        "{type: file_display}",
+        "{type: container, accent_color: blue}",
+    ],
+)
+def test_invalid_components(tmp_path: Path, entry: str) -> None:
+    path = tmp_path / "template.yml"
+    path.write_text(V2 + entry + "\n", encoding="utf-8")
 
     with pytest.raises(TemplateError, match=str(path)):
         load_message(path)

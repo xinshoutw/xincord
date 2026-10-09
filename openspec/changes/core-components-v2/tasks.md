@@ -1,7 +1,7 @@
 ## 1. Loading
 
 - [x] 1.1 xfail tests for "Components V2 templates are validated when they load"
-- [ ] 1.2 Implement the V2 schema and mode rules; remove the markers
+- [x] 1.2 Implement the V2 schema and mode rules; remove the markers
 
 ## 2. Rendering
 
