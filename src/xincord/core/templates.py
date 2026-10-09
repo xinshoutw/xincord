@@ -673,3 +673,18 @@ def _entity_select(
                 max_values=row.max,
                 channel_types=[CHANNEL_TYPE_BY_NAME[name.upper()] for name in row.channel_types],
             )
+
+
+def render_modal(
+    template: ModalTemplate,
+    values: Mapping[str, str],
+    *,
+    build_id: IdBuilder | None,
+    models: Mapping[str, object] | None = None,
+) -> discord.ui.Modal:
+    """Render a modal template into a stopped modal whose ID comes from ``build_id``.
+
+    Raises:
+        TemplateError: A model is missing or of the wrong kind, or ``build_id`` is None.
+    """
+    raise NotImplementedError

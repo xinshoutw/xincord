@@ -13,7 +13,7 @@
 
 ## 3. Modals
 
-- [ ] 3.1 xfail tests for "Modal templates render text inputs"
+- [x] 3.1 xfail tests for "Modal templates render text inputs"
 - [ ] 3.2 Implement `render_modal`; remove the markers
 
 ## 4. Close
