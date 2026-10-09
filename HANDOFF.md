@@ -1,7 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 at the end of the session that set up the repository and ported the first Core
-capabilities. Read this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The
+Updated 2026-10-10 after the `core-components-v2` change was archived. Read this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The
 decisions are accepted and binding; do not re-open them unless you find a serious problem, and
 then ask the owner.
 
@@ -73,9 +72,11 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   - `xincord.core.placeholders`: single-pass `render`, the v3 key families (`actor_values`,
     `user_values`, `member_values`, `guild_values`, `channel_values`, `event_values`), Protocols
     that discord.py classes satisfy, and JDA locale names (`resources/locales.yaml`).
-  - `xincord.core.templates` (package: `base`, `schema`, `render`, `__init__`): v1 message
-    templates and modal templates, validated at load (`load_message`, `load_modal`,
-    `Templates.load`) and rendered to `Message(content, embeds, view)` and `discord.ui.Modal`.
+  - `xincord.core.templates` (package: `base`, `schema`, `schema_v2`, `render`, `render_v2`,
+    `__init__`): v1 message templates, Components V2 and modal templates, validated at load
+    (`load_message`, `load_modal`, `Templates.load`) and rendered to
+    `Message(content, embeds, view, files)` and `discord.ui.Modal`. V2 mode renders a
+    `discord.ui.LayoutView`; `files` carries the uploads that `file_path` media need.
     Component and modal IDs come from a `build_id(uid_map)` callable the plugin passes in. Views
     and modals are stopped before they are returned, so discord.py never dispatches their
     interactions; the core will route them (Core change `command-tree`).
@@ -87,32 +88,9 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 ### Done (archived, pushed, CI green)
 
 `project-skeleton`, `core-config`, `core-storage`, `core-i18n`, `core-placeholders`,
-`core-templates`. Each one's `design.md` in `openspec/changes/archive/` records its decisions and
-"v3 behaved differently" notes; `docs/porting-guide.md` has the differences table.
-
-### In progress: `core-components-v2` (decision B10)
-
-- Committed: proposal, spec delta (MODIFIED capability `core-templates`), design and tasks;
-  xfail tests for loading (`tests/core/test_templates_v2_load.py`) with v3's full example as
-  `tests/fixtures/templates/components_v2_example.yml`.
-- `MessageTemplate` (in `templates/schema.py`) has a temporary validator that raises
-  `NotImplementedError` for any V2 input, which keeps those xfail tests failing for the expected
-  reason. Replace it with the V2 mode rules.
-- A local, untested draft of the V2 schema is in `git stash` as
-  `wip(core): components v2 schema draft` (`src/xincord/core/templates/schema_v2.py`: pydantic
-  models with callable discriminators that normalize `type`, map the select aliases and infer
-  section accessories). To continue:
-  1. `git stash pop`.
-  2. Move `COLOR` from `templates/schema.py` to `templates/base.py` (the draft imports it there).
-  3. Type `MessageTemplate.components_v2` as `tuple[TopLevelV2, ...]` and replace the temporary
-     validator: with `is_components_v2`, content and embeds empty and at least one component;
-     without it, only action rows (or bare model references) in `components_v2`.
-  4. Gate, remove the xfail marker, commit (task 1.2).
-  5. Tasks 2.1 to 2.4: render a stopped `discord.ui.LayoutView` (text display, section,
-     thumbnail, media gallery, separator, file, container, action rows), `files` on `Message` for
-     `file_path`, style names and premium buttons, select defaults, disabled containers, models,
-     and the embed-to-container conversion (`v2/builder/MessageBuilder.kt:414-471`).
-  6. Close: porting-guide row, push, CI, archive, `validate --all --strict`.
+`core-templates`, `core-components-v2`. Each one's `design.md` in `openspec/changes/archive/`
+records its decisions and "v3 behaved differently" notes; `docs/porting-guide.md` has the
+differences table.
 
 ### Next Core changes, in order
 
@@ -142,6 +120,8 @@ Then the plugins in C1 order (_Example first, as the template for the new API), 
 
 ### Working tips from this session
 
+- Template tests that check rendered views must be `async`: a discord.py view created outside a
+  running event loop never reports `is_finished()`.
 - Run the gate and check its exit status directly. Piping it into `tail` before `&&` once hid a
   failure and let a bad commit through (it was amended before pushing).
 - OpenSpec is not installed globally: `OPENSPEC_TELEMETRY=0 npx --yes @fission-ai/openspec@1.14.1
@@ -152,16 +132,12 @@ Then the plugins in C1 order (_Example first, as the template for the new API), 
 
 ## 6. Open items for the owner
 
-1. **License metadata:** `pyproject.toml` has no `license` field yet. Decide between
-   `AGPL-3.0-only` and `AGPL-3.0-or-later` when adding LICENSE.
-2. **OpenSpec CLI:** optional global install (`npm i -g @fission-ai/openspec@1.14.1`) if the
-   `/opsx` commands should work without npx.
-3. **User-visible changes so far:** names, nicknames and channel names containing `%...%` are
-   shown literally instead of being expanded (core-placeholders); the core `config.yaml` uses a new
-   format with a migration script (core-config); a broken lang or template file now disables its
-   plugin at startup instead of failing at click time.
-4. **Production version (F1)** is unknown; it matters only if a data migration is ever needed.
-5. **Lavalink image** (arm64, compose details) and **VoiceLogger status events** (audit types
+Answered on 2026-10-10: the license is `AGPL-3.0-or-later` (set in both `pyproject.toml` files;
+the owner still adds LICENSE); OpenSpec stays on npx; the user-visible changes listed so far are
+accepted.
+
+1. **Production version (F1)** is unknown; it matters only if a data migration is ever needed.
+2. **Lavalink image** (arm64, compose details) and **VoiceLogger status events** (audit types
    192/193, maybe raw gateway handling): verify when those plugins start.
 
 ## 7. Verified facts and pitfalls

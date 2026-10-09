@@ -69,6 +69,7 @@ deviation from it; **[fact]** a factual answer.
   `astral-sh/setup-uv` pinned to an exact version, `uv sync --locked`, and
   `openspec validate --all --strict`.
 - **A9 Name** [rec]: `xincord`. License AGPLv3; the owner creates LICENSE (do not generate it).
+  The owner chose `AGPL-3.0-or-later` on 2026-10-10.
 - **A10 OpenSpec init** [rec]: `--tools claude` only; telemetry off.
 - **A11 TDD record** [owner]: **xfail-first**. Commit the new test marked
   `@pytest.mark.xfail(strict=True)` (gates stay green), then a second commit that implements the

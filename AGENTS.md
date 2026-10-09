@@ -80,4 +80,4 @@ If your global git config sets `core.hooksPath`, run `git config --local core.ho
 - Pushing `main` to `origin` is allowed.
 - Ask the owner first for: force pushes, deleting branches, tags, releases, PyPI publishing,
   repository settings, and anything on the XsDiscordBotKt remote.
-- Do not create LICENSE; the owner adds it (AGPLv3).
+- Do not create LICENSE; the owner adds it (`AGPL-3.0-or-later`).
