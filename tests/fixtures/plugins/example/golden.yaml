@@ -1,0 +1,51 @@
+# Golden data for the _Example tests. The text is v3's, from
+# XsDiscordBotKt@3a59607:Plugins/_Example/src/main/resources/lang/; the "Config value" field and
+# the counter button are new in xincord.
+
+# The translated payload of /example-command; keys that are not listed here are not compared.
+command:
+  name: "example-command"
+  description: "this is an example command"
+  name_localizations: {en-US: "example-command", zh-TW: "範例指令"}
+  description_localizations: {en-US: "This is an example command", zh-TW: "這是一個範例指令"}
+  options:
+    - type: 3
+      name: "option1"
+      description: "this is an example option"
+      required: true
+      max_length: 1024
+      name_localizations: {en-US: "option1", zh-TW: "選項1"}
+      description_localizations: {en-US: "This is a required option", zh-TW: "這是一個必填選項"}
+    - type: 4
+      name: "option2"
+      description: "this is an example option"
+      required: false
+      name_localizations: {en-US: "option2", zh-TW: "選項2"}
+      description_localizations: {en-US: "This is an optional option", zh-TW: "這是一個可選選項"}
+
+# The reply's embed for option1 "first", option2 2 and the default config, as Embed.to_dict()
+# without "type" and "flags".
+reply:
+  en-US:
+    author: {name: "Example Reply"}
+    title: "This is an example reply."
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    color: 65535
+    fields:
+      - {name: "Option 1", value: "first", inline: false}
+      - {name: "Option 2", value: "2", inline: false}
+      - {name: "Config value", value: "example_value", inline: false}
+  zh-TW:
+    author: {name: "範例回覆"}
+    title: "這是一個範例回覆"
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    color: 65535
+    fields:
+      - {name: "選項 1", value: "first", inline: false}
+      - {name: "選項 2", value: "2", inline: false}
+      - {name: "設定值", value: "example_value", inline: false}
+
+# The counter button's label, with {count} for %_Example@count%.
+counter:
+  en-US: "Count: {count}"
+  zh-TW: "計數：{count}"

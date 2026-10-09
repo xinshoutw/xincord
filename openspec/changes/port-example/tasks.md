@@ -16,7 +16,7 @@
 
 ## 4. Reply
 
-- [ ] 4.1 xfail tests for "The reply echoes the options", with the Discord fakes and the golden
+- [x] 4.1 xfail tests for "The reply echoes the options", with the Discord fakes and the golden
       data
 - [ ] 4.2 Implement the reply; remove the markers
 

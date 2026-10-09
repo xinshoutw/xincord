@@ -6,7 +6,9 @@ import textwrap
 from dataclasses import dataclass, field
 from importlib.metadata import EntryPoint
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
+
+import yaml
 
 from xincord.core.bot import Bot
 from xincord.core.plugins import GROUP, discover
@@ -61,6 +63,16 @@ class FakePlugins:
         """Create a bot for the enabled plugins."""
         plugins = discover(enabled, self.entry_points)
         return Bot(plugins, root=root, store=store, force_lang=force_lang)
+
+
+FIXTURES = Path(__file__).parent.parent / "fixtures"
+
+
+def golden(package: str) -> dict[str, Any]:
+    """Load ``tests/fixtures/plugins/<package>/golden.yaml``, a plugin's expected output."""
+    path = FIXTURES / "plugins" / package / "golden.yaml"
+    data: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8"))
+    return data
 
 
 async def load_plugin(name: str, root: Path, store: Store) -> Bot:

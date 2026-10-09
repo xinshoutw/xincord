@@ -54,6 +54,11 @@ template's button at 0. Option text SHALL be inserted verbatim, in any channel.
 - **WHEN** a zh-TW user and a Japanese user run the command
 - **THEN** both get v3's zh-TW embed and the zh-TW button
 
+#### Scenario: Command placeholders
+- **WHEN** the operator's en-US `example` template has the content
+  `%user_name% ran %command_string% as %bot_name%` and `alice` runs the command with `first`
+- **THEN** the response's content is `alice ran /example-command option1: first as xincord`
+
 #### Scenario: Placeholder text in an option
 - **WHEN** `option1` is `%bot_name% %_Example@option1%`
 - **THEN** the first field shows that text unchanged

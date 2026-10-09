@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 from discord.ext import commands
 
 if TYPE_CHECKING:
+    import discord
+
     from xincord.core.i18n import Lang
     from xincord.core.templates import Templates
 
@@ -23,3 +25,9 @@ class Example(commands.Cog):
         self.config = config
         self.lang = lang
         self.templates = templates
+
+    async def reply(
+        self, interaction: discord.Interaction, option1: str, option2: int | None
+    ) -> None:
+        """Stub until the reply exists."""
+        raise NotImplementedError
