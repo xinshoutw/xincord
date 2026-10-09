@@ -94,9 +94,7 @@ class Bot(commands.Bot):
         """Route component and modal interactions to the plugin that owns their ID."""
         if interaction.type not in ROUTED:
             return
-        custom_id = cast("Mapping[str, object]", interaction.data or {}).get("custom_id")
-        if not isinstance(custom_id, str):
-            return
+        custom_id = str(cast("Mapping[str, object]", interaction.data or {}).get("custom_id", ""))
         for plugin, routes in self._routes.items():
             for ids, handler in routes:
                 if ids.owns(custom_id):
