@@ -8,7 +8,7 @@
 - [x] 2.1 xfail tests for "Message text is rendered with placeholders", "URL fields need an http
       result", "Empty embeds are dropped" and "Colors and timestamps follow v3"
 - [x] 2.2 Implement content and embed rendering; remove the markers
-- [ ] 2.3 xfail tests for "Components keep their rows" and "Model keys insert runtime objects"
+- [x] 2.3 xfail tests for "Components keep their rows" and "Model keys insert runtime objects"
 - [ ] 2.4 Implement components and models; remove the markers
 
 ## 3. Modals
