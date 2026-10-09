@@ -1,6 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after the `core-component-routing` change was archived. Read this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The
+Updated 2026-10-10 at the end of the second Phase 2 session, after `core-interaction-values`. Read this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The
 decisions are accepted and binding; do not re-open them unless you find a serious problem, and
 then ask the owner.
 
@@ -70,8 +70,9 @@ starting with Core. Motivation: easier maintenance and faster iteration.
     rules, key-set warnings), `Lang.text` / `Lang.template` (fallback), `Lang.localization` (no
     fallback), `Lang.command` and `Translator`.
   - `xincord.core.placeholders`: single-pass `render`, the v3 key families (`actor_values`,
-    `user_values`, `member_values`, `guild_values`, `channel_values`, `event_values`), Protocols
-    that discord.py classes satisfy, and JDA locale names (`resources/locales.yaml`).
+    `user_values`, `member_values`, `guild_values`, `channel_values`, `event_values`,
+    `interaction_values` with JDA's `command_string`), Protocols that discord.py classes satisfy,
+    and JDA locale names (`resources/locales.yaml`, `locale_names`).
   - `xincord.core.templates` (package: `base`, `schema`, `schema_v2`, `render`, `render_v2`,
     `__init__`): v1 message templates, Components V2 and modal templates, validated at load
     (`load_message`, `load_modal`, `Templates.load`) and rendered to
@@ -109,30 +110,24 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 
 `project-skeleton`, `core-config`, `core-storage`, `core-i18n`, `core-placeholders`,
 `core-templates`, `core-components-v2`, `core-component-ids`, `core-plugin-loading`,
-`core-command-tree`, `core-component-routing`. Each one's `design.md` in
+`core-command-tree`, `core-component-routing`, `core-interaction-values`. Each one's `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
 ### Next Core changes, in order
 
-1. **core-interaction-values:** the interaction placeholder keys left out of core-placeholders,
-   as v3's `Placeholder.get(event)` built them (`Placeholder.kt:59-142`): `command_name`,
-   `full_command_name`, `command_string` (JDA's `/name sub option: value` format, also needed by
-   the interaction log), `subcommand_name`, `language` (native name via `locale_names`),
-   `channel_id`, `channel_name`, `channel_category_name`, and for components `component_id`,
-   `component_label`, `component_style`, `component_url`, `component_emoji`,
-   `component_emoji_name`, `component_min`, `component_max`, `component_placeholder` (looked up
-   in `interaction.message.components`). No shipped template uses them; keep it small and test
-   with Protocol fakes.
-2. **runtime (B15, B19, C3):** extend `xincord.core.bot.Bot` (discover from `CoreConfig.plugins`,
+1. **runtime (B15, B19, C3):** extend `xincord.core.bot.Bot` (discover from `CoreConfig.plugins`,
    `load_plugins` and `tree.set_translator(Translator())` in `setup_hook`; `sync_global` and
    `sync_guild` for every guild on ready, `sync_guild(force=True)` on guild join), argparse CLI
    (`--token`, `--level`, `--no-online`, `--force-renew-lang-resources`), signals,
    prompt_toolkit console, owner-only `/xincord reload` (through `reload_plugin` and
    `load_plugin`), status rotation from `status.activities`, interaction log from
-   `interaction_log` (`cl_type`, `cl_interaction_string`), `AllowedMentions` for users only,
-   database location.
-3. **container (B16):** Dockerfile (arm64) and compose (bot; Lavalink later), SQLite in a named
+   `interaction_log` (`cl_type` CMD or BTN; `cl_interaction_string` from
+   `interaction_values(...)["command_string"]` or the custom ID; see `ConsoleLogger.kt:91-135`),
+   `AllowedMentions` for users only (B19), the database file location, and the `/bot-info`
+   source link setting (C3) if it belongs in core. Consider splitting it into smaller changes
+   (for example startup and CLI, console and reload, status and interaction log).
+2. **container (B16):** Dockerfile (arm64) and compose (bot; Lavalink later), SQLite in a named
    volume, `stdin_open` and `tty` for the console.
 
 Then the plugins in C1 order (_Example first, as the template for the new API), using the
@@ -142,6 +137,15 @@ Then the plugins in C1 order (_Example first, as the template for the new API), 
 
 - Template tests that check rendered views must be `async`: a discord.py view created outside a
   running event loop never reports `is_finished()`.
+- Plugin tests use the `FakePlugins` fixture in `tests/core/test_plugins.py`: it writes plugin
+  packages to a temporary `sys.path` entry and builds entry points; their `calls` list survives
+  reloads. Discovery and `load_extension` both execute a plugin module.
+- discord.py component objects for fakes can be built from payloads (`discord.ActionRow(payload)`,
+  `discord.Container(payload, None)`); `View.from_message` only reads `message.components`.
+- An xfail stub for a new schema field: a property that raises `NotImplementedError` keeps pyright
+  happy until the field exists.
+- Test commands with `app_commands.Command(name=..., callback=...)` in a typed factory: decorated
+  module-level commands are partially unknown to pyright.
 - Run the gate and check its exit status directly. Piping it into `tail` before `&&` once hid a
   failure and let a bad commit through (it was amended before pushing).
 - OpenSpec is not installed globally: `OPENSPEC_TELEMETRY=0 npx --yes @fission-ai/openspec@1.14.1
@@ -153,11 +157,15 @@ Then the plugins in C1 order (_Example first, as the template for the new API), 
 ## 6. Open items for the owner
 
 Answered on 2026-10-10: the license is `AGPL-3.0-or-later` (set in both `pyproject.toml` files;
-the owner still adds LICENSE); OpenSpec stays on npx; the user-visible changes listed so far are
+the owner still adds LICENSE); OpenSpec stays on npx; the user-visible changes listed before were
 accepted.
 
-1. **Production version (F1)** is unknown; it matters only if a data migration is ever needed.
-2. **Lavalink image** (arm64, compose details) and **VoiceLogger status events** (audit types
+1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
+   (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script
+   fills that list; plugins that are not enabled no longer create files under `plugins/<Name>/`;
+   the privileged members intent is requested only when an enabled plugin needs it.
+2. **Production version (F1)** is unknown; it matters only if a data migration is ever needed.
+3. **Lavalink image** (arm64, compose details) and **VoiceLogger status events** (audit types
    192/193, maybe raw gateway handling): verify when those plugins start.
 
 ## 7. Verified facts and pitfalls
