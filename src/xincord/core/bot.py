@@ -13,11 +13,16 @@ from xincord.core.command_tree import CommandTree
 from xincord.core.plugins import PluginContext, PluginError, required_intents
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Awaitable, Callable, Sequence
     from pathlib import Path
 
+    import discord
+
+    from xincord.core.component_ids import ComponentIds, ParsedId
     from xincord.core.plugins import PluginInfo
     from xincord.core.storage import Store
+
+    type Handler = Callable[[discord.Interaction, ParsedId], Awaitable[None]]
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +76,19 @@ class Bot(commands.Bot):
         except KeyError:
             msg = f"no plugin loads from {module}"
             raise PluginError(msg) from None
+
+    def route(self, module: str, ids: ComponentIds, handler: Handler) -> None:
+        """Send the component and modal interactions whose IDs ``ids`` owns to ``handler``.
+
+        Call it from the setup of the plugin whose extension module is ``module``.
+
+        Raises:
+            PluginError: No plugin loads from ``module``.
+        """
+
+    async def on_interaction(self, interaction: discord.Interaction) -> None:
+        """Route component and modal interactions to the plugin that owns their ID."""
+        raise NotImplementedError
 
     async def load_plugins(self) -> list[str]:
         """Load the plugins in order and return the names of those that did not load."""

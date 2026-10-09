@@ -12,7 +12,7 @@ import textwrap
 import uuid
 from dataclasses import dataclass, field
 from importlib.metadata import EntryPoint
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import discord
 import pytest
@@ -386,3 +386,127 @@ async def test_hot_load_needs_the_intents(
 
     assert bot.loaded == ("Alpha", "Late")
     assert fake_plugins.calls() == ["Alpha", "Late"]
+
+
+ROUTED = pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="Component and modal interactions reach their plugin",
+)
+LIFECYCLE = pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Routes follow the plugin's lifecycle"
+)
+TICKET = """
+from xincord.core.component_ids import ComponentIds
+
+from .. import calls
+
+FIELDS = ("action", "sub_action", "color_index", "user_id", "msg_id", "btn_index")
+IDS = ComponentIds("ticket", FIELDS, legacy_prefix="ticket@")
+
+
+async def handle(interaction, fields):
+    calls.append((interaction.data["custom_id"], dict(fields.fields), fields.legacy))
+
+
+async def setup(bot):
+    bot.route(__name__, IDS, handle)
+"""
+BROKEN_HANDLER = """
+from xincord.core.component_ids import ComponentIds
+
+IDS = ComponentIds("broken", ("action",))
+
+
+async def handle(interaction, fields):
+    raise RuntimeError("handler failed")
+
+
+async def setup(bot):
+    bot.route(__name__, IDS, handle)
+"""
+
+
+@dataclass
+class FakeInteraction:
+    type: discord.InteractionType
+    data: dict[str, object]
+    message: object = None
+
+
+def interaction(
+    custom_id: str, kind: discord.InteractionType = discord.InteractionType.component
+) -> discord.Interaction:
+    return cast("discord.Interaction", FakeInteraction(kind, {"custom_id": custom_id}))
+
+
+@ROUTED
+async def test_routed_interactions(fake_plugins: FakePlugins, store: Store, tmp_path: Path) -> None:
+    """Requirement: Component and modal interactions reach their plugin."""
+    fake_plugins.add("Ticket", TICKET)
+    bot = fake_plugins.bot(["Ticket"], tmp_path, store)
+    await bot.load_plugins()
+
+    await bot.on_interaction(interaction("ticket:1:a=press"))
+    await bot.on_interaction(
+        interaction("ticket@a:submit;f:1", discord.InteractionType.modal_submit)
+    )
+
+    assert fake_plugins.calls() == [
+        ("ticket:1:a=press", {"action": "press"}, False),
+        ("ticket@a:submit;f:1", {"action": "submit", "btn_index": "1"}, True),
+    ]
+
+
+@ROUTED
+async def test_unowned_and_failing_interactions(
+    fake_plugins: FakePlugins, store: Store, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: Component and modal interactions reach their plugin."""
+    fake_plugins.add("Ticket", TICKET)
+    fake_plugins.add("Broken", BROKEN_HANDLER)
+    bot = fake_plugins.bot(["Ticket", "Broken"], tmp_path, store)
+    await bot.load_plugins()
+
+    await bot.on_interaction(interaction("other:1:a=x"))
+    await bot.on_interaction(interaction("ticket:1:a=x", discord.InteractionType.autocomplete))
+    with caplog.at_level(logging.ERROR):
+        await bot.on_interaction(interaction("broken:1:a=x"))
+        await bot.on_interaction(interaction("ticket:1:z=x"))
+
+    assert fake_plugins.calls() == []
+    assert "Broken" in caplog.text
+    assert "Ticket" in caplog.text
+
+
+@LIFECYCLE
+async def test_reload_replaces_the_handler(
+    fake_plugins: FakePlugins, store: Store, tmp_path: Path
+) -> None:
+    """Requirement: Routes follow the plugin's lifecycle."""
+    fake_plugins.add("Ticket", TICKET)
+    bot = fake_plugins.bot(["Ticket"], tmp_path, store)
+    await bot.load_plugins()
+    await bot.reload_plugin("Ticket")
+
+    await bot.on_interaction(interaction("ticket:1:a=press"))
+
+    assert len(fake_plugins.calls()) == 1
+
+
+@LIFECYCLE
+async def test_failed_load_leaves_no_route(
+    fake_plugins: FakePlugins, store: Store, tmp_path: Path
+) -> None:
+    """Requirement: Routes follow the plugin's lifecycle."""
+    fake_plugins.add(
+        "Ticket",
+        TICKET + "\n\nasync def setup(bot):\n    bot.route(__name__, IDS, handle)\n"
+        "    raise RuntimeError('late failure')\n",
+    )
+    bot = fake_plugins.bot(["Ticket"], tmp_path, store)
+    assert await bot.load_plugins() == ["Ticket"]
+
+    await bot.on_interaction(interaction("ticket:1:a=press"))
+
+    assert fake_plugins.calls() == []
