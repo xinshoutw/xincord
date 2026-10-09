@@ -1,16 +1,18 @@
-"""Startup, the offline check and the stop signals.
+"""Startup, the offline check, the stop signals and the bot's defaults.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/Main.kt:17-39
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/SettingsLoader.kt:21-33
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/BotLoader.kt:36-107
+    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/ListenerManager.kt:18-36
 """
 
 import asyncio
 import signal
 from importlib import metadata
 from pathlib import Path
-from typing import TYPE_CHECKING
+from types import SimpleNamespace
+from typing import TYPE_CHECKING, cast
 
 import discord
 import pytest
@@ -25,6 +27,7 @@ if TYPE_CHECKING:
     from importlib.metadata import EntryPoint
 
     from plugin_fakes import FakePlugins
+    from xincord.core.command_tree import CommandTree
 
 PLUGIN = """
 from xincord.core.config import Model
@@ -212,3 +215,57 @@ async def test_stop_signal(
     assert await run(Options()) == 0
     assert installed.calls() == ["setup", "teardown"]
     assert len(closed) == 1
+
+
+def watch_syncs(
+    bot: Bot, store: Store, monkeypatch: pytest.MonkeyPatch
+) -> list[tuple[str | int, bool]]:
+    syncs: list[tuple[str | int, bool]] = []
+    tree = cast("CommandTree", bot.tree)
+
+    async def sync_global(used: Store, *, force: bool = False) -> bool:
+        assert used is store
+        syncs.append(("global", force))
+        return True
+
+    async def sync_guild(used: Store, guild_id: int, *, force: bool = False) -> bool:
+        assert used is store
+        syncs.append((guild_id, force))
+        return True
+
+    monkeypatch.setattr(tree, "sync_global", sync_global)
+    monkeypatch.setattr(tree, "sync_guild", sync_guild)
+    return syncs
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Uploads when ready")
+async def test_ready(store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Requirement: Commands are uploaded when ready."""
+    bot = Bot([], root=tmp_path, store=store)
+    syncs = watch_syncs(bot, store, monkeypatch)
+    guilds = [SimpleNamespace(id=1, name="One"), SimpleNamespace(id=2, name="Two")]
+    monkeypatch.setattr(Bot, "guilds", property(lambda _: guilds))
+
+    await bot.on_ready()
+
+    assert syncs == [("global", False), (1, False), (2, False)]
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Uploads when ready")
+async def test_joined_guild(store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Requirement: Commands are uploaded when ready."""
+    bot = Bot([], root=tmp_path, store=store)
+    syncs = watch_syncs(bot, store, monkeypatch)
+
+    await bot.on_guild_join(cast("discord.Guild", SimpleNamespace(id=3, name="Three")))
+
+    assert syncs == [(3, True)]
+
+
+@pytest.mark.xfail(strict=True, reason="Mentions allow users only")
+async def test_default_allowed_mentions(store: Store, tmp_path: Path) -> None:
+    """Requirement: Mentions allow users only."""
+    mentions = Bot([], root=tmp_path, store=store).allowed_mentions
+
+    assert mentions is not None
+    assert mentions.to_dict() == {"parse": ["users"], "replied_user": True}

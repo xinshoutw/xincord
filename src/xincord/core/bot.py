@@ -71,6 +71,14 @@ class Bot(commands.Bot):
         await self.load_plugins()
         logger.info("Plugins loaded: %s", ", ".join(self.loaded) or "none")
 
+    async def on_ready(self) -> None:
+        """Upload the commands that changed: the global ones, then each guild's."""
+        raise NotImplementedError
+
+    async def on_guild_join(self, guild: discord.Guild) -> None:
+        """Upload the guild commands to a guild the bot joined."""
+        raise NotImplementedError
+
     @property
     def loaded(self) -> tuple[str, ...]:
         """The names of the loaded plugins, in load order."""
