@@ -24,6 +24,7 @@ from xincord.core.config import (
 )
 from xincord.core.i18n import Translator
 from xincord.core.plugins import PluginContext, PluginError, discover, required_intents
+from xincord.core.status import rotate
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Mapping, Sequence
@@ -82,6 +83,7 @@ class Bot(commands.Bot):
         self._routes: dict[str, list[tuple[ComponentIds, Handler]]] = {}
         self._reloading = asyncio.Lock()
         self._config = config or CoreConfig()
+        self._status: asyncio.Task[None] | None = None
 
     @override
     async def setup_hook(self) -> None:
@@ -96,7 +98,15 @@ class Bot(commands.Bot):
         await self._sync_commands(force=False)
         for guild in self.guilds:
             logger.info("Guild loaded: %s (%s)", guild.name, guild.id)
+        self._rotate_status(restart=False)  # on_ready fires again after reconnects
         logger.info("Bot ready")
+
+    @override
+    async def close(self) -> None:
+        """Stop the status rotation, unload the plugins and disconnect."""
+        if self._status is not None:
+            self._status.cancel()
+        await super().close()
 
     async def on_guild_join(self, guild: discord.Guild) -> None:
         """Upload the guild commands to a guild the bot joined."""
@@ -114,6 +124,7 @@ class Bot(commands.Bot):
                 if plugin is None:
                     config = load_config(CORE_CONFIG, CoreConfig, default_core_config())
                     reloaded, failed = await self._reload_all(config.plugins)
+                    self._config = config
                 else:
                     reloaded, failed = await self.reload_plugin(plugin), []
             except (ConfigError, PluginError) as error:
@@ -122,6 +133,8 @@ class Bot(commands.Bot):
             if self.is_ready():
                 # A manual reload also repairs the commands on Discord.
                 await self._sync_commands(force=True)
+                if plugin is None:
+                    self._rotate_status(restart=True)
         summary = f"Reloaded: {', '.join(reloaded) or 'none'}."
         if failed:
             summary += f" Failed: {', '.join(failed)} (see the log)."
@@ -290,6 +303,13 @@ class Bot(commands.Bot):
         await self.unload_extension(info.module)
         del self._contexts[info.module]
         logger.info("Plugin %s unloaded", name)
+
+    def _rotate_status(self, *, restart: bool) -> None:
+        if self._status is not None and not self._status.done():
+            if not restart:
+                return
+            self._status.cancel()
+        self._status = asyncio.create_task(rotate(self, self._config.status.activities))
 
     async def _sync_commands(self, *, force: bool) -> None:
         tree = cast("CommandTree", self.tree)

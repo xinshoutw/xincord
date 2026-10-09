@@ -29,7 +29,6 @@ def entry(kind: str, text: str, seconds: float = FAST, url: str | None = None) -
     return Activity(type=ActivityType(kind), text=text, seconds=seconds, url=url)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Status rotation")
 def test_activity_kinds() -> None:
     streaming = activity(entry("streaming", "Live", url="https://twitch.tv/x"))
     custom = activity(entry("custom", "Hi"))
@@ -69,7 +68,6 @@ async def rotated(activities: Sequence[Activity], presence: Presence, calls: int
         await asyncio.gather(task, return_exceptions=True)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Status rotation")
 async def test_rotation() -> None:
     two, one, none = Presence(), Presence(), Presence()
 
@@ -82,7 +80,6 @@ async def test_rotation() -> None:
     assert none.shown == []
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Status rotation")
 async def test_failed_update(caplog: pytest.LogCaptureFixture) -> None:
     presence = Presence(0)
 
@@ -92,7 +89,6 @@ async def test_failed_update(caplog: pytest.LogCaptureFixture) -> None:
     assert "A" in caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason="Status rotation")
 @pytest.mark.usefixtures("installed")
 async def test_bot_rotation(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
     config = CoreConfig(status=Status(activities=(entry("playing", "A"), entry("playing", "B"))))

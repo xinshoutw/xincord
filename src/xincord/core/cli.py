@@ -104,7 +104,7 @@ async def run(options: Options, *, console: bool = False) -> int:
     store = await Store.open(DATABASE)
     try:
         plugins = discover(config.plugins)
-        bot = Bot(plugins, root=PLUGINS, store=store, force_lang=options.force_lang)
+        bot = Bot(plugins, root=PLUGINS, store=store, force_lang=options.force_lang, config=config)
         if options.no_online:
             return await _check(bot, config.plugins)
         return await _serve(bot, token, console=console)

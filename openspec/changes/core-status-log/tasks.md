@@ -1,7 +1,7 @@
 ## 1. Status rotation
 
 - [x] 1.1 xfail tests for "Status rotation"
-- [ ] 1.2 Implement `xincord.core.status`, the bot's config and the rotation task; remove the
+- [x] 1.2 Implement `xincord.core.status`, the bot's config and the rotation task; remove the
       markers
 
 ## 2. Interaction log
