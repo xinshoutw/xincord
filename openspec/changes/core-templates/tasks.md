@@ -1,6 +1,6 @@
 ## 1. Loading
 
-- [ ] 1.1 xfail tests for "Templates are validated when they load"
+- [x] 1.1 xfail tests for "Templates are validated when they load"
 - [ ] 1.2 Implement the YAML tags, the template models and `Templates.load`; remove the markers
 
 ## 2. Message rendering
