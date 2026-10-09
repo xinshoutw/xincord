@@ -40,39 +40,34 @@ class Example(commands.Cog):
     def command(self) -> app_commands.Command[Any, ..., None]:
         """Build ``/example-command``, localized from ``register.yaml``.
 
-        The lang files load in ``setup``, so commands are built there rather than declared with
-        class decorators. The callback is a nested function: discord.py would take a function
-        defined in the class for a method and skip one parameter too many.
+        The Lang loads in ``setup``, so commands are built there instead of with
+        ``@app_commands.command``. Given a bound method, discord.py makes this cog the command's
+        binding, as for a decorated cog command.
         """
         lang = self.lang
-
-        @app_commands.rename(
+        command: app_commands.Command[Any, ..., None] = app_commands.Command(
+            name=lang.command("example-command", "example.name"),
+            description=lang.command("this is an example command", "example.description"),
+            callback=self.example_command,
+        )
+        app_commands.rename(
             option1=lang.command("option1", "example.options.option1.name"),
             option2=lang.command("option2", "example.options.option2.name"),
-        )
-        @app_commands.describe(
+        )(command)
+        return app_commands.describe(
             option1=lang.command(
                 "this is an example option", "example.options.option1.description"
             ),
             option2=lang.command(
                 "this is an example option", "example.options.option2.description"
             ),
-        )
-        async def example_command(
-            interaction: discord.Interaction,
-            option1: app_commands.Range[str, None, OPTION1_MAX],
-            option2: int | None = None,
-        ) -> None:
-            await self.reply(interaction, option1, option2)
+        )(command)
 
-        return app_commands.Command(
-            name=lang.command("example-command", "example.name"),
-            description=lang.command("this is an example command", "example.description"),
-            callback=example_command,
-        )
-
-    async def reply(
-        self, interaction: discord.Interaction, option1: str, option2: int | None
+    async def example_command(
+        self,
+        interaction: discord.Interaction,
+        option1: app_commands.Range[str, None, OPTION1_MAX],
+        option2: int | None = None,
     ) -> None:
         """Turn the deferred response into the example embed above a counter at 0."""
         values = self._values(interaction, 0) | {

@@ -51,7 +51,7 @@ async def run(
     data = {"type": 1, "name": "example-command", "options": options}
     interaction = FakeInteraction(data, locale=locale, channel=channel)
 
-    await cog.reply(interaction.as_interaction(), option1, option2)
+    await cog.example_command(interaction.as_interaction(), option1, option2)
 
     ((method, fields),) = interaction.sent
     assert method == "edit_original_response"

@@ -20,8 +20,10 @@ if TYPE_CHECKING:
 
     from xincord.core.bot import Bot
     from xincord.core.command_tree import CommandTree
+    from xincord.plugins.example.cog import Example
 
-    type Callback = Callable[[discord.Interaction, str, int | None], Awaitable[None]]
+    # discord.py calls a cog command's function with the cog, its binding.
+    type Callback = Callable[[Example, discord.Interaction, str, int | None], Awaitable[None]]
 
 GOLDEN = golden("example")
 DATA = {
@@ -49,14 +51,15 @@ async def test_command_payload(bot: Bot) -> None:
     assert [listed(option, wanted) for option, wanted in options] == expected["options"]
 
 
-async def test_command_callback(bot: Bot) -> None:
+async def test_command_callback(bot: Bot, cog: Example) -> None:
     """Requirement: The command is a localized guild command."""
     command = bot.tree.get_command("example-command")
     assert isinstance(command, app_commands.Command)
+    assert command.binding is cog
     interaction = FakeInteraction(DATA, command=command)
 
     assert await cast("CommandTree", bot.tree).interaction_check(interaction.as_interaction())
-    await cast("Callback", command.callback)(interaction.as_interaction(), "first", None)
+    await cast("Callback", command.callback)(cog, interaction.as_interaction(), "first", None)
 
     assert interaction.sent[0] == ("response.defer", {"ephemeral": True, "thinking": True})
     assert [method for method, _ in interaction.sent[1:]] == ["edit_original_response"]
