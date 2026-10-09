@@ -280,3 +280,12 @@ def _format(value: BigDecimal) -> str:
     if len(text) > RESULT_MAX:
         raise CalcError(TOO_MANY_DIGITS)
     return text
+
+
+def calculate(formula: str) -> str:
+    """Return the result of a trimmed formula, as v3's ``evaluateExpression`` did.
+
+    Raises:
+        CalcError: The formula cannot be calculated; the message says why.
+    """
+    raise NotImplementedError
