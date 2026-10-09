@@ -4,8 +4,10 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/_Example/src/main/kotlin/_example/_Example.kt:11-43
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+import discord
+from discord import app_commands
 from discord.ext import commands
 
 from xincord.core.component_ids import ComponentIds
@@ -13,8 +15,6 @@ from xincord.core.placeholders import actor_values, interaction_values
 from xincord.core.templates import render_message
 
 if TYPE_CHECKING:
-    import discord
-
     from xincord.core.i18n import Lang
     from xincord.core.templates import Templates
 
@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 # order, and passes legacy_prefix (and legacy_hex); _Example had no components in v3.
 IDS = ComponentIds("example", ("action", "count"))
 NONE = "none"  # the text of an omitted option2, as in v3
+OPTION1_MAX = 1024  # Discord's limit for an embed field's value
 
 
 class Example(commands.Cog):
@@ -34,6 +35,40 @@ class Example(commands.Cog):
         self.config = config
         self.lang = lang
         self.templates = templates
+
+    def command(self) -> app_commands.Command[Any, ..., None]:
+        """Build ``/example-command``, localized from ``register.yaml``.
+
+        The lang files load in ``setup``, so commands are built there rather than declared with
+        class decorators. The callback is a nested function: discord.py would take a function
+        defined in the class for a method and skip one parameter too many.
+        """
+        lang = self.lang
+
+        @app_commands.rename(
+            option1=lang.command("option1", "example.options.option1.name"),
+            option2=lang.command("option2", "example.options.option2.name"),
+        )
+        @app_commands.describe(
+            option1=lang.command(
+                "this is an example option", "example.options.option1.description"
+            ),
+            option2=lang.command(
+                "this is an example option", "example.options.option2.description"
+            ),
+        )
+        async def example_command(
+            interaction: discord.Interaction,
+            option1: app_commands.Range[str, None, OPTION1_MAX],
+            option2: int | None = None,
+        ) -> None:
+            await self.reply(interaction, option1, option2)
+
+        return app_commands.Command(
+            name=lang.command("example-command", "example.name"),
+            description=lang.command("this is an example command", "example.description"),
+            callback=example_command,
+        )
 
     async def reply(
         self, interaction: discord.Interaction, option1: str, option2: int | None

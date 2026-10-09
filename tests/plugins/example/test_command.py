@@ -8,7 +8,6 @@ Kotlin:
 
 from typing import TYPE_CHECKING, Any, cast
 
-import pytest
 from discord import app_commands
 
 from discord_fakes import FakeInteraction
@@ -30,7 +29,6 @@ DATA = {
     "name": "example-command",
     "options": [{"type": 3, "name": "option1", "value": "first"}],
 }
-XFAIL = pytest.mark.xfail(strict=True, reason="The command is a localized guild command")
 
 
 def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
@@ -38,7 +36,6 @@ def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
     return {key: actual.get(key) for key in expected}
 
 
-@XFAIL
 async def test_command_payload(bot: Bot) -> None:
     """Requirement: The command is a localized guild command."""
     global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
@@ -52,7 +49,6 @@ async def test_command_payload(bot: Bot) -> None:
     assert [listed(option, wanted) for option, wanted in options] == expected["options"]
 
 
-@XFAIL
 async def test_command_callback(bot: Bot) -> None:
     """Requirement: The command is a localized guild command."""
     command = bot.tree.get_command("example-command")
