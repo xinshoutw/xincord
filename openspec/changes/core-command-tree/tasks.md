@@ -7,7 +7,7 @@
 
 - [x] 2.1 xfail tests for "Commands are split into guild and global scopes" and "Commands are
       uploaded only when they change"
-- [ ] 2.2 Implement `CommandTree.payloads`, `sync_global` and `sync_guild`; remove the markers
+- [x] 2.2 Implement `CommandTree.payloads`, `sync_global` and `sync_guild`; remove the markers
 
 ## 3. Close
 

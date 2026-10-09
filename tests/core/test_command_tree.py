@@ -106,16 +106,6 @@ async def test_bot_uses_the_tree(tmp_path: Path) -> None:
         await store.close()
 
 
-SYNCED = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Commands are uploaded only when they change"
-)
-SCOPED = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Commands are split into guild and global scopes",
-)
-
-
 @dataclass
 class FakeHttp:
     """Records command uploads; uploads to ``failing`` guilds raise."""
@@ -162,7 +152,6 @@ def add(tree: CommandTree, *commands: AnyCommand) -> None:
         tree.add_command(each)
 
 
-@SCOPED
 async def test_scopes_and_translation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Commands are split into guild and global scopes."""
     for locale, name in (("en-US", "ping"), ("zh-TW", "pong-tw")):
@@ -192,7 +181,6 @@ async def sync_all(tree: CommandTree, store: Store) -> list[bool]:
     ]
 
 
-@SYNCED
 async def test_unchanged_commands_are_not_uploaded(
     store: Store, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -207,7 +195,6 @@ async def test_unchanged_commands_are_not_uploaded(
     assert http.uploads == [("global", ["info"]), (1, ["ping"]), (2, ["ping"])]
 
 
-@SYNCED
 async def test_changes_forcing_and_failures(
     store: Store, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -234,3 +221,13 @@ async def test_changes_forcing_and_failures(
         (2, ["ping", "stats"]),
         (1, ["ping", "stats"]),
     ]
+
+
+async def test_uploads_need_an_application_id(store: Store) -> None:
+    """Requirement: Commands are uploaded only when they change."""
+    tree = CommandTree(discord.Client(intents=discord.Intents.none()))
+
+    with pytest.raises(app_commands.MissingApplicationID):
+        await tree.sync_global(store)
+    with pytest.raises(app_commands.MissingApplicationID):
+        await tree.sync_guild(store, 1)
