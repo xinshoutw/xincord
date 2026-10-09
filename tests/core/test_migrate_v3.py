@@ -1,0 +1,149 @@
+"""Requirement: v3 core config migrates to the new schema.
+
+Kotlin: XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/setting/SettingSerializer.kt,
+Core/src/main/kotlin/core/builtin/statuschanger/StatusChanger.kt:72-90 and
+Core/src/main/kotlin/core/builtin/consolelogger/ConsoleLogger.kt:40-60.
+"""
+
+from typing import TYPE_CHECKING, Any
+
+import pytest
+
+from xincord.core.config import CoreConfig, load_config
+from xincord.core.migrate_v3 import main, migrate_core_config, migrate_directory
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+pytestmark = pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="v3 core config migrates to the new schema",
+)
+
+
+def v3(activities: list[str], loggers: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    return {
+        "general_settings": {"bot_token": "token-123"},
+        "builtin_settings": {
+            "status_changer_settings": {"activity_messages": activities},
+            "console_logger_settings": loggers or [],
+        },
+    }
+
+
+V3_TEXT = """\
+general_settings:
+  bot_token: "token-123"
+
+builtin_settings:
+  status_changer_settings:
+    # PLAYING / STREAMING / LISTENING / WATCHING / CUSTOM_STATUS / COMPETING
+    activity_messages:
+      - "COMPETING;Developing...;5000"
+"""
+
+
+def test_v3_file_is_converted() -> None:
+    target = {"guild_id": 1, "channel_id": 2, "log_type": ["command", "modal"], "format": "[x]"}
+
+    new, report = migrate_core_config(
+        v3(["COMPETING;Developing...;5000", "CUSTOM_STATUS;Hello;2500"], [target]),
+    )
+
+    assert report == []
+    assert new == {
+        "token": "token-123",
+        "status": {
+            "activities": [
+                {"type": "competing", "text": "Developing...", "seconds": 5.0},
+                {"type": "custom", "text": "Hello", "seconds": 2.5},
+            ],
+        },
+        "interaction_log": [
+            {"guild_id": 1, "channel_id": 2, "types": ["command", "modal"], "format": "[x]"},
+        ],
+    }
+    CoreConfig.model_validate(new)
+
+
+def test_streaming_activity_keeps_its_url() -> None:
+    new, _ = migrate_core_config(
+        v3(["STREAMING;Live;https://twitch.tv/example", "STREAMING;Late;https://e.com/l;8000"]),
+    )
+
+    assert new["status"] == {
+        "activities": [
+            {"type": "streaming", "text": "Live", "url": "https://twitch.tv/example"},
+            {"type": "streaming", "text": "Late", "url": "https://e.com/l", "seconds": 8.0},
+        ],
+    }
+    assert CoreConfig.model_validate(new).status.activities[0].seconds == 5
+
+
+@pytest.mark.parametrize(
+    "entry",
+    ["PLAYING;only two", "DANCING;x;100", "PLAYING;x;soon", "PLAYING;x;0", "STREAMING;x;"],
+)
+def test_unconvertible_activities_are_reported(entry: str) -> None:
+    new, report = migrate_core_config(v3([entry]))
+
+    assert new["status"] == {"activities": []}
+    assert len(report) == 1
+    assert entry in report[0]
+
+
+def test_unknown_log_types_are_reported() -> None:
+    mixed = {"guild_id": 1, "channel_id": 2, "log_type": ["command", "select"], "format": "x"}
+    unknown = {"guild_id": 3, "channel_id": 4, "log_type": ["select"], "format": "x"}
+
+    new, report = migrate_core_config(v3([], [mixed, unknown]))
+
+    assert new["interaction_log"] == [
+        {"guild_id": 1, "channel_id": 2, "types": ["command"], "format": "x"},
+    ]
+    assert len(report) == 2
+    assert all("select" in line for line in report)
+
+
+def test_original_file_is_backed_up(tmp_path: Path) -> None:
+    (tmp_path / "config.yaml").write_text(V3_TEXT, encoding="utf-8")
+
+    report = migrate_directory(tmp_path)
+
+    assert (tmp_path / "config.v3.yaml").read_text(encoding="utf-8") == V3_TEXT
+    config = load_config(tmp_path / "config.yaml", CoreConfig, "")
+    assert config.token == "token-123"
+    assert config.status.activities[0].text == "Developing..."
+    assert "config.v3.yaml" in report[-1]
+
+
+def test_migrated_file_is_left_alone(tmp_path: Path) -> None:
+    (tmp_path / "config.yaml").write_text("token: abc\n", encoding="utf-8")
+
+    report = migrate_directory(tmp_path)
+
+    assert (tmp_path / "config.yaml").read_text(encoding="utf-8") == "token: abc\n"
+    assert not (tmp_path / "config.v3.yaml").exists()
+    assert len(report) == 1
+
+
+def test_existing_backup_blocks_migration(tmp_path: Path) -> None:
+    (tmp_path / "config.yaml").write_text(V3_TEXT, encoding="utf-8")
+    (tmp_path / "config.v3.yaml").write_text("older", encoding="utf-8")
+
+    report = migrate_directory(tmp_path)
+
+    assert (tmp_path / "config.yaml").read_text(encoding="utf-8") == V3_TEXT
+    assert (tmp_path / "config.v3.yaml").read_text(encoding="utf-8") == "older"
+    assert len(report) == 1
+
+
+def test_command_line_prints_the_report(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    (tmp_path / "config.yaml").write_text(V3_TEXT, encoding="utf-8")
+
+    assert main([str(tmp_path)]) == 0
+    assert "config.v3.yaml" in capsys.readouterr().out

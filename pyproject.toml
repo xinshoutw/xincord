@@ -52,7 +52,7 @@ ignore = [
 # Docstring rules cover the public core API only (decision A6).
 "packages/**" = ["D"]
 "scripts/**" = ["D", "INP001", "T201"]
-"tests/**" = ["D", "INP001", "PLR2004", "S101"]
+"tests/**" = ["D", "INP001", "PLR2004", "S101", "S105", "S106"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
