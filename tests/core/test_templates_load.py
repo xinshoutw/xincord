@@ -16,12 +16,6 @@ from xincord.core.templates import TemplateError, Templates, load_message, load_
 if TYPE_CHECKING:
     from pathlib import Path
 
-pytestmark = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Templates are validated when they load",
-)
-
 VALID = """\
 content: "Hello %user_name%"
 embeds:
@@ -101,6 +95,11 @@ def test_valid_template_loads(tmp_path: Path, caplog: pytest.LogCaptureFixture) 
         "embeds:\n  - timestamp: yesterday\n",
         "embeds:\n  - color_code: red\n",
         "embeds:\n  - fields: [{name: only-a-name}]\n",
+        "components:\n  - !ButtonsComponent [a]\n",
+        (
+            "components:\n  - !StringSelectMenu\n    uid: {a: b}\n"
+            "    options: [{label: a, value: b, emoji: {animated: true}}]\n"
+        ),
     ],
 )
 def test_invalid_template_fails(tmp_path: Path, text: str) -> None:
@@ -122,6 +121,16 @@ def test_invalid_modal_fails(tmp_path: Path, text: str) -> None:
 
     with pytest.raises(TemplateError, match=str(path)):
         load_modal(path)
+
+
+def test_model_keys_skip_required_fields(tmp_path: Path) -> None:
+    text = (
+        "components:\n"
+        "  - !EntitySelectMenu {model_key: picker}\n"
+        "  - !ButtonsComponent\n    buttons: [{model_key: join}]\n"
+    )
+
+    load_message(write(tmp_path, text))
 
 
 def test_unknown_key_warns(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
