@@ -28,6 +28,19 @@ the bot; SIGHUP, or `/xincord reload [plugin]` run by the application owner, rel
 and the plugins without disconnecting. In a terminal, the `console > ` prompt accepts
 `reload [plugin]` and `stop` (or `exit`, `shutdown`, ^D).
 
+## Docker
+
+```sh
+docker compose up -d --build     # start; the bot writes bot/config.yaml on the first start
+docker compose attach bot        # the console (Ctrl-P Ctrl-Q detaches)
+docker compose kill -s HUP bot   # reload the config and the plugins
+docker compose logs -f bot       # logs, rotated at 10 MB
+docker compose stop              # stop
+```
+
+The image runs `xincord` as a non-root user. `./bot` holds `config.yaml` and `plugins/<Name>/`
+for editing on the host; the database stays in the `xincord_data` volume.
+
 ## Development
 
 Requires [uv](https://docs.astral.sh/uv/) and Node.js 20.19 or newer (for OpenSpec).

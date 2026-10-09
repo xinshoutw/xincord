@@ -28,6 +28,7 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | kotlinx/Jackson YAML config | pydantic v2 models over PyYAML; unknown keys warn | B6 |
 | Coroutines, `launch`, scheduled executors | `asyncio` tasks, `discord.ext.tasks.loop` | |
 | JLine console (`JLineManager`, `JLineAppender`), `--ignore-update` | prompt_toolkit console (`xincord.core.console`; logs print above the prompt through `patch_stdout`), SIGHUP reload, `/xincord reload`; no version check | B15 |
+| `Server/start`: `java -jar` with the token on the command line | `compose.yaml` and the `Dockerfile` image; the token goes in `bot/config.yaml` | B16 |
 | `java -jar` with Clikt options | the `xincord` console script (`xincord.core.cli`, argparse); `--no-online` loads the plugins without connecting and exits | B15 |
 | `BotLoader`: build JDA, wait for ready, then load the plugins | `Bot.setup_hook` sets the translator and loads the plugins before the gateway connects; `on_ready` and `on_guild_join` upload the commands | B3, B5 |
 | `BotLoader.reload()`: stop JDA and start everything again | `Bot.reload(plugin=None)` in place: the loaded plugins follow `config.yaml`, or one plugin reloads with its dependents; triggered by SIGHUP, the owner's `/xincord reload` and the console | B15 |
@@ -151,3 +152,4 @@ Every deliberate difference, added by the change that introduces it.
 | Interaction log | modal submissions were posted to log channels with `cl_type` `BTN` | `MODAL` | core-status-log |
 | Interaction log | log channel messages used JDA's default mentions, so `%user_mention%` pinged | log messages never ping | core-status-log |
 | Status rotation | a single activity was set again after every delay | set once | core-status-log |
+| Deployment | `java -jar` from `Server/`, files and MongoDB data next to the jar | an arm64 image under docker compose: files in `./bot`, the SQLite database in the `xincord_data` volume | container |

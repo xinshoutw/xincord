@@ -55,6 +55,11 @@ migration from v3.
    reloads, `docker compose stop` exits within the grace period, and the database is in the
    `xincord_data` volume.
 
+Result on 2026-10-10 (OrbStack, Docker 29.4.0): the build is `arm64`, runs as `xincord` in
+`/bot` (190 MB); `--no-online` exits with 0, writes `bot/config.yaml` on the host and
+`/bot/data/xincord.db` owned by `xincord` in the volume; on a terminal the container shows
+`console > ` and a rejected token exits with 1. Step 3 with a real token is left to the owner.
+
 ## User-visible changes
 
 For the operator:
