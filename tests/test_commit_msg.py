@@ -57,6 +57,24 @@ def test_unknown_type_or_scope_is_rejected(message: str) -> None:
     assert problems(message)
 
 
+@pytest.mark.xfail(strict=True, reason="Commit messages carry no tool attribution")
+@pytest.mark.parametrize(
+    "trailer",
+    [
+        "Co-Authored-By: Someone <someone@example.com>",
+        "co-authored-by: someone <someone@example.com>",
+        "Claude-Session: https://example.com/session",
+        "Generated with [Claude Code](https://example.com)",
+    ],
+)
+def test_attribution_lines_are_rejected(trailer: str) -> None:
+    """Requirement: Commit messages carry no tool attribution."""
+    found = problems(f"chore: tidy\n\n- one change\n\n{trailer}\n")
+
+    assert len(found) == 1
+    assert "line 5" in found[0]
+
+
 def test_comments_and_the_verbose_diff_are_ignored() -> None:
     message = (
         f"# leading comment {IDEOGRAPH}\n"

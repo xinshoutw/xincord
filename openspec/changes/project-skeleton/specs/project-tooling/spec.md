@@ -57,3 +57,12 @@ ASCII. Comment lines and everything after the scissors line of `git commit -v` S
 #### Scenario: Comments and the verbose diff are ignored
 - **WHEN** non-ASCII text appears only in `#` comment lines or below the scissors line
 - **THEN** the hook accepts the message
+
+### Requirement: Commit messages carry no tool attribution
+The commit-msg hook SHALL reject a message with a tool attribution line: a `Co-Authored-By:` or
+`Claude-Session:` trailer, or `Generated with [Claude Code]`, in any letter case. Comment lines and
+the verbose diff SHALL be ignored as above.
+
+#### Scenario: Attribution lines are rejected
+- **WHEN** the body contains a `Co-Authored-By:` or `Claude-Session:` line, or `Generated with [Claude Code]`
+- **THEN** the hook rejects the message and names the offending line
