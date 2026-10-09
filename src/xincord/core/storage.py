@@ -86,6 +86,18 @@ class Store:
 
         return await asyncio.get_running_loop().run_in_executor(self._executor, transaction)
 
+    async def update(self, namespace: str, key: str, fn: Callable[[JSON], JSON]) -> JSON:
+        """Replace the value with ``fn(current)`` in one transaction and return the new value.
+
+        ``fn`` receives None when the key is absent. It runs on the database thread, so it must be
+        quick and must not touch asyncio objects.
+        """
+        raise NotImplementedError
+
+    def lock(self, key: str) -> asyncio.Lock:
+        """Return the lock for ``key``, the same object for equal keys."""
+        raise NotImplementedError
+
     async def get(self, namespace: str, key: str) -> JSON:
         """Return the value stored under ``namespace`` and ``key``, or None if there is none."""
         row = await self.run(

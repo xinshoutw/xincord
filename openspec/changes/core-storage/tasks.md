@@ -6,7 +6,7 @@
 
 ## 2. Atomic updates, own tables, corruption, locks
 
-- [ ] 2.1 xfail tests for "Read-modify-write is atomic", "Plugins can use their own tables",
+- [x] 2.1 xfail tests for "Read-modify-write is atomic", "Plugins can use their own tables",
       "Corrupt databases are never reset" and "Keyed locks serialize multi-step flows"
 - [ ] 2.2 Implement `update`, `lock` and the open-time check; remove the markers
 
