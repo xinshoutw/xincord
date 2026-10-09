@@ -1,6 +1,6 @@
 ## 1. Image
 
-- [ ] 1.1 xfail tests for "Container image"
+- [x] 1.1 xfail tests for "Container image"
 - [ ] 1.2 Add the `Dockerfile` and `.dockerignore`; remove the markers
 
 ## 2. Compose
