@@ -1,0 +1,10 @@
+# The button under the example reply. A press renders this template again with the count plus
+# one, so the button must stay in this file.
+components:
+  - !ButtonsComponent
+    buttons:
+      - uid:
+          action: "count"
+          count: "%_Example@count%"
+        style: 1
+        label: "Count: %_Example@count%"

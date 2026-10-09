@@ -1,0 +1,19 @@
+embeds:
+  - author:
+      name: "Example Reply"
+    title:
+      text: "This is an example reply."
+    footer:
+      text: "❖ ORDERLY SERVER ❖"
+
+    fields:
+      - name: "Option 1"
+        value: "%_Example@option1%"
+
+      - name: "Option 2"
+        value: "%_Example@option2%"
+
+      - name: "Config value"
+        value: "%_Example@example_key%"
+
+    color_code: "#00FFFF"

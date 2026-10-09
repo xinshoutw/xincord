@@ -1,6 +1,6 @@
 ## 1. Resources
 
-- [ ] 1.1 Bundle `config.yaml` and the en-US and zh-TW lang files: v3's `register.yaml` and
+- [x] 1.1 Bundle `config.yaml` and the en-US and zh-TW lang files: v3's `register.yaml` and
       `message/example.yaml` with the config field, and the new `message/counter.yaml`
 
 ## 2. Installation
