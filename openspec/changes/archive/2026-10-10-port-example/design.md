@@ -51,18 +51,18 @@ the model; a v3 file still loads and logs `unknown key enabled`.
 ### Command
 
 The Lang is loaded in `setup`, after import, and `Translator` reads it from each string's extras,
-so commands are built at setup instead of with class-level decorators. `Example.command()` wraps a
-nested callback with `app_commands.rename` and `app_commands.describe` and returns
-`app_commands.Command(name=lang.command("example-command", "example.name"), ...)`; `setup` adds it
-with `bot.tree.add_command`. A nested function, not a method, is the callback because discord.py
-takes a function defined in a class for a method and skips one parameter too many. discord.py
-evaluates the callback's annotations when the command is built, so `import discord` stays at
-runtime; `app_commands.describe` and `rename` join ruff's `runtime-evaluated-decorators`, so ruff
-flags a move into `TYPE_CHECKING` (ruff accepted it before). discord.py removes the
-command when the extension unloads, because its callback's module belongs to the extension. Base
-names and descriptions are v3's `Commands.slash` defaults; `register.yaml` localizes them. `option1`
-is `app_commands.Range[str, None, 1024]`. The command keeps the tree's ephemeral defer (no
-`extras`), and the reply edits the deferred response, as v3's `hook.editOriginal` did.
+so commands are built at setup instead of with `@app_commands.command`. `Example.command()` builds
+`app_commands.Command(name=lang.command("example-command", "example.name"), ...,
+callback=self.example_command)`, then calls `app_commands.rename` and `app_commands.describe` on it;
+`setup` adds it with `bot.tree.add_command`. discord.py unwraps the bound method and makes the cog
+the command's binding, so `cog_app_command_error` and the cog's `interaction_check` apply as for a
+decorated cog command, and it removes the command when the extension unloads, because the
+callback's module belongs to the extension. discord.py evaluates the callback's annotations when
+the command is built, so `import discord` stays at runtime: ruff accepts a move into
+`TYPE_CHECKING` (other `discord` imports keep its non-strict rules quiet), and the plugin's tests
+catch it. Base names and descriptions are v3's `Commands.slash` defaults; `register.yaml` localizes
+them. `option1` is `app_commands.Range[str, None, 1024]`. The command keeps the tree's ephemeral
+defer (no `extras`), and the reply edits the deferred response, as v3's `hook.editOriginal` did.
 
 ### Reply and placeholders
 
@@ -98,8 +98,7 @@ embed. A malformed count raises, and the core logs it with the plugin's name.
 - The existing configuration already covers the new paths: ruff (`src` and the `packages/**` and
   `tests/**` ignores), pyright (`include` and `extraPaths`), pytest (`testpaths`, `pythonpath`) and
   coverage (`source_pkgs = ["xincord.core", "xincord.plugins"]`). The layout tests check the
-  namespace; each plugin's own tests check its entry point. The only change is the two ruff
-  decorators above.
+  namespace; each plugin's own tests check its entry point. No configuration changed.
 - Tests never unload or reload the real plugin: discord.py would re-import its modules, and later
   tests would compare against classes from the old ones.
 

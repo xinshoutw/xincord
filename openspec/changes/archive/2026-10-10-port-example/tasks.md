@@ -39,6 +39,6 @@
 
 ## 8. Close
 
-- [ ] 8.1 Gate passes, push, CI green
-- [ ] 8.2 Archive the change and run `openspec validate --all --strict`
-- [ ] 8.3 Update `HANDOFF.md` and `docs/porting/owner-review.md`; push; CI green
+- [x] 8.1 Gate passes, push, CI green
+- [x] 8.2 Archive the change and run `openspec validate --all --strict`
+- [x] 8.3 Update `HANDOFF.md` and `docs/porting/owner-review.md`; push; CI green

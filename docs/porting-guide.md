@@ -69,8 +69,9 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - One package per plugin, `xincord.plugins.<package>`: `__init__.py` (metadata constants and
   `setup`), `config.py`, `cog.py`, the bundled `config.yaml` and `lang/`. The entry point is named
   after the v3 plugin (`_Example = "xincord.plugins.example"`).
-- Commands are built in `setup` from the plugin's Lang, with a nested callback passed to
-  `app_commands.Command`; names and descriptions default to v3's.
+- Commands are built in `setup` from the plugin's Lang: `app_commands.Command` with the cog's
+  bound method as the callback, then `rename` and `describe` on the command; names and
+  descriptions default to v3's.
 - Component IDs: `ComponentIds("<package>", <v3 fields in v3 order, then new ones>,
   legacy_prefix=<v3 prefix>)`, routed with `bot.route(__name__, IDS, handler)`.
 - Placeholder keys keep v3's names, and v3's `Placeholder.get(...)` values come from the core
@@ -110,11 +111,10 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - **Reload re-runs setup.** `reload_extension` executes the plugin module again and calls the new
   `setup`; release what the old version holds (tasks, listeners outside a cog) in `teardown` or
   `cog_unload`. A failed reload restores the old module and runs its `setup` again.
-- **Command callbacks.** discord.py takes a function defined in a class for a method and skips
-  one parameter too many when it is passed to `app_commands.Command`; build commands with a nested
-  callback. It also evaluates the callback's annotations when the command is built, so
-  `import discord` must stay at runtime (`describe` and `rename` are runtime-evaluated decorators
-  for ruff).
+- **Command callbacks.** discord.py evaluates a callback's annotations when the command is built,
+  so `import discord` must stay at runtime; ruff does not flag a move into `TYPE_CHECKING` while
+  other `discord` imports remain, but the plugin then fails to load and its tests fail. Pass the
+  cog's bound method: discord.py unwraps it and makes the cog the binding.
 - **Real plugins in tests.** Unloading or reloading a real plugin makes discord.py re-import its
   modules, so classes imported by test modules no longer match; test reloads with fake plugins.
 - **Stopped views.** A discord.py view created outside a running event loop never reports

@@ -1,8 +1,8 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 at the end of the third Phase 2 session, after `container`. Core is complete. Read this file first, then
-`docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and binding; do not re-open
-them unless you find a serious problem, and then ask the owner.
+Updated 2026-10-10 after `port-example`, the first plugin port. Core is complete. Read this file
+first, then `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and binding; do
+not re-open them unless you find a serious problem, and then ask the owner.
 
 Talk to the owner in Traditional Chinese. Everything written into the repository is English.
 
@@ -132,7 +132,16 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   `xincord`), `.dockerignore`, and `compose.yaml` (service `bot`: `./bot` bind-mounted at `/bot`,
   named volume `data` = `xincord_data` at `/bot/data`, `stdin_open`, `tty`, `init`,
   `restart: unless-stopped`, 30 s stop grace, json-file logs 10 MB x 3).
-- **Still to build:** all plugins (section 5).
+- **Plugins (`packages/xincord-plugins`):** `xincord.plugins.example` (entry point `_Example`), the
+  template: `__init__.py` (metadata constants, `setup`), `config.py`, `cog.py` (commands built in
+  `setup` from the Lang with the cog's bound method as callback, `IDS = ComponentIds("example",
+  ("action", "count"))` routed with `bot.route`), bundled `config.yaml` and `lang/`. Conventions
+  for every port: `.claude/skills/port-plugin/SKILL.md`. Reuse in tests: `plugin_fakes.load_plugin`
+  (real entry point, offline), `plugin_fakes.golden(<package>)`, `tests/support/discord_fakes.py`
+  (`FakeInteraction` records `sent`; `buttons`, `embed_dict`); the `store` fixture is in
+  `tests/conftest.py`. When a second plugin needs v3's `Placeholder.get(event)`, move the
+  example's `placeholder_values` into `xincord.core.placeholders`.
+- **Still to build:** the plugins after _Example (section 5).
 
 ## 5. Status and next steps
 
@@ -141,14 +150,15 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `project-skeleton`, `core-config`, `core-storage`, `core-i18n`, `core-placeholders`,
 `core-templates`, `core-components-v2`, `core-component-ids`, `core-plugin-loading`,
 `core-command-tree`, `core-component-routing`, `core-interaction-values`, `core-startup`,
-`core-reload`, `core-console`, `core-status-log`, `container`. Each one's `design.md` in `openspec/changes/archive/` records its decisions and "v3 behaved
+`core-reload`, `core-console`, `core-status-log`, `container`, `port-example`. Each one's `design.md` in `openspec/changes/archive/` records its decisions and "v3 behaved
 differently" notes; `docs/porting-guide.md` has the differences table.
 
 ### Next: the plugins
 
-Core is complete. Port the plugins in C1 order with the `port-plugin` skill
+Core is complete and _Example is ported (the template). Next: **BasicCalculator**
+(`port-basic-calculator`). Port the plugins in C1 order with the `port-plugin` skill
 (`.claude/skills/port-plugin/SKILL.md`), one OpenSpec change each (`port-<plugin-kebab>`):
-_Example first (rewritten as the template for the new API), then BasicCalculator, AutoRole,
+_Example (done), then BasicCalculator, AutoRole,
 BotInfo (with the configurable AGPL source link, C3), SimpleCommand, WelcomeByeGuild,
 IntervalPusher, Feedbacker, Economy, DynamicVoiceChannel, VoiceLogger, ChatLogger, Giveaway,
 Ticket, TicketAddons, NtustManager, NtustCourse, MusicPlayer (with Lavalink in `compose.yaml`).
@@ -158,10 +168,11 @@ Update `docs/porting-guide.md` after each one.
 
 - Template tests that check rendered views must be `async`: a discord.py view created outside a
   running event loop never reports `is_finished()`.
-- Plugin tests use `FakePlugins` (`tests/support/plugin_fakes.py`, on the pytest and pyright
-  paths) through the `fake_plugins` and `store` fixtures in `tests/core/conftest.py`: it writes
-  plugin packages to a temporary `sys.path` entry and builds entry points; their `calls` list
-  survives reloads. Discovery and `load_extension` both execute a plugin module.
+- Core plugin tests use `FakePlugins` (`tests/support/plugin_fakes.py`, on the pytest and pyright
+  paths) through the `fake_plugins` fixture in `tests/core/conftest.py` and the `store` fixture in
+  `tests/conftest.py`: it writes plugin packages to a temporary `sys.path` entry and builds entry
+  points; their `calls` list survives reloads. Discovery and `load_extension` both execute a plugin
+  module. Real plugins load with `plugin_fakes.load_plugin` (see the port-plugin skill).
 - Startup tests (`tests/core/test_startup.py`) patch `importlib.metadata.entry_points` and
   `Bot.start`, `chdir` into `tmp_path`, and send real signals with `signal.raise_signal`: the
   handlers that `run` installs turn them into `bot.close()`.
@@ -225,6 +236,13 @@ setup-uv v10.2.0, setup-node v7.1.0.
   `AsyncIterator` there).
 - YAML 1.1 reads a bare `no` as false: quote locale keys (`"no": ...`).
 - `openspec/config.yaml` rules containing `: ` must be quoted.
+- After an entry point is added to `packages/xincord-plugins/pyproject.toml`, `uv run` reinstalls
+  the editable package; `uv.lock` does not change.
+- uv_build wheels include the package's data files. Without Docker, check packaging with
+  `uv build --package xincord-plugins` and `xincord --no-online` from a scratch venv holding both
+  wheels.
+- Tests must not unload or reload a real plugin: discord.py re-imports its modules and later tests'
+  `isinstance` checks fail.
 
 **discord.py 2.7.1 facts**
 - Decorators evaluate app-command annotations at import time; keep those imports at runtime
@@ -241,6 +259,16 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - `on_member_remove` only fires for cached members; use `on_raw_member_remove`.
 - `create_text_channel(overwrites=...)` does not copy the category's overwrites as JDA does.
 - `tasks.loop` schedules from each start; there is no REST ping (time `GET /users/@me`).
+- `app_commands.Command(callback=cog.method)` unwraps the bound method and makes the cog the
+  command's binding (`cog_app_command_error` and the cog's `interaction_check` apply).
+  `app_commands.rename(...)` and `describe(...)` also work on a built `Command`. discord.py
+  evaluates the callback's annotations when the command is built, so `import discord` stays at
+  runtime; ruff's non-strict TC rules accept a move into `TYPE_CHECKING` while other `discord`
+  imports remain, and only the plugin's tests catch it.
+- Unloading an extension removes the tree commands whose callback module belongs to it
+  (`_remove_with_module`), including commands added in `setup` with `bot.tree.add_command`.
+- `interaction.response.edit_message(view=...)` keeps the message's content and embeds.
+  `Embed.to_dict()` adds `type` and `flags`.
 - Components V2 classes exist: `LayoutView`, `Container`, `Section`, `TextDisplay`, `Thumbnail`,
   `MediaGallery` (`discord.MediaGalleryItem`), `Separator` (`SeparatorSpacing`), `File`,
   `ActionRow`; buttons take `sku_id`.

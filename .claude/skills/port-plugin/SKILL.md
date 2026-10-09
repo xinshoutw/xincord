@@ -99,13 +99,14 @@ async def setup(bot: Bot) -> None:
 
 - Build commands in `setup` from the Lang: `Translator` reads the Lang from each string's extras,
   and the Lang loads only in `setup`. Pattern: `Example.command()` in the template.
-- The callback is a nested function (discord.py treats a function defined in a class as a method
-  and skips one parameter too many), decorated with `app_commands.rename` / `describe` whose values
-  are `lang.command(<v3 default>, "<register.yaml key>")`, and passed to
-  `app_commands.Command(name=lang.command(...), description=lang.command(...), callback=...)`.
-- Keep `import discord` at runtime: discord.py evaluates the callback's annotations when the
-  command is built. `describe` and `rename` are in ruff's `runtime-evaluated-decorators`, so ruff
-  flags a move into `TYPE_CHECKING`; a callback without them is guarded only by the tests.
+- The callback is the cog's bound method (`callback=self.example_command`): discord.py makes the
+  cog the command's binding, so `cog_app_command_error` and the cog's `interaction_check` apply as
+  for a decorated cog command. Localize the options by calling `app_commands.rename(...)` and
+  `app_commands.describe(...)` on the built command, with values
+  `lang.command(<v3 default>, "<register.yaml key>")`.
+- Keep `import discord` (and every name in the callback's annotations) at runtime: discord.py
+  evaluates the annotations when the command is built. ruff does not flag a move into
+  `TYPE_CHECKING`; the plugin's tests do, because the plugin stops loading.
 - Base names and descriptions are v3's `Commands.slash(...)` defaults. Limits use
   `app_commands.Range`. Guild command by default; v3 `globalCommands()` get `extras={"global":
   True}`; a command that opens a modal sets `extras={"defer": False}`. The tree defers the others
@@ -128,7 +129,8 @@ async def setup(bot: Bot) -> None:
 - `IDS = ComponentIds("<package>", fields, legacy_prefix=..., legacy_hex=...)` in `cog.py`: v3's
   fields first, in v3 declaration order (`action` first in every v3 plugin), new fields appended;
   `legacy_prefix` is v3's `component_prefix` from `info.yaml` or `<lowercase name>@`; `legacy_hex`
-  lists the fields v3 declared as Int or Long. A plugin without v3 components has no legacy prefix.
+  lists the fields v3 declared as `FieldType.INT_HEX` or `LONG_HEX`. A plugin without v3
+  components has no legacy prefix.
 - Templates set `uid: {action: ..., ...}`; `setup` calls `bot.route(__name__, IDS, handler)`. The
   handler gets `ParsedId` (values are strings), dispatches on `action`, and may raise: the core
   logs it with the plugin's name and upgrades legacy IDs on the message afterwards.
@@ -145,9 +147,9 @@ async def setup(bot: Bot) -> None:
   them under `tmp_path / "plugins" / "<Plugin>"` first and call `load_plugin` in the test.
 - `tests/support/discord_fakes.py`: `FakeInteraction` records what the plugin sends in `sent`;
   `FakeUser`, `buttons(view)` and `embed_dict(embed)`. Extend it instead of writing new fakes.
-  Call handlers directly (`cog.reply(...)`), commands through
-  `bot.tree.get_command(...).callback`, and components through `bot.on_interaction(...)`, which
-  includes the routing.
+  Call cog methods directly (`cog.example_command(...)`), check a command's wiring through
+  `bot.tree.get_command(...)` (its `binding` is the cog), and send components through
+  `bot.on_interaction(...)`, which includes the routing.
 - `tests/fixtures/plugins/<package>/golden.yaml`, loaded with `plugin_fakes.golden("<package>")`:
   v3's text per locale. Compare rendered embeds and buttons, and the command payload from
   `CommandTree.payloads()`, with it; no CJK text is typed in Python.
