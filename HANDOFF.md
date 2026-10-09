@@ -108,10 +108,10 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 ### Done (archived, pushed, CI green)
 
 `project-skeleton`, `core-config`, `core-storage`, `core-i18n`, `core-placeholders`,
-`core-templates`, `core-components-v2`, `core-component-ids`, `core-plugin-loading`, `core-command-tree`, `core-component-routing`.
-Each one's `design.md` in `openspec/changes/archive/`
-records its decisions and "v3 behaved differently" notes; `docs/porting-guide.md` has the
-differences table.
+`core-templates`, `core-components-v2`, `core-component-ids`, `core-plugin-loading`,
+`core-command-tree`, `core-component-routing`. Each one's `design.md` in
+`openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
+`docs/porting-guide.md` has the differences table.
 
 ### Next Core changes, in order
 
@@ -127,10 +127,11 @@ differences table.
 2. **runtime (B15, B19, C3):** extend `xincord.core.bot.Bot` (discover from `CoreConfig.plugins`,
    `load_plugins` and `tree.set_translator(Translator())` in `setup_hook`; `sync_global` and
    `sync_guild` for every guild on ready, `sync_guild(force=True)` on guild join), argparse CLI
-   (`--token`, `--level`, `--no-online`, `--force-renew-lang-resources`), signals, prompt_toolkit console, owner-only `/xincord reload`
-   (through `reload_plugin` and `load_plugin`), status rotation from `status.activities`,
-   interaction log from `interaction_log` (`cl_type`, `cl_interaction_string`),
-   `AllowedMentions` for users only, database location.
+   (`--token`, `--level`, `--no-online`, `--force-renew-lang-resources`), signals,
+   prompt_toolkit console, owner-only `/xincord reload` (through `reload_plugin` and
+   `load_plugin`), status rotation from `status.activities`, interaction log from
+   `interaction_log` (`cl_type`, `cl_interaction_string`), `AllowedMentions` for users only,
+   database location.
 3. **container (B16):** Dockerfile (arm64) and compose (bot; Lavalink later), SQLite in a named
    volume, `stdin_open` and `tty` for the console.
 
