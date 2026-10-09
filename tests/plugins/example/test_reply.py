@@ -25,9 +25,6 @@ if TYPE_CHECKING:
 
 GOLDEN = golden("example")
 FIRST_ID = "example:1:a=count;b=0"
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The reply echoes the options"
-)
 
 
 @dataclass(frozen=True)
@@ -66,7 +63,6 @@ async def run(
     )
 
 
-@XFAIL
 async def test_both_options(cog: Example) -> None:
     """Requirement: The reply echoes the options."""
     edit = await run(cog, "first", 2)
@@ -75,7 +71,6 @@ async def test_both_options(cog: Example) -> None:
     assert edit.buttons == [(GOLDEN["counter"]["en-US"].format(count=0), FIRST_ID)]
 
 
-@XFAIL
 async def test_option2_omitted(cog: Example) -> None:
     """Requirement: The reply echoes the options."""
     edit = await run(cog, "first")
@@ -83,7 +78,6 @@ async def test_option2_omitted(cog: Example) -> None:
     assert edit.embeds[0]["fields"][1]["value"] == "none"
 
 
-@XFAIL
 @pytest.mark.parametrize("locale", [discord.Locale.taiwan_chinese, discord.Locale.japanese])
 async def test_locale_and_fallback(cog: Example, locale: discord.Locale) -> None:
     """Requirement: The reply echoes the options."""
@@ -93,7 +87,6 @@ async def test_locale_and_fallback(cog: Example, locale: discord.Locale) -> None
     assert edit.buttons == [(GOLDEN["counter"]["zh-TW"].format(count=0), FIRST_ID)]
 
 
-@XFAIL
 async def test_command_placeholders(store: Store, tmp_path: Path) -> None:
     """Requirement: The reply echoes the options."""
     template = tmp_path / "plugins" / "_Example" / "lang" / "en-US" / "message" / "example.yaml"
@@ -110,7 +103,6 @@ async def test_command_placeholders(store: Store, tmp_path: Path) -> None:
     assert edit.content == "alice ran /example-command option1: first as xincord"
 
 
-@XFAIL
 async def test_placeholder_text_in_an_option(cog: Example) -> None:
     """Requirement: The reply echoes the options."""
     text = "%bot_name% %_Example@option1%"
@@ -120,7 +112,6 @@ async def test_placeholder_text_in_an_option(cog: Example) -> None:
     assert edit.embeds[0]["fields"][0]["value"] == text
 
 
-@XFAIL
 async def test_command_in_a_thread(cog: Example) -> None:
     """Requirement: The reply echoes the options."""
     thread = SimpleNamespace(id=7, name="help")  # a channel without a category
