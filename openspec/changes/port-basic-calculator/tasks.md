@@ -42,7 +42,7 @@
 
 ## 9. Errors
 
-- [ ] 9.1 xfail tests for "Errors are answered privately"
+- [x] 9.1 xfail tests for "Errors are answered privately"
 - [ ] 9.2 Implement the error reply; remove the markers
 
 ## 10. Command

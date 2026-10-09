@@ -1,9 +1,9 @@
-"""The answer: an embed in the channel, then the deferred response is deleted.
+"""The replies: the answer goes to the channel, an error into the deferred response.
 
 Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:48-60
+    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:27-61
     XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/resources/lang/en-US/message/basic-calculate.yaml:1-14
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/resources/lang/zh-TW/message/basic-calculate.yaml:1-14
+    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/resources/lang/en-US/message/error.yaml:1-14
 """
 
 import logging
@@ -26,6 +26,10 @@ if TYPE_CHECKING:
 
 GOLDEN = golden("basic_calculator")
 TEMPLATE = 'content: "%user_name%: %bc_question% = %bc_answer% (%bc_answer_round%)"\n'
+ERROR_TEMPLATE = 'content: "%user_name%: %bc_question% -> %bc_error%"\n'
+XFAIL = pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Errors are answered privately"
+)
 
 
 def command(formula: str, locale: discord.Locale, channel: object) -> FakeInteraction:
@@ -50,6 +54,17 @@ async def run(
     interaction = command(formula, locale, FakeChannel() if channel is None else channel)
     await cog.basic_calculate(interaction.as_interaction(), formula)
     return interaction.sent
+
+
+async def load_with(name: str, template: str, tmp_path: Path, store: Store) -> BasicCalculator:
+    """Load the plugin with the operator's en-US ``message/<name>.yaml``."""
+    message = tmp_path / "plugins" / "BasicCalculator" / "lang" / "en-US" / "message"
+    message.mkdir(parents=True)
+    (message / f"{name}.yaml").write_text(template, encoding="utf-8")
+    bot = await load_plugin("BasicCalculator", tmp_path / "plugins", store)
+    cog = bot.get_cog("BasicCalculator")
+    assert isinstance(cog, BasicCalculator)
+    return cog
 
 
 def embeds(fields: dict[str, object]) -> list[dict[str, Any]]:
@@ -84,12 +99,7 @@ async def test_locale_and_fallback(cog: BasicCalculator, locale: discord.Locale)
 )
 async def test_placeholders(store: Store, tmp_path: Path, formula: str, content: str) -> None:
     """Requirement: The answer is posted in the channel."""
-    message = tmp_path / "plugins" / "BasicCalculator" / "lang" / "en-US" / "message"
-    message.mkdir(parents=True)
-    (message / "basic-calculate.yaml").write_text(TEMPLATE, encoding="utf-8")
-    bot = await load_plugin("BasicCalculator", tmp_path / "plugins", store)
-    cog = bot.get_cog("BasicCalculator")
-    assert isinstance(cog, BasicCalculator)
+    cog = await load_with("basic-calculate", TEMPLATE, tmp_path, store)
 
     sent = await run(cog, formula)
 
@@ -116,3 +126,42 @@ async def test_channel_without_messages(cog: BasicCalculator) -> None:
 
     assert [method for method, _ in sent] == ["edit_original_response"]
     assert embeds(sent[0][1]) == [GOLDEN["answer"]["en-US"]]
+
+
+@XFAIL
+@pytest.mark.parametrize(
+    ("locale", "expected"),
+    [
+        (discord.Locale.american_english, "en-US"),
+        (discord.Locale.taiwan_chinese, "zh-TW"),
+        (discord.Locale.japanese, "zh-TW"),
+    ],
+)
+async def test_error(cog: BasicCalculator, locale: discord.Locale, expected: str) -> None:
+    """Requirement: Errors are answered privately."""
+    sent = await run(cog, "1e5", locale=locale)
+
+    assert [method for method, _ in sent] == ["edit_original_response"]
+    assert embeds(sent[0][1]) == [GOLDEN["error"][expected]]
+
+
+@XFAIL
+async def test_placeholder_text_in_the_formula(cog: BasicCalculator) -> None:
+    """Requirement: Errors are answered privately."""
+    sent = await run(cog, "%bot_name%")
+
+    (embed,) = embeds(sent[0][1])
+    assert [field["value"] for field in embed["fields"]] == [
+        "```%bot_name%```",
+        "```Unknown character: %```",
+    ]
+
+
+@XFAIL
+async def test_error_placeholders(store: Store, tmp_path: Path) -> None:
+    """Requirement: Errors are answered privately."""
+    cog = await load_with("error", ERROR_TEMPLATE, tmp_path, store)
+
+    sent = await run(cog, "1/0 = ?")
+
+    assert sent[0][1]["content"] == "alice: 1/0 -> Division by zero"

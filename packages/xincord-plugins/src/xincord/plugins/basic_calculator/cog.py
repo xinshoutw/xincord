@@ -14,7 +14,7 @@ from discord.ext import commands
 from xincord.core.placeholders import actor_values
 from xincord.core.templates import render_message
 
-from .calculator import calculate, normalize
+from .calculator import CalcError, calculate, normalize
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -47,15 +47,20 @@ class BasicCalculator(commands.Cog):
     async def basic_calculate(self, interaction: discord.Interaction, formula: str) -> None:
         """Post the answer to the channel and delete the deferred response."""
         question = normalize(formula)
-        # A worker thread, so that a long calculation never holds up the gateway.
-        answer = await asyncio.to_thread(calculate, question)
-        values = _values(interaction) | {
-            "bc_question": question,
-            "bc_answer": answer,
-            "bc_answer_round": _whole_part(answer),
-        }
+        values = _values(interaction) | {"bc_question": question}
+        try:
+            # A worker thread, so that a long calculation never holds up the gateway.
+            answer = await asyncio.to_thread(calculate, question)
+        except CalcError as error:
+            await self._reply_error(interaction, values | {"bc_error": str(error)})
+            return
+        values |= {"bc_answer": answer, "bc_answer_round": _whole_part(answer)}
         message = self.templates.message("basic-calculate", interaction.locale.value)
         await _post(interaction, render_message(message, values))
+
+    async def _reply_error(self, interaction: discord.Interaction, values: dict[str, str]) -> None:
+        """Stub until the error reply exists."""
+        raise NotImplementedError
 
 
 async def _post(interaction: discord.Interaction, reply: Message) -> None:

@@ -20,3 +20,22 @@ answer:
     fields:
       - {name: "算式", value: "```1+1```", inline: false}
       - {name: "結果", value: "```2```", inline: false}
+
+# The error embed for the formula "1e5".
+error:
+  en-US:
+    title: "🔢 Calculator"
+    image: {url: "https://blog.xinshou.tw/favicon.ico"}
+    color: 12591136
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    fields:
+      - {name: "Formula", value: "```1e5```", inline: false}
+      - {name: "Result", value: "```Unknown character: e```", inline: false}
+  zh-TW:
+    title: "🔢 計算機"
+    image: {url: "https://blog.xinshou.tw/favicon.ico"}
+    color: 12591136
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    fields:
+      - {name: "算式", value: "```1e5```", inline: false}
+      - {name: "結果", value: "```Unknown character: e```", inline: false}
