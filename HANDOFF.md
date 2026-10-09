@@ -1,6 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after the `core-plugin-loading` change was archived. Read this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The
+Updated 2026-10-10 after the `core-command-tree` change was archived. Read this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The
 decisions are accepted and binding; do not re-open them unless you find a serious problem, and
 then ask the owner.
 
@@ -90,6 +90,11 @@ starting with Core. Motivation: easier maintenance and faster iteration.
     plugin's `setup(bot)`, `load_plugin(info)` (hot load: refuses new intents or missing
     dependencies), `reload_plugin(name)` (with dependents; discord.py keeps the old version on
     failure). Runtime will extend this class.
+  - `xincord.core.command_tree.CommandTree` (the bot's `tree_cls`): `interaction_check` defers
+    application commands ephemerally unless `extras["defer"]` is False; `payloads()` splits
+    guild commands from `extras["global"]` ones (translated when a translator is set);
+    `sync_global(store)` / `sync_guild(store, guild_id, force=)` upload only when the payload's
+    SHA-256 changed (stored in the `core` namespace) and log failures.
     Component and modal IDs come from a `build_id(uid_map)` callable the plugin passes in. Views
     and modals are stopped before they are returned, so discord.py never dispatches their
     interactions; the core will route them (Core change `command-tree`).
@@ -101,21 +106,23 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 ### Done (archived, pushed, CI green)
 
 `project-skeleton`, `core-config`, `core-storage`, `core-i18n`, `core-placeholders`,
-`core-templates`, `core-components-v2`, `core-component-ids`, `core-plugin-loading`. Each one's `design.md` in `openspec/changes/archive/`
+`core-templates`, `core-components-v2`, `core-component-ids`, `core-plugin-loading`, `core-command-tree`. Each one's `design.md` in `openspec/changes/archive/`
 records its decisions and "v3 behaved differently" notes; `docs/porting-guide.md` has the
 differences table.
 
 ### Next Core changes, in order
 
-1. **command-tree (B5):** ephemeral auto-defer with opt-out through `extras`; autocomplete by
-   command name; hash-based sync; guild/global split; `Translator` on the tree; routing of
-   component and modal interactions by `ComponentIds.owns` (new and legacy IDs), then
-   `View.from_message` + `upgrade_view` + one message edit after a legacy ID was handled; the
-   interaction placeholder keys left out of core-placeholders (`command_name`,
-   `full_command_name`, `command_string`, `subcommand_name`, `language`, `channel_category_name`,
-   `component_*`).
+1. **core-component-routing (B5, B9):** route component and modal interactions to the plugin
+   whose `ComponentIds.owns` the custom ID (new and legacy), with a handler registered through
+   the plugin context and cleared on reload; after a legacy ID was handled, fetch the message,
+   `upgrade_view` it (`View.from_message`, or `LayoutView.from_message` for V2 messages) and edit
+   it once, skipping ephemeral and deleted messages; the interaction placeholder keys left out of
+   core-placeholders (`command_name`, `full_command_name`, `command_string`, `subcommand_name`,
+   `language` via `locale_names`, `channel_category_name`, `component_*`). No shipped template
+   uses those keys; the interaction log needs the command string.
 2. **runtime (B15, B19, C3):** extend `xincord.core.bot.Bot` (discover from `CoreConfig.plugins`,
-   `load_plugins` in `setup_hook`), argparse CLI (`--token`, `--level`, `--no-online`,
+   `load_plugins` and `tree.set_translator(Translator())` in `setup_hook`; `sync_global` and
+   `sync_guild` for every guild on ready, `sync_guild(force=True)` on guild join), argparse CLI (`--token`, `--level`, `--no-online`,
    `--force-renew-lang-resources`), signals, prompt_toolkit console, owner-only `/xincord reload`
    (through `reload_plugin` and `load_plugin`), status rotation from `status.activities`,
    interaction log from `interaction_log` (`cl_type`, `cl_interaction_string`),
