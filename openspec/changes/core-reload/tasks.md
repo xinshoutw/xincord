@@ -6,7 +6,7 @@
 
 ## 2. Triggers
 
-- [ ] 2.1 xfail tests for "Owner-only reload command" and "SIGHUP reloads"
+- [x] 2.1 xfail tests for "Owner-only reload command" and "SIGHUP reloads"
 - [ ] 2.2 Implement `xincord.core.admin.Xincord`, register it in `setup_hook`, and handle SIGHUP;
       remove the markers
 
