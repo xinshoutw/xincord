@@ -8,9 +8,9 @@ from xincord.core.config import Model
 
 
 class Config(Model):
-    """``plugins/_Example/config.yaml``; the bundled ``config.yaml`` holds the same defaults."""
+    """``plugins/_Example/config.yaml``; the bundled ``config.yaml`` holds the same defaults.
 
-    @property
-    def example_key(self) -> str:
-        """Stub until the field exists."""
-        raise NotImplementedError
+    v3's ``enabled`` key is gone: the core config's ``plugins`` list enables the plugin.
+    """
+
+    example_key: str = "example_value"  # shown in the reply as %_Example@example_key%

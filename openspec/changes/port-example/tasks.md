@@ -12,7 +12,7 @@
 ## 3. Config
 
 - [x] 3.1 xfail tests for "The config holds an example key"
-- [ ] 3.2 Add `example_key` to the config model; remove the markers
+- [x] 3.2 Add `example_key` to the config model; remove the markers
 
 ## 4. Reply
 

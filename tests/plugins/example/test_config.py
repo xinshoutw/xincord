@@ -8,13 +8,13 @@ Kotlin:
 import logging
 from typing import TYPE_CHECKING
 
-import pytest
-
 from plugin_fakes import load_plugin
 from xincord.plugins.example.cog import Example
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import pytest
 
     from xincord.core.storage import Store
 
@@ -32,9 +32,6 @@ async def load_with(config: str, tmp_path: Path, store: Store) -> Example:
     return cog
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The config holds an example key"
-)
 async def test_missing_key_uses_the_default(tmp_path: Path, store: Store) -> None:
     """Requirement: The config holds an example key."""
     cog = await load_with("", tmp_path, store)
@@ -42,9 +39,6 @@ async def test_missing_key_uses_the_default(tmp_path: Path, store: Store) -> Non
     assert cog.config.example_key == "example_value"
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The config holds an example key"
-)
 async def test_v3_config_file(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
