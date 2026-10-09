@@ -15,7 +15,7 @@
 
 ## 4. Reading
 
-- [ ] 4.1 xfail tests for "Formulas are read with v3's syntax"
+- [x] 4.1 xfail tests for "Formulas are read with v3's syntax"
 - [ ] 4.2 Implement `to_postfix`; remove the markers
 
 ## 5. Results
