@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from discord.ext import commands
 
+from xincord.core.command_tree import CommandTree
 from xincord.core.plugins import PluginContext, PluginError, required_intents
 
 if TYPE_CHECKING:
@@ -45,6 +46,7 @@ class Bot(commands.Bot):
             command_prefix=commands.when_mentioned,
             intents=required_intents(plugins),
             help_command=None,
+            tree_cls=CommandTree,
         )
         self._plugins = tuple(plugins)
         self._root = root

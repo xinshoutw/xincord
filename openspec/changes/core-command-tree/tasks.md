@@ -1,7 +1,7 @@
 ## 1. Defer
 
 - [x] 1.1 xfail tests for "Application commands are deferred ephemerally"
-- [ ] 1.2 Implement `CommandTree.interaction_check` and use the tree in `Bot`; remove the markers
+- [x] 1.2 Implement `CommandTree.interaction_check` and use the tree in `Bot`; remove the markers
 
 ## 2. Scopes and sync
 

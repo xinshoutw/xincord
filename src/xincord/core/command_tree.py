@@ -17,4 +17,11 @@ class CommandTree(app_commands.CommandTree[discord.Client]):
     @override
     async def interaction_check(self, interaction: discord.Interaction, /) -> bool:
         """Defer application commands ephemerally unless they set ``extras["defer"]`` to False."""
-        raise NotImplementedError
+        command = interaction.command
+        if (
+            interaction.type is discord.InteractionType.application_command
+            and command is not None
+            and command.extras.get("defer", True)
+        ):
+            await interaction.response.defer(ephemeral=True, thinking=True)
+        return True
