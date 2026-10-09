@@ -2,7 +2,7 @@
 
 - [x] 1.1 xfail tests for "Placeholders are replaced in a single pass" and "Every render uses only
       its own values"
-- [ ] 1.2 Implement `render`; remove the markers
+- [x] 1.2 Implement `render`; remove the markers
 
 ## 2. Value families
 

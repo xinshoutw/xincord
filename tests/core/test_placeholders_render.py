@@ -8,27 +8,20 @@ import pytest
 from xincord.core.placeholders import render
 
 
-def xfail(requirement: str) -> pytest.MarkDecorator:
-    return pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=requirement)
-
-
-SINGLE_PASS = xfail("Placeholders are replaced in a single pass")
-OWN_VALUES = xfail("Every render uses only its own values")
-
-
-@SINGLE_PASS
 def test_known_and_unknown_keys() -> None:
+    """Requirement: Placeholders are replaced in a single pass."""
+
     assert render("Hi %user_name%, %missing%!", {"user_name": "Alice"}) == "Hi Alice, %missing%!"
 
 
-@SINGLE_PASS
 def test_values_are_not_expanded_again() -> None:
+    """Requirement: Placeholders are replaced in a single pass."""
+
     values = {"user_name": "%bot_name%", "bot_name": "xincord"}
 
     assert render("%user_name% / %bot_name%", values) == "%bot_name% / xincord"
 
 
-@SINGLE_PASS
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
@@ -43,11 +36,14 @@ def test_values_are_not_expanded_again() -> None:
     ],
 )
 def test_percent_signs_and_escapes(text: str, expected: str) -> None:
+    """Requirement: Placeholders are replaced in a single pass."""
+
     assert render(text, {"user_name": "Alice"}) == expected
 
 
-@OWN_VALUES
 def test_values_do_not_leak_between_renders() -> None:
+    """Requirement: Every render uses only its own values."""
+
     values = {"extra": "x"}
 
     assert render("%extra%", values) == "x"
