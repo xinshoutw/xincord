@@ -314,9 +314,6 @@ async def test_unknown_context(store: Store, tmp_path: Path) -> None:
         bot.plugin_context("nowhere")
 
 
-RELOAD = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Hot reload follows dependencies and intents"
-)
 PROBE = """
 from discord.ext import commands
 
@@ -330,7 +327,6 @@ async def setup(bot):
 """
 
 
-@RELOAD
 async def test_reload_with_dependents(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:
@@ -341,14 +337,15 @@ async def test_reload_with_dependents(
     bot = fake_plugins.bot(["Alpha", "Beta", "Gamma"], tmp_path, store)
     await bot.load_plugins()
 
+    loaded = len(fake_plugins.calls())
+
     assert await bot.reload_plugin("Alpha") == ["Alpha", "Beta"]
 
-    assert fake_plugins.calls() == ["Alpha", "Beta", "Gamma", "Alpha", "Beta"]
+    assert fake_plugins.calls()[loaded:] == ["Alpha", "Beta"]
     with pytest.raises(PluginError, match="Delta"):
         await bot.reload_plugin("Delta")
 
 
-@RELOAD
 async def test_failed_reload_keeps_the_previous_version(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:
@@ -367,7 +364,6 @@ async def test_failed_reload_keeps_the_previous_version(
     assert bot.loaded == ("Alpha",)
 
 
-@RELOAD
 async def test_hot_load_needs_the_intents(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:

@@ -92,7 +92,16 @@ class Bot(commands.Bot):
             PluginError: The plugin is already loaded, needs intents the bot was created without
                 or a dependency that is not loaded, or fails to load.
         """
-        raise NotImplementedError
+        if info.name in self._loaded:
+            msg = f"plugin {info.name} is already loaded"
+            raise PluginError(msg)
+        if missing := [flag for flag, on in info.intents if on and not getattr(self.intents, flag)]:
+            msg = f"plugin {info.name} needs the {', '.join(missing)} intents; restart to load it"
+            raise PluginError(msg)
+        if absent := [dep for dep in info.depends if dep not in self._loaded]:
+            msg = f"plugin {info.name} needs {', '.join(absent)}, which is not loaded"
+            raise PluginError(msg)
+        await self._load(info)
 
     async def reload_plugin(self, name: str) -> list[str]:
         """Reload plugin ``name``, then the loaded plugins that depend on it; return their names.
@@ -101,7 +110,21 @@ class Bot(commands.Bot):
             PluginError: The plugin is not loaded, or a reload failed. The plugin that failed
                 keeps its previous version and the ones after it are not reloaded.
         """
-        raise NotImplementedError
+        if name not in self._loaded:
+            msg = f"plugin {name} is not loaded"
+            raise PluginError(msg)
+        affected = {name}
+        for info in self._loaded.values():
+            if info.name != name and affected.isdisjoint((*info.depends, *info.soft_depends)):
+                continue
+            try:
+                # discord.py restores the previous module when the new one fails.
+                await self.reload_extension(info.module)
+            except commands.ExtensionError as error:
+                msg = f"plugin {info.name} failed to reload: {error}"
+                raise PluginError(msg) from error
+            affected.add(info.name)
+        return [info.name for info in self._loaded.values() if info.name in affected]
 
     async def _load(self, info: PluginInfo) -> None:
         context = PluginContext(info, self._root / info.name, self._store, self._force_lang)
