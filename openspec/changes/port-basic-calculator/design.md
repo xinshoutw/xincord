@@ -33,6 +33,11 @@ fractional exponents; localized error messages; rate limiting.
   with final newlines added. The en-US `formula` description is corrected (see below). The embed
   image (`https://blog.xinshou.tw/favicon.ico`) and the footer stay: they are v3's branding in
   operator-editable templates, not IDs or secrets.
+- uv_build ships every file in the package. Checked on 2026-10-10: the wheel from
+  `uv build --all-packages` lists the six lang files and the `BasicCalculator` entry point, and
+  `xincord --no-online`, run from a scratch virtual environment with both wheels and
+  `plugins: [BasicCalculator]`, loads the plugin, writes `plugins/BasicCalculator/lang/` without a
+  `config.yaml`, and exits with 0.
 
 ### Evaluator (`calculator.py`)
 
@@ -93,8 +98,8 @@ chains the last two. Errors are `CalcError(message)` with v3's English texts.
   for example), the plugin logs it and edits the deferred response into the same message instead.
 - **Error:** the `error` message replaces the deferred ephemeral response
   (`hook.editOriginal`).
-- The evaluation runs on the event loop: with the size limits its worst case is short (measured in
-  the tests' "huge powers" scenario and recorded under Risks).
+- The calculation runs in a worker thread (`asyncio.to_thread`), so that a long one never holds up
+  the gateway; v3 calculated on JDA's event thread. The size limits bound it (see Risks).
 
 ### Golden tests
 
