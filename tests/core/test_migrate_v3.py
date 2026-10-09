@@ -15,12 +15,6 @@ from xincord.core.migrate_v3 import main, migrate_core_config, migrate_directory
 if TYPE_CHECKING:
     from pathlib import Path
 
-pytestmark = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="v3 core config migrates to the new schema",
-)
-
 
 def v3(activities: list[str], loggers: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     return {
@@ -147,3 +141,11 @@ def test_command_line_prints_the_report(
 
     assert main([str(tmp_path)]) == 0
     assert "config.v3.yaml" in capsys.readouterr().out
+
+
+def test_missing_token_and_file_are_reported(tmp_path: Path) -> None:
+    new, report = migrate_core_config({"general_settings": {}})
+
+    assert new["token"] == ""
+    assert report == ["general_settings.bot_token: missing, token left empty"]
+    assert migrate_directory(tmp_path) == [f"{tmp_path / 'config.yaml'}: not found"]

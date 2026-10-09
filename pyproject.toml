@@ -92,5 +92,6 @@ source_pkgs = ["xincord.core", "xincord.plugins"]
 
 [tool.coverage.report]
 fail_under = 85
+exclude_also = ['if __name__ == "__main__":']
 show_missing = true
 skip_covered = true

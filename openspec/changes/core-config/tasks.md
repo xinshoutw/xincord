@@ -12,7 +12,7 @@
 ## 3. Migration
 
 - [x] 3.1 xfail tests for "v3 core config migrates to the new schema"
-- [ ] 3.2 Implement `xincord.core.migrate_v3`; remove the markers
+- [x] 3.2 Implement `xincord.core.migrate_v3`; remove the markers
 
 ## 4. Close
 
