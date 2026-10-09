@@ -3,7 +3,7 @@
 import logging
 import unicodedata
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Self, cast
+from typing import TYPE_CHECKING, Self, cast, override
 
 import discord
 import yaml
@@ -74,7 +74,7 @@ class Lang:
         Raises:
             LookupError: Neither locale has the key.
         """
-        raise NotImplementedError
+        return self._fallback(self.texts, "text", key, locale)
 
     def template(self, name: str, locale: str) -> Path:
         """Return the file of a template (``message/<stem>``), falling back like :meth:`text`.
@@ -82,20 +82,34 @@ class Lang:
         Raises:
             LookupError: Neither locale has the template.
         """
-        raise NotImplementedError
+        return self._fallback(self.templates, "template", name, locale)
 
     def localization(self, key: str, locale: str) -> str | None:
         """Return a ``register.yaml`` value in exactly ``locale``, without fallback."""
-        raise NotImplementedError
+        return self.registers.get(locale, {}).get(key)
 
     def command(self, default: str, key: str) -> app_commands.locale_str:
         """Return a command string that :class:`Translator` resolves through ``key``."""
-        raise NotImplementedError
+        return app_commands.locale_str(default, lang=self, key=key)
+
+    def _fallback[V](
+        self,
+        tables: Mapping[str, Mapping[str, V]],
+        kind: str,
+        key: str,
+        locale: str,
+    ) -> V:
+        for table in (tables.get(locale, {}), tables[self.default_locale]):
+            if key in table:
+                return table[key]
+        msg = f"{self.plugin}: no {kind} {key!r} in {locale} or {self.default_locale}"
+        raise LookupError(msg)
 
 
 class Translator(app_commands.Translator):
     """Resolves command strings created by :meth:`Lang.command`."""
 
+    @override
     async def translate(
         self,
         string: app_commands.locale_str,
@@ -103,7 +117,10 @@ class Translator(app_commands.Translator):
         context: app_commands.TranslationContextTypes,
     ) -> str | None:
         """Return the string's register value in ``locale``, or None to keep the default."""
-        raise NotImplementedError
+        lang, key = string.extras.get("lang"), string.extras.get("key")
+        if isinstance(lang, Lang) and isinstance(key, str):
+            return lang.localization(key, locale.value)
+        return None
 
 
 def export_lang(bundled: Traversable, target: Path, *, force: bool) -> list[Path]:
