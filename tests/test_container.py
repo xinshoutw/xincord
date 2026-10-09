@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 ROOT = Path(__file__).parent.parent
 
 
@@ -19,7 +17,6 @@ def instructions() -> list[tuple[str, str]]:
     return steps
 
 
-@pytest.mark.xfail(strict=True, raises=FileNotFoundError, reason="Container image")
 def test_image_definition() -> None:
     """Requirement: Container image."""
     steps = instructions()
@@ -42,7 +39,6 @@ def test_image_definition() -> None:
     assert ("ENTRYPOINT", '["xincord"]') in runtime
 
 
-@pytest.mark.xfail(strict=True, raises=FileNotFoundError, reason="Container image")
 def test_build_context() -> None:
     """Requirement: Container image."""
     lines = (ROOT / ".dockerignore").read_text(encoding="utf-8").splitlines()

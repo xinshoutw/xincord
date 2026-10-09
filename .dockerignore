@@ -1,0 +1,18 @@
+# Keep the build context to what the image needs.
+.git
+.github
+.claude
+.venv
+.coverage
+.pytest_cache
+.ruff_cache
+**/__pycache__
+docs
+openspec
+scripts
+tests
+# Files the bot writes when it runs from the repository root or under compose.
+bot
+config.yaml
+plugins
+data
