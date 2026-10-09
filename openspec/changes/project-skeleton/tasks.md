@@ -19,10 +19,10 @@
 
 ## 4. Documentation
 
-- [ ] 4.1 `AGENTS.md`, `README.md`, `.gitignore`
-- [ ] 4.2 `docs/porting-guide.md`
-- [ ] 4.3 `.claude/skills/port-plugin/SKILL.md`
-- [ ] 4.4 Amend resolution 2 in `docs/porting/decisions.md`
+- [x] 4.1 `AGENTS.md`, `README.md`, `.gitignore`
+- [x] 4.2 `docs/porting-guide.md`
+- [x] 4.3 `.claude/skills/port-plugin/SKILL.md`
+- [x] 4.4 Amend resolution 2 in `docs/porting/decisions.md`
 
 ## 5. Close
 

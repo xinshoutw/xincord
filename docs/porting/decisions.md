@@ -18,8 +18,12 @@ deviation from it; **[fact]** a factual answer.
 2. **Two distributions.** B2 (core on PyPI, plugins via entry points) and B18
    (`xincord.plugins.<name>` naming) are combined as: distribution `xincord` (core, import
    `xincord.core`) plus distribution `xincord-plugins` (all official plugins, import
-   `xincord.plugins.<snake_name>`, registered through entry points). `xincord` and
-   `xincord.plugins` are PEP 420 namespace packages (no `__init__.py` at those levels).
+   `xincord.plugins.<snake_name>`, registered through entry points). `xincord` is a PEP 420
+   namespace package (no `__init__.py`). Amended 2026-10-10 in the `project-skeleton` change:
+   `xincord.plugins` is a regular package, because uv_build supports a single-root namespace
+   module through a dotted `module-name` but documents `namespace = true` (several roots) as
+   disabling its safety checks, and third-party plugins register through the entry-point group
+   under their own top-level package anyway.
 3. **Data migration is deferred** (derived from the F1 note, B11 note). The `xincord migrate` tool
    is built only if needed, after parity. The config migration script (B6) is in scope.
 4. **Component IDs follow the B9 note**, not the literal option label: new format, permanent
