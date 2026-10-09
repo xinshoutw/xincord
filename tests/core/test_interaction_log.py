@@ -70,7 +70,6 @@ def interaction(kind: discord.InteractionType, data: Mapping[str, object]) -> di
     return cast("discord.Interaction", FakeInteraction(kind, data))
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Interaction console lines")
 @pytest.mark.parametrize(
     ("kind", "data", "expected"),
     [
@@ -95,7 +94,6 @@ def test_describe(
     assert describe(interaction(kind, data)) == expected
 
 
-@pytest.mark.xfail(strict=True, reason="Interaction console lines")
 async def test_console_lines(
     store: Store, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -141,7 +139,6 @@ def target(channel_id: int, *types: str, text: str | None = None) -> Interaction
     )
 
 
-@pytest.mark.xfail(strict=True, reason="Interaction log channels")
 async def test_matching_targets(
     store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -161,7 +158,6 @@ async def test_matching_targets(
     assert channels.guilds == {1}
 
 
-@pytest.mark.xfail(strict=True, reason="Interaction log channels")
 @pytest.mark.usefixtures("installed")
 async def test_no_pings_failures_and_reload(
     store: Store, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture

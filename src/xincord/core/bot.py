@@ -23,6 +23,7 @@ from xincord.core.config import (
     load_config,
 )
 from xincord.core.i18n import Translator
+from xincord.core.interaction_log import log
 from xincord.core.plugins import PluginContext, PluginError, discover, required_intents
 from xincord.core.status import rotate
 
@@ -170,9 +171,13 @@ class Bot(commands.Bot):
         self._routes.setdefault(name, []).append((ids, handler))
 
     async def on_interaction(self, interaction: discord.Interaction) -> None:
-        """Route component and modal interactions to the plugin that owns their ID."""
-        if interaction.type not in ROUTED:
-            return
+        """Route component and modal interactions to the plugin that owns their ID, then log."""
+        if interaction.type in ROUTED:
+            await self._route(interaction)
+        # After routing, so posting to log channels never delays a plugin's response.
+        await log(self, interaction, self._config.interaction_log)
+
+    async def _route(self, interaction: discord.Interaction) -> None:
         custom_id = str(cast("Mapping[str, object]", interaction.data or {}).get("custom_id", ""))
         for plugin, routes in self._routes.items():
             for ids, handler in routes:

@@ -365,6 +365,7 @@ class FakeInteraction:
     type: discord.InteractionType
     data: dict[str, object]
     message: object = None
+    user: object = field(default_factory=lambda: SimpleNamespace(name="alice"))
 
 
 def interaction(
