@@ -5,10 +5,15 @@ Kotlin:
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/ListenerManager.kt:18-36
 """
 
-from typing import override
+from typing import TYPE_CHECKING, Any, override
 
 import discord
 from discord import app_commands
+
+if TYPE_CHECKING:
+    from xincord.core.storage import Store
+
+type Payload = dict[str, Any]
 
 
 class CommandTree(app_commands.CommandTree[discord.Client]):
@@ -25,3 +30,23 @@ class CommandTree(app_commands.CommandTree[discord.Client]):
         ):
             await interaction.response.defer(ephemeral=True, thinking=True)
         return True
+
+    async def payloads(self) -> tuple[list[Payload], list[Payload]]:
+        """Return the payloads of the global commands and of the guild commands, translated."""
+        raise NotImplementedError
+
+    async def sync_global(self, store: Store, *, force: bool = False) -> bool:
+        """Upload the global commands if they changed since the last upload, or if forced.
+
+        Returns:
+            Whether they were uploaded. A failed upload is logged and returns False.
+        """
+        raise NotImplementedError
+
+    async def sync_guild(self, store: Store, guild_id: int, *, force: bool = False) -> bool:
+        """Upload the guild commands to ``guild_id`` if they changed there, or if forced.
+
+        Returns:
+            Whether they were uploaded. A failed upload is logged and returns False.
+        """
+        raise NotImplementedError

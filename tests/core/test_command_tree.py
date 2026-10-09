@@ -5,8 +5,10 @@ Kotlin:
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/ListenerManager.kt:18-36
 """
 
+import logging
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, cast
+from types import SimpleNamespace
+from typing import TYPE_CHECKING, Any, cast
 
 import discord
 import pytest
@@ -14,20 +16,33 @@ from discord import app_commands
 
 from xincord.core.bot import Bot
 from xincord.core.command_tree import CommandTree
+from xincord.core.i18n import Lang, Translator
 from xincord.core.storage import Store
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
     from pathlib import Path
 
-
-@app_commands.command(name="ping", description="Ping")
-async def ping(interaction: discord.Interaction) -> None:
-    """Do nothing."""
+    from aiohttp import ClientResponse
 
 
-@app_commands.command(name="form", description="Open a form", extras={"defer": False})
-async def form(interaction: discord.Interaction) -> None:
-    """Do nothing."""
+type AnyCommand = app_commands.Command[Any, ..., Any]
+
+
+def command(name: str | app_commands.locale_str, **extras: object) -> AnyCommand:
+    async def callback(interaction: discord.Interaction) -> None:
+        """Do nothing."""
+
+    return app_commands.Command(
+        name=name, description=f"The {name} command", callback=callback, extras=extras
+    )
+
+
+ping = command("ping")
+form = command("form", defer=False)
+info = command("info", **{"global": True})
+about = command("about", **{"global": True})
+stats = command("stats")
 
 
 async def report(interaction: discord.Interaction, message: discord.Message) -> None:
@@ -89,3 +104,133 @@ async def test_bot_uses_the_tree(tmp_path: Path) -> None:
         assert isinstance(Bot([], root=tmp_path, store=store).tree, CommandTree)
     finally:
         await store.close()
+
+
+SYNCED = pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Commands are uploaded only when they change"
+)
+SCOPED = pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="Commands are split into guild and global scopes",
+)
+
+
+@dataclass
+class FakeHttp:
+    """Records command uploads; uploads to ``failing`` guilds raise."""
+
+    uploads: list[tuple[str | int, list[str]]] = field(
+        default_factory=list[tuple[str | int, list[str]]]
+    )
+    failing: set[int] = field(default_factory=set[int])
+
+    async def bulk_upsert_global_commands(
+        self, _application_id: int, payload: list[dict[str, Any]]
+    ) -> None:
+        self.uploads.append(("global", [command["name"] for command in payload]))
+
+    async def bulk_upsert_guild_commands(
+        self, _application_id: int, guild_id: int, payload: list[dict[str, Any]]
+    ) -> None:
+        if guild_id in self.failing:
+            response = cast("ClientResponse", SimpleNamespace(status=500, reason="boom"))
+            raise discord.HTTPException(response, "boom")
+        self.uploads.append((guild_id, [command["name"] for command in payload]))
+
+
+@pytest.fixture
+async def store() -> AsyncGenerator[Store]:
+    opened = await Store.open(":memory:")
+    yield opened
+    await opened.close()
+
+
+def tree_with(
+    monkeypatch: pytest.MonkeyPatch, *commands: AnyCommand
+) -> tuple[CommandTree, FakeHttp]:
+    client = discord.Client(intents=discord.Intents.none(), application_id=1)
+    http = FakeHttp()
+    monkeypatch.setattr(client, "http", http)
+    tree = CommandTree(client)
+    add(tree, *commands)
+    return tree, http
+
+
+def add(tree: CommandTree, *commands: AnyCommand) -> None:
+    for each in commands:
+        tree.add_command(each)
+
+
+@SCOPED
+async def test_scopes_and_translation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Requirement: Commands are split into guild and global scopes."""
+    for locale, name in (("en-US", "ping"), ("zh-TW", "pong-tw")):
+        (tmp_path / locale).mkdir()
+        (tmp_path / locale / "register.yaml").write_text(
+            f"ping:\n  name: {name}\n  description: Ping\n", encoding="utf-8"
+        )
+    lang = Lang.load("Example", tmp_path, "en-US")
+
+    localized = command(lang.command("ping", "ping.name"))
+
+    tree, _ = tree_with(monkeypatch, localized, info)
+    await tree.set_translator(Translator())
+
+    global_payload, guild_payload = await tree.payloads()
+
+    assert [command["name"] for command in global_payload] == ["info"]
+    assert [command["name"] for command in guild_payload] == ["ping"]
+    assert guild_payload[0]["name_localizations"]["zh-TW"] == "pong-tw"
+
+
+async def sync_all(tree: CommandTree, store: Store) -> list[bool]:
+    return [
+        await tree.sync_global(store),
+        await tree.sync_guild(store, 1),
+        await tree.sync_guild(store, 2),
+    ]
+
+
+@SYNCED
+async def test_unchanged_commands_are_not_uploaded(
+    store: Store, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Requirement: Commands are uploaded only when they change."""
+    tree, http = tree_with(monkeypatch, ping, info)
+
+    first = await sync_all(tree, store)
+    second = await sync_all(tree, store)
+
+    assert first == [True, True, True]
+    assert second == [False, False, False]
+    assert http.uploads == [("global", ["info"]), (1, ["ping"]), (2, ["ping"])]
+
+
+@SYNCED
+async def test_changes_forcing_and_failures(
+    store: Store, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: Commands are uploaded only when they change."""
+    tree, http = tree_with(monkeypatch, ping, info)
+    await sync_all(tree, store)
+    http.uploads.clear()
+    add(tree, about, stats)
+    http.failing = {2}
+
+    with caplog.at_level(logging.ERROR):
+        changed = await sync_all(tree, store)
+    http.failing = set()
+    retried = await tree.sync_guild(store, 2)
+    unchanged = await tree.sync_guild(store, 1)
+    forced = await tree.sync_guild(store, 1, force=True)
+
+    assert changed == [True, True, False]
+    assert "2" in caplog.text
+    assert (retried, unchanged, forced) == (True, False, True)
+    assert http.uploads == [
+        ("global", ["info", "about"]),
+        (1, ["ping", "stats"]),
+        (2, ["ping", "stats"]),
+        (1, ["ping", "stats"]),
+    ]
