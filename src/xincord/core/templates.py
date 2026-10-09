@@ -241,6 +241,14 @@ class MessageTemplate(TemplateModel):
     content: str = ""
     embeds: tuple[EmbedSpec, ...] = ()
     components: tuple[RowSpec, ...] = ()
+    is_components_v2: bool = False
+    components_v2: tuple[dict[str, object], ...] = ()
+
+    @model_validator(mode="after")
+    def _components_v2(self) -> Self:
+        if self.is_components_v2 or self.components_v2:
+            raise NotImplementedError
+        return self
 
 
 class TextInputSpec(TemplateModel):
