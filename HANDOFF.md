@@ -1,6 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 in the third Phase 2 session, after `core-reload`. Read this file first, then
+Updated 2026-10-10 in the third Phase 2 session, after `core-console`. Read this file first, then
 `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and binding; do not re-open
 them unless you find a serious problem, and then ask the owner.
 
@@ -108,7 +108,10 @@ starting with Core. Motivation: easier maintenance and faster iteration.
     `run(options)` loads `config.yaml`, opens `data/xincord.db`, discovers `CoreConfig.plugins`
     and either checks them offline (`--no-online`: load, unload, exit 0 or 1) or connects until
     SIGINT or SIGTERM closes the bot and the store; SIGHUP runs `bot.reload()`. Logs go to stderr
-    only.
+    only. On a terminal (not `--no-online`), `main` sets up logging inside
+    `patch_stdout(raw=True)` and `_serve` runs the console task, cancelled when the bot stops.
+  - `xincord.core.console`: `run_console(bot, stop)` (prompt `console > `; `reload [plugin]`,
+    `stop` / `exit` / `shutdown` and ^D call `stop`, ^C is logged) and `completer(bot)`.
   - `xincord.core.command_tree.CommandTree` (the bot's `tree_cls`): `interaction_check` defers
     application commands ephemerally unless `extras["defer"]` is False; `payloads()` splits
     guild commands from `extras["global"]` ones (translated when a translator is set);
@@ -117,8 +120,8 @@ starting with Core. Motivation: easier maintenance and faster iteration.
     Component and modal IDs come from a `build_id(uid_map)` callable the plugin passes in. Views
     and modals are stopped before they are returned, so discord.py never dispatches their
     interactions; the core will route them (Core change `command-tree`).
-- **Still to build:** see section 5: the console (B15), status rotation and the interaction log,
-  Docker (B16) and all plugins.
+- **Still to build:** see section 5: status rotation and the interaction log, Docker (B16) and all
+  plugins.
 
 ## 5. Status and next steps
 
@@ -127,29 +130,21 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `project-skeleton`, `core-config`, `core-storage`, `core-i18n`, `core-placeholders`,
 `core-templates`, `core-components-v2`, `core-component-ids`, `core-plugin-loading`,
 `core-command-tree`, `core-component-routing`, `core-interaction-values`, `core-startup`,
-`core-reload`. Each one's `design.md` in `openspec/changes/archive/` records its decisions and "v3 behaved
+`core-reload`, `core-console`. Each one's `design.md` in `openspec/changes/archive/` records its decisions and "v3 behaved
 differently" notes; `docs/porting-guide.md` has the differences table.
 
 ### Next Core changes, in order
 
-The runtime (B15, B19) was split into `core-startup` and `core-reload` (done), `core-console`
+The runtime (B15, B19) was split into `core-startup`, `core-reload` and `core-console` (done)
 and `core-status-log`. The `/bot-info` source link (C3) belongs to the BotInfo plugin's config.
 
-1. **core-console (B15):** a prompt_toolkit console (`prompt_async`) with `reload [plugin]`
-   (`bot.reload`, log the summary) and `stop` / `exit` / `shutdown` (v3: `JLineManager.kt:12-94`;
-   ^D stops, ^C does not; unknown commands are warned), only when stdin and stdout are TTYs.
-   `cli.main` must enter `patch_stdout(raw=True)` before `discord.utils.setup_logging`, so the
-   log handler writes through the proxy above the prompt. Run the console as a task in
-   `cli._serve` (use `spawn`); `stop` closes the bot like SIGTERM, and the console task is
-   cancelled when the bot stops. Test with `prompt_toolkit.input.create_pipe_input()` and
-   `DummyOutput`. Add `prompt-toolkit` as a dependency.
-2. **core-status-log:** status rotation from `status.activities` (`StatusChanger.kt:16-90`; the
+1. **core-status-log:** status rotation from `status.activities` (`StatusChanger.kt:16-90`; the
    config already validates `type`, `text`, `seconds`, `url`) and the interaction log from
    `interaction_log` (`ConsoleLogger.kt:27-139`: `cl_type` CMD or BTN, modal IDs logged as BTN
    in v3; `cl_interaction_string` from `interaction_values(...)["command_string"]` or the custom
    ID; `[CMD] user: ...` console lines from `InteractionLogger.kt:25-65`). Both restart when
    `Bot.reload()` re-reads the config.
-3. **container (B16):** Dockerfile (arm64) and compose (bot; Lavalink later), SQLite in a named
+2. **container (B16):** Dockerfile (arm64) and compose (bot; Lavalink later), SQLite in a named
    volume, `stdin_open` and `tty` for the console.
 
 Then the plugins in C1 order (_Example first, as the template for the new API), using the
@@ -186,7 +181,7 @@ Answered on 2026-10-10: the license is `AGPL-3.0-or-later` (set in both `pyproje
 the owner still adds LICENSE); OpenSpec stays on npx; the user-visible changes listed before were
 accepted. For `core-startup` the owner chose: `--no-online` checks and exits; logs go to stderr
 only (no log file). For `core-reload`: English copy for `/xincord`, and a full reload unloads the
-plugins removed from the list.
+plugins removed from the list. The `core-console` behavior was accepted as listed.
 
 1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
    (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script
