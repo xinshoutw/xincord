@@ -98,3 +98,6 @@ Every deliberate difference, added by the change that introduces it.
 | Placeholders | substituted values were expanded again (user text could inject placeholders; a self-reference dropped the message) | values are inserted verbatim in one pass | core-placeholders |
 | Placeholders | per-user substitutors cached in shared maps, keeping every custom key ever set | each render builds its own values | core-placeholders |
 | Placeholders | `guild_owner_id` / `guild_owner_mention` were `0` / `-` unless the owner member was cached | taken from `Guild.owner_id` | core-placeholders |
+| Templates | a locale directory missing one template raised at render time | per-file fallback to the default locale | core-templates |
+| Templates | render-time values were added to the shared global substitutor for good | values apply to one render only | core-templates |
+| Templates | bad styles, missing `uid`s and bad timestamps failed when a message was sent | they fail when the plugin loads | core-templates |
