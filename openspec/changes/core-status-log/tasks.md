@@ -6,7 +6,7 @@
 
 ## 2. Interaction log
 
-- [ ] 2.1 xfail tests for "Interaction console lines" and "Interaction log channels"
+- [x] 2.1 xfail tests for "Interaction console lines" and "Interaction log channels"
 - [ ] 2.2 Implement `xincord.core.interaction_log` and log from `Bot.on_interaction`; remove the
       markers
 
