@@ -95,3 +95,6 @@ Every deliberate difference, added by the change that introduces it.
 | Lang files | a `register.yaml` that failed to decode was logged and its locale dropped | the plugin fails to load with the file and key named | core-i18n |
 | Lang files | an invalid localized command name surfaced as a failed registration | rejected when the lang files load | core-i18n |
 | Lang keys | Kotlin camelCase property paths (`basicCalculate.name`) | YAML paths (`basic-calculate.name`) | core-i18n |
+| Placeholders | substituted values were expanded again (user text could inject placeholders; a self-reference dropped the message) | values are inserted verbatim in one pass | core-placeholders |
+| Placeholders | per-user substitutors cached in shared maps, keeping every custom key ever set | each render builds its own values | core-placeholders |
+| Placeholders | `guild_owner_id` / `guild_owner_mention` were `0` / `-` unless the owner member was cached | taken from `Guild.owner_id` | core-placeholders |
