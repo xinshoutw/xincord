@@ -2,7 +2,7 @@
 
 - [x] 1.1 xfail tests for "Config files are validated against a typed schema", "Missing config
       files are created from the default" and "Unknown keys warn instead of failing"
-- [ ] 1.2 Implement `load_config`, `Model` and `ConfigError`; remove the markers
+- [x] 1.2 Implement `load_config`, `Model` and `ConfigError`; remove the markers
 
 ## 2. Core schema
 
