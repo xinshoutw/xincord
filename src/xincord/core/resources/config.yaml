@@ -3,6 +3,10 @@
 # The bot token from the Discord developer portal. The --token option overrides it.
 token: ""
 
+# Plugins to load, by name, in this order. Each keeps its files in plugins/<Name>/.
+# Example: [AutoRole, Ticket]
+plugins: []
+
 status:
   # Activities shown one after another, in a loop.
   #   type: playing, streaming, listening, watching, custom or competing

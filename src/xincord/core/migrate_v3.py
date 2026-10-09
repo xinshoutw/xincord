@@ -121,7 +121,11 @@ def _list(value: object) -> list[object]:
 
 def enabled_v3_plugins(root: Path) -> list[str]:
     """Return the plugins whose v3 ``plugins/<Name>/config.yaml`` sets ``enabled: true``."""
-    raise NotImplementedError
+    return [
+        path.parent.name
+        for path in sorted((root / "plugins").glob("*/config.yaml"))
+        if _mapping(yaml.safe_load(path.read_text(encoding="utf-8"))).get("enabled") is True
+    ]
 
 
 def migrate_directory(root: Path) -> list[str]:
@@ -144,6 +148,9 @@ def migrate_directory(root: Path) -> list[str]:
         return [f"{backup}: already exists, {path} left unchanged"]
 
     new, report = migrate_core_config(data)
+    plugins = enabled_v3_plugins(root)
+    new = {"token": new["token"], "plugins": plugins, **new}
+    report.append(f"plugins: enabled {', '.join(plugins) or 'none'}")
     CoreConfig.model_validate(new)
     backup.write_text(text, encoding="utf-8")
     path.write_text(yaml.safe_dump(new, sort_keys=False, allow_unicode=True), encoding="utf-8")

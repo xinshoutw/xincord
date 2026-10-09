@@ -162,13 +162,9 @@ class CoreConfig(Model):
     """The core ``config.yaml``."""
 
     token: str = ""
+    plugins: tuple[str, ...] = ()
     status: Status = Status()
     interaction_log: tuple[InteractionLogTarget, ...] = ()
-
-    @property
-    def plugins(self) -> tuple[str, ...]:
-        """The names of the plugins to load, in order."""
-        raise NotImplementedError
 
 
 def default_core_config() -> str:

@@ -19,7 +19,7 @@
 
 - [x] 4.1 xfail tests for "The core config lists the enabled plugins" and "v3 plugin switches
       migrate to the enabled list"
-- [ ] 4.2 Implement the `plugins` key and its migration; remove the markers
+- [x] 4.2 Implement the `plugins` key and its migration; remove the markers
 
 ## 5. Close
 

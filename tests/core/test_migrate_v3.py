@@ -156,11 +156,6 @@ def test_missing_token_and_file_are_reported(tmp_path: Path) -> None:
     assert migrate_directory(tmp_path) == [f"{tmp_path / 'config.yaml'}: not found"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="v3 plugin switches migrate to the enabled list",
-)
 def test_enabled_v3_plugins(tmp_path: Path) -> None:
     """Requirement: v3 plugin switches migrate to the enabled list."""
     (tmp_path / "config.yaml").write_text(V3_TEXT, encoding="utf-8")
