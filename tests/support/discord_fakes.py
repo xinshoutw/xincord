@@ -15,6 +15,8 @@ import discord
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
+    import aiohttp
+
 type Sent = tuple[str, dict[str, object]]  # the method and the keyword arguments of a response
 
 
@@ -84,9 +86,38 @@ class FakeInteraction:
         """Record an edit of the deferred response."""
         self.sent.append(("edit_original_response", fields))
 
+    async def delete_original_response(self) -> None:
+        """Record the deletion of the deferred response."""
+        self.sent.append(("delete_original_response", {}))
+
     def as_interaction(self) -> discord.Interaction:
         """This fake, typed as the discord.py interaction it stands for."""
         return cast("discord.Interaction", self)
+
+
+@dataclass
+class FakeChannel:
+    """A text channel that records sent messages into ``sent``, or fails with ``error``.
+
+    Pass the interaction's ``sent`` list to see the channel's messages in order with the responses.
+    """
+
+    sent: list[Sent] = field(default_factory=list[Sent])
+    error: Exception | None = None
+    id: int = 5
+    name: str = "general"
+
+    async def send(self, **fields: object) -> None:
+        """Record a message sent to the channel."""
+        if self.error is not None:
+            raise self.error
+        self.sent.append(("channel.send", fields))
+
+
+def forbidden() -> discord.Forbidden:
+    """The error discord.py raises when the bot lacks a permission."""
+    response = cast("aiohttp.ClientResponse", SimpleNamespace(status=403, reason="Forbidden"))
+    return discord.Forbidden(response, "Missing Permissions")
 
 
 def embed_dict(embed: discord.Embed) -> dict[str, Any]:
