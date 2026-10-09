@@ -92,3 +92,6 @@ Every deliberate difference, added by the change that introduces it.
 | Default core config | shipped a real guild and channel ID | ships no interaction log targets | core-config |
 | Storage | a JSON file that failed to parse was replaced by the default and saved | a corrupt database stops startup and is left untouched | core-storage |
 | Storage | JSON files written in place; save errors only logged | SQLite transactions; a failed write raises | core-storage |
+| Lang files | a `register.yaml` that failed to decode was logged and its locale dropped | the plugin fails to load with the file and key named | core-i18n |
+| Lang files | an invalid localized command name surfaced as a failed registration | rejected when the lang files load | core-i18n |
+| Lang keys | Kotlin camelCase property paths (`basicCalculate.name`) | YAML paths (`basic-calculate.name`) | core-i18n |
