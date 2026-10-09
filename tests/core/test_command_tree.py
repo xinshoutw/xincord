@@ -20,7 +20,6 @@ from xincord.core.i18n import Lang, Translator
 from xincord.core.storage import Store
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
     from pathlib import Path
 
     from aiohttp import ClientResponse
@@ -127,13 +126,6 @@ class FakeHttp:
             response = cast("ClientResponse", SimpleNamespace(status=500, reason="boom"))
             raise discord.HTTPException(response, "boom")
         self.uploads.append((guild_id, [command["name"] for command in payload]))
-
-
-@pytest.fixture
-async def store() -> AsyncGenerator[Store]:
-    opened = await Store.open(":memory:")
-    yield opened
-    await opened.close()
 
 
 def tree_with(

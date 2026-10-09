@@ -5,11 +5,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/plugin/PluginEvent.kt:14-74
 """
 
-import importlib
 import logging
-import sys
-import textwrap
-import uuid
 from dataclasses import dataclass, field
 from importlib.metadata import EntryPoint
 from types import SimpleNamespace
@@ -20,15 +16,17 @@ import pytest
 
 from xincord.core.bot import Bot
 from xincord.core.plugins import GROUP, PluginError, PluginInfo, discover, required_intents
-from xincord.core.storage import Store
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, Iterator, Sequence
+    from collections.abc import Sequence
     from pathlib import Path
 
     from aiohttp import ClientResponse
     from discord.types.components import ActionRow as ActionRowPayload
     from discord.types.components import ContainerComponent as ContainerPayload
+
+    from plugin_fakes import FakePlugins
+    from xincord.core.storage import Store
 
 RECORD = """
 from .. import calls
@@ -54,68 +52,6 @@ async def setup(bot):
     calls.append((config.greeting, lang.locales, context.directory, context.store))
 """
 BUNDLE = {"config.yaml": "greeting: Hello\n", "lang/en-US/register.yaml": "greet:\n  name: greet\n"}
-
-
-@dataclass
-class FakePlugins:
-    """Writes plugin packages into a directory on ``sys.path``.
-
-    The package's ``calls`` list survives reloads, so plugins can record their setup calls.
-    """
-
-    root: Path
-    package: str
-    entry_points: list[EntryPoint] = field(default_factory=list[EntryPoint])
-
-    def add(self, name: str, source: str = "", files: dict[str, str] | None = None) -> str:
-        """Write plugin ``name`` and register its entry point; return its module name."""
-        module = f"{self.package}.{name.lower()}"
-        directory = self.root / self.package / name.lower()
-        directory.mkdir(parents=True)
-        (directory / "__init__.py").write_text(textwrap.dedent(source), encoding="utf-8")
-        for relative, text in (files or {}).items():
-            path = directory / relative
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(textwrap.dedent(text), encoding="utf-8")
-        self.entry_points.append(EntryPoint(name=name, value=module, group=GROUP))
-        importlib.invalidate_caches()
-        return module
-
-    def replace(self, name: str, source: str) -> None:
-        """Rewrite the source of plugin ``name``, as a code update on disk would."""
-        path = self.root / self.package / name.lower() / "__init__.py"
-        path.write_text(textwrap.dedent(source), encoding="utf-8")
-
-    def calls(self) -> list[object]:
-        """What the plugins' setup functions recorded so far."""
-        record: list[object] = sys.modules[self.package].calls
-        return record
-
-    def bot(
-        self, enabled: Sequence[str], root: Path, store: Store, *, force_lang: bool = False
-    ) -> Bot:
-        """Create a bot for the enabled plugins."""
-        plugins = discover(enabled, self.entry_points)
-        return Bot(plugins, root=root, store=store, force_lang=force_lang)
-
-
-@pytest.fixture
-async def store() -> AsyncGenerator[Store]:
-    opened = await Store.open(":memory:")
-    yield opened
-    await opened.close()
-
-
-@pytest.fixture
-def fake_plugins(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[FakePlugins]:
-    package = f"fake_plugins_{uuid.uuid4().hex[:8]}"
-    root = tmp_path / "site"
-    (root / package).mkdir(parents=True)
-    (root / package / "__init__.py").write_text("calls = []\n", encoding="utf-8")
-    monkeypatch.setattr(sys, "path", [str(root), *sys.path])
-    yield FakePlugins(root, package)
-    for name in [name for name in sys.modules if name.split(".")[0] == package]:
-        del sys.modules[name]
 
 
 def test_enabled_plugins_are_discovered(fake_plugins: FakePlugins) -> None:

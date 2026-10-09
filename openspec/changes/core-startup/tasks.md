@@ -1,6 +1,6 @@
 ## 1. Test helpers
 
-- [ ] 1.1 Move `FakePlugins` and the plugin fixtures into shared test modules
+- [x] 1.1 Move `FakePlugins` and the plugin fixtures into shared test modules
 
 ## 2. Command line
 

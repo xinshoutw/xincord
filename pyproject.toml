@@ -39,7 +39,7 @@ dev = [
 
 [tool.ruff]
 line-length = 100
-src = ["src", "packages/xincord-plugins/src", "scripts", "tests"]
+src = ["src", "packages/xincord-plugins/src", "scripts", "tests", "tests/support"]
 # Research notes quote code verbatim; keep them as written.
 extend-exclude = ["docs/porting/analysis"]
 
@@ -71,7 +71,7 @@ runtime-evaluated-decorators = [
 
 [tool.pyright]
 include = ["src", "packages", "scripts", "tests"]
-extraPaths = ["scripts"]
+extraPaths = ["scripts", "tests/support"]
 pythonVersion = "3.14"
 typeCheckingMode = "strict"
 venvPath = "."
@@ -80,7 +80,7 @@ venv = ".venv"
 [tool.pytest]
 minversion = "9.0"
 testpaths = ["tests"]
-pythonpath = ["scripts"]
+pythonpath = ["scripts", "tests/support"]
 addopts = ["--import-mode=importlib"]
 strict = true
 xfail_strict = true
