@@ -15,7 +15,7 @@
 - [x] 3.1 `.pre-commit-config.yaml` with the CJK pygrep hook; tests for "Python sources contain
       no CJK characters"; `prek install`
 - [x] 3.2 Claude Code hooks in `.claude/settings.json`
-- [ ] 3.3 `.github/workflows/ci.yml`
+- [x] 3.3 `.github/workflows/ci.yml`
 
 ## 4. Documentation
 
