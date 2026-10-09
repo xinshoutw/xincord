@@ -17,12 +17,6 @@ if TYPE_CHECKING:
 
 GIVEAWAY_FIELDS = ("action", "sub_action", "giveaway_id")
 TICKET_FIELDS = ("action", "sub_action", "color_index", "user_id", "msg_id", "btn_index")
-VERSIONED = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Component IDs use a versioned format"
-)
-LEGACY = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Legacy v3 IDs decode permanently"
-)
 
 
 def giveaway() -> ComponentIds:
@@ -33,7 +27,6 @@ def ticket() -> ComponentIds:
     return ComponentIds("ticket", TICKET_FIELDS, legacy_prefix="ticket@", legacy_hex={"user_id"})
 
 
-@VERSIONED
 def test_build_and_parse() -> None:
     """Requirement: Component IDs use a versioned format."""
     ids = giveaway()
@@ -45,7 +38,6 @@ def test_build_and_parse() -> None:
     assert ids.parse("giveaway:1:") == ParsedId({}, legacy=False)
 
 
-@VERSIONED
 @pytest.mark.parametrize(
     "value", ["a;b=c:d%e", " two words ", chr(0x4E2D) + chr(0x6587), "", "~_.-"]
 )
@@ -61,7 +53,6 @@ def test_values_are_escaped(value: str) -> None:
     assert ids.parse(custom_id).fields == {"sub_action": value, "action": "x"}
 
 
-@VERSIONED
 def test_limits() -> None:
     """Requirement: Component IDs use a versioned format."""
     ids = giveaway()
@@ -73,7 +64,6 @@ def test_limits() -> None:
         ids.build({"color": "red"})
 
 
-@VERSIONED
 @pytest.mark.parametrize(
     ("namespace", "fields", "hex_fields"),
     [
@@ -93,7 +83,6 @@ def test_invalid_codecs(
         ComponentIds(namespace, fields, legacy_hex=hex_fields)
 
 
-@VERSIONED
 def test_codec_as_template_id_builder(tmp_path: Path) -> None:
     """Requirement: Component IDs use a versioned format."""
     path = tmp_path / "template.yml"
@@ -110,7 +99,6 @@ def test_codec_as_template_id_builder(tmp_path: Path) -> None:
     assert button.custom_id == "giveaway:1:a=join"
 
 
-@LEGACY
 def test_legacy_ticket_ids() -> None:
     """Requirement: Legacy v3 IDs decode permanently."""
     ids = ticket()
@@ -127,7 +115,6 @@ def test_legacy_ticket_ids() -> None:
     assert ids.parse("ticket@").fields == {}
 
 
-@LEGACY
 @pytest.mark.parametrize(
     "custom_id",
     [
@@ -141,6 +128,7 @@ def test_legacy_ticket_ids() -> None:
         "ticket@d:1_0",
         "ticket:1:z=x",
         "ticket:1:a",
+        "ticket:1:a=%ff",
     ],
 )
 def test_foreign_and_malformed_ids(custom_id: str) -> None:
@@ -149,7 +137,6 @@ def test_foreign_and_malformed_ids(custom_id: str) -> None:
         ticket().parse(custom_id)
 
 
-@LEGACY
 def test_ownership() -> None:
     """Requirement: Legacy v3 IDs decode permanently."""
     ids = ticket()
