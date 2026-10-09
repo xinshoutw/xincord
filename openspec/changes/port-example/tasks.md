@@ -22,7 +22,7 @@
 
 ## 5. Command
 
-- [ ] 5.1 xfail tests for "The command is a localized guild command"
+- [x] 5.1 xfail tests for "The command is a localized guild command"
 - [ ] 5.2 Build the command from the lang files and register it in `setup`; remove the markers
 
 ## 6. Counter

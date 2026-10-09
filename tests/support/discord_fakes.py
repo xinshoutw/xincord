@@ -52,6 +52,10 @@ class FakeResponse:
 
     sent: list[Sent]
 
+    async def defer(self, *, ephemeral: bool = False, thinking: bool = False) -> None:
+        """Record a deferral, such as the command tree's before a command runs."""
+        self.sent.append(("response.defer", {"ephemeral": ephemeral, "thinking": thinking}))
+
     async def edit_message(self, **fields: object) -> None:
         """Record an edit of the component's message."""
         self.sent.append(("response.edit_message", fields))
@@ -68,6 +72,7 @@ class FakeInteraction:
     client: object = field(default_factory=lambda: SimpleNamespace(user=BOT_USER))
     channel: object = None
     message: object = None
+    command: object = None
     sent: list[Sent] = field(default_factory=list[Sent])
 
     @property
