@@ -9,3 +9,8 @@ from xincord.core.config import Model
 
 class Config(Model):
     """``plugins/_Example/config.yaml``; the bundled ``config.yaml`` holds the same defaults."""
+
+    @property
+    def example_key(self) -> str:
+        """Stub until the field exists."""
+        raise NotImplementedError
