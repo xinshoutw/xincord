@@ -17,7 +17,8 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `GatewayIntent` presets | `discord.Intents` aggregated from enabled plugins before connecting | B4 |
 | `ListenerAdapter` overrides | `@commands.Cog.listener()` | B3 |
 | `CommandData` / `SlashCommandData` | `app_commands.command` / `app_commands.Group` | B5 |
-| InteractionLogger's blanket `deferReply(true)` | the command tree defers ephemerally; modal commands opt out through `extras` | B5 |
+| InteractionLogger's blanket `deferReply(true)` | `CommandTree.interaction_check` defers ephemerally; commands that open modals set `extras={"defer": False}` | B5 |
+| `guildCommands()` / `globalCommands()` | guild commands by default, global with `extras={"global": True}`; `CommandTree.sync_global` / `sync_guild` upload only changed payloads | B5 |
 | Command localization via `StringLocalizer` and Kotlin property paths | `app_commands.Translator` fed from `lang/<locale>/register.yaml` keys | B7 |
 | `MessageCreator` YAML templates | templates module: v1 YAML tags and Components V2 | B10 |
 | `Placeholder` / commons-text substitutor | single-level `%key%` substitution with a fresh context per render | B10 |
@@ -116,3 +117,4 @@ Every deliberate difference, added by the change that introduces it.
 | Plugin loading | one plugin's broken config or lang file could stop the whole bot | only that plugin and its dependents are skipped | core-plugin-loading |
 | Plugin switches | an `enabled` key in each plugin config, checked by every handler; disabled plugins still exported their files | the core config's `plugins` list; disabled plugins are never imported | core-plugin-loading |
 | Intents | GUILD_MEMBERS always requested | requested only when an enabled plugin declares it | core-plugin-loading |
+| Command upload | guild commands overwritten in every guild at every start | uploaded only when a scope's payload hash changed, or when forced | core-command-tree |

@@ -28,7 +28,8 @@ first plugins calibrate this checklist: fix it here when reality differs.
    Declare `DEPENDS`, `SOFT_DEPENDS` and `INTENTS` as module constants, and keep import time free
    of work. In `setup(bot)`, get `bot.plugin_context(__name__)` and load `config(Model)` from the
    bundled `config.yaml` and `lang(default_locale)`. Drop v3's `enabled` key: the core config's
-   `plugins` list decides.
+   `plugins` list decides. v3 `globalCommands()` become commands with `extras={"global": True}`;
+   a command that opens a modal sets `extras={"defer": False}`.
 6. **Golden tests.** Declare the plugin's `ComponentIds(namespace, fields, legacy_prefix=...,
    legacy_hex=...)` with the v3 fields first, in v3 declaration order (append only). Decode real
    v3 IDs from the inventory and check that each upgrades to the expected new ID. Render every
