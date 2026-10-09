@@ -1,6 +1,6 @@
 ## 1. Rendering
 
-- [ ] 1.1 xfail tests for "Placeholders are replaced in a single pass" and "Every render uses only
+- [x] 1.1 xfail tests for "Placeholders are replaced in a single pass" and "Every render uses only
       its own values"
 - [ ] 1.2 Implement `render`; remove the markers
 
