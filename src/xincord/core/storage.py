@@ -33,6 +33,7 @@ class Store:
         """Wrap an open connection; use :meth:`open` instead."""
         self._connection = connection
         self._executor = executor
+        self._locks: dict[str, asyncio.Lock] = {}
 
     @classmethod
     async def open(cls, path: str | Path) -> Self:
@@ -92,11 +93,25 @@ class Store:
         ``fn`` receives None when the key is absent. It runs on the database thread, so it must be
         quick and must not touch asyncio objects.
         """
-        raise NotImplementedError
+
+        def apply(db: sqlite3.Connection) -> JSON:
+            row = db.execute(
+                "SELECT value FROM kv WHERE namespace = ? AND key = ?",
+                (namespace, key),
+            ).fetchone()
+            value = fn(None if row is None else json.loads(row[0]))
+            db.execute(
+                "REPLACE INTO kv (namespace, key, value) VALUES (?, ?, ?)",
+                (namespace, key, _encode(value)),
+            )
+            return value
+
+        return await self.run(apply)
 
     def lock(self, key: str) -> asyncio.Lock:
         """Return the lock for ``key``, the same object for equal keys."""
-        raise NotImplementedError
+        # ponytail: locks are never evicted; fine for the few hundred guilds this bot serves.
+        return self._locks.setdefault(key, asyncio.Lock())
 
     async def get(self, namespace: str, key: str) -> JSON:
         """Return the value stored under ``namespace`` and ``key``, or None if there is none."""
@@ -115,7 +130,7 @@ class Store:
             TypeError: ``value`` contains something JSON cannot represent.
             ValueError: ``value`` contains NaN or an infinity.
         """
-        text = json.dumps(value, allow_nan=False, ensure_ascii=False, separators=(",", ":"))
+        text = _encode(value)
         await self.run(
             lambda db: db.execute(
                 "REPLACE INTO kv (namespace, key, value) VALUES (?, ?, ?)",
@@ -152,3 +167,7 @@ class Store:
             ).fetchall(),
         )
         return {row[0]: json.loads(row[1]) for row in rows}
+
+
+def _encode(value: JSON) -> str:
+    return json.dumps(value, allow_nan=False, ensure_ascii=False, separators=(",", ":"))

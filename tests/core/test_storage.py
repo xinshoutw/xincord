@@ -99,18 +99,10 @@ async def test_commit_is_visible_to_another_connection(tmp_path: Path) -> None:
     assert json.loads(row[0]) == [1, 2]
 
 
-ATOMIC = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Read-modify-write is atomic",
-)
-
-
 def increment(current: JSON) -> JSON:
     return (current if isinstance(current, int) else 0) + 1
 
 
-@ATOMIC
 async def test_concurrent_increments() -> None:
     """Requirement: Read-modify-write is atomic."""
 
@@ -120,7 +112,6 @@ async def test_concurrent_increments() -> None:
         assert await store.get("ns", "count") == 100
 
 
-@ATOMIC
 async def test_update_returns_the_new_value() -> None:
     """Requirement: Read-modify-write is atomic."""
 
@@ -173,11 +164,6 @@ async def test_garbage_file(tmp_path: Path) -> None:
     assert path.read_bytes() == garbage
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Keyed locks serialize multi-step flows",
-)
 async def test_same_key_same_lock() -> None:
     """Requirement: Keyed locks serialize multi-step flows."""
 
