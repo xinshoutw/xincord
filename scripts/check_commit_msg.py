@@ -8,6 +8,10 @@ TYPES = "feat|fix|test|refactor|docs|build|ci|chore"
 SCOPES = "core|build|ci|docs|plugin(?:-[a-z0-9]+)+"
 SUBJECT = re.compile(rf"(?:{TYPES})(?:\((?:{SCOPES})\))?!?: \S")
 SCISSORS = "# ------------------------ >8 ------------------------"
+ATTRIBUTION = re.compile(
+    r"^(?:co-authored-by|claude-session):|generated with \[claude code\]",
+    re.IGNORECASE,
+)
 
 
 def problems(message: str) -> list[str]:
@@ -18,6 +22,7 @@ def problems(message: str) -> list[str]:
     numbered = [(n, line) for n, line in enumerate(lines, 1) if not line.startswith("#")]
 
     found = [f"line {n}: non-ASCII text" for n, line in numbered if not line.isascii()]
+    found += [f"line {n}: tool attribution" for n, line in numbered if ATTRIBUTION.search(line)]
     subject = next(((n, line) for n, line in numbered if line.strip()), (1, ""))
     if not SUBJECT.match(subject[1]):
         found.append(

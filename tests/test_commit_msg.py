@@ -57,7 +57,6 @@ def test_unknown_type_or_scope_is_rejected(message: str) -> None:
     assert problems(message)
 
 
-@pytest.mark.xfail(strict=True, reason="Commit messages carry no tool attribution")
 @pytest.mark.parametrize(
     "trailer",
     [
