@@ -38,7 +38,7 @@
 
 - [x] 8.1 xfail tests for "The answer is posted in the channel", with a fake channel and the golden
       embeds
-- [ ] 8.2 Implement the answer; remove the markers
+- [x] 8.2 Implement the answer; remove the markers
 
 ## 9. Errors
 

@@ -24,9 +24,6 @@ if TYPE_CHECKING:
     from discord_fakes import Sent
     from xincord.core.storage import Store
 
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The answer is posted in the channel"
-)
 GOLDEN = golden("basic_calculator")
 TEMPLATE = 'content: "%user_name%: %bc_question% = %bc_answer% (%bc_answer_round%)"\n'
 
@@ -60,7 +57,6 @@ def embeds(fields: dict[str, object]) -> list[dict[str, Any]]:
     return [embed_dict(embed) for embed in cast("Sequence[discord.Embed]", fields["embeds"])]
 
 
-@XFAIL
 async def test_answer(cog: BasicCalculator) -> None:
     """Requirement: The answer is posted in the channel."""
     sent = await run(cog, "1+1 = ?")
@@ -69,7 +65,6 @@ async def test_answer(cog: BasicCalculator) -> None:
     assert embeds(sent[0][1]) == [GOLDEN["answer"]["en-US"]]
 
 
-@XFAIL
 @pytest.mark.parametrize("locale", [discord.Locale.taiwan_chinese, discord.Locale.japanese])
 async def test_locale_and_fallback(cog: BasicCalculator, locale: discord.Locale) -> None:
     """Requirement: The answer is posted in the channel."""
@@ -78,7 +73,6 @@ async def test_locale_and_fallback(cog: BasicCalculator, locale: discord.Locale)
     assert embeds(sent[0][1]) == [GOLDEN["answer"]["zh-TW"]]
 
 
-@XFAIL
 @pytest.mark.parametrize(
     ("formula", "content"),
     [
@@ -102,7 +96,6 @@ async def test_placeholders(store: Store, tmp_path: Path, formula: str, content:
     assert sent[0][1]["content"] == content
 
 
-@XFAIL
 async def test_channel_refuses_the_message(
     cog: BasicCalculator, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -115,7 +108,6 @@ async def test_channel_refuses_the_message(
     assert "cannot post" in caplog.text
 
 
-@XFAIL
 async def test_channel_without_messages(cog: BasicCalculator) -> None:
     """Requirement: The answer is posted in the channel."""
     forum = SimpleNamespace(id=6, name="questions")  # a forum or a category has no send
