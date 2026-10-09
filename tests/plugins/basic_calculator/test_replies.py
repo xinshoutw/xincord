@@ -27,9 +27,6 @@ if TYPE_CHECKING:
 GOLDEN = golden("basic_calculator")
 TEMPLATE = 'content: "%user_name%: %bc_question% = %bc_answer% (%bc_answer_round%)"\n'
 ERROR_TEMPLATE = 'content: "%user_name%: %bc_question% -> %bc_error%"\n'
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Errors are answered privately"
-)
 
 
 def command(formula: str, locale: discord.Locale, channel: object) -> FakeInteraction:
@@ -128,7 +125,6 @@ async def test_channel_without_messages(cog: BasicCalculator) -> None:
     assert embeds(sent[0][1]) == [GOLDEN["answer"]["en-US"]]
 
 
-@XFAIL
 @pytest.mark.parametrize(
     ("locale", "expected"),
     [
@@ -145,7 +141,6 @@ async def test_error(cog: BasicCalculator, locale: discord.Locale, expected: str
     assert embeds(sent[0][1]) == [GOLDEN["error"][expected]]
 
 
-@XFAIL
 async def test_placeholder_text_in_the_formula(cog: BasicCalculator) -> None:
     """Requirement: Errors are answered privately."""
     sent = await run(cog, "%bot_name%")
@@ -157,7 +152,6 @@ async def test_placeholder_text_in_the_formula(cog: BasicCalculator) -> None:
     ]
 
 
-@XFAIL
 async def test_error_placeholders(store: Store, tmp_path: Path) -> None:
     """Requirement: Errors are answered privately."""
     cog = await load_with("error", ERROR_TEMPLATE, tmp_path, store)

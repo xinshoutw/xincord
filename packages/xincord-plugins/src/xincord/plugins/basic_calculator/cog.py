@@ -59,8 +59,10 @@ class BasicCalculator(commands.Cog):
         await _post(interaction, render_message(message, values))
 
     async def _reply_error(self, interaction: discord.Interaction, values: dict[str, str]) -> None:
-        """Stub until the error reply exists."""
-        raise NotImplementedError
+        """Turn the deferred ephemeral response into the error template, as v3 did."""
+        message = self.templates.message("error", interaction.locale.value)
+        reply = render_message(message, values)
+        await interaction.edit_original_response(content=reply.content, embeds=reply.embeds)
 
 
 async def _post(interaction: discord.Interaction, reply: Message) -> None:
