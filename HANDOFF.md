@@ -144,8 +144,12 @@ differently" notes; `docs/porting-guide.md` has the differences table.
 The runtime (B15, B19) is done: `core-startup`, `core-reload`, `core-console` and
 `core-status-log`. The `/bot-info` source link (C3) belongs to the BotInfo plugin's config.
 
-1. **container (B16):** Dockerfile (arm64) and compose (bot; Lavalink later), SQLite in a named
-   volume, `stdin_open` and `tty` for the console.
+1. **container (B16), in progress:** the active change `openspec/changes/container/` has its
+   proposal, the `Dockerfile`, `.dockerignore`, `compose.yaml` and static tests
+   (`tests/test_container.py`) committed locally, not pushed. Left: the manual check in its
+   `design.md` (the owner approved `orb start`, building and running `--no-online`, then removing
+   the test container, the `xincord_data` volume and `bot/`, then `orb stop`), the README and
+   porting-guide rows, listing the operator-visible changes, push, CI, archive.
 
 Then the plugins in C1 order (_Example first, as the template for the new API), using the
 `port-plugin` skill. Update `docs/porting-guide.md` after each one.
