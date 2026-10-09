@@ -11,7 +11,7 @@
 ## 3. Trimming
 
 - [x] 3.1 xfail tests for "Formulas are trimmed as in v3"
-- [ ] 3.2 Implement `normalize`; remove the markers
+- [x] 3.2 Implement `normalize`; remove the markers
 
 ## 4. Reading
 

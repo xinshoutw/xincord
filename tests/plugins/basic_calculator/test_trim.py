@@ -8,14 +8,10 @@ import pytest
 
 from xincord.plugins.basic_calculator.calculator import normalize
 
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Formulas are trimmed as in v3"
-)
 IDEOGRAPHIC_SPACE = chr(0x3000)
 NEXT_LINE = chr(0x85)  # whitespace for Python's str.isspace(), not for Kotlin's isWhitespace()
 
 
-@XFAIL
 @pytest.mark.parametrize(
     ("raw", "formula"),
     [
@@ -31,7 +27,6 @@ def test_trailing_signs(raw: str, formula: str) -> None:
     assert normalize(raw) == formula
 
 
-@XFAIL
 def test_whitespace() -> None:
     """Requirement: Formulas are trimmed as in v3."""
     assert normalize(f"{IDEOGRAPHIC_SPACE}1 2{IDEOGRAPHIC_SPACE}") == "1 2"
@@ -40,7 +35,6 @@ def test_whitespace() -> None:
     assert normalize(f"{NEXT_LINE}1") == f"{NEXT_LINE}1"
 
 
-@XFAIL
 def test_leading_signs_stay() -> None:
     """Requirement: Formulas are trimmed as in v3."""
     assert normalize("?1+1") == "?1+1"
