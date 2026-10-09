@@ -15,9 +15,6 @@ from xincord.plugins.basic_calculator.calculator import (
     to_postfix,
 )
 
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Results are exact and rounded as in v3"
-)
 FULLWIDTH_THREE = chr(0xFF13)
 ARABIC_DIGITS = chr(0x661) + chr(0x662)
 
@@ -39,7 +36,6 @@ def product(factor: str, count: int) -> list[str]:
     return [factor] * count + ["*"] * (count - 1)
 
 
-@XFAIL
 @pytest.mark.parametrize(
     ("formula", "expected"),
     [
@@ -62,7 +58,6 @@ def test_exact_arithmetic(formula: str, expected: str) -> None:
     assert result(formula) == expected
 
 
-@XFAIL
 @pytest.mark.parametrize(
     ("formula", "expected"),
     [
@@ -87,7 +82,6 @@ def test_rounding(formula: str, expected: str) -> None:
     assert result(formula) == expected
 
 
-@XFAIL
 @pytest.mark.parametrize(
     ("formula", "expected"),
     [
@@ -110,21 +104,18 @@ def test_number_and_operand_errors(formula: str, expected: str) -> None:
     assert error(to_postfix(formula)) == expected
 
 
-@XFAIL
 @pytest.mark.parametrize("formula", ["1/0", "0/0", "3/(1-1)", "1/(0.5-0.5)"])
 def test_division_by_zero(formula: str) -> None:
     """Requirement: Results are exact and rounded as in v3."""
     assert error(to_postfix(formula)) == "Division by zero"
 
 
-@XFAIL
 def test_errors_in_evaluation_order() -> None:
     """Requirement: Results are exact and rounded as in v3."""
     assert error(to_postfix("1/0+1.2.3")) == "Division by zero"
     assert error(to_postfix("+ 1.2.3")) == "Unknown Token: 1.2.3"
 
 
-@XFAIL
 def test_too_many_digits() -> None:
     """Requirement: Results are exact and rounded as in v3."""
     count = DIGITS_MAX // 1000 + 1
@@ -133,7 +124,6 @@ def test_too_many_digits() -> None:
     assert error(product("9" * 600, 2)) == "Too many digits"  # longer than an embed field
 
 
-@XFAIL
 def test_longest_result() -> None:
     """Requirement: Results are exact and rounded as in v3."""
     nines = "9" * RESULT_MAX

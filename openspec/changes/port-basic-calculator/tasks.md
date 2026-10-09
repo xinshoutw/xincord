@@ -21,7 +21,7 @@
 ## 5. Results
 
 - [x] 5.1 xfail tests for "Results are exact and rounded as in v3"
-- [ ] 5.2 Implement `evaluate_postfix`, the exact numbers and the size limits; remove the markers
+- [x] 5.2 Implement `evaluate_postfix`, the exact numbers and the size limits; remove the markers
 
 ## 6. Powers
 

@@ -5,10 +5,12 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:64-206
 """
 
-from typing import TYPE_CHECKING
+import re
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Self
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
+    from collections.abc import Callable, Iterator, Sequence
 
 # Discord's 1024-character embed field value, minus the code fence the templates put around the
 # formula and the result.
@@ -17,6 +19,8 @@ RESULT_MAX = FORMULA_MAX
 # The most digits a value keeps in its unscaled number, and the most decimal places, so that a
 # formula such as 10^999999999 fails at once instead of stalling the bot.
 DIGITS_MAX = 50_000
+DIVISION_PLACES = 10  # v3's divide(b, 10, HALF_UP)
+RESULT_PLACES = 5  # v3's setScale(5, HALF_UP)
 NEXT_LINE = chr(0x85)  # whitespace for Python's str.isspace(), not for Kotlin's isWhitespace()
 TRAILING = "?= "  # v3's trimEnd('?', '=', ' ')
 NEGATE = "neg"  # the postfix token of a minus that negates
@@ -24,14 +28,38 @@ OPERATORS = "+-*/^"
 # v3's ranks, plus the negating minus between * / and ^. Only ^ groups from the right.
 PRECEDENCE = {"+": 1, "-": 1, "*": 2, "/": 2, NEGATE: 3, "^": 4}
 RIGHT_ASSOCIATIVE = frozenset("^")
+# Kotlin's toBigDecimalOrNull() accepted ASCII digits only, so other Unicode digits fail later.
+NUMBER = re.compile(r"[0-9]+\.?[0-9]*|\.[0-9]+")
 
 UNKNOWN_CHARACTER = "Unknown character: {}"
 UNMATCHED_BRACKET = "Unmatched bracket"
 FORMULA_TOO_LONG = "Formula too long"
+NOT_A_NUMBER = "Unknown Token: {}"
+ILLEGAL_FORMULA = "Illegal formula"
+DIVISION_BY_ZERO = "Division by zero"
+TOO_MANY_DIGITS = "Too many digits"
 
 
 class CalcError(ValueError):
     """A formula the calculator refuses; the message is shown to the user, in English as v3's."""
+
+
+@dataclass(frozen=True, slots=True)
+class BigDecimal:
+    """``unscaled / 10**scale``: Java's ``BigDecimal`` without a precision limit, as v3 used it."""
+
+    unscaled: int
+    scale: int
+
+    @classmethod
+    def parse(cls, number: str) -> Self:
+        """Read a number token such as ``12``, ``1.50``, ``5.`` or ``.5``."""
+        whole, _, fraction = number.partition(".")
+        return cls(int(whole + fraction), len(fraction))
+
+    def __neg__(self) -> BigDecimal:
+        """Return the negated value."""
+        return BigDecimal(-self.unscaled, self.scale)
 
 
 def is_space(char: str) -> bool:
@@ -144,4 +172,87 @@ def evaluate_postfix(tokens: Sequence[str]) -> str:
         CalcError: A token is not a number, an operator lacks operands, a division is by zero, or
             a number grows too large.
     """
-    raise NotImplementedError
+    stack: list[BigDecimal] = []
+    for part in tokens:
+        if NUMBER.fullmatch(part):
+            stack.append(BigDecimal.parse(part))
+        elif part == NEGATE and stack:
+            stack.append(-stack.pop())
+        elif part in BINARY and len(stack) >= 2:  # noqa: PLR2004 - two operands
+            right = stack.pop()
+            stack.append(_checked(BINARY[part](stack.pop(), right)))
+        elif part == NEGATE or part in BINARY:
+            raise CalcError(ILLEGAL_FORMULA)
+        else:
+            raise CalcError(NOT_A_NUMBER.format(part))
+    if len(stack) != 1:
+        raise CalcError(ILLEGAL_FORMULA)
+    return _format(stack[0])
+
+
+def _add(left: BigDecimal, right: BigDecimal) -> BigDecimal:
+    scale = max(left.scale, right.scale)
+    return BigDecimal(
+        left.unscaled * 10 ** (scale - left.scale) + right.unscaled * 10 ** (scale - right.scale),
+        scale,
+    )
+
+
+def _subtract(left: BigDecimal, right: BigDecimal) -> BigDecimal:
+    return _add(left, -right)
+
+
+def _multiply(left: BigDecimal, right: BigDecimal) -> BigDecimal:
+    return BigDecimal(left.unscaled * right.unscaled, left.scale + right.scale)
+
+
+def _divide(left: BigDecimal, right: BigDecimal) -> BigDecimal:
+    """v3's ``divide(right, 10, HALF_UP)``; v3 threw an uncaught exception for a zero divisor."""
+    if right.unscaled == 0:
+        raise CalcError(DIVISION_BY_ZERO)
+    shift = DIVISION_PLACES + right.scale - left.scale
+    numerator = left.unscaled * 10 ** max(shift, 0)
+    denominator = right.unscaled * 10 ** max(-shift, 0)
+    return BigDecimal(_round_half_up(numerator, denominator), DIVISION_PLACES)
+
+
+BINARY: dict[str, Callable[[BigDecimal, BigDecimal], BigDecimal]] = {
+    "+": _add,
+    "-": _subtract,
+    "*": _multiply,
+    "/": _divide,
+}
+_DIGITS_LIMIT = 10**DIGITS_MAX
+_RESULT_LIMIT = 10**RESULT_MAX
+
+
+def _round_half_up(numerator: int, denominator: int) -> int:
+    """Divide and round to an integer, ties away from zero, as Java's ``HALF_UP``."""
+    quotient, remainder = divmod(abs(numerator), abs(denominator))
+    if 2 * remainder >= abs(denominator):
+        quotient += 1
+    return quotient if (numerator < 0) == (denominator < 0) else -quotient
+
+
+def _checked(value: BigDecimal) -> BigDecimal:
+    """Refuse a value with more than ``DIGITS_MAX`` digits or decimal places."""
+    if value.scale > DIGITS_MAX or abs(value.unscaled) >= _DIGITS_LIMIT:
+        raise CalcError(TOO_MANY_DIGITS)
+    return value
+
+
+def _format(value: BigDecimal) -> str:
+    """v3's ``setScale(5, HALF_UP).stripTrailingZeros().toPlainString()``, never ``-0``."""
+    if value.scale <= RESULT_PLACES:
+        units = value.unscaled * 10 ** (RESULT_PLACES - value.scale)
+    else:
+        units = _round_half_up(value.unscaled, 10 ** (value.scale - RESULT_PLACES))
+    whole, fraction = divmod(abs(units), 10**RESULT_PLACES)
+    if whole >= _RESULT_LIMIT:  # too long, and str() refuses more than 4300 digits
+        raise CalcError(TOO_MANY_DIGITS)
+    text = ("-" if units < 0 else "") + str(whole)
+    if fraction:
+        text += "." + f"{fraction:0{RESULT_PLACES}d}".rstrip("0")
+    if len(text) > RESULT_MAX:
+        raise CalcError(TOO_MANY_DIGITS)
+    return text
