@@ -10,16 +10,19 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast
 
 import discord
-import pytest
 
 from plugin_fakes import until, watch_syncs, write_config
 from xincord.core.bot import Bot
 from xincord.core.config import Activity, ActivityType, CoreConfig, Status
+from xincord.core.plugins import discover
 from xincord.core.status import activity, rotate
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    import pytest
+
+    from plugin_fakes import FakePlugins
     from xincord.core.storage import Store
 
 FAST = 0.01
@@ -89,10 +92,16 @@ async def test_failed_update(caplog: pytest.LogCaptureFixture) -> None:
     assert "A" in caplog.text
 
 
-@pytest.mark.usefixtures("installed")
-async def test_bot_rotation(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
-    config = CoreConfig(status=Status(activities=(entry("playing", "A"), entry("playing", "B"))))
-    bot = Bot([], root=Path("plugins"), store=store, config=config)
+async def test_bot_rotation(
+    installed: FakePlugins, store: Store, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    installed.add("Alpha", "async def setup(bot):\n    pass\n")
+    config = CoreConfig(
+        plugins=("Alpha",),
+        status=Status(activities=(entry("playing", "A"), entry("playing", "B"))),
+    )
+    bot = Bot(discover(["Alpha"]), root=Path("plugins"), store=store, config=config)
+    assert await bot.load_plugins() == []
     presence = Presence()
 
     async def change_presence(_self: Bot, *, activity: discord.BaseActivity | None = None) -> None:
@@ -111,9 +120,13 @@ async def test_bot_rotation(store: Store, monkeypatch: pytest.MonkeyPatch) -> No
     await until(lambda: len(presence.shown) >= 4)
     assert presence.shown[:4] == ["A", "B", "A", "B"]
 
-    write_config("status:\n  activities: [{type: watching, text: New, seconds: 60}]\n")
-    assert await bot.reload() == "Reloaded: none."
+    write_config(
+        "plugins: [Alpha]\nstatus:\n  activities: [{type: watching, text: New, seconds: 60}]\n"
+    )
+    assert await bot.reload() == "Reloaded: Alpha."
     await until(lambda: presence.shown[-1] == "New")
+    assert await bot.reload("Alpha") == "Reloaded: Alpha."  # keeps the rotation running
+    assert presence.shown.count("New") == 1
 
     await bot.close()
     seen = len(presence.shown)

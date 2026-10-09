@@ -36,7 +36,7 @@ async def rotate(client: discord.Client, activities: Sequence[Activity]) -> None
     """Show each activity for its ``seconds``, in a loop; set a single one once."""
     if not activities:
         return
-    for entry in itertools.cycle(activities):
+    for entry in itertools.cycle(activities):  # pragma: no branch - cycle never ends
         try:
             await client.change_presence(activity=activity(entry))
         except Exception:
