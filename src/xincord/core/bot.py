@@ -11,6 +11,7 @@ import discord
 from discord.ext import commands
 
 from xincord.core.command_tree import CommandTree
+from xincord.core.component_ids import ComponentIdError, upgrade_view
 from xincord.core.plugins import PluginContext, PluginError, required_intents
 
 if TYPE_CHECKING:
@@ -120,9 +121,20 @@ class Bot(commands.Bot):
 
     async def _upgrade(self, interaction: discord.Interaction) -> None:
         """Edit the interaction's message once so its legacy IDs use the new format."""
-        if interaction.message is None:
+        message = interaction.message
+        if message is None or message.flags.ephemeral:
             return
-        raise NotImplementedError
+        codecs = [ids for routes in self._routes.values() for ids, _ in routes]
+        try:
+            # Fetch again: the handler may have edited the message already.
+            current = await message.channel.fetch_message(message.id)
+            view_type = discord.ui.LayoutView if current.flags.components_v2 else discord.ui.View
+            view = view_type.from_message(current, timeout=None)
+            if upgrade_view(view, codecs):
+                view.stop()  # the router handles these items, not discord.py
+                await current.edit(view=view)
+        except discord.HTTPException, ComponentIdError:
+            logger.exception("Upgrading the component IDs of message %s failed", message.id)
 
     async def load_plugins(self) -> list[str]:
         """Load the plugins in order and return the names of those that did not load."""

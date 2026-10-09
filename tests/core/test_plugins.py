@@ -505,9 +505,6 @@ async def test_failed_load_leaves_no_route(
     assert fake_plugins.calls() == []
 
 
-UPGRADED = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Legacy IDs are upgraded after use"
-)
 LEGACY_BUTTON: dict[str, object] = {
     "type": 2,
     "style": 1,
@@ -569,7 +566,6 @@ def ids_of(view: discord.ui.View | discord.ui.LayoutView) -> list[str | None]:
     return [item.custom_id for item in view.walk_children() if isinstance(item, discord.ui.Button)]
 
 
-@UPGRADED
 async def test_panel_is_upgraded(fake_plugins: FakePlugins, store: Store, tmp_path: Path) -> None:
     """Requirement: Legacy IDs are upgraded after use."""
     bot = await loaded_ticket(fake_plugins, store, tmp_path)
@@ -584,7 +580,6 @@ async def test_panel_is_upgraded(fake_plugins: FakePlugins, store: Store, tmp_pa
     assert view.is_finished()
 
 
-@UPGRADED
 async def test_components_v2_message_is_upgraded(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:
@@ -607,7 +602,6 @@ async def test_components_v2_message_is_upgraded(
     assert ids_of(view) == ["ticket:1:a=press;f=0"]
 
 
-@UPGRADED
 async def test_nothing_to_upgrade(
     fake_plugins: FakePlugins,
     store: Store,
