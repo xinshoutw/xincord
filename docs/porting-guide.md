@@ -30,6 +30,7 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | JLine console, `--ignore-update` | prompt_toolkit console, SIGHUP reload, `/xincord reload`; no version check | B15 |
 | `java -jar` with Clikt options | the `xincord` console script (`xincord.core.cli`, argparse); `--no-online` loads the plugins without connecting and exits | B15 |
 | `BotLoader`: build JDA, wait for ready, then load the plugins | `Bot.setup_hook` sets the translator and loads the plugins before the gateway connects; `on_ready` and `on_guild_join` upload the commands | B3, B5 |
+| `BotLoader.reload()`: stop JDA and start everything again | `Bot.reload(plugin=None)` in place: the loaded plugins follow `config.yaml`, or one plugin reloads with its dependents; triggered by SIGHUP, the owner's `/xincord reload` and the console | B15 |
 | JDA's default mentions (all types ping) | the bot's `allowed_mentions`: users and the replied-to user; a message opts in with its own | B19 |
 | Ktor Web-Dashboard | not ported | B13 |
 
@@ -83,6 +84,9 @@ styles at once.
   None too. Work that needs guilds waits for `bot.wait_until_ready()` in a task or listens for
   `on_ready`; background loops stop in `cog_unload`, because the offline check loads and
   unloads plugins without ever becoming ready.
+- **Reload re-runs setup.** `reload_extension` executes the plugin module again and calls the new
+  `setup`; release what the old version holds (tasks, listeners outside a cog) in `teardown` or
+  `cog_unload`. A failed reload restores the old module and runs its `setup` again.
 - **Stopped views.** A discord.py view created outside a running event loop never reports
   `is_finished()`; tests that check rendered views must be `async`.
 - **Global `core.hooksPath`.** prek refuses to install while a global `core.hooksPath` is set; use
@@ -138,3 +142,5 @@ Every deliberate difference, added by the change that introduces it.
 | Startup | plugins loaded after JDA was ready, so `setup` could read the guild cache | plugins load before the gateway connects | core-startup |
 | Command upload | guild commands were uploaded at startup only when there were any, so the last removed one stayed | an empty payload is uploaded once | core-startup |
 | Mentions | every mention type pinged, including `@everyone` and roles | users and the replied-to user only, unless a message opts in | core-startup |
+| Reload | the console's `reload` disconnected and rebuilt everything; a plugin that failed stayed off | reloads in place without disconnecting; a plugin whose new version fails keeps its previous one | core-reload |
+| Reload | only the console (whole bot) or the Web Dashboard (one plugin) could reload | SIGHUP and the owner's `/xincord reload [plugin]` (the console follows) | core-reload |
