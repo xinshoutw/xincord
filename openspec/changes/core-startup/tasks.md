@@ -4,7 +4,7 @@
 
 ## 2. Command line
 
-- [ ] 2.1 xfail tests for "Command line options"
+- [x] 2.1 xfail tests for "Command line options"
 - [ ] 2.2 Implement `xincord.core.cli` (`Options`, `parse_args`, `main`) and the `xincord` script;
       remove the markers
 
