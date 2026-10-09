@@ -1,6 +1,6 @@
 ## 1. Console
 
-- [ ] 1.1 Add the `prompt-toolkit` dependency
+- [x] 1.1 Add the `prompt-toolkit` dependency
 - [ ] 1.2 xfail tests for "Console commands" and "Console completion"
 - [ ] 1.3 Implement `xincord.core.console`; remove the markers
 
