@@ -148,12 +148,6 @@ def test_ownership() -> None:
     assert not ComponentIds("bot-info", ("action",)).owns("bot-info@a:x")
 
 
-UPGRADE = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Legacy IDs are upgraded lazily"
-)
-
-
-@UPGRADE
 def test_upgrade_one_id() -> None:
     """Requirement: Legacy IDs are upgraded lazily."""
     ids = ticket()
@@ -164,7 +158,6 @@ def test_upgrade_one_id() -> None:
         ids.upgrade("giveaway@a:join")
 
 
-@UPGRADE
 async def test_upgrade_a_view() -> None:
     """Requirement: Legacy IDs are upgraded lazily."""
     legacy_button = discord.ui.Button[discord.ui.View](custom_id="ticket@a:press;f:0")
@@ -189,7 +182,6 @@ async def test_upgrade_a_view() -> None:
     assert link.url == "https://example.com"
 
 
-@UPGRADE
 async def test_upgrade_a_layout_view() -> None:
     """Requirement: Legacy IDs are upgraded lazily."""
     nested = discord.ui.Button[discord.ui.LayoutView](custom_id="ticket@a:press;f:1")
@@ -200,7 +192,6 @@ async def test_upgrade_a_layout_view() -> None:
     assert nested.custom_id == "ticket:1:a=press;f=1"
 
 
-@UPGRADE
 async def test_nothing_to_upgrade() -> None:
     """Requirement: Legacy IDs are upgraded lazily."""
     current = discord.ui.Button[discord.ui.View](custom_id="ticket:1:a=lock")

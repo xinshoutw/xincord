@@ -10,10 +10,11 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from urllib.parse import quote, unquote
 
+import discord
+from discord.ui.select import BaseSelect
+
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping, Sequence
-
-    import discord
 
 VERSION = 1
 MAX_LENGTH = 100  # Discord's limit for component and modal IDs
@@ -128,7 +129,7 @@ class ComponentIds:
         Raises:
             ComponentIdError: The ID is not this codec's, or it cannot be converted.
         """
-        raise NotImplementedError
+        return self.build(self.parse(custom_id).fields)
 
     def _legacy_value(self, name: str, value: str) -> str:
         """Decode a v3 value; v3 wrote ``Int`` and ``Long`` fields in lowercase hex."""
@@ -155,5 +156,18 @@ def upgrade_view(
 
     ``view`` is a fresh copy, rebuilt from a message with ``from_message``; edit the message with
     it when this returns True.
+
+    Raises:
+        ComponentIdError: An owned ID is malformed or too long in the new format.
     """
-    raise NotImplementedError
+    owners = tuple(codecs)
+    changed = False
+    for item in view.walk_children():
+        if not isinstance(item, discord.ui.Button | BaseSelect) or item.custom_id is None:
+            continue
+        custom_id = item.custom_id
+        if owner := next((codec for codec in owners if codec.owns(custom_id)), None):
+            upgraded = owner.upgrade(custom_id)
+            changed = changed or upgraded != custom_id
+            item.custom_id = upgraded
+    return changed
