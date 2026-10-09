@@ -32,7 +32,7 @@
 
 - [x] 7.1 xfail tests for "The golden formulas give v3's answers", with copies of v3's golden files
       and the independent evaluator
-- [ ] 7.2 Implement `calculate`; remove the markers
+- [x] 7.2 Implement `calculate`; remove the markers
 
 ## 8. Answer
 

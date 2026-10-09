@@ -19,16 +19,11 @@ from fractions import Fraction
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import pytest
-
 from xincord.plugins.basic_calculator.calculator import CalcError, calculate, normalize
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The golden formulas give v3's answers"
-)
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "plugins" / "basic_calculator"
 NEXT_LINE = chr(0x85)  # not whitespace for Kotlin
 NUMBER = re.compile(r"[0-9]+\.?[0-9]*|\.[0-9]+")
@@ -212,7 +207,6 @@ def text(number: Fraction) -> str:
     return f"-{digits}" if units < 0 else digits
 
 
-@XFAIL
 def test_golden_files() -> None:
     """Requirement: The golden formulas give v3's answers."""
     unexplained: list[tuple[str, str | None, str]] = []
@@ -228,7 +222,6 @@ def test_golden_files() -> None:
     assert unexplained == []
 
 
-@XFAIL
 def test_independent_evaluator() -> None:
     """Requirement: The golden formulas give v3's answers."""
     disagreements: list[tuple[str, str | None, str]] = []

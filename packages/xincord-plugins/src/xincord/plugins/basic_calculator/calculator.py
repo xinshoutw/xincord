@@ -1,5 +1,9 @@
 """The calculator: v3's formula language, evaluated exactly.
 
+``normalize`` trims the formula and ``calculate`` evaluates it in v3's two passes, so that v3's
+error messages keep their order: ``to_postfix`` reads it with a shunting-yard pass, and
+``evaluate_postfix`` computes the postfix tokens with exact decimals.
+
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:28
     XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:64-206
@@ -31,6 +35,9 @@ PRECEDENCE = {"+": 1, "-": 1, "*": 2, "/": 2, NEGATE: 3, "^": 4}
 RIGHT_ASSOCIATIVE = frozenset("^")
 # Kotlin's toBigDecimalOrNull() accepted ASCII digits only, so other Unicode digits fail later.
 NUMBER = re.compile(r"[0-9]+\.?[0-9]*|\.[0-9]+")
+_DIGITS_LIMIT = 10**DIGITS_MAX
+_RESULT_LIMIT = 10**RESULT_MAX
+_LOG2_TEN = math.log2(10)
 
 UNKNOWN_CHARACTER = "Unknown character: {}"
 UNMATCHED_BRACKET = "Unmatched bracket"
@@ -74,6 +81,15 @@ def normalize(raw: str) -> str:
     kept = [index for index, char in enumerate(raw) if not is_space(char)]
     trimmed = raw[kept[0] : kept[-1] + 1] if kept else ""
     return trimmed.rstrip(TRAILING)
+
+
+def calculate(formula: str) -> str:
+    """Return the result of a trimmed formula, as v3's ``evaluateExpression`` did.
+
+    Raises:
+        CalcError: The formula cannot be calculated; the message says why.
+    """
+    return evaluate_postfix(to_postfix(formula))
 
 
 def to_postfix(formula: str) -> list[str]:
@@ -245,9 +261,6 @@ BINARY: dict[str, Callable[[BigDecimal, BigDecimal], BigDecimal]] = {
     "/": _divide,
     "^": _power,
 }
-_DIGITS_LIMIT = 10**DIGITS_MAX
-_LOG2_TEN = math.log2(10)
-_RESULT_LIMIT = 10**RESULT_MAX
 
 
 def _round_half_up(numerator: int, denominator: int) -> int:
@@ -280,12 +293,3 @@ def _format(value: BigDecimal) -> str:
     if len(text) > RESULT_MAX:
         raise CalcError(TOO_MANY_DIGITS)
     return text
-
-
-def calculate(formula: str) -> str:
-    """Return the result of a trimmed formula, as v3's ``evaluateExpression`` did.
-
-    Raises:
-        CalcError: The formula cannot be calculated; the message says why.
-    """
-    raise NotImplementedError
