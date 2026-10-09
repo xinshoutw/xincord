@@ -5,7 +5,7 @@ Kotlin:
 """
 
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, cast, override
 
 import discord
 from discord.ext import commands
@@ -62,6 +62,11 @@ class Bot(commands.Bot):
         self._contexts: dict[str, PluginContext] = {}
         self._loaded: dict[str, PluginInfo] = {}
         self._routes: dict[str, list[tuple[ComponentIds, Handler]]] = {}
+
+    @override
+    async def setup_hook(self) -> None:
+        """Set the command translator and load the plugins before the gateway connects."""
+        raise NotImplementedError
 
     @property
     def loaded(self) -> tuple[str, ...]:

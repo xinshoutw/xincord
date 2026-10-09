@@ -10,7 +10,7 @@
 
 ## 3. Startup and stop
 
-- [ ] 3.1 xfail tests for "Startup loads the configured plugins", "Offline check" and "Graceful
+- [x] 3.1 xfail tests for "Startup loads the configured plugins", "Offline check" and "Graceful
       stop"
 - [ ] 3.2 Implement `run` and `Bot.setup_hook`; remove the markers
 
