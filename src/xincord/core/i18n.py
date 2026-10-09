@@ -18,4 +18,13 @@ def export_lang(bundled: Traversable, target: Path, *, force: bool) -> list[Path
     Returns:
         The files written.
     """
-    raise NotImplementedError
+    written: list[Path] = []
+    for entry in bundled.iterdir():
+        path = target / entry.name
+        if entry.is_dir():
+            written += export_lang(entry, path, force=force)
+        elif force or not path.exists():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(entry.read_bytes())
+            written.append(path)
+    return written

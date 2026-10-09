@@ -5,18 +5,10 @@ Kotlin: XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/plugin/PluginEvent.kt:2
 
 from typing import TYPE_CHECKING
 
-import pytest
-
 from xincord.core.i18n import export_lang
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-pytestmark = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Bundled lang files are exported",
-)
 
 BUNDLED = {
     "en-US/register.yaml": "calc:\n  name: calc\n",
