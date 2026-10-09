@@ -19,17 +19,6 @@ from xincord.core.placeholders import (
     user_values,
 )
 
-
-def xfail(requirement: str) -> pytest.MarkDecorator:
-    return pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=requirement)
-
-
-ACTOR = xfail("Acting-user values follow v3")
-USER_MEMBER = xfail("User and member values follow v3")
-GUILD = xfail("Guild values follow v3")
-CHANNEL_EVENT = xfail("Channel and event values follow v3")
-LOCALES = xfail("Locale names follow JDA")
-
 CREATED = datetime(2021, 6, 1, 12, 34, 56, 789000, tzinfo=UTC)
 
 
@@ -109,8 +98,9 @@ class Guild:
 BOT = User(id=9, name="xincord", global_name=None)
 
 
-@ACTOR
 def test_member_with_a_nickname() -> None:
+    """Requirement: Acting-user values follow v3."""
+
     values = actor_values(Member(), BOT)
 
     assert values == {
@@ -126,21 +116,24 @@ def test_member_with_a_nickname() -> None:
     }
 
 
-@ACTOR
 def test_plain_user() -> None:
+    """Requirement: Acting-user values follow v3."""
+
     values = actor_values(User(avatar=Asset("https://cdn.example/a.png")), BOT)
 
     assert not [key for key in values if key.startswith("member_")]
     assert values["user_avatar_url"] == "https://cdn.example/a.png"
 
 
-@ACTOR
 def test_member_without_a_nickname() -> None:
+    """Requirement: Acting-user values follow v3."""
+
     assert actor_values(Member(nick=None), BOT)["member_fixed_name"] == "alice"
 
 
-@USER_MEMBER
 def test_user_keys() -> None:
+    """Requirement: User and member values follow v3."""
+
     values = user_values(User(global_name=None), prefix="wbg@")
 
     assert values == {
@@ -159,8 +152,9 @@ def test_user_keys() -> None:
     }
 
 
-@USER_MEMBER
 def test_member_roles() -> None:
+    """Requirement: User and member values follow v3."""
+
     roles = (Role("@everyone", 0, default=True), Role("low", 1), Role("high", 5))
 
     values = member_values(Member(roles=roles))
@@ -179,8 +173,9 @@ def test_member_roles() -> None:
     }
 
 
-@USER_MEMBER
 def test_member_without_nickname_roles_or_join_time() -> None:
+    """Requirement: User and member values follow v3."""
+
     values = member_values(Member(nick=None, joined_at=None), none="?")
 
     assert values["member_nickname"] == "?"
@@ -192,8 +187,9 @@ def test_member_without_nickname_roles_or_join_time() -> None:
     assert values["member_joined_iso"] == "?"
 
 
-@GUILD
 def test_guild_without_icon_or_system_channel() -> None:
+    """Requirement: Guild values follow v3."""
+
     values = guild_values(Guild())
 
     assert values == {
@@ -220,8 +216,9 @@ def test_guild_without_icon_or_system_channel() -> None:
     }
 
 
-@GUILD
 def test_guild_with_everything() -> None:
+    """Requirement: Guild values follow v3."""
+
     guild = Guild(
         preferred_locale=discord.Locale.american_english,
         member_count=None,
@@ -245,8 +242,9 @@ def test_guild_with_everything() -> None:
     assert values["p:guild_rules_channel_name"] == "rules"
 
 
-@CHANNEL_EVENT
 def test_missing_channel() -> None:
+    """Requirement: Channel and event values follow v3."""
+
     assert channel_values(None) == {
         "channel_id": "0",
         "channel_name": "-",
@@ -255,7 +253,6 @@ def test_missing_channel() -> None:
     }
 
 
-@CHANNEL_EVENT
 @pytest.mark.parametrize(
     ("kind", "name"),
     [
@@ -266,6 +263,8 @@ def test_missing_channel() -> None:
     ],
 )
 def test_channel_type_uses_jda_names(kind: discord.ChannelType, name: str) -> None:
+    """Requirement: Channel and event values follow v3."""
+
     values = channel_values(Channel(type=kind), prefix="wbg@", base="target")
 
     assert values == {
@@ -276,8 +275,9 @@ def test_channel_type_uses_jda_names(kind: discord.ChannelType, name: str) -> No
     }
 
 
-@CHANNEL_EVENT
 def test_event_time() -> None:
+    """Requirement: Channel and event values follow v3."""
+
     values = event_values("join", at=datetime(2026, 1, 2, 3, 4, 5, 678000, tzinfo=UTC))
 
     assert values == {
@@ -288,16 +288,18 @@ def test_event_time() -> None:
     }
 
 
-@CHANNEL_EVENT
 def test_event_iso_keeps_seconds_and_defaults_to_now() -> None:
+    """Requirement: Channel and event values follow v3."""
+
     at = datetime(2026, 1, 2, 3, 4, tzinfo=UTC)
 
     assert event_values("x", at=at)["event_timestamp_iso"] == "2026-01-02T03:04:00Z"
     assert event_values("x", prefix="p:")["p:event_timestamp_iso"].endswith("Z")
 
 
-@LOCALES
 def test_known_and_unknown_locale() -> None:
+    """Requirement: Locale names follow JDA."""
+
     assert locale_names("en-US") == ("ENGLISH_US", "English, US")
     assert locale_names("xx") == ("UNKNOWN", "Unknown")
 

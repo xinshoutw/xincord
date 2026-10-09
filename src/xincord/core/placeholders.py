@@ -1,12 +1,34 @@
 """``%key%`` placeholders: single-pass rendering and the v3 key families."""
 
+import functools
+from datetime import UTC, datetime
+from importlib.resources import files
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
+
+import yaml
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
-    from datetime import datetime
 
     import discord
+
+# JDA 6.4.1 ChannelType names by Discord channel type number.
+CHANNEL_TYPES = {
+    0: "TEXT",
+    1: "PRIVATE",
+    2: "VOICE",
+    3: "GROUP",
+    4: "CATEGORY",
+    5: "NEWS",
+    10: "GUILD_NEWS_THREAD",
+    11: "GUILD_PUBLIC_THREAD",
+    12: "GUILD_PRIVATE_THREAD",
+    13: "STAGE",
+    14: "GUILD_DIRECTORY",
+    15: "FORUM",
+    16: "MEDIA",
+}
+EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
 
 class AssetLike(Protocol):
@@ -234,22 +256,98 @@ def render(text: str, values: Mapping[str, str]) -> str:
 
 def actor_values(user: UserLike, bot: UserLike) -> dict[str, str]:
     """Return the v3 ``Placeholder.get`` keys for the user acting in an interaction."""
-    raise NotImplementedError
+    values = {
+        "bot_id": str(bot.id),
+        "bot_name": bot.name,
+        "user_id": str(user.id),
+        "user_mention": user.mention,
+        "user_name": user.name,
+        "user_avatar_url": (user.avatar or user.default_avatar).url,
+    }
+    if isinstance(user, MemberLike):
+        values |= {
+            "member_display_name": user.display_name,
+            "member_avatar_url": user.display_avatar.url,
+            "member_fixed_name": f"{user.nick} ({user.name})" if user.nick else user.name,
+        }
+    return values
 
 
 def user_values(user: UserLike, prefix: str = "", none: str = "-") -> dict[str, str]:
     """Return the v3 ``putUser`` keys, each prefixed with ``prefix``."""
-    raise NotImplementedError
+    return _prefixed(
+        prefix,
+        {
+            "user_id": str(user.id),
+            "user_name": user.name,
+            "user_name_upper": user.name.upper(),
+            "user_name_lower": user.name.lower(),
+            "user_global_name": _text(user.global_name, none),
+            "user_effective_name": user.global_name or user.name,
+            "user_mention": user.mention,
+            "user_avatar_url": (user.avatar or user.default_avatar).url,
+            "user_default_avatar_url": user.default_avatar.url,
+            "user_is_bot": "true" if user.bot else "false",
+            "user_created_unix": str(_seconds(user.created_at)),
+            "user_created_iso": _offset_iso(user.created_at),
+        },
+    )
 
 
 def member_values(member: MemberLike, prefix: str = "", none: str = "-") -> dict[str, str]:
     """Return the v3 ``putMember`` keys, each prefixed with ``prefix``."""
-    raise NotImplementedError
+    roles = sorted(
+        (role for role in member.roles if not role.is_default()),
+        key=lambda role: role.position,
+        reverse=True,
+    )
+    joined = member.joined_at
+    return _prefixed(
+        prefix,
+        {
+            "member_id": str(member.id),
+            "member_display_name": member.display_name,
+            "member_nickname": _text(member.nick, none),
+            "member_nickname_or_name": member.nick or member.display_name,
+            "member_avatar_url": member.display_avatar.url,
+            "member_roles_count": str(len(roles)),
+            "member_roles_mentions": " ".join(role.mention for role in roles) or none,
+            "member_roles_names": ", ".join(role.name for role in roles) or none,
+            "member_joined_unix": str(_seconds(joined)) if joined else "0",
+            "member_joined_iso": _offset_iso(joined) if joined else none,
+        },
+    )
 
 
 def guild_values(guild: GuildLike, prefix: str = "", none: str = "-") -> dict[str, str]:
     """Return the v3 ``putGuild`` keys, each prefixed with ``prefix``."""
-    raise NotImplementedError
+    owner, system, rules = guild.owner, guild.system_channel, guild.rules_channel
+    boosts = str(guild.premium_subscription_count)
+    return _prefixed(
+        prefix,
+        {
+            "guild_id": str(guild.id),
+            "guild_name": guild.name,
+            "guild_name_upper": guild.name.upper(),
+            "guild_name_lower": guild.name.lower(),
+            "guild_locale": locale_names(guild.preferred_locale.value)[0],
+            "guild_member_count": str(guild.member_count or 0),
+            "guild_boost_count": boosts,
+            "guild_booster_count": boosts,
+            "guild_icon_url": guild.icon.url if guild.icon else none,
+            "guild_banner_url": guild.banner.url if guild.banner else none,
+            "guild_description": _text(guild.description, none),
+            "guild_owner_id": str(guild.owner_id or 0),
+            "guild_owner_name": owner.display_name if owner else none,
+            "guild_owner_mention": f"<@{guild.owner_id}>" if guild.owner_id else none,
+            "guild_system_channel_id": str(system.id) if system else "0",
+            "guild_system_channel_name": system.name if system else none,
+            "guild_system_channel_mention": system.mention if system else none,
+            "guild_rules_channel_id": str(rules.id) if rules else "0",
+            "guild_rules_channel_name": rules.name if rules else none,
+            "guild_rules_channel_mention": rules.mention if rules else none,
+        },
+    )
 
 
 def channel_values(
@@ -259,14 +357,76 @@ def channel_values(
     none: str = "-",
 ) -> dict[str, str]:
     """Return the v3 ``putTextChannel`` keys ``<base>_id``, ``_name``, ``_mention``, ``_type``."""
-    raise NotImplementedError
+    if channel is None:
+        values = {"id": "0", "name": none, "mention": none, "type": none}
+    else:
+        values = {
+            "id": str(channel.id),
+            "name": channel.name,
+            "mention": channel.mention,
+            "type": CHANNEL_TYPES.get(channel.type.value, "UNKNOWN"),
+        }
+    return _prefixed(f"{prefix}{base}_", values)
 
 
 def event_values(event_type: str, prefix: str = "", at: datetime | None = None) -> dict[str, str]:
     """Return the v3 ``putEvent`` keys for an event at ``at`` (default: now)."""
-    raise NotImplementedError
+    moment = at or datetime.now(UTC)
+    return _prefixed(
+        prefix,
+        {
+            "event_type": event_type,
+            "event_timestamp_unix": str(_seconds(moment)),
+            "event_timestamp_ms": str((moment - EPOCH) // _MILLISECOND),
+            "event_timestamp_iso": _instant_iso(moment),
+        },
+    )
 
 
 def locale_names(locale: str) -> tuple[str, str]:
     """Return JDA's enum name and native name of a Discord locale such as ``zh-TW``."""
-    raise NotImplementedError
+    name, native = _locales().get(locale, ("UNKNOWN", "Unknown"))
+    return name, native
+
+
+_MILLISECOND = EPOCH.resolution * 1000
+
+
+def _prefixed(prefix: str, values: Mapping[str, str]) -> dict[str, str]:
+    return {prefix + key: value for key, value in values.items()}
+
+
+def _text(value: str | None, none: str) -> str:
+    return value if value and value.strip() else none
+
+
+def _seconds(moment: datetime) -> int:
+    return (moment - EPOCH) // (_MILLISECOND * 1000)
+
+
+def _fraction(moment: datetime) -> str:
+    if not moment.microsecond:
+        return ""
+    digits = f"{moment.microsecond:06d}"
+    return "." + (digits[:3] if digits.endswith("000") else digits)
+
+
+def _offset_iso(moment: datetime) -> str:
+    """Format like Java's ``OffsetDateTime.toString()`` in UTC: seconds only when non-zero."""
+    moment = moment.astimezone(UTC)
+    text = moment.strftime("%Y-%m-%dT%H:%M")
+    if moment.second or moment.microsecond:
+        text += f":{moment.second:02d}{_fraction(moment)}"
+    return f"{text}Z"
+
+
+def _instant_iso(moment: datetime) -> str:
+    """Format like Java's ``Instant.toString()``: seconds always."""
+    moment = moment.astimezone(UTC)
+    return f"{moment.strftime('%Y-%m-%dT%H:%M:%S')}{_fraction(moment)}Z"
+
+
+@functools.cache
+def _locales() -> dict[str, tuple[str, str]]:
+    text = files(__package__).joinpath("resources/locales.yaml").read_text(encoding="utf-8")
+    return {code: (names[0], names[1]) for code, names in yaml.safe_load(text).items()}

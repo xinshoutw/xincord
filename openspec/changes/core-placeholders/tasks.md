@@ -8,7 +8,7 @@
 
 - [x] 2.1 xfail tests for "Acting-user values follow v3", "User and member values follow v3",
       "Guild values follow v3", "Channel and event values follow v3" and "Locale names follow JDA"
-- [ ] 2.2 Implement the families, the Protocols and `locales.yaml`; remove the markers
+- [x] 2.2 Implement the families, the Protocols and `locales.yaml`; remove the markers
 
 ## 3. Close
 
