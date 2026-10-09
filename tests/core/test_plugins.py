@@ -17,11 +17,47 @@ from typing import TYPE_CHECKING
 import discord
 import pytest
 
+from xincord.core.bot import Bot
 from xincord.core.plugins import GROUP, PluginInfo, discover, required_intents
+from xincord.core.storage import Store
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import AsyncGenerator, Iterator, Sequence
     from pathlib import Path
+
+LOADING = pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="A failing plugin disables only itself"
+)
+INTENTS_ON_BOT = pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Intents are aggregated before connecting"
+)
+FILES = pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Plugin files live under plugins/<Name>/"
+)
+RECORD = """
+from .. import calls
+
+
+async def setup(bot):
+    calls.append(bot.plugin_context(__name__).info.name)
+"""
+CONFIGURED = """
+from xincord.core.config import Model
+
+from .. import calls
+
+
+class Config(Model):
+    greeting: str
+
+
+async def setup(bot):
+    context = bot.plugin_context(__name__)
+    config = context.config(Config)
+    lang = context.lang("en-US")
+    calls.append((config.greeting, lang.locales, context.directory, context.store))
+"""
+BUNDLE = {"config.yaml": "greeting: Hello\n", "lang/en-US/register.yaml": "greet:\n  name: greet\n"}
 
 
 @dataclass
@@ -49,10 +85,24 @@ class FakePlugins:
         importlib.invalidate_caches()
         return module
 
-    def calls(self) -> list[str]:
-        """The names recorded by the plugins' setup functions so far."""
-        record: list[str] = sys.modules[self.package].calls
+    def calls(self) -> list[object]:
+        """What the plugins' setup functions recorded so far."""
+        record: list[object] = sys.modules[self.package].calls
         return record
+
+    def bot(
+        self, enabled: Sequence[str], root: Path, store: Store, *, force_lang: bool = False
+    ) -> Bot:
+        """Create a bot for the enabled plugins."""
+        plugins = discover(enabled, self.entry_points)
+        return Bot(plugins, root=root, store=store, force_lang=force_lang)
+
+
+@pytest.fixture
+async def store() -> AsyncGenerator[Store]:
+    opened = await Store.open(":memory:")
+    yield opened
+    await opened.close()
 
 
 @pytest.fixture
@@ -165,3 +215,101 @@ def test_plugin_intents_are_added(fake_plugins: FakePlugins) -> None:
     intents = required_intents(discover(["Alpha", "Beta"], fake_plugins.entry_points))
 
     assert intents == expected
+
+
+@INTENTS_ON_BOT
+async def test_bot_uses_the_aggregated_intents(
+    fake_plugins: FakePlugins, store: Store, tmp_path: Path
+) -> None:
+    """Requirement: Intents are aggregated before connecting."""
+    fake_plugins.add("Alpha", "import discord\nINTENTS = discord.Intents(members=True)\n")
+
+    bot = fake_plugins.bot(["Alpha"], tmp_path, store)
+
+    assert bot.intents == required_intents(discover(["Alpha"], fake_plugins.entry_points))
+
+
+@LOADING
+@pytest.mark.parametrize("beta", ["async def setup(bot):\n    raise RuntimeError('broken')\n", ""])
+async def test_one_plugin_fails(
+    fake_plugins: FakePlugins,
+    store: Store,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+    beta: str,
+) -> None:
+    """Requirement: A failing plugin disables only itself."""
+    fake_plugins.add("Alpha", RECORD)
+    fake_plugins.add("Beta", beta)
+    fake_plugins.add("Gamma", "DEPENDS = ('Beta',)\n" + RECORD)
+    fake_plugins.add("Delta", RECORD)
+    bot = fake_plugins.bot(["Alpha", "Beta", "Gamma", "Delta"], tmp_path, store)
+
+    with caplog.at_level(logging.ERROR):
+        failed = await bot.load_plugins()
+
+    assert failed == ["Beta", "Gamma"]
+    assert bot.loaded == ("Alpha", "Delta")
+    assert fake_plugins.calls() == ["Alpha", "Delta"]
+    assert "Beta" in caplog.text
+    assert "Gamma" in caplog.text
+
+
+@FILES
+async def test_first_load_creates_the_files(
+    fake_plugins: FakePlugins, store: Store, tmp_path: Path
+) -> None:
+    """Requirement: Plugin files live under plugins/<Name>/."""
+    fake_plugins.add("Alpha", CONFIGURED, BUNDLE)
+    root = tmp_path / "plugins"
+
+    assert await fake_plugins.bot(["Alpha"], root, store).load_plugins() == []
+
+    directory = root / "Alpha"
+    assert (directory / "config.yaml").read_text(encoding="utf-8") == "greeting: Hello\n"
+    assert (directory / "lang" / "en-US" / "register.yaml").exists()
+    assert fake_plugins.calls() == [("Hello", ("en-US",), directory, store)]
+
+
+@FILES
+async def test_edited_files_are_kept_unless_renewal_is_forced(
+    fake_plugins: FakePlugins, store: Store, tmp_path: Path
+) -> None:
+    """Requirement: Plugin files live under plugins/<Name>/."""
+    fake_plugins.add("Alpha", CONFIGURED, BUNDLE)
+    root = tmp_path / "plugins"
+    await fake_plugins.bot(["Alpha"], root, store).load_plugins()
+    config = root / "Alpha" / "config.yaml"
+    register = root / "Alpha" / "lang" / "en-US" / "register.yaml"
+    config.write_text("greeting: Hi\n", encoding="utf-8")
+    register.write_text("greet:\n  name: hey\n", encoding="utf-8")
+
+    await fake_plugins.bot(["Alpha"], root, store).load_plugins()
+    kept = register.read_text(encoding="utf-8")
+    await fake_plugins.bot(["Alpha"], root, store, force_lang=True).load_plugins()
+
+    assert kept == "greet:\n  name: hey\n"
+    assert register.read_text(encoding="utf-8") == "greet:\n  name: greet\n"
+    assert config.read_text(encoding="utf-8") == "greeting: Hi\n"
+    assert [call[0] for call in fake_plugins.calls() if isinstance(call, tuple)] == [
+        "Hello",
+        "Hi",
+        "Hi",
+    ]
+
+
+@FILES
+async def test_broken_config_disables_the_plugin(
+    fake_plugins: FakePlugins, store: Store, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: Plugin files live under plugins/<Name>/."""
+    fake_plugins.add("Alpha", CONFIGURED, BUNDLE)
+    config = tmp_path / "plugins" / "Alpha" / "config.yaml"
+    config.parent.mkdir(parents=True)
+    config.write_text("greeting: [1, 2]\n", encoding="utf-8")
+
+    with caplog.at_level(logging.ERROR):
+        failed = await fake_plugins.bot(["Alpha"], tmp_path / "plugins", store).load_plugins()
+
+    assert failed == ["Alpha"]
+    assert str(config) in caplog.text

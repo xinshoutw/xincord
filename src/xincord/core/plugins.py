@@ -1,7 +1,8 @@
-"""Plugin discovery and ordering.
+"""Plugin discovery, ordering and the context each plugin gets.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/PluginLoader.kt:39-245
+    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/plugin/PluginEvent.kt:14-74
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/plugin/yaml/InfoSerializer.kt:7-40
 """
 
@@ -18,6 +19,11 @@ import discord
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
     from importlib.metadata import EntryPoint
+    from pathlib import Path
+
+    from xincord.core.config import Model
+    from xincord.core.i18n import Lang
+    from xincord.core.storage import Store
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +44,35 @@ class PluginInfo:
     depends: tuple[str, ...] = ()
     soft_depends: tuple[str, ...] = ()
     intents: discord.Intents = field(default_factory=discord.Intents.none)
+
+
+@dataclass(frozen=True)
+class PluginContext:
+    """What the core gives one plugin: its directory, its files and the shared store.
+
+    An extension's ``setup(bot)`` gets it with ``bot.plugin_context(__name__)``.
+    """
+
+    info: PluginInfo
+    directory: Path
+    store: Store
+    force_lang: bool = False
+
+    def config[M: Model](self, model: type[M]) -> M:
+        """Load ``config.yaml`` as ``model``, created from the plugin's bundled default.
+
+        Raises:
+            ConfigError: The file is missing from the bundle or invalid.
+        """
+        raise NotImplementedError
+
+    def lang(self, default_locale: str) -> Lang:
+        """Export the plugin's bundled ``lang`` directory where files are missing, then load it.
+
+        Raises:
+            LangError: The lang files are invalid.
+        """
+        raise NotImplementedError
 
 
 def discover(

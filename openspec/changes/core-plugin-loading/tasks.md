@@ -6,7 +6,7 @@
 
 ## 2. Loading
 
-- [ ] 2.1 xfail tests for "A failing plugin disables only itself" and "Plugin files live under
+- [x] 2.1 xfail tests for "A failing plugin disables only itself" and "Plugin files live under
       plugins/<Name>/"
 - [ ] 2.2 Implement `Bot.load_plugins` and `PluginContext`; remove the markers
 
