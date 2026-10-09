@@ -7,8 +7,6 @@ Kotlin:
 
 from typing import TYPE_CHECKING
 
-import pytest
-
 from xincord.core.plugins import PluginInfo, discover
 
 if TYPE_CHECKING:
@@ -16,7 +14,6 @@ if TYPE_CHECKING:
 
     from xincord.core.bot import Bot
 
-XFAIL = pytest.mark.xfail(strict=True, reason="The plugin installs as BasicCalculator")
 LANG_FILES = (
     "en-US/register.yaml",
     "en-US/message/basic-calculate.yaml",
@@ -27,7 +24,6 @@ LANG_FILES = (
 )
 
 
-@XFAIL
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as BasicCalculator."""
     assert discover(["BasicCalculator"]) == [
@@ -35,7 +31,6 @@ def test_discovered_by_name() -> None:
     ]
 
 
-@XFAIL
 async def test_first_load_creates_the_lang_files(bot: Bot, tmp_path: Path) -> None:
     """Requirement: The plugin installs as BasicCalculator."""
     directory = tmp_path / "plugins" / "BasicCalculator"

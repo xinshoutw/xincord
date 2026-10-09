@@ -9,6 +9,7 @@ dependencies = ["xincord"]
 # One entry point per plugin, named after the v3 plugin; the core config's `plugins` list uses it.
 [project.entry-points."xincord.plugins"]
 _Example = "xincord.plugins.example"
+BasicCalculator = "xincord.plugins.basic_calculator"
 
 [build-system]
 requires = ["uv_build>=0.12.24,<0.13"]
