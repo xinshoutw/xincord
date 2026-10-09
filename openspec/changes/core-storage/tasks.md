@@ -2,7 +2,7 @@
 
 - [x] 1.1 xfail tests for "Values are stored by namespace and key", "Only JSON values are
       accepted" and "Awaited writes are durable"
-- [ ] 1.2 Implement `Store` open/close/get/put/delete/keys/items/run; remove the markers
+- [x] 1.2 Implement `Store` open/close/get/put/delete/keys/items/run; remove the markers
 
 ## 2. Atomic updates, own tables, corruption, locks
 
