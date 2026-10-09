@@ -1,6 +1,6 @@
 ## 1. Codec
 
-- [ ] 1.1 xfail tests for "Component IDs use a versioned format" and "Legacy v3 IDs decode
+- [x] 1.1 xfail tests for "Component IDs use a versioned format" and "Legacy v3 IDs decode
       permanently"
 - [ ] 1.2 Implement `ComponentIds` build, parse and the legacy decoder; remove the markers
 
