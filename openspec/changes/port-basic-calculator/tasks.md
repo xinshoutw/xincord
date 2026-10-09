@@ -1,6 +1,6 @@
 ## 1. Resources
 
-- [ ] 1.1 Bundle v3's en-US and zh-TW `register.yaml`, `message/basic-calculate.yaml` and
+- [x] 1.1 Bundle v3's en-US and zh-TW `register.yaml`, `message/basic-calculate.yaml` and
       `message/error.yaml`, with the corrected en-US `formula` description
 
 ## 2. Installation

@@ -1,0 +1,14 @@
+embeds:
+  - title:
+      text: "🔢 計算機"
+    image_url: "https://blog.xinshou.tw/favicon.ico"
+    color_code: "#C02020"
+    footer:
+      text: "❖ ORDERLY SERVER ❖"
+
+    fields:
+      - name: "算式"
+        value: "```%bc_question%```"
+
+      - name: "結果"
+        value: "```%bc_error%```"
