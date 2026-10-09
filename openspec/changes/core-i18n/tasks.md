@@ -1,6 +1,6 @@
 ## 1. Export
 
-- [ ] 1.1 xfail tests for "Bundled lang files are exported"
+- [x] 1.1 xfail tests for "Bundled lang files are exported"
 - [ ] 1.2 Implement `export_lang`; remove the markers
 
 ## 2. Loading and validation
