@@ -22,14 +22,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def xfail(requirement: str) -> pytest.MarkDecorator:
-    return pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=requirement)
-
-
-ROWS = xfail("Components keep their rows")
-MODELS = xfail("Model keys insert runtime objects")
-TEXT = xfail("Message text is rendered with placeholders")
-
 VALUES = {"user_name": "Alice"}
 
 
@@ -61,7 +53,7 @@ components:
       - {style: 5, url: "https://example.com", label: "Open"}
       - uid: {action: "join"}
         label: "Join"
-        emoji: {formatted: "<:join:111>"}
+        emoji: {formatted: "<:join:112233445566778899>"}
         disabled: true
   - !EntitySelectMenu
     uid: {action: "pick"}
@@ -70,8 +62,9 @@ components:
 """
 
 
-@ROWS
 async def test_two_rows(tmp_path: Path) -> None:
+    """Requirement: Components keep their rows."""
+
     message = render(tmp_path, TWO_ROWS, build_id=IdBuilder())
 
     assert message.view is not None
@@ -85,15 +78,16 @@ async def test_two_rows(tmp_path: Path) -> None:
         "id:action=join",
         True,
     )
-    assert join.emoji == discord.PartialEmoji(name="join", id=111)
+    assert join.emoji == discord.PartialEmoji(name="join", id=112233445566778899)
     assert join.row == 0
     assert (picker.custom_id, picker.row) == ("id:action=pick", 1)
     assert picker.channel_types == [discord.ChannelType.text, discord.ChannelType.news]
     assert message.view.is_finished()
 
 
-@ROWS
 async def test_string_user_and_role_selects(tmp_path: Path) -> None:
+    """Requirement: Components keep their rows."""
+
     text = """\
 components:
   - !StringSelectMenu
@@ -102,7 +96,11 @@ components:
     min: 1
     max: 2
     options:
-      - {label: "A", value: "a", description: "first", default: true, emoji: {name: "<:a:1>"}}
+      - label: "A"
+        value: "a"
+        description: "first"
+        default: true
+        emoji: {name: "<:a:998877665544332211>"}
       - {label: "B", value: "b"}
   - !EntitySelectMenu {uid: {action: "user"}, select_target_type: "USER"}
   - !EntitySelectMenu {uid: {action: "role"}, select_target_type: "ROLE", max: 3}
@@ -118,18 +116,20 @@ components:
     assert (choose.placeholder, choose.min_values, choose.max_values) == ("Pick, Alice", 1, 2)
     first = choose.options[0]
     assert (first.label, first.value, first.description, first.default) == ("A", "a", "first", True)
-    assert first.emoji == discord.PartialEmoji(name="a", id=1)
+    assert first.emoji == discord.PartialEmoji(name="a", id=998877665544332211)
     assert (user.row, role.row, role.max_values) == (1, 2, 3)
 
 
-@ROWS
 async def test_components_need_an_id_builder(tmp_path: Path) -> None:
+    """Requirement: Components keep their rows."""
+
     with pytest.raises(TemplateError, match="ID builder"):
         render(tmp_path, TWO_ROWS)
 
 
-@ROWS
 async def test_link_buttons_need_no_builder(tmp_path: Path) -> None:
+    """Requirement: Components keep their rows."""
+
     text = "components:\n  - !ButtonsComponent\n    buttons: [{style: 5, url: 'https://e.com'}]\n"
 
     message = render(tmp_path, text)
@@ -138,8 +138,9 @@ async def test_link_buttons_need_no_builder(tmp_path: Path) -> None:
     assert len(message.view.children) == 1
 
 
-@TEXT
 async def test_component_text_and_uid_use_placeholders(tmp_path: Path) -> None:
+    """Requirement: Message text is rendered with placeholders."""
+
     text = """\
 components:
   - !ButtonsComponent
@@ -156,8 +157,9 @@ components:
     assert build_id.calls == [{"who": "Alice", "n": "7"}]
 
 
-@MODELS
 async def test_field_and_button_models(tmp_path: Path) -> None:
+    """Requirement: Model keys insert runtime objects."""
+
     text = """\
 embeds:
   - description: "x"
@@ -177,8 +179,9 @@ components:
     assert button.row == 0
 
 
-@MODELS
 async def test_message_embed_row_option_and_emoji_models(tmp_path: Path) -> None:
+    """Requirement: Model keys insert runtime objects."""
+
     prebuilt = Message(content="prebuilt")
     assert render(tmp_path, "model_key: whole\n", models={"whole": prebuilt}) is prebuilt
 
@@ -208,8 +211,27 @@ components:
     assert last.emoji == emoji
 
 
-@MODELS
 @pytest.mark.parametrize("models", [{}, {"board": "not an embed"}])
 async def test_missing_or_wrong_model(tmp_path: Path, models: dict[str, object]) -> None:
+    """Requirement: Model keys insert runtime objects."""
+
     with pytest.raises(TemplateError, match="board"):
         render(tmp_path, "embeds: [{model_key: board}]\n", models=models)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "components:\n  - !ButtonsComponent {model_key: bad}\n",
+        "components:\n  - !ButtonsComponent\n    buttons: [{model_key: bad}]\n",
+        (
+            "components:\n  - !ButtonsComponent\n"
+            "    buttons: [{uid: {a: b}, emoji: {model_key: bad}}]\n"
+        ),
+    ],
+)
+async def test_wrong_component_models(tmp_path: Path, text: str) -> None:
+    """Requirement: Model keys insert runtime objects."""
+
+    with pytest.raises(TemplateError, match="bad"):
+        render(tmp_path, text, build_id=IdBuilder(), models={"bad": 42})

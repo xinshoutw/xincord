@@ -123,3 +123,11 @@ def test_invalid_rendered_color_fails(tmp_path: Path) -> None:
 
     with pytest.raises(TemplateError, match="color"):
         render(tmp_path, 'embeds:\n  - {description: x, color_code: "%dash%"}\n')
+
+
+def test_image_url_is_set(tmp_path: Path) -> None:
+    """Requirement: URL fields need an http result."""
+
+    (embed,) = render(tmp_path, 'embeds:\n  - {image_url: "%picture%"}\n').embeds
+
+    assert embed.image.url == "https://example.com/a.png"

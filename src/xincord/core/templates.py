@@ -3,7 +3,7 @@
 import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Annotated, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Literal, Self, cast
 
 import discord
 import yaml
@@ -13,7 +13,7 @@ from xincord.core.config import Model, parse_model
 from xincord.core.placeholders import CHANNEL_TYPES, render
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping
+    from collections.abc import Callable, Mapping, Sequence
     from pathlib import Path
 
     from xincord.core.i18n import Lang
@@ -21,7 +21,12 @@ if TYPE_CHECKING:
 COLOR = re.compile(r"(?:#|0[xX])[0-9a-fA-F]{1,6}")
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 ENTITY_TARGETS = ("USER", "ROLE", "CHANNEL")
-JDA_CHANNEL_TYPES = frozenset(CHANNEL_TYPES.values())
+# JDA channel type names that discord.py can put in a channel select.
+CHANNEL_TYPE_BY_NAME = {
+    name: discord.ChannelType(value)
+    for value, name in CHANNEL_TYPES.items()
+    if value in {kind.value for kind in discord.ChannelType}
+}
 
 
 class TemplateError(Exception):
@@ -217,7 +222,7 @@ class EntitySelectRow(TemplateModel):
             msg = "channel_types is required when select_target_type is CHANNEL"
             raise ValueError(msg)
         if unknown := [
-            kind for kind in self.channel_types if kind.upper() not in JDA_CHANNEL_TYPES
+            kind for kind in self.channel_types if kind.upper() not in CHANNEL_TYPE_BY_NAME
         ]:
             msg = f"unknown channel types {unknown}"
             raise ValueError(msg)
@@ -489,8 +494,23 @@ def _timestamp(text: str | None, moment: datetime) -> datetime | None:
     return moment if text == "%now%" else EPOCH + timedelta(milliseconds=int(text))
 
 
+def _lookup(models: Mapping[str, object] | None, key: str) -> object:
+    # ponytail: model keys are looked up verbatim, as v3 did, even when they contain %...%.
+    if models is None or key not in models:
+        msg = f"no model named {key!r} was supplied"
+        raise TemplateError(msg)
+    return models[key]
+
+
 def _model[T](models: Mapping[str, object] | None, key: str, kind: type[T]) -> T:
-    raise NotImplementedError
+    model = _lookup(models, key)
+    if not isinstance(model, kind):
+        msg = f"model {key!r} is a {type(model).__name__}, expected {kind.__name__}"
+        raise TemplateError(msg)
+    return model
+
+
+type Item = discord.ui.Item[discord.ui.View]
 
 
 def _view(
@@ -499,4 +519,157 @@ def _view(
     build_id: IdBuilder | None,
     models: Mapping[str, object] | None,
 ) -> discord.ui.View:
-    raise NotImplementedError
+    """Build a stopped view, so discord.py sends it but never dispatches its interactions."""
+    view = discord.ui.View(timeout=None)
+    for index, row in enumerate(rows):
+        for item in _row(row, values, build_id, models):
+            item.row = index
+            view.add_item(item)
+    view.stop()
+    return view
+
+
+def _row(
+    row: RowSpec,
+    values: Mapping[str, str],
+    build_id: IdBuilder | None,
+    models: Mapping[str, object] | None,
+) -> list[Item]:
+    if row.model_key is not None:
+        model = _lookup(models, row.model_key)
+        items = list(cast("Sequence[object]", model)) if isinstance(model, list | tuple) else []
+        if not items or not all(isinstance(item, discord.ui.Item) for item in items):
+            msg = f"model {row.model_key!r} must be a non-empty list of components"
+            raise TemplateError(msg)
+        return cast("list[Item]", items)
+    match row:
+        case ButtonsRow():
+            return [_button(spec, values, build_id, models) for spec in row.buttons]
+        case StringSelectRow():
+            return [_string_select(row, values, build_id, models)]
+        case _:
+            return [_entity_select(row, values, build_id)]
+
+
+def _id(
+    uid: Mapping[str, str] | None, values: Mapping[str, str], build_id: IdBuilder | None
+) -> str:
+    if build_id is None:
+        msg = "components with a uid need an ID builder"
+        raise TemplateError(msg)
+    return build_id({key: render(value, values) for key, value in (uid or {}).items()})
+
+
+def _text(text: str | None, values: Mapping[str, str]) -> str | None:
+    return None if text is None else render(text, values)
+
+
+def _emoji(
+    model_key: str | None,
+    formatted: str | None,
+    values: Mapping[str, str],
+    models: Mapping[str, object] | None,
+) -> discord.PartialEmoji | str | None:
+    if model_key is not None:
+        model = _lookup(models, model_key)
+        if not isinstance(model, discord.PartialEmoji | str):
+            msg = f"model {model_key!r} is a {type(model).__name__}, expected an emoji"
+            raise TemplateError(msg)
+        return model
+    return None if formatted is None else discord.PartialEmoji.from_str(render(formatted, values))
+
+
+def _button(
+    spec: ButtonSpec,
+    values: Mapping[str, str],
+    build_id: IdBuilder | None,
+    models: Mapping[str, object] | None,
+) -> Item:
+    if spec.model_key is not None:
+        model = _lookup(models, spec.model_key)
+        if not isinstance(model, discord.ui.Button):
+            msg = f"model {spec.model_key!r} is a {type(model).__name__}, expected Button"
+            raise TemplateError(msg)
+        return cast("Item", model)
+    emoji = (
+        _emoji(spec.emoji.model_key, spec.emoji.formatted, values, models) if spec.emoji else None
+    )
+    label = _text(spec.label, values)
+    if spec.style == discord.ButtonStyle.link.value:
+        return discord.ui.Button[discord.ui.View](
+            style=discord.ButtonStyle.link,
+            url=render(spec.url or "", values),
+            label=label,
+            emoji=emoji,
+            disabled=spec.disabled,
+        )
+    return discord.ui.Button[discord.ui.View](
+        style=discord.ButtonStyle(spec.style),
+        custom_id=_id(spec.uid, values, build_id),
+        label=label,
+        emoji=emoji,
+        disabled=spec.disabled,
+    )
+
+
+def _string_select(
+    row: StringSelectRow,
+    values: Mapping[str, str],
+    build_id: IdBuilder | None,
+    models: Mapping[str, object] | None,
+) -> Item:
+    options = [_option(spec, values, models) for spec in row.options]
+    return discord.ui.Select[discord.ui.View](
+        custom_id=_id(row.uid, values, build_id),
+        placeholder=_text(row.placeholder, values),
+        min_values=row.min,
+        max_values=row.max,
+        options=options,
+    )
+
+
+def _option(
+    spec: OptionSpec,
+    values: Mapping[str, str],
+    models: Mapping[str, object] | None,
+) -> discord.SelectOption:
+    if spec.model_key is not None:
+        return _model(models, spec.model_key, discord.SelectOption)
+    emoji = _emoji(spec.emoji.model_key, spec.emoji.name, values, models) if spec.emoji else None
+    return discord.SelectOption(
+        label=render(spec.label or "", values),
+        value=render(spec.value or "", values),
+        description=_text(spec.description, values),
+        emoji=emoji,
+        default=spec.default,
+    )
+
+
+def _entity_select(
+    row: EntitySelectRow, values: Mapping[str, str], build_id: IdBuilder | None
+) -> Item:
+    custom_id = _id(row.uid, values, build_id)
+    placeholder = _text(row.placeholder, values)
+    match (row.select_target_type or "").upper():
+        case "USER":
+            return discord.ui.UserSelect[discord.ui.View](
+                custom_id=custom_id,
+                placeholder=placeholder,
+                min_values=row.min,
+                max_values=row.max,
+            )
+        case "ROLE":
+            return discord.ui.RoleSelect[discord.ui.View](
+                custom_id=custom_id,
+                placeholder=placeholder,
+                min_values=row.min,
+                max_values=row.max,
+            )
+        case _:
+            return discord.ui.ChannelSelect[discord.ui.View](
+                custom_id=custom_id,
+                placeholder=placeholder,
+                min_values=row.min,
+                max_values=row.max,
+                channel_types=[CHANNEL_TYPE_BY_NAME[name.upper()] for name in row.channel_types],
+            )

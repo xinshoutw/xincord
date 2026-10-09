@@ -9,7 +9,7 @@
       result", "Empty embeds are dropped" and "Colors and timestamps follow v3"
 - [x] 2.2 Implement content and embed rendering; remove the markers
 - [x] 2.3 xfail tests for "Components keep their rows" and "Model keys insert runtime objects"
-- [ ] 2.4 Implement components and models; remove the markers
+- [x] 2.4 Implement components and models; remove the markers
 
 ## 3. Modals
 
