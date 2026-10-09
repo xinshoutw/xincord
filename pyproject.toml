@@ -1,0 +1,91 @@
+[project]
+name = "xincord"
+version = "0.1.0"
+description = "A modular Discord bot built on discord.py."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.12.24,<0.13"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "xincord.core"
+
+[tool.uv.workspace]
+members = ["packages/xincord-plugins"]
+
+[tool.uv.sources]
+xincord = { workspace = true }
+xincord-plugins = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "coverage>=7.16.2",
+    "prek>=0.5.5",
+    "pyright>=1.1.414",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "pyyaml>=6.0.3",
+    "ruff>=0.16.10",
+    "types-pyyaml>=6.0.12.20260906",
+    "xincord-plugins",
+]
+
+[tool.ruff]
+line-length = 100
+# Research notes quote code verbatim; keep them as written.
+extend-exclude = ["docs/porting/analysis"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "COM812", # conflicts with the formatter
+    "CPY001", # the license is stated once, in README.md and LICENSE
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Docstring rules cover the public core API only (decision A6).
+"packages/**" = ["D"]
+"scripts/**" = ["D", "INP001", "T201"]
+"tests/**" = ["D", "INP001", "PLR2004", "S101"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.flake8-type-checking]
+# discord.py evaluates the parameter annotations of these callbacks at import time, so their
+# imports must stay outside TYPE_CHECKING blocks.
+runtime-evaluated-decorators = [
+    "discord.app_commands.command",
+    "discord.app_commands.context_menu",
+]
+
+[tool.pyright]
+include = ["src", "packages", "scripts", "tests"]
+extraPaths = ["scripts"]
+pythonVersion = "3.14"
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
+
+[tool.pytest]
+minversion = "9.0"
+testpaths = ["tests"]
+pythonpath = ["scripts"]
+addopts = ["--import-mode=importlib"]
+strict = true
+xfail_strict = true
+filterwarnings = ["error"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.coverage.run]
+branch = true
+source_pkgs = ["xincord.core", "xincord.plugins"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+skip_covered = true

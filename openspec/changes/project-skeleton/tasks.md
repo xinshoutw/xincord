@@ -1,9 +1,9 @@
 ## 1. Workspace
 
-- [ ] 1.1 Root `pyproject.toml` (xincord core, workspace, tool configuration) and `.python-version`
-- [ ] 1.2 `packages/xincord-plugins` member and both import packages
-- [ ] 1.3 Smoke tests for "Two distributions share the xincord namespace"
-- [ ] 1.4 `scripts/gate.sh` passes
+- [x] 1.1 Root `pyproject.toml` (xincord core, workspace, tool configuration) and `.python-version`
+- [x] 1.2 `packages/xincord-plugins` member and both import packages
+- [x] 1.3 Smoke tests for "Two distributions share the xincord namespace"
+- [x] 1.4 `scripts/gate.sh` passes
 
 ## 2. Commit-message check (xfail-first)
 
