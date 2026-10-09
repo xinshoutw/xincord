@@ -3,12 +3,12 @@
 import functools
 from datetime import UTC, datetime
 from importlib.resources import files
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, cast, runtime_checkable
 
 import yaml
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Iterable, Mapping, Sequence
 
     import discord
 
@@ -416,9 +416,104 @@ class InteractionLike(Protocol):
         ...
 
 
+# Discord option types: subcommand and group nest options; entities resolve to names as in JDA.
+SUBCOMMAND_TYPES = (1, 2)
+BOOLEAN_OPTION = 5
+ENTITY_OPTIONS = {
+    6: (("users", "username", "@"),),
+    7: (("channels", "name", "#"),),
+    8: (("roles", "name", "@"),),
+    9: (("roles", "name", "@"), ("users", "username", "@")),
+}
+CONTEXT_MENU_TYPES = (2, 3)  # user and message commands
+
+
 def interaction_values(interaction: InteractionLike) -> dict[str, str]:
     """Return v3's interaction keys: ``language``, the channel, and the command or component."""
-    raise NotImplementedError
+    data = interaction.data or {}
+    values = {"language": locale_names(interaction.locale.value)[1]}
+    channel = interaction.channel
+    if (name := getattr(channel, "name", None)) is not None:
+        values |= {"channel_id": str(getattr(channel, "id", 0)), "channel_name": str(name)}
+        if (category := getattr(channel, "category", None)) is not None:
+            values["channel_category_name"] = str(getattr(category, "name", ""))
+    if "component_type" in data:
+        values |= _component_values(str(data.get("custom_id", "")), interaction.message)
+    elif "name" in data:
+        values |= _command_values(data)
+    return values
+
+
+def _command_values(data: Mapping[str, object]) -> dict[str, str]:
+    """The command keys, with ``command_string`` as JDA's ``getCommandString`` built it."""
+    name = str(data["name"])
+    path, options = [name], _options(data)
+    while options and options[0].get("type") in SUBCOMMAND_TYPES:
+        path.append(str(options[0].get("name")))
+        options = _options(options[0])
+    full = " ".join(path)
+    values = {"command_name": name, "full_command_name": full}
+    if len(path) > 1:
+        values["subcommand_name"] = path[-1]
+    if data.get("type") in CONTEXT_MENU_TYPES:
+        values["command_string"] = name
+    else:
+        resolved = _mapping(data.get("resolved"))
+        text = "".join(
+            f" {option.get('name')}: {_option_text(option, resolved)}" for option in options
+        )
+        values["command_string"] = f"/{full}{text}"
+    return values
+
+
+def _option_text(option: Mapping[str, object], resolved: Mapping[str, object]) -> str:
+    kind, value = option.get("type"), option.get("value")
+    if kind == BOOLEAN_OPTION:
+        return "true" if value else "false"
+    for table, field, prefix in ENTITY_OPTIONS.get(cast("int", kind), ()):
+        entity = _mapping(_mapping(resolved.get(table)).get(str(value)))
+        if field in entity:
+            return f"{prefix}{entity[field]}"
+    # Unresolved entities (autocomplete) show their raw ID, as in JDA.
+    return str(value)
+
+
+def _component_values(custom_id: str, message: MessageLike | None) -> dict[str, str]:
+    values = {"component_id": custom_id}
+    component = _find_component(message.components if message else (), custom_id)
+    if component is None:
+        return values
+    if (style := getattr(component, "style", None)) is not None:
+        values["component_label"] = getattr(component, "label", None) or ""
+        values["component_style"] = str(style.name).upper()
+        if (emoji := getattr(component, "emoji", None)) is not None:
+            values |= {"component_emoji": str(emoji), "component_emoji_name": str(emoji.name)}
+    else:
+        values["component_min"] = str(getattr(component, "min_values", 1))
+        values["component_max"] = str(getattr(component, "max_values", 1))
+        if (placeholder := getattr(component, "placeholder", None)) is not None:
+            values["component_placeholder"] = str(placeholder)
+    return values
+
+
+def _find_component(components: Iterable[object], custom_id: str) -> object | None:
+    """Search rows, containers and section accessories for the component with ``custom_id``."""
+    for component in components:
+        if getattr(component, "custom_id", None) == custom_id:
+            return component
+        nested = [*getattr(component, "children", ()), getattr(component, "accessory", None)]
+        if (found := _find_component(filter(None, nested), custom_id)) is not None:
+            return found
+    return None
+
+
+def _options(node: Mapping[str, object]) -> list[Mapping[str, object]]:
+    options = node.get("options")
+    return cast("list[Mapping[str, object]]", options) if isinstance(options, list) else []
+
+
+def _mapping(value: object) -> Mapping[str, object]:
+    return cast("Mapping[str, object]", value) if isinstance(value, dict) else {}
 
 
 def locale_names(locale: str) -> tuple[str, str]:

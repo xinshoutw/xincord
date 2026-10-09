@@ -2,7 +2,7 @@
 
 - [x] 1.1 xfail tests for "Command interaction values follow v3", "Component interaction values
       follow v3" and "Interaction language and channel follow v3"
-- [ ] 1.2 Implement `interaction_values`; remove the markers
+- [x] 1.2 Implement `interaction_values`; remove the markers
 
 ## 2. Close
 

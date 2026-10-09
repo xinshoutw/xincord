@@ -9,25 +9,12 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast
 
 import discord
-import pytest
 
 from xincord.core.placeholders import interaction_values, locale_names
 
 if TYPE_CHECKING:
     from discord.types.components import ActionRow as ActionRowPayload
     from discord.types.components import ContainerComponent as ContainerPayload
-
-COMMANDS = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Command interaction values follow v3"
-)
-COMPONENTS = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Component interaction values follow v3"
-)
-CHANNEL = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Interaction language and channel follow v3",
-)
 
 
 @dataclass
@@ -57,7 +44,6 @@ def slash(*options: dict[str, object]) -> dict[str, object]:
     }
 
 
-@COMMANDS
 def test_subcommand_with_options() -> None:
     """Requirement: Command interaction values follow v3."""
     data = slash(
@@ -78,7 +64,6 @@ def test_subcommand_with_options() -> None:
     assert values["subcommand_name"] == "create"
 
 
-@COMMANDS
 def test_mentionables_numbers_and_unresolved_entities() -> None:
     """Requirement: Command interaction values follow v3."""
     data = slash(
@@ -95,7 +80,6 @@ def test_mentionables_numbers_and_unresolved_entities() -> None:
     )
 
 
-@COMMANDS
 def test_context_menu_command() -> None:
     """Requirement: Command interaction values follow v3."""
     values = interaction_values(FakeInteraction({"type": 3, "name": "Report", "target_id": "1"}))
@@ -122,11 +106,14 @@ def components() -> FakeMessage:
         "min_values": 1,
         "max_values": 2,
     }
-    container = {"type": 17, "components": [{"type": 1, "components": [button]}]}
+    plain = {"type": 2, "style": 4, "custom_id": "stop", "label": "Stop"}
+    bare = {"type": 3, "custom_id": "bare", "options": [{"label": "a", "value": "a"}]}
+    container = {"type": 17, "components": [{"type": 1, "components": [button, plain]}]}
     return FakeMessage(
         [
             discord.Container(cast("ContainerPayload", container), None),
             discord.ActionRow(cast("ActionRowPayload", {"type": 1, "components": [select]})),
+            discord.ActionRow(cast("ActionRowPayload", {"type": 1, "components": [bare]})),
         ]
     )
 
@@ -137,7 +124,6 @@ def component_keys(custom_id: str, message: FakeMessage | None) -> dict[str, str
     return {key: value for key, value in values.items() if key.startswith("component_")}
 
 
-@COMPONENTS
 def test_button_and_select() -> None:
     """Requirement: Component interaction values follow v3."""
     assert component_keys("ticket:1:a=press", components()) == {
@@ -153,16 +139,24 @@ def test_button_and_select() -> None:
         "component_max": "2",
         "component_placeholder": "Choose",
     }
+    assert component_keys("stop", components()) == {
+        "component_id": "stop",
+        "component_label": "Stop",
+        "component_style": "DANGER",
+    }
+    assert component_keys("bare", components()) == {
+        "component_id": "bare",
+        "component_min": "1",
+        "component_max": "1",
+    }
 
 
-@COMPONENTS
 def test_unknown_component() -> None:
     """Requirement: Component interaction values follow v3."""
     assert component_keys("gone", components()) == {"component_id": "gone"}
     assert component_keys("gone", None) == {"component_id": "gone"}
 
 
-@CHANNEL
 def test_guild_channel_and_direct_message() -> None:
     """Requirement: Interaction language and channel follow v3."""
     channel = SimpleNamespace(id=5, name="general", category=SimpleNamespace(name="Text"))
