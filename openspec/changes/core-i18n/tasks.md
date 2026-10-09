@@ -7,7 +7,7 @@
 
 - [x] 2.1 xfail tests for "Locales come from Discord locale directories", "Lang files are
       validated at load" and "Key sets are compared with the default locale"
-- [ ] 2.2 Implement `Lang.load`; remove the markers
+- [x] 2.2 Implement `Lang.load`; remove the markers
 
 ## 3. Lookup and translation
 
