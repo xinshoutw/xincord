@@ -6,7 +6,7 @@
 
 ## 2. Upgrade
 
-- [ ] 2.1 xfail tests for "Legacy IDs are upgraded after use"
+- [x] 2.1 xfail tests for "Legacy IDs are upgraded after use"
 - [ ] 2.2 Implement the upgrade after legacy interactions; remove the markers
 
 ## 3. Close

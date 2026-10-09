@@ -110,9 +110,19 @@ class Bot(commands.Bot):
         custom_id: str,
     ) -> None:
         try:
-            await handler(interaction, ids.parse(custom_id))
+            fields = ids.parse(custom_id)
+            await handler(interaction, fields)
         except Exception:
             logger.exception("Plugin %s failed to handle %s", plugin, custom_id)
+            return
+        if fields.legacy:
+            await self._upgrade(interaction)
+
+    async def _upgrade(self, interaction: discord.Interaction) -> None:
+        """Edit the interaction's message once so its legacy IDs use the new format."""
+        if interaction.message is None:
+            return
+        raise NotImplementedError
 
     async def load_plugins(self) -> list[str]:
         """Load the plugins in order and return the names of those that did not load."""

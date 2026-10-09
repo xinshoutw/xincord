@@ -12,6 +12,7 @@ import textwrap
 import uuid
 from dataclasses import dataclass, field
 from importlib.metadata import EntryPoint
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast
 
 import discord
@@ -24,6 +25,10 @@ from xincord.core.storage import Store
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Iterator, Sequence
     from pathlib import Path
+
+    from aiohttp import ClientResponse
+    from discord.types.components import ActionRow as ActionRowPayload
+    from discord.types.components import ContainerComponent as ContainerPayload
 
 RECORD = """
 from .. import calls
@@ -498,3 +503,134 @@ async def test_failed_load_leaves_no_route(
     await bot.on_interaction(interaction("ticket:1:a=press"))
 
     assert fake_plugins.calls() == []
+
+
+UPGRADED = pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Legacy IDs are upgraded after use"
+)
+LEGACY_BUTTON: dict[str, object] = {
+    "type": 2,
+    "style": 1,
+    "custom_id": "ticket@a:press;f:0",
+    "label": "Open",
+}
+LINK_BUTTON: dict[str, object] = {"type": 2, "style": 5, "url": "https://example.com"}
+
+
+@dataclass
+class FakeChannel:
+    """Returns ``current`` from ``fetch_message``, or raises when it is None."""
+
+    current: FakeMessage | None = None
+
+    async def fetch_message(self, message_id: int) -> FakeMessage:
+        if self.current is None or self.current.id != message_id:
+            raise discord.NotFound(
+                cast("ClientResponse", SimpleNamespace(status=404, reason="")), ""
+            )
+        return self.current
+
+
+def row(*buttons: dict[str, object]) -> discord.Component:
+    return discord.ActionRow(cast("ActionRowPayload", {"type": 1, "components": list(buttons)}))
+
+
+@dataclass
+class FakeMessage:
+    components: Sequence[discord.Component]
+    flags: discord.MessageFlags = field(default_factory=discord.MessageFlags)
+    channel: FakeChannel = field(default_factory=FakeChannel)
+    id: int = 42
+    edits: list[discord.ui.View | discord.ui.LayoutView] = field(
+        default_factory=list[discord.ui.View | discord.ui.LayoutView]
+    )
+
+    async def edit(self, *, view: discord.ui.View | discord.ui.LayoutView) -> None:
+        self.edits.append(view)
+
+
+def legacy_click(message: FakeMessage) -> discord.Interaction:
+    return cast(
+        "discord.Interaction",
+        FakeInteraction(
+            discord.InteractionType.component, {"custom_id": LEGACY_BUTTON["custom_id"]}, message
+        ),
+    )
+
+
+async def loaded_ticket(fake_plugins: FakePlugins, store: Store, tmp_path: Path) -> Bot:
+    fake_plugins.add("Ticket", TICKET)
+    bot = fake_plugins.bot(["Ticket"], tmp_path, store)
+    await bot.load_plugins()
+    return bot
+
+
+def ids_of(view: discord.ui.View | discord.ui.LayoutView) -> list[str | None]:
+    return [item.custom_id for item in view.walk_children() if isinstance(item, discord.ui.Button)]
+
+
+@UPGRADED
+async def test_panel_is_upgraded(fake_plugins: FakePlugins, store: Store, tmp_path: Path) -> None:
+    """Requirement: Legacy IDs are upgraded after use."""
+    bot = await loaded_ticket(fake_plugins, store, tmp_path)
+    message = FakeMessage([row(LEGACY_BUTTON, LINK_BUTTON)])
+    message.channel.current = message
+
+    await bot.on_interaction(legacy_click(message))
+
+    (view,) = message.edits
+    assert type(view) is discord.ui.View
+    assert ids_of(view) == ["ticket:1:a=press;f=0", None]
+    assert view.is_finished()
+
+
+@UPGRADED
+async def test_components_v2_message_is_upgraded(
+    fake_plugins: FakePlugins, store: Store, tmp_path: Path
+) -> None:
+    """Requirement: Legacy IDs are upgraded after use."""
+    bot = await loaded_ticket(fake_plugins, store, tmp_path)
+    container: dict[str, object] = {
+        "type": 17,
+        "components": [{"type": 1, "components": [LEGACY_BUTTON]}],
+    }
+    message = FakeMessage(
+        [discord.Container(cast("ContainerPayload", container), None)],
+        discord.MessageFlags(components_v2=True),
+    )
+    message.channel.current = message
+
+    await bot.on_interaction(legacy_click(message))
+
+    (view,) = message.edits
+    assert type(view) is discord.ui.LayoutView
+    assert ids_of(view) == ["ticket:1:a=press;f=0"]
+
+
+@UPGRADED
+async def test_nothing_to_upgrade(
+    fake_plugins: FakePlugins,
+    store: Store,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Requirement: Legacy IDs are upgraded after use."""
+    bot = await loaded_ticket(fake_plugins, store, tmp_path)
+    upgraded = {**LEGACY_BUTTON, "custom_id": "ticket:1:a=press;f=0"}
+    stale = FakeMessage([row(LEGACY_BUTTON)])
+    stale.channel.current = FakeMessage([row(upgraded)])
+    ephemeral = FakeMessage(
+        [row(LEGACY_BUTTON)],
+        discord.MessageFlags(ephemeral=True),
+    )
+    deleted = FakeMessage([row(LEGACY_BUTTON)])
+
+    with caplog.at_level(logging.ERROR):
+        for message in (stale, ephemeral, deleted):
+            await bot.on_interaction(legacy_click(message))
+
+    assert stale.channel.current.edits == []
+    assert ephemeral.edits == []
+    assert deleted.edits == []
+    assert "42" in caplog.text
+    assert len(fake_plugins.calls()) == 3
