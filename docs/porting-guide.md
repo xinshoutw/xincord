@@ -90,3 +90,5 @@ Every deliberate difference, added by the change that introduces it.
 | Status rotation | malformed entries were skipped at runtime on every cycle | rejected when the config loads | core-config |
 | Interaction log | unknown `log_type` values were ignored | validation error | core-config |
 | Default core config | shipped a real guild and channel ID | ships no interaction log targets | core-config |
+| Storage | a JSON file that failed to parse was replaced by the default and saved | a corrupt database stops startup and is left untouched | core-storage |
+| Storage | JSON files written in place; save errors only logged | SQLite transactions; a failed write raises | core-storage |
