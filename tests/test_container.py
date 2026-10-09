@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -50,7 +49,6 @@ def test_build_context() -> None:
     assert {".git", ".venv", "**/__pycache__", ".pytest_cache", ".ruff_cache", "bot"} <= ignored
 
 
-@pytest.mark.xfail(strict=True, raises=FileNotFoundError, reason="Compose service")
 def test_service_definition() -> None:
     """Requirement: Compose service."""
     compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))

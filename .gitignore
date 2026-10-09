@@ -10,7 +10,8 @@ htmlcov/
 .ruff_cache/
 .DS_Store
 .idea/
-# Files the bot writes when it runs from the repository root.
+# Files the bot writes when it runs from the repository root, or in bot/ under compose.
 /config.yaml
 /plugins/
 /data/
+/bot/

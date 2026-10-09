@@ -1,0 +1,25 @@
+# docker compose up -d --build     start; config.yaml and plugins/ are in ./bot
+# docker compose attach bot        open the console (Ctrl-P Ctrl-Q detaches)
+# docker compose kill -s HUP bot   reload the config and the plugins
+# docker compose stop              stop
+services:
+  bot:
+    build: .
+    image: xincord:local
+    restart: unless-stopped
+    init: true
+    # The console needs a terminal on stdin and stdout.
+    stdin_open: true
+    tty: true
+    stop_grace_period: 30s
+    volumes:
+      - ./bot:/bot
+      - data:/bot/data  # the SQLite database stays in a named volume
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  data:
