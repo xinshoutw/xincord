@@ -72,6 +72,8 @@ runtime-evaluated-base-classes = ["pydantic.BaseModel", "xincord.core.config.Mod
 runtime-evaluated-decorators = [
     "discord.app_commands.command",
     "discord.app_commands.context_menu",
+    "discord.app_commands.describe",
+    "discord.app_commands.rename",
 ]
 
 [tool.pyright]
