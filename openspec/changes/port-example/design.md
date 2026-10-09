@@ -32,8 +32,14 @@ show them); rewriting plugin config files.
   point, loader and packaging, so it cannot drift from the API. Discovery imports only enabled
   plugins, so the cost is one entry point. Alternative: leave it unregistered as copy-only code
   that operators cannot enable.
+- v3's `info.yaml` keys `author`, `coreApi` and `version` have no counterpart: the plugin's version
+  is the `xincord-plugins` distribution's. v3's `Event` logged `_Example is disabled.` when off; a
+  plugin missing from `plugins` is never imported (core-plugin-loading).
 - uv_build ships every file in the package, so `config.yaml` and `lang/` are in the wheel that the
-  image installs with `--no-editable` (checked with `uv build --package xincord-plugins`).
+  image installs with `--no-editable`. Checked on 2026-10-10: the wheel from
+  `uv build --package xincord-plugins` lists them and the `_Example` entry point, and
+  `xincord --no-online`, run from a scratch virtual environment with both wheels installed and
+  `plugins: [_Example]`, loads the plugin, writes `plugins/_Example/` and exits with 0.
 
 ### Config
 
@@ -49,7 +55,10 @@ so commands are built at setup instead of with class-level decorators. `Example.
 nested callback with `app_commands.rename` and `app_commands.describe` and returns
 `app_commands.Command(name=lang.command("example-command", "example.name"), ...)`; `setup` adds it
 with `bot.tree.add_command`. A nested function, not a method, is the callback because discord.py
-treats a function defined in a class as a method and skips two parameters. discord.py removes the
+takes a function defined in a class for a method and skips one parameter too many. discord.py
+evaluates the callback's annotations when the command is built, so `import discord` stays at
+runtime; `app_commands.describe` and `rename` join ruff's `runtime-evaluated-decorators`, so ruff
+flags a move into `TYPE_CHECKING` (ruff accepted it before). discord.py removes the
 command when the extension unloads, because its callback's module belongs to the extension. Base
 names and descriptions are v3's `Commands.slash` defaults; `register.yaml` localizes them. `option1`
 is `app_commands.Range[str, None, 1024]`. The command keeps the tree's ephemeral defer (no
@@ -62,7 +71,9 @@ interaction_values(interaction)`, plus `_Example@option1`, `_Example@option2` (`
 `none`), `_Example@example_key` and `_Example@count` (`0`). The `example` template renders the
 embed; the `counter` template renders the button, so a press re-renders only the button. Templates
 are loaded once in `setup` (`Templates.load`), so a broken template disables the plugin at load.
-`DEFAULT_LOCALE` is zh-TW, as in v3.
+`DEFAULT_LOCALE` is zh-TW, as in v3. The footer keeps v3's `❖ ORDERLY SERVER ❖`, which the
+inventory lists as hard-coded branding: it lives in the lang templates, which the operator edits.
+discord.py dispatches the command by name, which replaces v3's `checkCommandString`.
 
 ### Counter button and component IDs
 
@@ -87,7 +98,10 @@ embed. A malformed count raises, and the core logs it with the plugin's name.
 - The existing configuration already covers the new paths: ruff (`src` and the `packages/**` and
   `tests/**` ignores), pyright (`include` and `extraPaths`), pytest (`testpaths`, `pythonpath`) and
   coverage (`source_pkgs = ["xincord.core", "xincord.plugins"]`). The layout tests check the
-  namespace; each plugin's own tests check its entry point.
+  namespace; each plugin's own tests check its entry point. The only change is the two ruff
+  decorators above.
+- Tests never unload or reload the real plugin: discord.py would re-import its modules, and later
+  tests would compare against classes from the old ones.
 
 ### v3 behaved differently
 

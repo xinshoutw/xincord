@@ -32,10 +32,10 @@
 
 ## 7. Conventions
 
-- [ ] 7.1 Check that the built wheel ships `config.yaml` and `lang/`
-- [ ] 7.2 Write the plugin conventions into the port-plugin skill and `docs/porting-guide.md`,
+- [x] 7.1 Check that the built wheel ships `config.yaml` and `lang/`
+- [x] 7.2 Write the plugin conventions into the port-plugin skill and `docs/porting-guide.md`,
       with the differences rows and the pitfalls
-- [ ] 7.3 Audit the inventory against the scenarios and the design
+- [x] 7.3 Audit the inventory against the scenarios and the design
 
 ## 8. Close
 

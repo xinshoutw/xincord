@@ -6,41 +6,156 @@ description: Port one XsDiscordBotKt plugin to xincord following the project's O
 # Port a plugin
 
 Work on one plugin at a time, in the order of decision C1. Follow `AGENTS.md` throughout. The
-first plugins calibrate this checklist: fix it here when reality differs.
+template is _Example: `packages/xincord-plugins/src/xincord/plugins/example/`, its tests in
+`tests/plugins/example/` and its archived change `openspec/changes/archive/*-port-example/`. Copy
+its shape and the conventions below. Fix this skill when reality differs; the newest port wins.
+
+Names: `<Plugin>` is the v3 name (`AutoRole`, `_Example`), `<kebab>` its kebab case (`auto-role`,
+`example`) for the change and the commit scope, `<package>` the Python package (`auto_role`,
+`example`).
+
+## Steps
 
 1. **Read.** `docs/porting/analysis/inventory/<Plugin>.md` end to end, then the Kotlin files it
-   cites at `XsDiscordBotKt@3a59607`. Note every v3 defect the inventory lists.
-2. **Propose.** `openspec new change port-<plugin-kebab>`, then write:
+   cites at `XsDiscordBotKt@3a59607` (in ranges). Note every v3 defect the inventory lists.
+2. **Propose.** `openspec new change port-<kebab>`, then write:
    - `proposal.md`: scope, out of scope, cited Kotlin sources.
-   - `specs/plugin-<plugin-kebab>/spec.md`: one requirement per behavior, scenarios testable
-     without Discord.
-   - `design.md`: config schema, storage tables, component IDs (legacy prefix and v3 field
-     order), "v3 behaved differently: ..." entries, and the user-visible changes.
-   - `tasks.md`: one xfail task and one implementation task per requirement.
-   Run `openspec validate port-<plugin-kebab> --strict` and commit the proposal.
-3. **Resources.** Port the config and lang YAML with example values only; never real IDs,
-   account numbers or tokens.
-4. **Per requirement, xfail-first.** Test (fails for the expected reason) -> commit with
-   `xfail(strict=True)` -> implement and remove the marker -> commit. Pure logic is tested without
-   discord.py; Cogs and views get Protocol fakes.
-5. **Wire it up.** Register the extension in the `xincord.plugins` entry-point group in
-   `packages/xincord-plugins/pyproject.toml`, named after the v3 plugin (`AutoRole = ...`).
-   Declare `DEPENDS`, `SOFT_DEPENDS` and `INTENTS` as module constants, and keep import time free
-   of work. In `setup(bot)`, get `bot.plugin_context(__name__)` and load `config(Model)` from the
-   bundled `config.yaml` and `lang(default_locale)`. Drop v3's `enabled` key: the core config's
-   `plugins` list decides. v3 `globalCommands()` become commands with `extras={"global": True}`;
-   a command that opens a modal sets `extras={"defer": False}`. Buttons, selects and modals reach
-   the plugin through `bot.route(__name__, IDS, handler)`.
-   `setup` runs before the gateway connects (and without a login under `--no-online`): guilds
-   are not cached yet, so anything that needs them waits for `bot.wait_until_ready()` or
-   `on_ready`, and background loops stop in `cog_unload`.
-6. **Golden tests.** Declare the plugin's `ComponentIds(namespace, fields, legacy_prefix=...,
-   legacy_hex=...)` with the v3 fields first, in v3 declaration order (append only). Decode real
-   v3 IDs from the inventory and check that each upgrades to the expected new ID. Render every
-   shipped template in each locale.
-7. **Document.** Add the mapping notes, new pitfalls and the differences table rows to
-   `docs/porting-guide.md`. Write the manual smoke checklist for a test guild in the change's
-   `design.md`.
-8. **Close.** Run `scripts/gate.sh`, push, check CI, `openspec archive port-<plugin-kebab> --yes`,
-   `openspec validate --all --strict`, commit and push. Report the user-visible changes to the
-   owner.
+   - `specs/plugin-<kebab>/spec.md`: one requirement per behavior, scenarios testable without
+     Discord, each requirement under 500 characters.
+   - `design.md`: package, config schema, storage tables, component IDs (legacy prefix and v3 field
+     order), "v3 behaved differently: ..." entries, user-visible changes, manual smoke checklist.
+   - `tasks.md`: resources, one xfail task and one implementation task per requirement, then
+     conventions, docs and close.
+   Run `openspec validate port-<kebab> --strict`, the gate, and commit
+   (`docs(plugin-<kebab>): propose port-<kebab>`).
+3. **Resources.** Copy v3's `config.yaml` and lang files into the package (fix missing final
+   newlines), example values only: never real IDs, account numbers or tokens.
+4. **Per requirement, xfail-first.** Test (fails for the expected reason; check with
+   `pytest --runxfail`) -> commit with `xfail(strict=True)` -> implement and remove the marker ->
+   commit. Tick `tasks.md` in the same commits.
+5. **Wire it up.** Entry point, `setup`, command, routes: see the conventions.
+6. **Golden tests.** v3's text per locale in `golden.yaml`; v3 component IDs from the inventory
+   decode and upgrade to the expected new IDs (a plugin with v3 components); every shipped template
+   renders in each locale.
+7. **Check the package.** `uv build --package xincord-plugins -o <scratch dir>` lists `config.yaml`
+   and `lang/` in the wheel. Stronger: install both wheels in a scratch venv and run
+   `xincord --no-online` in an empty directory whose `config.yaml` enables the plugin.
+8. **Document.** `docs/porting-guide.md`: differences rows, new pitfalls, convention changes. Audit
+   the inventory: each behavior is a scenario with a test, or out of scope or a v3 difference in
+   `design.md`, with the reason.
+9. **Close.** Gate, push, CI green; `openspec archive port-<kebab> --yes`,
+   `openspec validate --all --strict`; `HANDOFF.md` (sections 4, 5, 7) and the plugin's section in
+   `docs/porting/owner-review.md`; commit, push, CI green.
+
+## Conventions
+
+### Package
+
+```
+packages/xincord-plugins/src/xincord/plugins/<package>/
+  __init__.py   DEPENDS, SOFT_DEPENDS, INTENTS, DEFAULT_LOCALE and setup(bot)
+  config.py     class Config(Model), if the plugin has settings
+  cog.py        the Cog: command builders, handlers, listeners; IDS
+  config.yaml   the bundled default config
+  lang/<locale>/register.yaml, message/*.yaml, modal/*.yaml
+```
+
+- Import the plugin's own modules relatively (`from .cog import Example`). Split `cog.py` when it
+  grows: pure logic in its own module (tested without discord.py), storage in `store.py`.
+- Entry point: `<Plugin> = "xincord.plugins.<package>"` under
+  `[project.entry-points."xincord.plugins"]` in `packages/xincord-plugins/pyproject.toml`. The name
+  is the v3 name: the `plugins:` entry, the `plugins/<Plugin>/` directory and the log name. `uv run`
+  reinstalls the workspace package; `uv.lock` does not change.
+- `uv_build` ships every file in the package, so bundled YAML reaches the image.
+
+### setup
+
+```python
+async def setup(bot: Bot) -> None:
+    context = bot.plugin_context(__name__)  # __name__ is the entry-point module
+    lang = context.lang(DEFAULT_LOCALE)
+    cog = Example(context.config(Config), lang, Templates.load(lang))
+    await bot.add_cog(cog)
+    bot.tree.add_command(cog.command())
+    bot.route(__name__, IDS, cog.count)
+```
+
+- Discovery imports the module and `load_extension` runs it again: no work at import time.
+- `setup` runs before the gateway connects (without a login under `--no-online`): wait for
+  `bot.wait_until_ready()` or `on_ready` for guild data; stop loops in `cog_unload`.
+- Unloading and reloading remove the cog, the tree commands whose callback lives in the package and
+  the routes; release anything else in `cog_unload`.
+- `DEFAULT_LOCALE` is v3's default locale (zh-TW in every v3 plugin so far).
+
+### Config
+
+- `class Config(Model)` with the same defaults as the bundled `config.yaml`. Keep v3's YAML keys and
+  shapes so v3 files load unchanged; v3's `enabled` only logs `unknown key enabled`. A renamed key
+  needs a migration in `xincord.core.migrate_v3` (none so far).
+- A plugin whose only v3 key was `enabled` ships no `config.yaml` and never calls
+  `context.config`.
+
+### Commands
+
+- Build commands in `setup` from the Lang: `Translator` reads the Lang from each string's extras,
+  and the Lang loads only in `setup`. Pattern: `Example.command()` in the template.
+- The callback is a nested function (discord.py treats a function defined in a class as a method
+  and skips one parameter too many), decorated with `app_commands.rename` / `describe` whose values
+  are `lang.command(<v3 default>, "<register.yaml key>")`, and passed to
+  `app_commands.Command(name=lang.command(...), description=lang.command(...), callback=...)`.
+- Keep `import discord` at runtime: discord.py evaluates the callback's annotations when the
+  command is built. `describe` and `rename` are in ruff's `runtime-evaluated-decorators`, so ruff
+  flags a move into `TYPE_CHECKING`; a callback without them is guarded only by the tests.
+- Base names and descriptions are v3's `Commands.slash(...)` defaults. Limits use
+  `app_commands.Range`. Guild command by default; v3 `globalCommands()` get `extras={"global":
+  True}`; a command that opens a modal sets `extras={"defer": False}`. The tree defers the others
+  ephemerally before the callback runs: answer with `interaction.edit_original_response(...)` or
+  `interaction.followup.send(...)`.
+
+### Templates and placeholders
+
+- `Templates.load(lang)` in `setup`, so a broken template disables the plugin at load. Render with
+  `render_message(templates.message(name, interaction.locale.value), values, build_id=IDS.build)`.
+- v3's `Placeholder.get(event)` is `actor_values(interaction.user, bot) |
+  interaction_values(interaction)` (`placeholder_values` in the template's `cog.py`);
+  `Placeholder.get(member)` is `actor_values(member, bot)`. When a second plugin needs
+  `placeholder_values`, move it to `xincord.core.placeholders` (core change with a spec delta)
+  instead of copying it again.
+- Plugin keys keep v3's names (`_Example@option1`, `ga@title`) so operators' templates keep working.
+
+### Components
+
+- `IDS = ComponentIds("<package>", fields, legacy_prefix=..., legacy_hex=...)` in `cog.py`: v3's
+  fields first, in v3 declaration order (`action` first in every v3 plugin), new fields appended;
+  `legacy_prefix` is v3's `component_prefix` from `info.yaml` or `<lowercase name>@`; `legacy_hex`
+  lists the fields v3 declared as Int or Long. A plugin without v3 components has no legacy prefix.
+- Templates set `uid: {action: ..., ...}`; `setup` calls `bot.route(__name__, IDS, handler)`. The
+  handler gets `ParsedId` (values are strings), dispatches on `action`, and may raise: the core
+  logs it with the plugin's name and upgrades legacy IDs on the message afterwards.
+- `interaction.response.edit_message(view=...)` changes only the components; content and embeds
+  stay.
+
+### Tests
+
+- `tests/plugins/<package>/test_<topic>.py`. The module docstring cites the Kotlin sources; each
+  test's docstring is `Requirement: <name>.`
+- `tests/plugins/<package>/conftest.py`: `bot` loads the real plugin with
+  `plugin_fakes.load_plugin("<Plugin>", tmp_path / "plugins", store)` (entry point, translator and
+  `setup`, no network); `cog` is `bot.get_cog(...)`. To test operator edits and v3 files, write
+  them under `tmp_path / "plugins" / "<Plugin>"` first and call `load_plugin` in the test.
+- `tests/support/discord_fakes.py`: `FakeInteraction` records what the plugin sends in `sent`;
+  `FakeUser`, `buttons(view)` and `embed_dict(embed)`. Extend it instead of writing new fakes.
+  Call handlers directly (`cog.reply(...)`), commands through
+  `bot.tree.get_command(...).callback`, and components through `bot.on_interaction(...)`, which
+  includes the routing.
+- `tests/fixtures/plugins/<package>/golden.yaml`, loaded with `plugin_fakes.golden("<package>")`:
+  v3's text per locale. Compare rendered embeds and buttons, and the command payload from
+  `CommandTree.payloads()`, with it; no CJK text is typed in Python.
+- A test that loads the plugin cannot reach a stub that raises without breaking the load: mark it
+  `xfail(strict=True, reason=...)` without `raises`. Give handlers that tests call directly a stub
+  and `raises=NotImplementedError`. A test that would already pass (such as "no response") must
+  call a stub.
+- Never unload or reload the real plugin in a test: discord.py re-imports its modules, and later
+  tests compare against classes from the old ones. The core's reload tests use fake plugins.
+- ruff, pyright, pytest and coverage already cover `packages/` and `tests/`; nothing to configure
+  per plugin.

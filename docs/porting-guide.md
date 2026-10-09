@@ -13,6 +13,8 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | Plugin jar + `info.yaml`, classloader per plugin | extension module + `commands.Cog`, metadata as module constants (`DEPENDS`, `SOFT_DEPENDS`, `INTENTS`), entry point in group `xincord.plugins` named after the plugin | B2, B3 |
 | `enabled` key in each plugin config | the core config's `plugins` list; `setup(bot)` calls `bot.plugin_context(__name__)` for `config(Model)` and `lang(locale)` | B3, B6 |
 | "API plugins" (SQLiteAPI, GoogleSheetAPI, AudioAPI) | ordinary dependencies or nothing | B12 |
+| `PluginEventConfigure.load()`: export lang, read config, build the `StringLocalizer` | `setup(bot)`: `context.lang(DEFAULT_LOCALE)`, `context.config(Config)`, `Templates.load(lang)`, then `bot.add_cog`, `bot.tree.add_command(cog.command())` and `bot.route` | B3 |
+| `Placeholder.get(event)` / `Placeholder.get(member)` | `actor_values(interaction.user, bot) \| interaction_values(interaction)` / `actor_values(member, bot)`, plus the plugin's keys | B10 |
 | Load order from `depend` / `soft_depend` | `graphlib.TopologicalSorter`; a failing plugin disables only itself | B3 |
 | `GatewayIntent` presets | `discord.Intents` aggregated from enabled plugins before connecting | B4 |
 | `ListenerAdapter` overrides | `@commands.Cog.listener()` | B3 |
@@ -59,6 +61,24 @@ every component interaction centrally (it blocks modals), rewriting the template
 migrating the shipped YAML, silent fallbacks, reload as a full gateway reconnect, and two listener
 styles at once.
 
+## Plugin conventions
+
+Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.md`, and _Example
+(`xincord.plugins.example`) is the template to copy.
+
+- One package per plugin, `xincord.plugins.<package>`: `__init__.py` (metadata constants and
+  `setup`), `config.py`, `cog.py`, the bundled `config.yaml` and `lang/`. The entry point is named
+  after the v3 plugin (`_Example = "xincord.plugins.example"`).
+- Commands are built in `setup` from the plugin's Lang, with a nested callback passed to
+  `app_commands.Command`; names and descriptions default to v3's.
+- Component IDs: `ComponentIds("<package>", <v3 fields in v3 order, then new ones>,
+  legacy_prefix=<v3 prefix>)`, routed with `bot.route(__name__, IDS, handler)`.
+- Placeholder keys keep v3's names, and v3's `Placeholder.get(...)` values come from the core
+  families (see the mapping above).
+- Tests live in `tests/plugins/<package>/` and load the real plugin through its entry point
+  (`plugin_fakes.load_plugin`); Discord fakes are in `tests/support/discord_fakes.py`; v3's text
+  per locale is golden data in `tests/fixtures/plugins/<package>/golden.yaml`.
+
 ## Pitfalls
 
 - **Annotations at import time.** discord.py evaluates app-command parameter annotations when the
@@ -90,6 +110,13 @@ styles at once.
 - **Reload re-runs setup.** `reload_extension` executes the plugin module again and calls the new
   `setup`; release what the old version holds (tasks, listeners outside a cog) in `teardown` or
   `cog_unload`. A failed reload restores the old module and runs its `setup` again.
+- **Command callbacks.** discord.py takes a function defined in a class for a method and skips
+  one parameter too many when it is passed to `app_commands.Command`; build commands with a nested
+  callback. It also evaluates the callback's annotations when the command is built, so
+  `import discord` must stay at runtime (`describe` and `rename` are runtime-evaluated decorators
+  for ruff).
+- **Real plugins in tests.** Unloading or reloading a real plugin makes discord.py re-import its
+  modules, so classes imported by test modules no longer match; test reloads with fake plugins.
 - **Stopped views.** A discord.py view created outside a running event loop never reports
   `is_finished()`; tests that check rendered views must be `async`.
 - **Global `core.hooksPath`.** prek refuses to install while a global `core.hooksPath` is set; use
@@ -153,3 +180,10 @@ Every deliberate difference, added by the change that introduces it.
 | Interaction log | log channel messages used JDA's default mentions, so `%user_mention%` pinged | log messages never ping | core-status-log |
 | Status rotation | a single activity was set again after every delay | set once | core-status-log |
 | Deployment | `java -jar` from `Server/`, files and MongoDB data next to the jar | an arm64 image under docker compose: files in `./bot`, the SQLite database in the `xincord_data` volume | container |
+| _Example | an `option1` longer than 1024 characters overflowed the embed field, and the command got no reply | Discord refuses more than 1024 characters | port-example |
+| _Example | no reply in threads, voice channel chats and announcement channels | answers in any channel | port-example |
+| _Example | `%...%` in the options was expanded, and a self-reference made the reply fail | option text is inserted as typed | port-example |
+| _Example | the `_Example@` keys stayed in the user's cached placeholders | each render uses its own values | port-example |
+| _Example | `example_key` was required but never read; a config without it stopped the bot | optional, `example_value` by default, shown in the reply | port-example |
+| _Example | the reply needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers the command | port-example |
+| _Example | the reply was the embed alone | a third field shows `example_key`, and a button under the embed counts presses | port-example |
