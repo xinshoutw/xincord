@@ -39,3 +39,25 @@ error:
     fields:
       - {name: "算式", value: "```1e5```", inline: false}
       - {name: "結果", value: "```Unknown character: e```", inline: false}
+
+# The translated payload of /basic-calculate; keys that are not listed here are not compared. The
+# en-US formula description is corrected (v3: "Legal symbols + - * / ^ ( ), and bracket is
+# ignorable"), and max_length is new.
+command:
+  type: 1
+  name: "basic-calculate"
+  description: "calculate + - * / ^ ( ) math problem"
+  nsfw: false
+  default_member_permissions: null
+  name_localizations: {en-US: "calculate", zh-TW: "告訴我"}
+  description_localizations: {en-US: "calculate basic math formula", zh-TW: "計算數學算式"}
+  options:
+    - type: 3
+      name: "formula"
+      description: "What's problem?"
+      required: true
+      max_length: 1018
+      name_localizations: {en-US: "formula", zh-TW: "算式"}
+      description_localizations:
+        en-US: "Legal symbols + - * / ^ ( ), and the multiplication sign can be omitted"
+        zh-TW: "可接受符號有 + - * / ^ ( )，並且可以省略乘號"
