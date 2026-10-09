@@ -7,8 +7,8 @@
 
 ## 2. Commit-message check (xfail-first)
 
-- [ ] 2.1 Tests for "Commit messages are ASCII Conventional Commits", committed as xfail
-- [ ] 2.2 Implement `scripts/check_commit_msg.py`, remove the xfail markers
+- [x] 2.1 Tests for "Commit messages are ASCII Conventional Commits", committed as xfail
+- [x] 2.2 Implement `scripts/check_commit_msg.py`, remove the xfail markers
 
 ## 3. Hooks and CI
 

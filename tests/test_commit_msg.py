@@ -9,12 +9,6 @@ from check_commit_msg import main, problems
 if TYPE_CHECKING:
     from pathlib import Path
 
-pytestmark = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Commit messages are ASCII Conventional Commits",
-)
-
 IDEOGRAPH = chr(0x4E2D)
 FULL_STOP = chr(0x3002)
 SCISSORS = "# ------------------------ >8 ------------------------"
