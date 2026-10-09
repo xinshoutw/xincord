@@ -61,36 +61,59 @@ def load_config[M: Model](path: Path, model: type[M], default: str) -> M:
     except yaml.YAMLError as error:
         msg = f"{path}: invalid YAML: {error}"
         raise ConfigError(msg) from error
+    return parse_model(path, data, model)
 
+
+def parse_model[M: Model](
+    path: Path,
+    data: object,
+    model: type[M],
+    error: type[Exception] = ConfigError,
+) -> M:
+    """Validate YAML ``data`` read from ``path`` as ``model``, warning about unknown keys.
+
+    Args:
+        path: The file the data came from, used in messages.
+        data: The parsed YAML document; None counts as an empty mapping.
+        model: The schema to validate against.
+        error: The exception raised for invalid data.
+
+    Returns:
+        The validated model.
+
+    Raises:
+        ConfigError: The data is not a mapping or does not match the schema (or ``error``).
+    """
     if data is None:
         data = {}
     if not isinstance(data, dict):
         msg = f"{path}: expected a mapping at the top level"
-        raise ConfigError(msg)
+        raise error(msg)
     try:
-        config = model.model_validate(data)
-    except ValidationError as error:
-        lines = [f"{path}: {_dotted(issue['loc'])}: {issue['msg']}" for issue in error.errors()]
-        raise ConfigError("\n".join(lines)) from error
+        parsed = model.model_validate(data)
+    except ValidationError as invalid:
+        lines = [f"{path}: {_dotted(issue['loc'])}: {issue['msg']}" for issue in invalid.errors()]
+        raise error("\n".join(lines)) from invalid
 
-    for key in _unknown_keys(config, ""):
+    for key in unknown_keys(parsed):
         logger.warning("%s: unknown key %s", path, key)
-    return config
+    return parsed
 
 
 def _dotted(location: tuple[int | str, ...]) -> str:
     return ".".join(str(part) for part in location) or "<root>"
 
 
-def _unknown_keys(value: object, prefix: str) -> Iterator[str]:
+def unknown_keys(value: object, prefix: str = "") -> Iterator[str]:
+    """Yield the dotted paths of keys that ``value``'s schemas do not define, at any depth."""
     if isinstance(value, BaseModel):
         for key in value.model_extra or {}:
             yield prefix + key
         for name in type(value).model_fields:
-            yield from _unknown_keys(getattr(value, name), f"{prefix}{name}.")
+            yield from unknown_keys(getattr(value, name), f"{prefix}{name}.")
     elif isinstance(value, (list, tuple)):
         for index, item in enumerate(cast("Sequence[object]", value)):
-            yield from _unknown_keys(item, f"{prefix}{index}.")
+            yield from unknown_keys(item, f"{prefix}{index}.")
 
 
 class ActivityType(StrEnum):
