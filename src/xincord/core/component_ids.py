@@ -13,6 +13,8 @@ from urllib.parse import quote, unquote
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping, Sequence
 
+    import discord
+
 VERSION = 1
 MAX_LENGTH = 100  # Discord's limit for component and modal IDs
 LETTERS = string.ascii_lowercase
@@ -120,6 +122,14 @@ class ComponentIds:
             self._legacy is not None and custom_id.startswith(self._legacy)
         )
 
+    def upgrade(self, custom_id: str) -> str:
+        """Return the new-format equivalent of one of this codec's IDs.
+
+        Raises:
+            ComponentIdError: The ID is not this codec's, or it cannot be converted.
+        """
+        raise NotImplementedError
+
     def _legacy_value(self, name: str, value: str) -> str:
         """Decode a v3 value; v3 wrote ``Int`` and ``Long`` fields in lowercase hex."""
         if name not in self._hex:
@@ -136,3 +146,14 @@ def _unescape(value: str) -> str:
     except UnicodeDecodeError as error:
         msg = f"value {value!r} is not percent-encoded UTF-8"
         raise ComponentIdError(msg) from error
+
+
+def upgrade_view(
+    view: discord.ui.View | discord.ui.LayoutView, codecs: Iterable[ComponentIds]
+) -> bool:
+    """Give the buttons and selects of ``view`` new-format IDs where a codec owns a legacy one.
+
+    ``view`` is a fresh copy, rebuilt from a message with ``from_message``; edit the message with
+    it when this returns True.
+    """
+    raise NotImplementedError

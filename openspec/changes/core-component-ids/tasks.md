@@ -6,7 +6,7 @@
 
 ## 2. Lazy upgrade
 
-- [ ] 2.1 xfail tests for "Legacy IDs are upgraded lazily"
+- [x] 2.1 xfail tests for "Legacy IDs are upgraded lazily"
 - [ ] 2.2 Implement `ComponentIds.upgrade` and `upgrade_view`; remove the markers
 
 ## 3. Close

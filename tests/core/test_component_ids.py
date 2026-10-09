@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import discord
 import pytest
 
-from xincord.core.component_ids import ComponentIdError, ComponentIds, ParsedId
+from xincord.core.component_ids import ComponentIdError, ComponentIds, ParsedId, upgrade_view
 from xincord.core.templates import load_message, render_message
 
 if TYPE_CHECKING:
@@ -146,3 +146,67 @@ def test_ownership() -> None:
     assert not ids.owns("giveaway:1:a=join")
     assert not ids.owns("ticket-addons:1:a=x")
     assert not ComponentIds("bot-info", ("action",)).owns("bot-info@a:x")
+
+
+UPGRADE = pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Legacy IDs are upgraded lazily"
+)
+
+
+@UPGRADE
+def test_upgrade_one_id() -> None:
+    """Requirement: Legacy IDs are upgraded lazily."""
+    ids = ticket()
+
+    assert ids.upgrade("ticket@a:submit;d:1b;f:2") == "ticket:1:a=submit;d=27;f=2"
+    assert ids.upgrade("ticket:1:a=lock") == "ticket:1:a=lock"
+    with pytest.raises(ComponentIdError):
+        ids.upgrade("giveaway@a:join")
+
+
+@UPGRADE
+async def test_upgrade_a_view() -> None:
+    """Requirement: Legacy IDs are upgraded lazily."""
+    legacy_button = discord.ui.Button[discord.ui.View](custom_id="ticket@a:press;f:0")
+    legacy_select = discord.ui.Select[discord.ui.View](
+        custom_id="ticket@a:create;b:modify-admin", options=[discord.SelectOption(label="x")]
+    )
+    current = discord.ui.Button[discord.ui.View](custom_id="ticket:1:a=lock")
+    foreign = discord.ui.Button[discord.ui.View](custom_id="musicplayer@a:play")
+    link = discord.ui.Button[discord.ui.View](url="https://example.com")
+    view = discord.ui.View(timeout=None)
+    for item in (legacy_button, legacy_select, current, foreign, link):
+        view.add_item(item)
+
+    assert upgrade_view(view, [giveaway(), ticket()])
+
+    assert [item.custom_id for item in (legacy_button, legacy_select, current, foreign)] == [
+        "ticket:1:a=press;f=0",
+        "ticket:1:a=create;b=modify-admin",
+        "ticket:1:a=lock",
+        "musicplayer@a:play",
+    ]
+    assert link.url == "https://example.com"
+
+
+@UPGRADE
+async def test_upgrade_a_layout_view() -> None:
+    """Requirement: Legacy IDs are upgraded lazily."""
+    nested = discord.ui.Button[discord.ui.LayoutView](custom_id="ticket@a:press;f:1")
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(discord.ui.Container(discord.ui.ActionRow(nested)))
+
+    assert upgrade_view(view, [ticket()])
+    assert nested.custom_id == "ticket:1:a=press;f=1"
+
+
+@UPGRADE
+async def test_nothing_to_upgrade() -> None:
+    """Requirement: Legacy IDs are upgraded lazily."""
+    current = discord.ui.Button[discord.ui.View](custom_id="ticket:1:a=lock")
+    view = discord.ui.View(timeout=None)
+    view.add_item(current)
+    view.add_item(discord.ui.Button[discord.ui.View](url="https://example.com"))
+
+    assert not upgrade_view(view, [ticket()])
+    assert current.custom_id == "ticket:1:a=lock"
