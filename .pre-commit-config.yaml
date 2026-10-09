@@ -1,0 +1,42 @@
+# Run with prek (`uv run prek install` once). Every hook uses the tool versions locked in uv.lock.
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
+default_stages: [pre-commit]
+
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --locked ruff check --fix --exit-non-zero-on-fix
+        language: system
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --locked ruff format
+        language: system
+        types_or: [python, pyi]
+      - id: pyright
+        name: pyright
+        entry: uv run --locked pyright
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false
+      # pygrep patterns are compiled as bytes, so match the UTF-8 encodings of U+3000..U+9FFF,
+      # U+F900..U+FAFF, U+FF00..U+FFFF and U+20000..U+3FFFF.
+      - id: no-cjk-in-python
+        name: no CJK characters in Python files
+        entry: '[\xe3-\xe9][\x80-\xbf]{2}|\xef[\xa4-\xab\xbc-\xbf][\x80-\xbf]|\xf0[\xa0-\xbf][\x80-\xbf]{2}'
+        language: pygrep
+        types: [python]
+      - id: commit-msg
+        name: ASCII Conventional Commits
+        entry: uv run --locked python scripts/check_commit_msg.py
+        language: system
+        stages: [commit-msg]
+      - id: gate
+        name: full gate
+        entry: scripts/gate.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
