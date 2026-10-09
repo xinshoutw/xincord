@@ -12,7 +12,7 @@
 
 ## 3. Hot reload
 
-- [ ] 3.1 xfail tests for "Hot reload follows dependencies and intents"
+- [x] 3.1 xfail tests for "Hot reload follows dependencies and intents"
 - [ ] 3.2 Implement `Bot.reload_plugin` and `Bot.load_plugin`; remove the markers
 
 ## 4. Core config

@@ -85,6 +85,24 @@ class Bot(commands.Bot):
                 failed.append(info.name)
         return failed
 
+    async def load_plugin(self, info: PluginInfo) -> None:
+        """Load a plugin after startup, for example one enabled since.
+
+        Raises:
+            PluginError: The plugin is already loaded, needs intents the bot was created without
+                or a dependency that is not loaded, or fails to load.
+        """
+        raise NotImplementedError
+
+    async def reload_plugin(self, name: str) -> list[str]:
+        """Reload plugin ``name``, then the loaded plugins that depend on it; return their names.
+
+        Raises:
+            PluginError: The plugin is not loaded, or a reload failed. The plugin that failed
+                keeps its previous version and the ones after it are not reloaded.
+        """
+        raise NotImplementedError
+
     async def _load(self, info: PluginInfo) -> None:
         context = PluginContext(info, self._root / info.name, self._store, self._force_lang)
         self._contexts[info.module] = context

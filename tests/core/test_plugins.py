@@ -76,6 +76,11 @@ class FakePlugins:
         importlib.invalidate_caches()
         return module
 
+    def replace(self, name: str, source: str) -> None:
+        """Rewrite the source of plugin ``name``, as a code update on disk would."""
+        path = self.root / self.package / name.lower() / "__init__.py"
+        path.write_text(textwrap.dedent(source), encoding="utf-8")
+
     def calls(self) -> list[object]:
         """What the plugins' setup functions recorded so far."""
         record: list[object] = sys.modules[self.package].calls
@@ -307,3 +312,81 @@ async def test_unknown_context(store: Store, tmp_path: Path) -> None:
 
     with pytest.raises(PluginError, match="nowhere"):
         bot.plugin_context("nowhere")
+
+
+RELOAD = pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Hot reload follows dependencies and intents"
+)
+PROBE = """
+from discord.ext import commands
+
+
+class Probe(commands.Cog):
+    pass
+
+
+async def setup(bot):
+    await bot.add_cog(Probe())
+"""
+
+
+@RELOAD
+async def test_reload_with_dependents(
+    fake_plugins: FakePlugins, store: Store, tmp_path: Path
+) -> None:
+    """Requirement: Hot reload follows dependencies and intents."""
+    fake_plugins.add("Alpha", RECORD)
+    fake_plugins.add("Beta", "DEPENDS = ('Alpha',)\n" + RECORD)
+    fake_plugins.add("Gamma", RECORD)
+    bot = fake_plugins.bot(["Alpha", "Beta", "Gamma"], tmp_path, store)
+    await bot.load_plugins()
+
+    assert await bot.reload_plugin("Alpha") == ["Alpha", "Beta"]
+
+    assert fake_plugins.calls() == ["Alpha", "Beta", "Gamma", "Alpha", "Beta"]
+    with pytest.raises(PluginError, match="Delta"):
+        await bot.reload_plugin("Delta")
+
+
+@RELOAD
+async def test_failed_reload_keeps_the_previous_version(
+    fake_plugins: FakePlugins, store: Store, tmp_path: Path
+) -> None:
+    """Requirement: Hot reload follows dependencies and intents."""
+    module = fake_plugins.add("Alpha", PROBE)
+    bot = fake_plugins.bot(["Alpha"], tmp_path, store)
+    await bot.load_plugins()
+    previous = bot.extensions[module]
+    fake_plugins.replace("Alpha", "async def setup(bot):\n    raise RuntimeError('new code')\n")
+
+    with pytest.raises(PluginError, match="Alpha"):
+        await bot.reload_plugin("Alpha")
+
+    assert bot.extensions[module] is previous
+    assert bot.get_cog("Probe") is not None
+    assert bot.loaded == ("Alpha",)
+
+
+@RELOAD
+async def test_hot_load_needs_the_intents(
+    fake_plugins: FakePlugins, store: Store, tmp_path: Path
+) -> None:
+    """Requirement: Hot reload follows dependencies and intents."""
+    fake_plugins.add("Alpha", RECORD)
+    fake_plugins.add("Members", "import discord\nINTENTS = discord.Intents(members=True)\n")
+    child = fake_plugins.add("Child", RECORD)
+    fake_plugins.add("Late", RECORD)
+    bot = fake_plugins.bot(["Alpha"], tmp_path, store)
+    await bot.load_plugins()
+    (members, late) = discover(["Members", "Late"], fake_plugins.entry_points)
+
+    with pytest.raises(PluginError, match="members"):
+        await bot.load_plugin(members)
+    with pytest.raises(PluginError, match="Beta"):
+        await bot.load_plugin(PluginInfo("Child", child, depends=("Beta",)))
+    await bot.load_plugin(late)
+    with pytest.raises(PluginError, match="already"):
+        await bot.load_plugin(late)
+
+    assert bot.loaded == ("Alpha", "Late")
+    assert fake_plugins.calls() == ["Alpha", "Late"]
