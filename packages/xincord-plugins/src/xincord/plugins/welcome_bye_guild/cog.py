@@ -9,6 +9,9 @@ from typing import TYPE_CHECKING
 from discord.ext import commands
 
 if TYPE_CHECKING:
+    import discord
+    from discord import app_commands
+
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
     from xincord.core.templates import Templates
@@ -23,3 +26,15 @@ class WelcomeByeGuild(commands.Cog):
         self.store = store
         self.lang = lang
         self.templates = templates
+
+    async def bind_channel(
+        self,
+        interaction: discord.Interaction,
+        channel: app_commands.AppCommandChannel | None = None,
+    ) -> None:
+        """Stub until the commands exist."""
+        raise NotImplementedError
+
+    async def unbind_channel(self, interaction: discord.Interaction) -> None:
+        """Stub until the commands exist."""
+        raise NotImplementedError

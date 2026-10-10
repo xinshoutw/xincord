@@ -1,0 +1,30 @@
+# Golden data for the WelcomeByeGuild tests. The text is v3's, from
+# XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/resources/lang/.
+
+# Each command reply per locale, with the channel general (5) as the chosen channel and as the
+# previous one.
+replies:
+  en-US:
+    guild-only: "This command can only be used in a guild."
+    no-permission: "You need administrator permission to use this command."
+    invalid-channel: "Unable to read a valid text channel. Please choose the `channel` option again."
+    welcome-bind-success: "Welcome channel has been bound to <#5> (general)."
+    welcome-bind-already: "Welcome channel is already <#5>; no update is needed."
+    welcome-unbind-success: "Welcome channel unbound successfully (previous: <#5>)."
+    welcome-unbind-empty: "No welcome channel is currently bound."
+    bye-bind-success: "Leave channel has been bound to <#5> (general)."
+    bye-bind-already: "Leave channel is already <#5>; no update is needed."
+    bye-unbind-success: "Leave channel unbound successfully (previous: <#5>)."
+    bye-unbind-empty: "No leave channel is currently bound."
+  zh-TW:
+    guild-only: "此指令只能在伺服器內使用。"
+    no-permission: "你需要管理員權限才能使用此指令。"
+    invalid-channel: "無法讀取文字頻道，請重新選擇 `channel` 參數。"
+    welcome-bind-success: "已綁定歡迎頻道到 <#5>（general）。"
+    welcome-bind-already: "歡迎頻道已經是 <#5>，不需重複綁定。"
+    welcome-unbind-success: "已解除歡迎頻道綁定（原頻道：<#5>）。"
+    welcome-unbind-empty: "目前尚未綁定歡迎頻道。"
+    bye-bind-success: "已綁定離開訊息頻道到 <#5>（general）。"
+    bye-bind-already: "離開訊息頻道已經是 <#5>，不需重複綁定。"
+    bye-unbind-success: "已解除離開訊息頻道綁定（原頻道：<#5>）。"
+    bye-unbind-empty: "目前尚未綁定離開訊息頻道。"
