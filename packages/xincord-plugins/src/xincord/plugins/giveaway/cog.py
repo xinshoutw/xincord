@@ -6,6 +6,7 @@ Kotlin:
 """
 
 import random
+import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
@@ -22,7 +23,7 @@ from .texts import Texts, language, preview
 from .times import format_end_time
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Callable, Mapping
 
     from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
@@ -64,6 +65,7 @@ class Giveaway(commands.Cog):
         self.random: random.Random = random.SystemRandom()
         # Each user's draft per guild, by user ID and guild ID; v3's StepManager.steps.
         self.drafts: dict[tuple[int, int], Session] = {}
+        self.clock: Callable[[], float] = time.time  # now, in epoch seconds
 
     def command(self) -> app_commands.Command[Any, ..., None]:
         """Build v3's ``/create-giveaway``, localized from ``register.yaml``.

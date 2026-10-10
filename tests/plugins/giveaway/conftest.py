@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from xincord.plugins.giveaway.cog import Giveaway
     from xincord.plugins.giveaway.model import Draft
 
+NOW = 1772244000  # 2026-02-28 10:00 in Asia/Taipei, the tests' clock
 GUILD = 10
 USER = 7  # the administrator who builds the giveaway, unless a test says otherwise
 BUILDER = 43  # the ID of the builder message that shows the user's draft
@@ -176,5 +177,7 @@ class Scene:
 
 @pytest.fixture
 def scene(bot: Bot, store: Store) -> Scene:
-    """Guild 10 with the plugin loaded."""
-    return Scene(bot, store)
+    """Guild 10 with the plugin loaded, at the tests' clock."""
+    created = Scene(bot, store)
+    created.cog.clock = lambda: NOW
+    return created
