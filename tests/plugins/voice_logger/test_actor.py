@@ -14,11 +14,6 @@ from discord.utils import time_snowflake
 
 from xincord.plugins.voice_logger.status import CLEARED, SET, find_actor, match
 
-XFAIL = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Status changes name their member from the audit log",
-)
 AT = datetime(2026, 10, 10, 12, 0, tzinfo=UTC)  # when the status update arrived
 
 
@@ -57,7 +52,6 @@ def log(*entries: dict[str, object]) -> dict[str, object]:
     return {"audit_log_entries": list(entries), "users": []}
 
 
-@XFAIL
 def test_matching_entry() -> None:
     """Requirement: Status changes name their member from the audit log."""
     newer = entry(8, 31, ago=timedelta(seconds=1))  # another channel's status
@@ -67,7 +61,6 @@ def test_matching_entry() -> None:
     assert match(log(targeted(entry(7, 30))), SET, 30, "Gaming", AT) == 7
 
 
-@XFAIL
 def test_same_status_first() -> None:
     """Requirement: Status changes name their member from the audit log."""
     other = entry(8, 30, status="Chill", ago=timedelta(seconds=1))
@@ -78,7 +71,6 @@ def test_same_status_first() -> None:
     assert match(log(unknown, other), SET, 30, "Gaming", AT) == 9  # else the newest one
 
 
-@XFAIL
 @pytest.mark.parametrize(
     "found",
     [
@@ -95,7 +87,6 @@ def test_no_entry(found: object) -> None:
     assert match({"audit_log_entries": [found]}, SET, 30, "Gaming", AT) is None
 
 
-@XFAIL
 @pytest.mark.parametrize("response", [None, [], {}, {"audit_log_entries": "none"}])
 def test_unreadable_response(response: object) -> None:
     """Requirement: Status changes name their member from the audit log."""
@@ -120,7 +111,6 @@ class AuditLog:
         self.sleeps.append(seconds)
 
 
-@XFAIL
 async def test_first_read() -> None:
     """Requirement: Status changes name their member from the audit log."""
     audit = AuditLog(log(entry(7, 30)))
@@ -129,7 +119,6 @@ async def test_first_read() -> None:
     assert (audit.kinds, audit.sleeps) == ([SET], [])
 
 
-@XFAIL
 async def test_late_entry() -> None:
     """Requirement: Status changes name their member from the audit log."""
     audit = AuditLog(log(), log(entry(7, 30, kind=CLEARED)))
@@ -138,7 +127,6 @@ async def test_late_entry() -> None:
     assert (audit.kinds, audit.sleeps) == ([CLEARED, CLEARED], [2.0])  # a cleared status: 193
 
 
-@XFAIL
 async def test_no_entry_after_two_reads() -> None:
     """Requirement: Status changes name their member from the audit log."""
     audit = AuditLog(log(), log(entry(7, 31)))
@@ -147,7 +135,6 @@ async def test_no_entry_after_two_reads() -> None:
     assert (audit.kinds, audit.sleeps) == ([SET, SET], [2.0])
 
 
-@XFAIL
 async def test_unreadable_audit_log() -> None:
     """Requirement: Status changes name their member from the audit log."""
     audit = AuditLog(None)  # Discord refused it; the reader logged why
