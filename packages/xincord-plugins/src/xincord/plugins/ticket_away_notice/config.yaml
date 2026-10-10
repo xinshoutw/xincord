@@ -1,0 +1,21 @@
+# TicketAwayNotice (v3 TicketAddons): list it under `plugins` in the core config.yaml to enable
+# it. The bot then needs the Presence and Server Members intents, allowed for it in the Discord
+# developer portal: without them, Discord refuses the bot's connection.
+
+# When a channel or thread whose name starts with one of `prefix` is created in the guild
+# `guild_id` while the member `user_id` (the owner) is offline, the bot waits `delay_millis`
+# milliseconds and posts lang/zh-TW/message/not-online.yaml in it, unless the owner came online
+# or the channel is gone by then. The plugin does not load until both IDs are set. Example:
+#   guild_id: 111111111111111111
+#   user_id: 222222222222222222
+guild_id: 0
+user_id: 0
+
+# Channel name prefixes, compared case-sensitively (Discord writes text channel names in lower
+# case). Ticket names its channels after the member's username, which these do not match.
+prefix:
+  - "客服單-"
+  - "ticket-"
+
+# The wait before the notice, in milliseconds.
+delay_millis: 2000

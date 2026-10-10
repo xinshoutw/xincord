@@ -1,6 +1,6 @@
 ## 1. Resources
 
-- [ ] 1.1 Bundle `config.yaml` (0 for both IDs, v3's prefixes and delay, comments with the intents
+- [x] 1.1 Bundle `config.yaml` (0 for both IDs, v3's prefixes and delay, comments with the intents
       and placeholder IDs) and v3's zh-TW `message/not-online.yaml` with example values and its
       text in the description, written by a script that replaced v3's values
 

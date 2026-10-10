@@ -48,9 +48,9 @@ through the Web Dashboard (B13).
   the notice can be posted (see "Problems").
 - The bundled `config.yaml` holds 0 for `guild_id` and `user_id` (v3's file held the shop's real
   guild and owner IDs), v3's prefixes `客服單-` and `ticket-` and v3's 2000 ms, with comments that
-  name the intents and give placeholder IDs. The bundled `not-online.yaml` keeps v3's text with
-  example values for the shop's name, its two channel IDs and its footer, written by a script that
-  replaced them in v3's file; the text moves from the embed title into the description, where
+  name the intents and give placeholder IDs. The bundled `not-online.yaml` keeps v3's text and
+  footer (`❖ ORDERLY SERVER ❖`, as in the other plugins' bundled templates) with example values for
+  the shop's name and its two channel IDs, written by a script that replaced them in v3's file; the text moves from the embed title into the description, where
   Discord shows channel mentions as links (in a title they show as raw `<#...>` text, inventory
   section 7). An operator's v3 file, moved by `migrate_v3`, keeps its title: `export_lang` writes
   missing files only.
@@ -107,7 +107,7 @@ into a channel deleted meanwhile (the send failed and was logged) and after the 
 `render_message(templates.message("not-online", lang.default_locale), global_values(bot))`; the
 bot's `allowed_mentions` (users and the replied-to user, B19) apply. The bundled template is one
 embed: author `範例商店` (an example shop name), the description holding v3's two lines with the
-example channels `<#111111111111111111>` and `<#222222222222222222>`, and the footer `❖ EXAMPLE
+example channels `<#111111111111111111>` and `<#222222222222222222>`, and v3's footer `❖ ORDERLY
 SERVER ❖`.
 
 ### Problems
@@ -180,7 +180,7 @@ owner's question about a `ticket-` prefix is in the review queue's Ticket sectio
 - v3 behaved differently: `guild_id` and `user_id` took any non-blank text, and a user ID that was
   not a number failed at each channel; both must be positive integers when the plugin loads.
 - v3 behaved differently: the bundled `config.yaml` held the shop's real guild and owner IDs, and
-  the template its name, two channel IDs and its footer; the bundled files hold example values.
+  the template its name and two channel IDs; the bundled files hold example values.
 - v3 behaved differently: the template's text sat in the embed title, where Discord shows channel
   mentions as raw `<#...>` text; the bundled example puts it in the description.
 - v3 behaved differently: an unknown key failed the whole load (kaml's strict mode); it only warns
@@ -197,8 +197,8 @@ everyone with the global placeholders only; no notice for channels created while
 
 ## User-visible changes
 
-Copy: the comments of the bundled `config.yaml`, the bundled `not-online.yaml` (example shop name,
-channel IDs and footer; the text in the description), and operator log warnings (English).
+Copy: the comments of the bundled `config.yaml`, the bundled `not-online.yaml` (example shop name
+and channel IDs; the text in the description), and operator log warnings (English).
 
 1. The notice is posted only in `guild_id` (v3: in every guild where the owner was a member).
 2. Threads, forum posts, announcement channels and voice and stage channels' chats with a matching
