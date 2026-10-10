@@ -25,11 +25,6 @@ if TYPE_CHECKING:
     from xincord.core.storage import Store
     from xincord.plugins.bot_info.cog import BotInfo
 
-XFAIL = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The reply shows the counts and the source link",
-)
 GOLDEN = golden("bot_info")
 GUILDS = (FakeGuild(10, member_count=3), FakeGuild(20, member_count=4))
 
@@ -72,7 +67,6 @@ def counted(edit: Edit) -> list[str]:
     return [field["value"] for field in edit.embeds[0]["fields"][:2]]
 
 
-@XFAIL
 async def test_reply(cog: BotInfo) -> None:
     """Requirement: The reply shows the counts and the source link."""
     edit = await run(cog)
@@ -80,7 +74,6 @@ async def test_reply(cog: BotInfo) -> None:
     assert edit.embeds == [GOLDEN["reply"]["en-US"]]
 
 
-@XFAIL
 @pytest.mark.parametrize(
     "locale",
     [discord.Locale.taiwan_chinese, discord.Locale.japanese, discord.Locale.british_english],
@@ -92,7 +85,6 @@ async def test_locale_and_fallback(cog: BotInfo, locale: discord.Locale) -> None
     assert edit.embeds == [GOLDEN["reply"]["zh-TW"]]
 
 
-@XFAIL
 async def test_operator_url_in_the_reply(store: Store, tmp_path: Path) -> None:
     """Requirement: The reply shows the counts and the source link."""
     config = 'source_url: "https://git.example/bot"\n'
@@ -103,7 +95,6 @@ async def test_operator_url_in_the_reply(store: Store, tmp_path: Path) -> None:
     assert edit.embeds[0]["fields"][2]["value"] == "https://git.example/bot"
 
 
-@XFAIL
 async def test_bot_placeholders(store: Store, tmp_path: Path) -> None:
     """Requirement: The reply shows the counts and the source link."""
     template = tmp_path / "plugins" / "BotInfo" / "lang" / "en-US" / "message" / "bot-info.yaml"
@@ -116,7 +107,6 @@ async def test_bot_placeholders(store: Store, tmp_path: Path) -> None:
     assert edit.content == "xincord (99)"
 
 
-@XFAIL
 async def test_counts_at_each_use(cog: BotInfo) -> None:
     """Requirement: The reply shows the counts and the source link."""
     first = await run(cog)

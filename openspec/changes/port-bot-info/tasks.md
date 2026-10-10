@@ -22,7 +22,7 @@
 ## 5. Reply
 
 - [x] 5.1 xfail tests for "The reply shows the counts and the source link", with the golden data
-- [ ] 5.2 Implement the reply; remove the markers
+- [x] 5.2 Implement the reply; remove the markers
 
 ## 6. Command
 

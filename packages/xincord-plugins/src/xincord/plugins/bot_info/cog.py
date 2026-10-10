@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Protocol
 
 from discord.ext import commands
 
+from xincord.core.templates import render_message
+
 if TYPE_CHECKING:
     from collections.abc import Collection
 
@@ -38,8 +40,23 @@ class BotInfo(commands.Cog):
         self.templates = templates
 
     async def bot_info(self, interaction: discord.Interaction) -> None:
-        """Stub until the reply exists."""
-        raise NotImplementedError
+        """Turn the deferred response into the ``bot-info`` embed, with the counts as they are now.
+
+        v3 wrote the counts into the placeholders that every plugin shared; here they belong to
+        this render only.
+        """
+        guild_count, member_count = counts(interaction.client.guilds)
+        values = _bot_values(interaction) | {
+            "guild_counts": str(guild_count),
+            "member_counts": str(member_count),
+            "source_url": self.config.source_url,
+        }
+        message = self.templates.message("bot-info", interaction.locale.value)
+        reply = render_message(message, values)
+        # The command tree deferred the response ephemerally, as v3's core did.
+        await interaction.edit_original_response(
+            content=reply.content, embeds=reply.embeds, view=reply.view
+        )
 
 
 def counts(guilds: Collection[Counted]) -> tuple[int, int]:
@@ -49,3 +66,9 @@ def counts(guilds: Collection[Counted]) -> tuple[int, int]:
     count (a guild unavailable since the bot connected) adds nothing.
     """
     return len(guilds), sum(guild.member_count or 0 for guild in guilds)
+
+
+def _bot_values(interaction: discord.Interaction) -> dict[str, str]:
+    """v3's global placeholders, the only ones its ``bot-info`` template had: the bot's keys."""
+    bot = interaction.client.user  # set once the bot has logged in
+    return {} if bot is None else {"bot_id": str(bot.id), "bot_name": bot.name}
