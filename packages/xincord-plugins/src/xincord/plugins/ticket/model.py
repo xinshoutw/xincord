@@ -1,7 +1,8 @@
-"""A panel button's stored entry, v3's ``DataContainer``, and its JSON as v3's Moshi wrote it.
+"""A builder's draft, a panel button's stored entry (v3's ``DataContainer``) and its JSON.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/json/serializer/JsonData.kt:3-10
+    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:181-196
 """
 
 from dataclasses import dataclass
@@ -23,6 +24,35 @@ class Entry:
     reason_title: str
     admin_ids: tuple[int, ...]
     category_id: int
+
+
+GREEN = 3  # JDA's ButtonStyle.SUCCESS, v3's default style of a panel button
+
+
+@dataclass(frozen=True)
+class Draft:
+    """A panel in the builder: v3's ``StepData`` and its ``DataContainer`` together.
+
+    Empty texts stand for v3's unset (null) values: no author, icon, title, description, label or
+    emoji. ``button_style`` is Discord's button style, 1 to 4; ``category_id`` 0 is the panel
+    channel's category.
+    """
+
+    reason_title: str
+    author: str = ""
+    author_icon_url: str = ""
+    title: str = ""
+    description: str = ""
+    color: int = 0x00FFFF
+    button_text: str = ""
+    button_emoji: str = ""
+    button_style: int = GREEN
+    admin_ids: tuple[int, ...] = ()
+    category_id: int = 0
+
+    def entry(self) -> Entry:
+        """What the panel's button stores."""
+        return Entry(self.reason_title, self.admin_ids, self.category_id)
 
 
 def parse_entry(value: JSON, where: str) -> Entry:

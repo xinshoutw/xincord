@@ -22,7 +22,7 @@
 
 ## 5. Preview
 
-- [ ] 5.1 xfail tests for "The preview shows the draft" against stubs in `views.py`
+- [x] 5.1 xfail tests for "The preview shows the draft" against stubs in `views.py`
 - [ ] 5.2 Implement `preview_embed` and `preview_button`; remove the markers
 
 ## 6. Commands
