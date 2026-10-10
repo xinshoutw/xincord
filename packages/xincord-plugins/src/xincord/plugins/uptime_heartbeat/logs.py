@@ -86,35 +86,36 @@ def _cut(match: re.Match[str]) -> str:
 
 @dataclass
 class Failures:
-    """The failures of one step of a listener, its pushes or its pings, since the step last worked.
+    """One step of a listener (its pushes, or its pings) and its failure episode, if one is open.
 
-    Only a new failure is logged at its level: the first, or one of another kind than the failure
-    before (a status code or an error type). Repeats go to the debug level.
+    An episode starts with a failure and ends once the step has worked ``STEADY`` times in a row.
+    Only a failure whose kind (a status code or an error type) is new in the episode is logged at
+    its level, so that a listener that fails at every push, alternates two kinds of failure or
+    fails at every other push does not log at every push; the others go to the debug level.
     """
 
-    kind: object = None  # the previous failure's status code or error type; None while it works
-    count: int = 0  # the failures since the step last worked
     kinds: set[object] = field(default_factory=set[object])  # the kinds logged in the episode
+    count: int = 0  # the episode's failures; 0 while none is open
     streak: int = 0  # the successes in a row since the episode's last failure
-
-    def add(self, kind: object) -> bool:
-        """Count a failure of ``kind``; return whether it is new: the first, or another kind."""
-        new = kind != self.kind
-        self.kind = kind
-        self.count += 1
-        return new
 
     def fail(self, kind: object) -> bool:
         """Count a failure of ``kind``; return whether its kind is new in the episode."""
-        raise NotImplementedError
+        self.count += 1
+        self.streak = 0
+        if kind in self.kinds:
+            return False
+        self.kinds.add(kind)
+        return True
 
     def succeed(self) -> int:
-        """Count a success; return the episode's failures when it ends the episode, else 0."""
-        raise NotImplementedError
-
-    def clear(self) -> int:
-        """The step worked: forget its failures and return how many there were."""
+        """Count a success; return the episode's failures when this success ends it, else 0."""
+        if not self.count:
+            return 0
+        self.streak += 1
+        if self.streak < STEADY:
+            return 0
         count = self.count
-        self.kind = None
+        self.kinds = set()
         self.count = 0
+        self.streak = 0
         return count

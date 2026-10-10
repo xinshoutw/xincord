@@ -80,8 +80,8 @@ class Pusher:
     get: Get
     ping: Ping
     sleep: Sleep
-    # The failures since the pushes and the pings last worked: only a new one is logged at its
-    # level (the owner's decision of 2026-10-10; v3 logged every failure).
+    # The failure episodes of the pushes and the pings: only a kind of failure that is new in its
+    # episode is logged at its level (the owner's decision of 2026-10-10; v3 logged every failure).
     pushes: Failures = field(default_factory=Failures)
     pings: Failures = field(default_factory=Failures)
 
@@ -122,14 +122,14 @@ class Pusher:
             expected = isinstance(error, PING_ERRORS)
             detail = f": {describe(error)}" if expected else f"\n{format_traceback(error)}"
             logger.log(
-                logging.WARNING if self.pings.add(type(error)) else logging.DEBUG,
+                logging.WARNING if self.pings.fail(type(error)) else logging.DEBUG,
                 "UptimeHeartbeat listener %d could not measure the REST ping, so %%ping%% is -1%s",
                 self.number,
                 detail,
             )
             ping = NO_PING
         else:
-            if self.pings.clear():
+            if self.pings.succeed():
                 logger.info("UptimeHeartbeat listener %d measures the REST ping again", self.number)
         return build_url(template, ping)
 
@@ -171,7 +171,7 @@ class Pusher:
         The line names the listener and the URL's origin, then ``detail``.
         """
         logger.log(
-            level if self.pushes.add(kind) else logging.DEBUG,
+            level if self.pushes.fail(kind) else logging.DEBUG,
             "UptimeHeartbeat listener %d: pushing to %s failed%s",
             self.number,
             self.endpoint,
@@ -179,8 +179,8 @@ class Pusher:
         )
 
     def worked(self, status: int) -> None:
-        """Log a push that worked, after one info line when failed pushes came before it."""
-        if failed := self.pushes.clear():
+        """Log a push that worked, after one info line when it ends a failure episode."""
+        if failed := self.pushes.succeed():
             logger.info(
                 "UptimeHeartbeat listener %d: pushing to %s works again after %d failed %s",
                 self.number,

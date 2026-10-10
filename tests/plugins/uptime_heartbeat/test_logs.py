@@ -8,7 +8,6 @@ import pytest
 
 from xincord.plugins.uptime_heartbeat.logs import Failures, origin, private_parts, redact
 
-REPEATS = "A failure is logged when it starts, changes or ends"
 # A URL with a quote in its path: Python's repr, which aiohttp's texts use, then quotes it with ".
 QUOTED = "https://status.example.com/api/push/it's?ping=42"
 
@@ -139,35 +138,6 @@ def test_redact_the_urls_private_parts(text: str, expected: str) -> None:
     assert redact(text, url) == expected
 
 
-def test_repeated_failure_is_not_new() -> None:
-    """Requirement: A failure is logged when it starts, changes or ends."""
-    failures = Failures()
-
-    assert [failures.add(500) for _ in range(3)] == [True, False, False]
-    assert (failures.kind, failures.count) == (500, 3)
-
-
-def test_another_kind_is_new() -> None:
-    """Requirement: A failure is logged when it starts, changes or ends."""
-    failures = Failures()
-    kinds = (500, 500, TimeoutError, TimeoutError, 404, 500)
-
-    assert [failures.add(kind) for kind in kinds] == [True, False, True, False, True, True]
-
-
-def test_clear() -> None:
-    """Requirement: A failure is logged when it starts, changes or ends."""
-    failures = Failures()
-
-    assert failures.clear() == 0  # nothing failed
-    failures.add(500)
-    failures.add(500)
-    assert failures.clear() == 2
-    assert (failures.kind, failures.count) == (None, 0)
-    assert failures.add(500)  # new again once the step worked
-
-
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REPEATS)
 def test_kinds_are_new_once_per_episode() -> None:
     """Requirement: A failure is logged when it starts, changes or ends."""
     failures = Failures()
@@ -177,7 +147,6 @@ def test_kinds_are_new_once_per_episode() -> None:
     assert failures.count == len(kinds)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REPEATS)
 def test_episode_ends_after_three_successes() -> None:
     """Requirement: A failure is logged when it starts, changes or ends."""
     failures = Failures()
@@ -189,7 +158,6 @@ def test_episode_ends_after_three_successes() -> None:
     assert failures.fail(500)  # new again: another episode
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REPEATS)
 def test_failure_before_three_successes_continues_the_episode() -> None:
     """Requirement: A failure is logged when it starts, changes or ends."""
     failures = Failures()

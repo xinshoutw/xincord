@@ -41,7 +41,7 @@
 - [x] 5.7 Put `-1` in the URL after any ping error; remove the marker
 - [x] 5.8 xfail tests for "A failure is logged when it starts, changes or ends": episodes in
       `Failures` against stubs, alternating kinds, flapping, three pushes and pings in a row
-- [ ] 5.9 Implement the episodes and update the bundled `config.yaml` comment; remove the markers
+- [x] 5.9 Implement the episodes and update the bundled `config.yaml` comment; remove the markers
 - [ ] 5.10 Let `test_independent_listeners` wait for the 404 listener's next sleep (the cog's
       `sleep`)
 - [ ] 5.11 Porting guide: the differences rows and the pitfalls for the episodes and the redaction

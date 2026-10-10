@@ -24,7 +24,6 @@ URL = f"https://status.example.com/api/push/{TOKEN}?status=up&msg=OK&ping=%ping%
 PUSHED = URL.replace("%ping%", "42")
 ENDPOINT = "https://status.example.com"  # the URL's origin, all that the logs show of it
 PUSHED_LINE = f"UptimeHeartbeat listener 1 pushed to {ENDPOINT} (code 200)"
-REPEATS = "A failure is logged when it starts, changes or ends"
 
 
 class Stop(Exception):  # noqa: N818 - it ends the loop, it reports no error
@@ -404,7 +403,6 @@ async def test_another_kind_of_failure(caplog: pytest.LogCaptureFixture) -> None
     ]
 
 
-@pytest.mark.xfail(strict=True, reason=REPEATS)
 async def test_alternating_kinds(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A failure is logged when it starts, changes or ends."""
     answers = (502, 504, 502, 504)
@@ -418,7 +416,6 @@ async def test_alternating_kinds(caplog: pytest.LogCaptureFixture) -> None:
     ]
 
 
-@pytest.mark.xfail(strict=True, reason=REPEATS)
 @pytest.mark.parametrize(("failures", "count"), [(1, "1 failed push"), (2, "2 failed pushes")])
 async def test_pushing_works_again(
     failures: int, count: str, caplog: pytest.LogCaptureFixture
@@ -440,7 +437,6 @@ async def test_pushing_works_again(
     assert messages[works_at - 2 : works_at + 2] == [PUSHED_LINE, PUSHED_LINE, works, PUSHED_LINE]
 
 
-@pytest.mark.xfail(strict=True, reason=REPEATS)
 async def test_flapping(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A failure is logged when it starts, changes or ends."""
     answers = (500, 200, 500, 200, 500, 200)
@@ -451,7 +447,6 @@ async def test_flapping(caplog: pytest.LogCaptureFixture) -> None:
     assert above_debug(caplog) == [(logging.ERROR, failure)]  # never three in a row
 
 
-@pytest.mark.xfail(strict=True, reason=REPEATS)
 async def test_ping_fails_repeatedly(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A failure is logged when it starts, changes or ends."""
     pings = (TimeoutError(), TimeoutError(), TimeoutError(), 42, 42, 42)
