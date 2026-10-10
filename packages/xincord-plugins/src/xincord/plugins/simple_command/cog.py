@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 from discord.ext import commands
 
 if TYPE_CHECKING:
+    import discord
+
     from xincord.core.i18n import Lang
     from xincord.core.templates import Templates
 
@@ -20,3 +22,7 @@ class SimpleCommand(commands.Cog):
         """Keep what ``setup`` loaded."""
         self.lang = lang
         self.templates = templates
+
+    async def post_message(self, interaction: discord.Interaction) -> None:
+        """Stub until the posting exists."""
+        raise NotImplementedError

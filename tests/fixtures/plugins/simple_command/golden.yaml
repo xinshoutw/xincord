@@ -1,0 +1,45 @@
+# Golden data for the SimpleCommand tests. The text is v3's, from
+# XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/resources/lang/zh-TW/, except the bank
+# account numbers: v3's templates held real ones, and the bundled templates hold the example
+# value 000000000000.
+
+# Each command's message, posted in zh-TW whatever the user's locale, as Embed.to_dict() without
+# "type" and "flags". The colour is v3's 0x9bd9d5.
+messages:
+  cub-none-card:
+    title: "國泰世華 - 無卡"
+    thumbnail: {url: "https://i.meee.com.tw/eXLqPPg.png"}
+    color: 10213845
+    fields:
+      - {name: "請配合三方驗證", value: "在明細寫您的 Discord ID 以及 storA 商城，然後拍照上傳明細\n教學 https://youtu.be/s52-kgtvgCs", inline: false}
+      - {name: "銀行帳號", value: "`000000000000`", inline: false}
+  tsib-none-card:
+    title: "台新銀行 - 無卡"
+    thumbnail: {url: "https://i.meee.com.tw/JVTYdRJ.png"}
+    color: 10213845
+    fields:
+      - {name: "請配合三方驗證", value: "在明細寫您的 Discord ID 以及 storA 商城，然後拍照上傳明細\n教學 https://youtu.be/s52-kgtvgCs", inline: false}
+      - {name: "銀行帳號", value: "`000000000000`", inline: false}
+  ctcb-none-card:
+    title: "中國信託 - 無卡"
+    thumbnail: {url: "https://i.meee.com.tw/9SF70gL.png"}
+    color: 10213845
+    fields:
+      - {name: "請配合三方驗證", value: "在明細寫您的 Discord ID 以及 storA 商城，然後拍照上傳明細\n教學 https://youtu.be/s52-kgtvgCs", inline: false}
+      - {name: "銀行帳號", value: "`000000000000`", inline: false}
+  ctcb-remit:
+    title: "中國信託 - 匯款"
+    thumbnail: {url: "https://i.meee.com.tw/9SF70gL.png"}
+    color: 10213845
+    fields:
+      - {name: "請配合三方驗證", value: "在明細寫您的 Discord ID 以及 storA 商城，然後拍照上傳明細", inline: false}
+      - {name: "銀行代號", value: "`822`", inline: false}
+      - {name: "銀行帳號", value: "`000000000000`", inline: false}
+  chpytwtp-remit:
+    title: "郵局 - 匯款"
+    thumbnail: {url: "https://i.meee.com.tw/YmI2qd9.png"}
+    color: 10213845
+    fields:
+      - {name: "請配合三方驗證", value: "在明細寫您的 Discord ID 以及 storA 商城，然後拍照上傳明細", inline: false}
+      - {name: "銀行代號", value: "`700`", inline: false}
+      - {name: "銀行帳號", value: "`000000000000`", inline: false}
