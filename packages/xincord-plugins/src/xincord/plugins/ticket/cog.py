@@ -23,7 +23,7 @@ from .channels import Postable
 from .drafts import defaults, select_roles, select_style, submit
 from .model import DataError, hex_color
 from .store import Panels
-from .texts import Texts, readable_error
+from .texts import Texts, clip, readable_error
 from .views import panel_button, preview_button, preview_embed
 
 if TYPE_CHECKING:
@@ -59,6 +59,7 @@ SCREENS: dict[str, str | None] = {
     "modify-btn-color": "modify-btn-color",
     "back": None,
 }
+LABEL_MAX = 45  # Discord's limit of a modal input's label
 MESSAGE_ID = re.compile(r"[0-9]{1,20}")  # a snowflake as /add-ticket's text option gives it
 ROW_SIZE = 5  # the components an action row holds at most
 
@@ -222,8 +223,33 @@ class Ticket(commands.Cog):
             await self.submit(interaction, sub_action)
 
     async def ask(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
-        """Answer a panel button with the reason modal of its stored entry."""
-        raise NotImplementedError
+        """Answer a panel button with the reason modal of its stored entry.
+
+        The entry is the one of the ID's message, else the pressed message (v3), at the button's
+        index; without one, the user gets v3's not-found text. v3's ``press-ticket`` opens in the
+        user's locale, its input labeled with the reason title (clipped to Discord's 45-character
+        label) and its ID naming the message that the entry came from (v3 named the pressed
+        message even when it had used the ID's).
+        """
+        message = interaction.message
+        message_id = fields.get("msg_id") or (None if message is None else str(message.id))
+        index = fields.get("btn_index", "")
+        guild_id = interaction.guild_id
+        entry = (
+            None
+            if guild_id is None or message_id is None
+            else await self.panels.entry(guild_id, message_id, index)
+        )
+        if message_id is None or entry is None:
+            await _tell(interaction, self.texts(interaction).get("error.not-found"))
+            return
+        values = placeholder_values(interaction) | {
+            "tt@msg-id": message_id,
+            "tt@btn-index": index,
+            "tt@reason": clip(entry.reason_title, LABEL_MAX),
+        }
+        template = self.templates.modal("press-ticket", interaction.locale.value)
+        await interaction.response.send_modal(render_modal(template, values, build_id=IDS.build))
 
     async def press(
         self, interaction: discord.Interaction, sub_action: str, fields: Mapping[str, str]

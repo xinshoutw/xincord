@@ -80,7 +80,7 @@
 ## 15. Pressing a panel
 
 - [x] 15.1 xfail tests for "Pressing a panel button asks for the reason" against a stub `ask`
-- [ ] 15.2 Implement `ask`; remove the markers
+- [x] 15.2 Implement `ask`; remove the markers
 
 ## 16. Tickets
 

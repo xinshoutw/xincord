@@ -51,9 +51,6 @@ def label(opened: discord.ui.Modal) -> str | None:
     return child.text
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Pressing a panel button asks for the reason"
-)
 async def test_reason_modal(scene: Scene) -> None:
     """Requirement: Pressing a panel button asks for the reason."""
     await stored(scene)
@@ -67,9 +64,6 @@ async def test_reason_modal(scene: Scene) -> None:
     assert opened.custom_id == expected
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Pressing a panel button asks for the reason"
-)
 async def test_message_in_the_id(scene: Scene) -> None:
     """Requirement: Pressing a panel button asks for the reason."""
     await stored(scene)
@@ -83,9 +77,6 @@ async def test_message_in_the_id(scene: Scene) -> None:
     assert opened.custom_id == expected
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Pressing a panel button asks for the reason"
-)
 async def test_long_reason_title(scene: Scene) -> None:
     """Requirement: Pressing a panel button asks for the reason."""
     await stored(scene, reason="x" * 60)
@@ -95,9 +86,6 @@ async def test_long_reason_title(scene: Scene) -> None:
     assert label(opened) == "x" * 45  # Discord's limit for a label
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Pressing a panel button asks for the reason"
-)
 @pytest.mark.parametrize(("message", "index"), [(PANEL, "2"), (501, "0"), (PANEL, "")])
 async def test_no_entry(scene: Scene, message: int, index: str) -> None:
     """Requirement: Pressing a panel button asks for the reason."""
@@ -109,7 +97,6 @@ async def test_no_entry(scene: Scene, message: int, index: str) -> None:
     assert interaction.sent == [("response.send_message", {"content": reply, "ephemeral": True})]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Texts follow the reader")
 @pytest.mark.parametrize(
     ("locale", "expected"), [("en-US", "en-US"), ("zh-TW", "zh-TW"), ("ja", "zh-TW")]
 )
