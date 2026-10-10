@@ -41,11 +41,6 @@ def warned_keys(caplog: pytest.LogCaptureFixture) -> set[str]:
     return {message.split(marker)[-1] for message in caplog.messages if marker in message}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The config keeps v3's key and bounds the stored messages",
-)
 async def test_v3_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config keeps v3's key and bounds the stored messages."""
     with caplog.at_level(logging.WARNING):
@@ -57,11 +52,6 @@ async def test_v3_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFi
     assert config.retention_days == 30
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The config keeps v3's key and bounds the stored messages",
-)
 async def test_bundled_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config keeps v3's key and bounds the stored messages."""
     with caplog.at_level(logging.WARNING):
@@ -73,11 +63,6 @@ async def test_bundled_file(tmp_path: Path, store: Store, caplog: pytest.LogCapt
     assert warned_keys(caplog) == set()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The config keeps v3's key and bounds the stored messages",
-)
 @pytest.mark.parametrize("days", [1, 3650])
 async def test_retention_range(days: int, tmp_path: Path, store: Store) -> None:
     """Requirement: The config keeps v3's key and bounds the stored messages."""
@@ -88,7 +73,6 @@ async def test_retention_range(days: int, tmp_path: Path, store: Store) -> None:
     assert loaded_config(bot).retention_days == days
 
 
-@pytest.mark.xfail(strict=True, reason="The config keeps v3's key and bounds the stored messages")
 @pytest.mark.parametrize(
     ("text", "error"),
     [
