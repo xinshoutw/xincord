@@ -1,6 +1,6 @@
 ## 1. Resources
 
-- [ ] 1.1 Bundle v3's en-US and zh-TW lang files with final newlines and the en-US `unbind-fail`
+- [x] 1.1 Bundle v3's en-US and zh-TW lang files with final newlines and the en-US `unbind-fail`
       correction
 
 ## 2. Installation
