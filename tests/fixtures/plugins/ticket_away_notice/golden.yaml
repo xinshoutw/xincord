@@ -20,3 +20,25 @@ v3_config:
       - "客服單-"
       - "ticket-"
     delay_millis: 2000
+
+# The bundled notice as Embed.to_dict() gives it, without "type" and "flags": v3's text and
+# footer with an example shop name and channel IDs, the text in the description.
+notice:
+  author: {name: "範例商店"}
+  description: "營業時間參考請看 <#111111111111111111> \n如果老闆沒有馬上回你代表人不在，請等老闆回覆訊息，並且先說出需要購買的商品還有 <#222222222222222222>"
+  footer: {text: "❖ ORDERLY SERVER ❖"}
+
+# An operator's notice in v3's layout (the text in the title), with placeholder values and the
+# bot's name in the footer, and the embed that it gives for the bot xincord.
+operator_notice: |
+  embeds:
+    - author:
+        name: "範例商店"
+      title:
+        text: "營業時間參考請看 <#111111111111111111> \n如果老闆沒有馬上回你代表人不在，請等老闆回覆訊息，並且先說出需要購買的商品還有 <#222222222222222222>"
+      footer:
+        text: "❖ %bot_name% ❖"
+operator_embed:
+  author: {name: "範例商店"}
+  title: "營業時間參考請看 <#111111111111111111> \n如果老闆沒有馬上回你代表人不在，請等老闆回覆訊息，並且先說出需要購買的商品還有 <#222222222222222222>"
+  footer: {text: "❖ xincord ❖"}

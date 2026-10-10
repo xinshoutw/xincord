@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 type Payload = dict[str, object]
 
 TIMESTAMP = "2026-10-10T00:00:00+00:00"
+VOICE = 2  # a voice channel's type
 
 
 def user(user_id: int, name: str = "alice", *, bot: bool = False) -> Payload:
@@ -32,8 +33,19 @@ def member(user_id: int, name: str = "alice", *, nick: str | None = None) -> Pay
     return {"user": user(user_id, name), **_membership(nick)}
 
 
-def channel(channel_id: int, name: str, *, kind: int = 0, parent_id: int | None = None) -> Payload:
-    """A guild channel of type ``kind`` (0 text, 2 voice, 4 category, 15 forum), in a category."""
+def channel(
+    channel_id: int,
+    name: str,
+    *,
+    kind: int = 0,
+    parent_id: int | None = None,
+    guild_id: int | None = None,
+) -> Payload:
+    """A guild channel of type ``kind`` (0 text, 2 voice, 4 category, 15 forum), in a category.
+
+    ``CHANNEL_CREATE`` and ``CHANNEL_DELETE`` carry the ``guild_id``; a guild's own list does not.
+    A voice channel gets the bitrate and the user limit that discord.py reads.
+    """
     payload: Payload = {
         "id": str(channel_id),
         "type": kind,
@@ -41,8 +53,12 @@ def channel(channel_id: int, name: str, *, kind: int = 0, parent_id: int | None 
         "position": 0,
         "permission_overwrites": [],
     }
+    if kind == VOICE:
+        payload |= {"bitrate": 64000, "user_limit": 0}
     if parent_id is not None:
         payload["parent_id"] = str(parent_id)
+    if guild_id is not None:
+        payload["guild_id"] = str(guild_id)
     return payload
 
 
@@ -67,25 +83,48 @@ def thread(thread_id: int, parent_id: int, guild_id: int, name: str = "thread") 
     }
 
 
-def guild(
+def guild(  # noqa: PLR0913 - the parts of a guild that tests vary
     guild_id: int,
     *,
     channels: Sequence[Payload] = (),
     threads: Sequence[Payload] = (),
     locale: str = "en-US",
+    members: Sequence[Payload] = (),
+    presences: Sequence[Payload] = (),
 ) -> Payload:
-    """A guild as its ``GUILD_CREATE`` carries it, with its channels and active threads."""
+    """A guild as its ``GUILD_CREATE`` carries it, with its channels and active threads.
+
+    With the members intent, discord.py caches its ``members`` (:func:`member`) and gives them the
+    statuses of ``presences`` (:func:`presence`); a member without a presence is offline.
+    """
     return {
         "id": str(guild_id),
         "name": "guild",
         "preferred_locale": locale,
         "roles": [],
-        "members": [],
+        "members": list(members),
+        "presences": list(presences),
         "emojis": [],
         "stickers": [],
         "channels": list(channels),
         "threads": list(threads),
     }
+
+
+def presence(user_id: int, status: str, *, guild_id: int | None = None) -> Payload:
+    """A user's ``status`` (``online``, ``idle``, ``dnd``, ``offline``) on the desktop client.
+
+    ``PRESENCE_UPDATE`` carries the ``guild_id``; a guild's own list does not.
+    """
+    payload: Payload = {
+        "user": {"id": str(user_id)},
+        "status": status,
+        "activities": [],
+        "client_status": {} if status == "offline" else {"desktop": status},
+    }
+    if guild_id is not None:
+        payload["guild_id"] = str(guild_id)
+    return payload
 
 
 def message(  # noqa: PLR0913 - the parts of a message that tests vary

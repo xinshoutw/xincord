@@ -26,3 +26,7 @@ class Config(Model):
     user_id: PositiveInt  # the member whose status decides the notice: the shop's owner
     prefix: Annotated[tuple[str, ...], Field(min_length=1)]  # channel name prefixes
     delay_millis: Annotated[int, Field(ge=1, le=JAVA_LONG_MAX)]  # the wait before the notice
+
+    def watches(self, guild_id: int, name: str) -> bool:
+        """Whether a new channel named ``name`` in guild ``guild_id`` gets a notice."""
+        raise NotImplementedError
