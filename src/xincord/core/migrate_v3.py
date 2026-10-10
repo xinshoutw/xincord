@@ -1,5 +1,7 @@
 """Migrate a v3 (XsDiscordBotKt) directory: the core ``config.yaml`` and the plugins' names.
 
+Plugins whose config replaces what v3 kept in code (CustomCommands) get their v3 file set aside.
+
 Run ``python -m xincord.core.migrate_v3 <server directory>`` once per installation.
 """
 
@@ -189,14 +191,28 @@ def set_aside_v3_configs(root: Path) -> list[str]:
     Returns:
         One report line per file set aside, or kept beside an existing ``config.v3.yaml``.
     """
-    raise NotImplementedError
+    report: list[str] = []
+    for name in SET_ASIDE:
+        path = root / "plugins" / name / "config.yaml"
+        backup = path.with_name("config.v3.yaml")
+        if not path.is_file():
+            continue
+        if set(_mapping(yaml.safe_load(path.read_text(encoding="utf-8")))) - {"enabled"}:
+            continue  # not v3's switch: an xincord config, or the operator's
+        if backup.exists():
+            report.append(f"{path}: kept, {backup} exists")
+            continue
+        path.rename(backup)
+        report.append(f"{path}: moved to {backup}; {name} writes its bundled config")
+    return report
 
 
 def migrate_directory(root: Path) -> list[str]:
     """Migrate ``root/config.yaml`` in place, keeping the original as ``config.v3.yaml``.
 
     The renamed plugins' directories move to their new names before the new config is written,
-    so that a failed move leaves the v3 config for a second run.
+    so that a failed move leaves the v3 config for a second run. The v3 switch files of
+    ``SET_ASIDE`` plugins go last, once the plugins are listed.
 
     Args:
         root: The server directory of a v3 installation.
@@ -222,7 +238,8 @@ def migrate_directory(root: Path) -> list[str]:
     moves = move_renamed_directories(root)
     backup.write_text(text, encoding="utf-8")
     path.write_text(yaml.safe_dump(new, sort_keys=False, allow_unicode=True), encoding="utf-8")
-    return [*report, *moves, f"{path}: migrated, original kept as {backup}"]
+    set_aside = set_aside_v3_configs(root)
+    return [*report, *moves, f"{path}: migrated, original kept as {backup}", *set_aside]
 
 
 def main(argv: Sequence[str] | None = None) -> int:

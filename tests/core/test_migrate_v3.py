@@ -261,7 +261,6 @@ def test_migrated_directory_is_left_alone(tmp_path: Path) -> None:
     assert len(migrated) == len(backed_up) == 1
 
 
-@pytest.mark.xfail(strict=True, reason="CustomCommands' v3 switch file is set aside")
 @pytest.mark.parametrize("enabled", ["true", "false"])
 def test_switch_file_set_aside(tmp_path: Path, enabled: str) -> None:
     """Requirement: CustomCommands' v3 switch file is set aside."""
@@ -279,9 +278,6 @@ def test_switch_file_set_aside(tmp_path: Path, enabled: str) -> None:
     assert f"{config}: moved to {backup}; CustomCommands writes its bundled config" in report
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="CustomCommands' v3 switch file is set aside"
-)
 def test_other_files_stay(tmp_path: Path) -> None:
     """Requirement: CustomCommands' v3 switch file is set aside."""
     xincord = write_plugin(tmp_path / "xincord", "CustomCommands", "commands: []\n")
