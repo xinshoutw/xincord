@@ -1,6 +1,6 @@
 ## 1. Core placeholders
 
-- [ ] 1.1 xfail tests for "Global values follow v3" against a stub `global_values`
+- [x] 1.1 xfail tests for "Global values follow v3" against a stub `global_values`
 - [ ] 1.2 Implement `global_values`; remove the markers
 - [ ] 1.3 BotInfo and SimpleCommand call `global_values` instead of their `_bot_values`
 

@@ -1,6 +1,7 @@
-"""v3's Placeholder.get(event): the acting user's values and the interaction's.
+"""v3's Placeholder.get(event) and its global substitutor.
 
 Kotlin:
+    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Placeholder.kt:15-18
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Placeholder.kt:30-82
 """
 
@@ -8,10 +9,12 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 import discord
+import pytest
 
 from xincord.core.placeholders import (
     MessageLike,
     RoleLike,
+    global_values,
     interaction_values,
     placeholder_values,
 )
@@ -95,6 +98,19 @@ def test_bot_not_logged_in() -> None:
     assert not [key for key in values if key.startswith(("bot_", "user_", "member_"))]
 
 
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Global values follow v3")
+def test_global_values() -> None:
+    """Requirement: Global values follow v3."""
+    assert global_values(Client(BOT)) == {"bot_id": "99", "bot_name": "xincord"}
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Global values follow v3")
+def test_global_values_before_login() -> None:
+    """Requirement: Global values follow v3."""
+    assert global_values(Client(None)) == {}
+
+
 def discord_interaction_fits(interaction: discord.Interaction) -> None:
     """Type check only: discord.py's interaction satisfies the event Protocols."""
     placeholder_values(interaction)
+    global_values(interaction.client)

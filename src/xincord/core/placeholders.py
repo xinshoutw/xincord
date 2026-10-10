@@ -477,6 +477,15 @@ def placeholder_values(interaction: EventLike) -> dict[str, str]:
     return actor | interaction_values(interaction)
 
 
+def global_values(client: ClientLike) -> dict[str, str]:
+    """Return v3's global placeholders: the bot's ``bot_id`` and ``bot_name``.
+
+    v3 rendered templates without a user with these keys only (``Placeholder.globalSubstitutor``).
+    Before the bot has logged in, when the client has no user, there are none.
+    """
+    raise NotImplementedError
+
+
 def _category(channel: object) -> object:
     """Return the channel's category, or None for a thread whose parent channel is not cached."""
     try:
