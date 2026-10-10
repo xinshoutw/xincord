@@ -11,7 +11,6 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 from discord_fakes import (
     FakeChannel,
@@ -26,13 +25,12 @@ from plugin_fakes import WAIT, dispatch
 from xincord.plugins.dynamic_voice_channel.store import Binding, bind, read_rooms, track
 
 if TYPE_CHECKING:
+    import pytest
+
     from discord_fakes import FakeRest, Sent
     from xincord.core.bot import Bot
     from xincord.core.storage import Store
 
-DELETES = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Empty rooms are deleted"
-)
 OWNER = discord.PermissionOverwrite(manage_channels=True, manage_permissions=True)
 
 
@@ -59,7 +57,6 @@ async def leave(bot: Bot, member: FakeMember, channel: FakeVoiceChannel) -> None
     )
 
 
-@DELETES
 async def test_last_member_leaves(bot: Bot, store: Store, rest: FakeRest) -> None:
     """Requirement: Empty rooms are deleted."""
     guild, room = room_guild(rest.sent)
@@ -72,7 +69,6 @@ async def test_last_member_leaves(bot: Bot, store: Store, rest: FakeRest) -> Non
     assert [channel.id for channel in guild.voice_channels] == [30]
 
 
-@DELETES
 async def test_move_into_a_lobby(bot: Bot, store: Store, rest: FakeRest) -> None:
     """Requirement: Empty rooms are deleted."""
     # v3 handled the joined channel first, then the left one, and so does the plugin.
@@ -98,7 +94,6 @@ async def test_move_into_a_lobby(bot: Bot, store: Store, rest: FakeRest) -> None
     assert await read_rooms(store, 10) == {30: 7}
 
 
-@DELETES
 async def test_someone_stays(bot: Bot, store: Store, rest: FakeRest) -> None:
     """Requirement: Empty rooms are deleted."""
     guild, room = room_guild(rest.sent)
@@ -111,7 +106,6 @@ async def test_someone_stays(bot: Bot, store: Store, rest: FakeRest) -> None:
     assert await read_rooms(store, 10) == {50: 7}
 
 
-@DELETES
 async def test_untracked_channel(bot: Bot, store: Store, rest: FakeRest) -> None:
     """Requirement: Empty rooms are deleted."""
     guild, room = room_guild(rest.sent)
@@ -123,7 +117,6 @@ async def test_untracked_channel(bot: Bot, store: Store, rest: FakeRest) -> None
     assert await read_rooms(store, 10) == {51: 8}
 
 
-@DELETES
 async def test_already_deleted(bot: Bot, store: Store, rest: FakeRest) -> None:
     """Requirement: Empty rooms are deleted."""
     guild, room = room_guild(rest.sent)
@@ -135,7 +128,6 @@ async def test_already_deleted(bot: Bot, store: Store, rest: FakeRest) -> None:
     assert await read_rooms(store, 10) == {}
 
 
-@DELETES
 async def test_deletion_refused(
     bot: Bot, store: Store, rest: FakeRest, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -155,7 +147,6 @@ async def test_deletion_refused(
     assert "guild (10)" in record.getMessage()
 
 
-@DELETES
 async def test_leaving_during_the_creation(bot: Bot, store: Store, rest: FakeRest) -> None:
     """Requirement: Empty rooms are deleted."""
     # v3 tracked the room in memory at once and in MongoDB later, and read MongoDB on the leave.

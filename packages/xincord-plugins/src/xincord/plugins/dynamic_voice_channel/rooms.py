@@ -1,5 +1,7 @@
 """Rooms: a lobby joined alone becomes the member's room, and a copy takes its place.
 
+Rooms are deleted once they are empty.
+
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/DynamicVoiceChannel.kt:94-135
 """
@@ -11,7 +13,7 @@ import discord
 from discord.http import Route
 
 from .names import room_name, room_values
-from .store import find, read_bindings, read_rooms, track
+from .store import find, read_bindings, read_rooms, track, untrack
 
 if TYPE_CHECKING:
     from collections.abc import Coroutine
@@ -80,8 +82,24 @@ async def create(
 
 
 async def delete(store: Store, channel: VocalGuildChannel) -> None:
-    """Delete ``channel`` if it is an empty room of the plugin, and forget it."""
-    raise NotImplementedError
+    """Delete ``channel`` if it is an empty room of the plugin, and forget it.
+
+    Emptiness is checked last, right before the request, so that a member who joined meanwhile
+    keeps the room (JDA deleted it on the leave event). A room that Discord no longer has is
+    forgotten; one that Discord refuses to delete stays tracked with a warning, so that the next
+    leave or READY tries again (v3 forgot it anyway). Untracked channels are never deleted.
+    """
+    guild = channel.guild
+    if channel.id not in await read_rooms(store, guild.id) or channel.voice_states:
+        return
+    try:
+        await channel.delete()
+    except discord.NotFound:
+        pass  # deleted already: forget it
+    except discord.HTTPException as error:
+        _refused("delete the room", channel, error)
+        return
+    await untrack(store, guild.id, channel.id)
 
 
 async def _patch(bot: commands.Bot, channel: VocalGuildChannel, **fields: object) -> None:
