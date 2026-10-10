@@ -18,6 +18,7 @@ from xincord.plugins.ticket.store import NAMESPACE, Panels
 
 if TYPE_CHECKING:
     from xincord.core.storage import JSON, Store
+    from xincord.plugins.ticket.store import Undo
 
 GOLDEN = golden("ticket")
 GUILD = 10
@@ -85,10 +86,15 @@ async def test_placed_before_stored(store: Store) -> None:
     panels = Panels(store)
     placed: list[int] = []
 
-    async def place(index: int) -> None:
+    async def place(index: int) -> Undo:
         placed.append(index)
 
-    async def refuse(index: int) -> None:
+        async def undo() -> None:  # runs only when the store fails
+            placed.remove(index)
+
+        return undo
+
+    async def refuse(index: int) -> Undo:
         raise RuntimeError(index)
 
     assert await panels.add(GUILD, "5", Entry("r", (), 0), place) == 0

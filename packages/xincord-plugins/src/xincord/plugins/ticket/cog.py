@@ -5,6 +5,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:17-332
 """
 
+import functools
 import logging
 import re
 import sqlite3
@@ -25,7 +26,7 @@ from .drafts import defaults, select_roles, select_style, submit
 from .ids import IDS
 from .model import Controls, DataError, hex_color
 from .store import Panels
-from .targets import fetch, is_full, refusal
+from .targets import fetch, is_full, refusal, unplace
 from .texts import Texts, clip, readable_error, tell
 from .tickets import can_copy, category_of, opener, overwrites
 from .views import control_row, panel_button, preview_button, preview_embed
@@ -40,6 +41,7 @@ if TYPE_CHECKING:
 
     from .channels import Category, Posted, TicketChannel
     from .model import Draft, Entry
+    from .store import Undo
 
 __all__ = ["IDS", "Session", "Target", "Ticket"]
 
@@ -635,7 +637,9 @@ class Ticket(ControlRow, commands.Cog):
         Under the guild's lock, the message is fetched again, so that two confirmations for one
         message never take the same index (v3 edited from its snapshot). The index is the stored
         list's length (v3 used the row's size, B6), and only the view changes: v3 kept the first
-        embed and the first row alone (B17) and threw for a message without rows.
+        embed and the first row alone (B17) and threw for a message without rows. When the store
+        fails, the message gets its earlier view back: a button without its entry would answer
+        not-found, and the next confirmation would give a second button its ID.
 
         Raises:
             PanelError: The message is gone or full, Discord refused the edit, or the store failed.
@@ -643,7 +647,7 @@ class Ticket(ControlRow, commands.Cog):
         texts = self.texts(interaction)
         channel = interaction.channel
 
-        async def place(index: int) -> None:
+        async def place(index: int) -> Undo:
             message = await fetch(channel, target.message_id)
             if message is None:
                 missing = {"tt@message-id": str(target.message_id)}
@@ -659,6 +663,8 @@ class Ticket(ControlRow, commands.Cog):
                 await message.edit(view=view)
             except discord.HTTPException as error:
                 raise PanelError(readable_error(error)) from error
+            # discord.py's edit returns a new message: this one keeps the earlier components.
+            return functools.partial(unplace, message)
 
         try:
             await self.panels.add(guild_id, str(target.message_id), draft.entry(), place)

@@ -52,8 +52,9 @@ category or role list; archiving embeds, stickers, reactions or edits; the Web D
 - `ids.py`: `IDS`, which `cog.py` re-exports.
 - `controls.py`: `ControlRow`, the cog's base: the texts of the replies and the control row's
   handlers (lock, unlock, delete, save and the save select), so that `cog.py` stays under 800 lines.
-- `targets.py`: the message that `/add-ticket` adds a button to: `fetch`, `refusal` and `is_full`
-  (its first row full or holding a select), also kept out of `cog.py` for its size.
+- `targets.py`: the message that `/add-ticket` adds a button to: `fetch`, `refusal`, `is_full`
+  (its first row full or holding a select) and `unplace` (its earlier view back when the button's
+  entry cannot be stored), also kept out of `cog.py` for its size.
 - `cog.py`: the cog `Ticket`, the commands, `handle` and the other handlers, `on_guild_remove` and
   the READY check.
 - `lang/<locale>/` with v3's `register.yaml`, `message/*.yaml` and `modal/*.yaml`, two of them fixed
@@ -101,7 +102,8 @@ those above 2^53 exact).
 - `add(guild, message, entry)` appends `entry_json(entry)` (v3's field order) to the message's list
   under `store.lock("Ticket:<guild ID>")` and returns the new index; the other messages' lists and
   the list's earlier entries are written back as they were read. A message's value that is not a
-  list raises `DataError`, and nothing is written.
+  list raises `DataError`, and nothing is written. An optional `place(index)` puts the button on
+  its message under the lock and returns what takes it off again, which runs when the write fails.
 - `forget(guild)` deletes the document under the same lock, as v3 deleted the file.
 
 ### Component IDs
@@ -192,7 +194,10 @@ acknowledges with `response.defer()` and:
   again, builds its view with `View.from_message` and appends the panel button to the first row
   (a new first row when it has none; v3 threw), with the index `len(stored list)` (v3 used the row's
   size, which differed with other buttons in the row, B6), edits only the view (v3 kept the first
-  embed and the first row only, B17), and appends the entry.
+  embed and the first row only, B17), and appends the entry; when the store fails, the message gets
+  its earlier view back (`targets.unplace`, a refusal logged), since a button without its entry
+  would answer `error.not-found` and the next confirmation would give a second button its ID,
+  which Discord refuses.
 
 Then it deletes the builder (`delete_original_response`; v3 deleted it first, B15). On any failure
 (`discord.HTTPException`, `DataError`, `sqlite3.Error`, the row full) the session comes back unless

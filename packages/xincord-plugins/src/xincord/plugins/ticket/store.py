@@ -24,7 +24,8 @@ NAMESPACE = "Ticket"  # the store namespace: the plugin's name, keys are guild I
 # A button's index as v3 read it with Kotlin's toIntOrNull: an Int, ASCII digits only here.
 INDEX = re.compile(r"[+-]?[0-9]{1,9}")
 
-type Place = Callable[[int], Awaitable[object]]  # puts the button of an index on its message
+type Undo = Callable[[], Awaitable[object]]  # takes a placed button off its message again
+type Place = Callable[[int], Awaitable[Undo]]  # puts the button of an index on its message
 
 
 class Panels:
@@ -62,21 +63,28 @@ class Panels:
     ) -> int:
         """Append ``entry`` to the panel's list under the guild's lock and return its index.
 
-        ``place``, when given, puts the button on its message first, with the index; when it
-        raises, nothing is stored. The document's other values are written back as they were.
+        ``place``, when given, puts the button on its message first, with the index, and gives
+        back what takes it off again: when ``place`` raises, nothing is stored, and when the store
+        fails, the button is taken off before the error goes on, so that no button stays without
+        its entry. The document's other values are written back as they were.
 
         Raises:
             DataError: The guild's document or the panel's list is not v3's shape.
+            sqlite3.Error: The store failed.
         """
         async with self.lock(guild_id):
             document = await self._document(guild_id)
             entries = _entries(document.get(message_id, []), guild_id, message_id)
             index = len(entries)
-            if place is not None:
-                await place(index)
+            undo = None if place is None else await place(index)
             listed: list[JSON] = [*entries, entry_json(entry)]
             updated: dict[str, JSON] = {**document, message_id: listed}
-            await self.store.put(NAMESPACE, str(guild_id), updated)
+            try:
+                await self.store.put(NAMESPACE, str(guild_id), updated)
+            except Exception:
+                if undo is not None:
+                    await undo()
+                raise
             return index
 
     async def forget(self, guild_id: int) -> None:

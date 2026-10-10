@@ -141,7 +141,7 @@
 - [x] 24.3 xfail tests for "Unstored entry" (found during the review: when the store failed after
       `/add-ticket`'s button was added, the button stayed without its entry, and every later
       confirmation for that message gave a second button its ID, which Discord refuses)
-- [ ] 24.4 Take the button off the message again when its entry cannot be stored; remove the
+- [x] 24.4 Take the button off the message again when its entry cannot be stored; remove the
       markers
 
 ## 25. Close

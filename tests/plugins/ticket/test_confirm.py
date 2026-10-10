@@ -347,7 +347,6 @@ async def test_unstored_panel(scene: Scene, monkeypatch: pytest.MonkeyPatch) -> 
     assert scene.session().draft == DRAFT
 
 
-@pytest.mark.xfail(strict=True, reason="A panel that cannot be posted keeps the builder")
 async def test_unstored_button(scene: Scene, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: A panel that cannot be posted keeps the builder."""
     first: dict[str, object] = {"type": 2, "style": 3, "custom_id": press(0), "label": "Old"}
@@ -370,7 +369,6 @@ async def test_unstored_button(scene: Scene, monkeypatch: pytest.MonkeyPatch) ->
     assert await scene.store.get(NAMESPACE, "10") == {str(TARGET): [STORED]}
 
 
-@pytest.mark.xfail(strict=True, reason="A panel that cannot be posted keeps the builder")
 async def test_unstored_button_kept(
     scene: Scene, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:

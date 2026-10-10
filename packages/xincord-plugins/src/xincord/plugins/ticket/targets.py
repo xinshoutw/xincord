@@ -1,13 +1,17 @@
-"""The messages that ``/add-ticket`` adds a button to: found in the command's channel and checked.
+"""The messages that ``/add-ticket`` adds a button to: found in the command's channel, checked,
+and given their view back when the button's entry cannot be stored.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:33-51
     XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:106-142
 """
 
+import logging
 from typing import Protocol, runtime_checkable
 
 import discord
+
+logger = logging.getLogger(__name__)
 
 ROW_SIZE = 5  # the components an action row holds at most
 
@@ -61,3 +65,19 @@ def first_row(message: discord.Message) -> discord.ActionRow | None:
         (component for component in message.components if isinstance(component, discord.ActionRow)),
         None,
     )
+
+
+async def unplace(message: discord.Message) -> None:
+    """Give ``message``, as fetched before a button was added to it, its view back: the button's
+    entry was not stored. A failure is logged.
+    """
+    view = discord.ui.View.from_message(message, timeout=None)
+    view.stop()  # the router handles its buttons, not discord.py
+    try:
+        await message.edit(view=view)
+    except discord.HTTPException as error:
+        logger.warning(
+            "Ticket cannot remove the button that it did not store from message %s: %s",
+            message.id,
+            error,
+        )
