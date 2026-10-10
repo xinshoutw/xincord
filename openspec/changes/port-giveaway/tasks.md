@@ -28,7 +28,7 @@
 ## 6. Inputs
 
 - [x] 6.1 xfail tests for "Builder inputs are checked as in v3" against stubs in `inputs.py`
-- [ ] 6.2 Implement `trim`, `winner_count`, `is_http_url`, `thumbnail` and `clip`; remove the
+- [x] 6.2 Implement `trim`, `winner_count`, `is_http_url`, `thumbnail` and `clip`; remove the
       markers
 
 ## 7. Winners

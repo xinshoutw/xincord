@@ -23,7 +23,6 @@ ARABIC_FIVE = chr(0x665)
 SMILE = chr(0x1F600)  # outside the BMP: two UTF-16 code units
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(
     ("text", "trimmed"),
     [
@@ -39,7 +38,6 @@ def test_trimmed_values(text: str, trimmed: str) -> None:
     assert trim(text) == trimmed
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(
     ("text", "count"),
     [
@@ -67,7 +65,6 @@ def test_winner_counts(text: str, count: int | None) -> None:
     assert winner_count(text) == count
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(
     "url",
     [
@@ -84,6 +81,9 @@ def test_winner_counts(text: str, count: int | None) -> None:
         "https://example.com/a%20b.png",
         "https://example.com/" + chr(0x8DEF) + ".png",
         "https://example.com/a?x=[1]",
+        "https://1example.com/x",
+        "https://123.example.com",
+        "https://01.02.03.255/x",
     ],
 )
 def test_accepted_urls(url: str) -> None:
@@ -91,7 +91,6 @@ def test_accepted_urls(url: str) -> None:
     assert is_http_url(url)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(
     "url",
     [
@@ -113,6 +112,8 @@ def test_accepted_urls(url: str) -> None:
         "https://example.com/%zz",
         "https://example.com/a#b#c",
         "https://-example.com/",
+        "https://example.123/",
+        "https://example-.com/",
         "",
     ],
 )
@@ -121,7 +122,6 @@ def test_refused_urls(url: str) -> None:
     assert not is_http_url(url)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(
     ("url", "shown"),
     [
@@ -139,7 +139,6 @@ def test_thumbnail(url: str, shown: str | None) -> None:
     assert thumbnail(url) == shown
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 def test_clip() -> None:
     """Requirement: Builder inputs are checked as in v3."""
     assert clip("a" * 1024, 1024) == "a" * 1024
