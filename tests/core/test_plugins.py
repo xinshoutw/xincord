@@ -305,6 +305,76 @@ async def test_failed_reload_keeps_the_previous_version(
     assert bot.loaded == ("Alpha",)
 
 
+READS_A_FILE = """
+from discord.ext import commands
+
+
+class Probe(commands.Cog):
+    pass
+
+
+async def setup(bot):
+    await bot.add_cog(Probe())
+    (bot.plugin_context(__name__).directory / "data.txt").read_text(encoding="utf-8")
+"""
+
+
+# A file of the plugin that no longer validates, and what the reload's error says about it.
+BROKEN_FILES = [
+    ("config.yaml", "greeting: [not, text]\n", r"config\.yaml: greeting"),
+    ("lang/en-US/register.yaml", "greet:\n  name: Greet\n", r"register\.yaml: greet\.name"),
+]
+
+
+@pytest.mark.xfail(strict=True, reason="Hot reload follows dependencies and intents")
+@pytest.mark.parametrize("broken", BROKEN_FILES)
+async def test_broken_files_keep_the_previous_version(
+    fake_plugins: FakePlugins, store: Store, tmp_path: Path, broken: tuple[str, str, str]
+) -> None:
+    """Requirement: Hot reload follows dependencies and intents."""
+    relative, text, error = broken
+    module = fake_plugins.add("Alpha", CONFIGURED, BUNDLE)
+    bot = fake_plugins.bot(["Alpha"], tmp_path, store)
+    await bot.load_plugins()
+    loaded = list(fake_plugins.calls())
+    (tmp_path / "Alpha" / relative).write_text(text, encoding="utf-8")
+
+    with pytest.raises(PluginError, match=rf"Alpha failed to reload: .*{error}"):
+        await bot.reload_plugin("Alpha")
+
+    # The previous version ran its setup again, with the config and lang it had.
+    assert fake_plugins.calls() == [*loaded, *loaded]
+    assert bot.loaded == ("Alpha",)
+    assert module in bot.extensions
+
+
+@pytest.mark.xfail(strict=True, reason="Hot reload follows dependencies and intents")
+async def test_previous_version_fails_too(
+    fake_plugins: FakePlugins, store: Store, tmp_path: Path
+) -> None:
+    """Requirement: Hot reload follows dependencies and intents."""
+    module = fake_plugins.add("Alpha", READS_A_FILE)
+    (tmp_path / "Alpha").mkdir()
+    data = tmp_path / "Alpha" / "data.txt"
+    data.write_text("data", encoding="utf-8")
+    bot = fake_plugins.bot(["Alpha"], tmp_path, store)
+    await bot.load_plugins()
+    data.unlink()
+
+    with pytest.raises(PluginError, match=r"Alpha failed to reload and is unloaded: .*data\.txt"):
+        await bot.reload_plugin("Alpha")
+
+    assert bot.loaded == ()
+    assert module not in bot.extensions
+    assert bot.get_cog("Probe") is None
+    with pytest.raises(PluginError, match="no plugin loads from"):
+        bot.plugin_context(module)
+    data.write_text("data", encoding="utf-8")
+    await bot.load_plugin(discover(["Alpha"], fake_plugins.entry_points)[0])
+    assert bot.loaded == ("Alpha",)
+    assert bot.get_cog("Probe") is not None
+
+
 async def test_hot_load_needs_the_intents(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:

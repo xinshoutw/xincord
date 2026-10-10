@@ -12,7 +12,7 @@
 
 ## 3. Core: failed reloads
 
-- [ ] 3.1 xfail tests for "Hot reload follows dependencies and intents": broken files keep the
+- [x] 3.1 xfail tests for "Hot reload follows dependencies and intents": broken files keep the
       previous version, and a previous version that fails too is unloaded
 - [ ] 3.2 Replay the previous version's config and lang in discord.py's fallback and unload a
       plugin whose previous version fails; remove the markers
