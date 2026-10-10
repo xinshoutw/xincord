@@ -1,4 +1,7 @@
-"""Message and modal templates: YAML loading, validation and rendering to discord.py objects."""
+"""Message and modal templates: YAML loading, validation and rendering to discord.py objects.
+
+``modal_values`` reads the text inputs of a submitted modal back.
+"""
 
 from typing import TYPE_CHECKING, Self
 
@@ -10,6 +13,7 @@ from xincord.core.templates.schema import (
     load_message,
     load_modal,
 )
+from xincord.core.templates.submission import modal_values
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -26,6 +30,7 @@ __all__ = [
     "Templates",
     "load_message",
     "load_modal",
+    "modal_values",
     "render_message",
     "render_modal",
 ]

@@ -3,7 +3,7 @@
 - [x] 1.1 xfail tests for "Embed fields follow JDA" (no stub can raise inside the renderer, so the
       marker has no `raises`)
 - [x] 1.2 Trim fields and give empty ones U+200E in `render_message`; remove the markers
-- [ ] 1.3 xfail tests for "Modal submissions are read back" against a stub `modal_values`
+- [x] 1.3 xfail tests for "Modal submissions are read back" against a stub `modal_values`
 - [ ] 1.4 Implement `modal_values` and export it from `xincord.core.templates`; remove the markers
 
 ## 2. Resources
