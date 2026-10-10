@@ -9,7 +9,6 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 import discord
-import pytest
 
 from xincord.core.placeholders import (
     MessageLike,
@@ -98,13 +97,11 @@ def test_bot_not_logged_in() -> None:
     assert not [key for key in values if key.startswith(("bot_", "user_", "member_"))]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Global values follow v3")
 def test_global_values() -> None:
     """Requirement: Global values follow v3."""
     assert global_values(Client(BOT)) == {"bot_id": "99", "bot_name": "xincord"}
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Global values follow v3")
 def test_global_values_before_login() -> None:
     """Requirement: Global values follow v3."""
     assert global_values(Client(None)) == {}

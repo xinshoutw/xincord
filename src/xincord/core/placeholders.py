@@ -483,7 +483,8 @@ def global_values(client: ClientLike) -> dict[str, str]:
     v3 rendered templates without a user with these keys only (``Placeholder.globalSubstitutor``).
     Before the bot has logged in, when the client has no user, there are none.
     """
-    raise NotImplementedError
+    bot = client.user
+    return {} if bot is None else {"bot_id": str(bot.id), "bot_name": bot.name}
 
 
 def _category(channel: object) -> object:
