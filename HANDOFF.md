@@ -1,6 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after `port-auto-role`, the third plugin port. Core is complete. Read
+Updated 2026-10-10 after `port-bot-info`, the fourth plugin port. Core is complete. Read
 this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and
 binding; do not re-open them unless you find a serious problem, and then ask the owner.
 
@@ -156,7 +156,17 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   bot is already ready. Reuse: `plugin_fakes.dispatch(bot, event, *args)` for listeners,
   `load_plugin(..., config=...)`, `discord_fakes.FakeGuild` / `FakeRole` / `FakeMember`, and the
   ready-check pattern for any plugin that needs guild data at startup.
-- **Still to build:** the plugins after AutoRole (section 5).
+- **BotInfo** (`xincord.plugins.bot_info`, `INTENTS = discord.Intents(members=True)` for current
+  member counts): the first global command, `extras={"global": True}` with JDA's default contexts
+  and install types set explicitly (`allowed_contexts`, `allowed_installs`); `counts(guilds)` is a
+  pure function over `interaction.client.guilds`; the reply renders `bot-info` with values of one
+  render (`guild_counts`, `member_counts`, `source_url`, v3's `bot_id` and `bot_name`).
+  `config.yaml` has `source_url` (C3, default the xincord repository), validated at load as an
+  http(s) URL of at most 512 characters. Reuse: `FakeGuild(member_count=...)`, a `FakeInteraction`
+  whose `client` is `SimpleNamespace(user=BOT_USER, guilds=[...])`, the global payload check in
+  `tests/plugins/bot_info/test_command.py`, and a `cast`-based `cog` fixture for a plugin whose
+  tests load invalid configs.
+- **Still to build:** the plugins after BotInfo (section 5).
 
 ## 5. Status and next steps
 
@@ -166,16 +176,17 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `core-templates`, `core-components-v2`, `core-component-ids`, `core-plugin-loading`,
 `core-command-tree`, `core-component-routing`, `core-interaction-values`, `core-startup`,
 `core-reload`, `core-console`, `core-status-log`, `container`, `port-example`,
-`port-basic-calculator`, `port-auto-role`. Each one's `design.md` in `openspec/changes/archive/` records its
-decisions and "v3 behaved differently" notes; `docs/porting-guide.md` has the differences table.
+`port-basic-calculator`, `port-auto-role`, `port-bot-info`. Each one's `design.md` in
+`openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
+`docs/porting-guide.md` has the differences table.
 
 ### Next: the plugins
 
-Core is complete; _Example (the template), BasicCalculator and AutoRole are ported. Next:
-**BotInfo** (`port-bot-info`). Port the plugins in C1 order with the `port-plugin` skill
-(`.claude/skills/port-plugin/SKILL.md`), one OpenSpec change each (`port-<plugin-kebab>`):
-_Example (done), BasicCalculator (done), AutoRole (done), then
-BotInfo (with the configurable AGPL source link, C3), SimpleCommand, WelcomeByeGuild,
+Core is complete; _Example (the template), BasicCalculator, AutoRole and BotInfo are ported.
+Next: **SimpleCommand** (`port-simple-command`). Port the plugins in C1 order with the
+`port-plugin` skill (`.claude/skills/port-plugin/SKILL.md`), one OpenSpec change each
+(`port-<plugin-kebab>`): _Example (done), BasicCalculator (done), AutoRole (done), BotInfo (done,
+with the configurable AGPL source link of C3), then SimpleCommand, WelcomeByeGuild,
 IntervalPusher, Feedbacker, Economy, DynamicVoiceChannel, VoiceLogger, ChatLogger, Giveaway,
 Ticket, TicketAddons, NtustManager, NtustCourse, MusicPlayer (with Lavalink in `compose.yaml`).
 Update `docs/porting-guide.md` after each one.
@@ -259,7 +270,10 @@ setup-uv v10.2.0, setup-node v7.1.0.
   wheels.
 - Tests must not unload or reload a real plugin: discord.py re-imports its modules and later tests'
   `isinstance` checks fail. A `setup` that raises (an invalid config) also drops the plugin's
-  modules from `sys.modules`; tests that load bad files look the cog up with `cast`.
+  modules from `sys.modules`; tests that load bad files look the cog up with `cast`, and so does
+  the plugin's `cog` fixture, because the tests that run after them get the new classes.
+- A conditional expression on one line (`{} if bot is None else ...`) adds no branch for coverage;
+  the plugins' `client.user is None` fallbacks stay on one line, so branch coverage stays at 100%.
 - discord.py's `Bot.add_listener` (every cog listener) calls the deprecated
   `asyncio.iscoroutinefunction`; `pyproject.toml` ignores that DeprecationWarning from `discord.`
   modules in pytest, which otherwise turned it into a failed plugin load.
@@ -294,6 +308,12 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - With the members intent, discord.py chunks every guild before `on_ready`
   (`chunk_guilds_at_startup` follows the intent). An unavailable guild (outage) is cached without
   roles or members, so `guild.me` is None there.
+- `Guild.member_count` stays current only with the members intent (discord.py updates it from
+  member join and leave events); it is None for a guild unavailable since the bot connected.
+  `Client.guilds` keeps unavailable guilds; JDA's guild list left them out.
+- A command sends `contexts` and `integration_types` only when it sets `allowed_contexts` and
+  `allowed_installs`, and Discord's defaults apply otherwise; JDA always sent the guild and bot DM
+  contexts and guild installs, which ported global commands set explicitly.
 - `create_text_channel(overwrites=...)` does not copy the category's overwrites as JDA does.
 - `tasks.loop` schedules from each start; there is no REST ping (time `GET /users/@me`).
 - `app_commands.Command(callback=cog.method)` unwraps the bound method and makes the cog the
