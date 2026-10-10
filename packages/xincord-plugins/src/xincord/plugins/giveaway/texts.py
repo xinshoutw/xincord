@@ -21,8 +21,9 @@ if TYPE_CHECKING:
     from datetime import tzinfo
 
     from xincord.core.i18n import Lang
+    from xincord.core.templates import IdBuilder
 
-    from .model import Draft, Prize
+    from .model import Draft, Instance, Prize
 
 CHINESE = "zh-TW"  # v3's zh texts
 ENGLISH = "en-US"  # v3's other texts
@@ -130,3 +131,15 @@ def add_field(embed: discord.Embed, name: str, value: str, *, inline: bool = Fal
 def _or(value: str, default: str) -> str:
     """``value``, or ``default`` while it is blank, as Kotlin's ``ifBlank``."""
     return value if trim(value) else default
+
+
+def post_embed(instance: Instance, texts: Texts, now: int) -> discord.Embed:
+    """The giveaway's post, v3's ``ga@giveaway-embed``."""
+    raise NotImplementedError
+
+
+def post_buttons(
+    instance: Instance, texts: Texts, now: int, build_id: IdBuilder
+) -> tuple[discord.ui.Button[discord.ui.View], ...]:
+    """The post's join, draw and reroll buttons, v3's three ``ga@*-button`` models."""
+    raise NotImplementedError

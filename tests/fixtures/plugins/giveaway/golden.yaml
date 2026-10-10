@@ -182,3 +182,70 @@ modals:
 
 # The name that add-prize suggests for a draft's third prize (StepManager.kt:193-198).
 third-prize: {en-US: "Prize 3", zh-TW: "獎品 3"}
+
+# The post (Giveaway.kt:481-619) of giveaway 3f2a9c1b7e4d4a60 (the Nitro and Sticker prizes of 2
+# and 1 winners, ending at 1772330400), as Embed.to_dict() without "type" and "flags", per locale:
+# running with participants 111 and 222, duplicates allowed, no description, no sponsor and the
+# thumbnail https://x/y.png; drawn with the description "desc", the sponsor "Shop", unique winners,
+# three participants and the winners 222 and 111 for Nitro and nobody for Sticker. 0xF1C40F is
+# 15844367 and 0x95A5A6 9807270. Then its buttons: style, label key, action, whether disabled.
+post:
+  en-US:
+    running:
+      title: "🎉 Nitro"
+      description: "Press the button below to join."
+      color: 15844367
+      thumbnail: {url: "https://x/y.png"}
+      fields:
+        - {name: "Status", value: "Running\n<t:1772330400:R>", inline: true}
+        - {name: "Participants", value: "2", inline: true}
+        - {name: "Winner Policy", value: "Duplicates allowed across prizes", inline: false}
+        - {name: "Prizes", value: "1. Nitro (2 winner(s))\n2. Sticker (1 winner(s))", inline: false}
+        - {name: "Winner Results", value: "Not drawn yet", inline: false}
+      footer: {text: "Giveaway ID: 3f2a9c1b7e4d4a60"}
+    drawn:
+      title: "🎉 Nitro"
+      description: "desc"
+      color: 9807270
+      thumbnail: {url: "https://x/y.png"}
+      fields:
+        - {name: "Status", value: "Drawn\n<t:1772330400:R>", inline: true}
+        - {name: "Participants", value: "3", inline: true}
+        - {name: "Winner Policy", value: "Unique winners across prizes", inline: false}
+        - {name: "Prizes", value: "1. Nitro (2 winner(s))\n2. Sticker (1 winner(s))", inline: false}
+        - {name: "Winner Results", value: "Nitro: <@222> <@111>\nSticker: (not enough participants)", inline: false}
+        - {name: "Sponsor", value: "Shop", inline: true}
+      footer: {text: "Giveaway ID: 3f2a9c1b7e4d4a60"}
+    ready: "Ready to draw"
+    buttons: ["Join / Leave", "Draw Winners", "Reroll"]
+  zh-TW:
+    running:
+      title: "🎉 Nitro"
+      description: "按下下方按鈕參加抽獎。"
+      color: 15844367
+      thumbnail: {url: "https://x/y.png"}
+      fields:
+        - {name: "狀態", value: "進行中\n<t:1772330400:R>", inline: true}
+        - {name: "參與人數", value: "2", inline: true}
+        - {name: "中獎限制", value: "每個獎品可重複中獎", inline: false}
+        - {name: "獎品", value: "1. Nitro (2 位)\n2. Sticker (1 位)", inline: false}
+        - {name: "中獎結果", value: "尚未開獎", inline: false}
+      footer: {text: "Giveaway ID: 3f2a9c1b7e4d4a60"}
+    drawn:
+      title: "🎉 Nitro"
+      description: "desc"
+      color: 9807270
+      thumbnail: {url: "https://x/y.png"}
+      fields:
+        - {name: "狀態", value: "已開獎\n<t:1772330400:R>", inline: true}
+        - {name: "參與人數", value: "3", inline: true}
+        - {name: "中獎限制", value: "跨獎品不得重複中獎", inline: false}
+        - {name: "獎品", value: "1. Nitro (2 位)\n2. Sticker (1 位)", inline: false}
+        - {name: "中獎結果", value: "Nitro: <@222> <@111>\nSticker: （名額不足）", inline: false}
+        - {name: "主辦 / 贊助", value: "Shop", inline: true}
+      footer: {text: "Giveaway ID: 3f2a9c1b7e4d4a60"}
+    ready: "可開獎"
+    buttons: ["參加 / 退出", "手動開獎", "重抽"]
+post-buttons:
+  styles: [3, 1, 2]
+  actions: ["participate", "draw", "reroll"]

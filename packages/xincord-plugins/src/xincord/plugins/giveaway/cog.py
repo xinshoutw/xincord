@@ -19,7 +19,7 @@ from xincord.core.placeholders import global_values, placeholder_values
 from xincord.core.templates import modal_values, render_message, render_modal
 
 from .drafts import remove_last_prize, submit, switch_policy
-from .model import Draft
+from .model import Draft, Instance
 from .texts import Texts, language, preview
 from .times import format_end_time
 
@@ -245,6 +245,10 @@ class Giveaway(commands.Cog):
     def _texts(self, interaction: discord.Interaction) -> Texts:
         """The texts in the user's language."""
         return Texts(self.lang, language(self.lang, interaction.locale.value))
+
+    def render_post(self, instance: Instance) -> Message:
+        """The giveaway's post, v3's ``giveaway-post`` in the creator's language."""
+        raise NotImplementedError
 
     def _builder(self, interaction: discord.Interaction, draft: Draft) -> Message:
         """v3's ``create-giveaway`` with the preview of ``draft``, in the user's language.

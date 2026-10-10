@@ -79,7 +79,7 @@
 
 ## 15. Post
 
-- [ ] 15.1 xfail tests for "The post shows the giveaway" against stubs `texts.post_embed` and
+- [x] 15.1 xfail tests for "The post shows the giveaway" against stubs `texts.post_embed` and
       `texts.post_buttons`
 - [ ] 15.2 Implement them; remove the markers
 
