@@ -53,7 +53,7 @@ Ported from:
 - `XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/command/Register.kt:11-33`
 - `XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/config/ConfigSerializer.kt:6-11`
 - `XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/Exceptions.kt:3`
-- `XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/resources/info.yaml:1-17` and `config.yaml:1-2`
+- `XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/resources/info.yaml:1-16` and `config.yaml:1-2`
 - `XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/resources/lang/en-US/` and `lang/zh-TW/`
   (`register.yaml`, `placeholder.yaml` and the six files under `message/`)
 - `XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Placeholder.kt:44-75`
