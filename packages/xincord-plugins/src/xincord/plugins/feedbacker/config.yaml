@@ -1,0 +1,14 @@
+# Feedbacker: list it under `plugins` in the core config.yaml to enable it.
+
+# The plugin's replies, sent as written (no placeholders), each at most 2000 characters.
+# To someone without the Administrator permission who runs /feedbacker:
+form_no_permission: "您沒有權限！"
+# To anyone but the rated member who presses a star:
+form_not_you: "這個表單不是為你建立的！"
+# To the administrator once the form is posted:
+form_success: "建立成功"
+# To the administrator when the form cannot be posted; the log says why:
+form_failure: "建立失敗"
+# To the member when the feedback cannot be posted to the submit channel; the form stays and the
+# log says why:
+form_submit_failure: "送出失敗"

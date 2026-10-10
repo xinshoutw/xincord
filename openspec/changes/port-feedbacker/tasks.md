@@ -8,7 +8,7 @@
 
 ## 2. Resources
 
-- [ ] 2.1 Bundle v3's en-US and zh-TW lang files with LF line endings, and `config.yaml` with v3's
+- [x] 2.1 Bundle v3's en-US and zh-TW lang files with LF line endings, and `config.yaml` with v3's
       replies and the two new ones
 
 ## 3. Installation

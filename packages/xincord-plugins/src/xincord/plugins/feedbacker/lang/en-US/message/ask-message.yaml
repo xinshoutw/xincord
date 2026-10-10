@@ -1,0 +1,54 @@
+embeds:
+  - title:
+      text: "Please provide a rating and review"
+    footer:
+      text: "❖ ORDERLY SERVER ❖"
+
+# Button Style
+# 1 -> ButtonStyle.PRIMARY (Blue)
+# 2 -> ButtonStyle.SECONDARY (Gray)
+# 3 -> ButtonStyle.SUCCESS (Green)
+# 4 -> ButtonStyle.DANGER (Red)
+# 5 -> ButtonStyle.LINK
+components:
+  - !ButtonsComponent
+    buttons:
+      - uid:
+          action: "submit_star"
+          user_id: "%user_id%"
+          submit_channel_id: "%fb_submit_channel_id%"
+          star_count: 1
+        style: 2
+        label: "★"
+
+      - uid:
+          action: "submit_star"
+          user_id: "%user_id%"
+          submit_channel_id: "%fb_submit_channel_id%"
+          star_count: 2
+        style: 2
+        label: "★★"
+
+      - uid:
+          action: "submit_star"
+          user_id: "%user_id%"
+          submit_channel_id: "%fb_submit_channel_id%"
+          star_count: 3
+        style: 2
+        label: "★★★"
+
+      - uid:
+          action: "submit_star"
+          user_id: "%user_id%"
+          submit_channel_id: "%fb_submit_channel_id%"
+          star_count: 4
+        style: 2
+        label: "★★★★"
+
+      - uid:
+          action: "submit_star"
+          user_id: "%user_id%"
+          submit_channel_id: "%fb_submit_channel_id%"
+          star_count: 5
+        style: 2
+        label: "★★★★★"
