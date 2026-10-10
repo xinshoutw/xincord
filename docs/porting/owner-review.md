@@ -121,7 +121,7 @@ here; delete a section once it is empty.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-welcome-bye-guild/design.md` (needs a token, a test guild and a second account).
 
-## UptimeHeartbeat (v3 IntervalPusher, `port-interval-pusher`)
+## UptimeHeartbeat (v3 IntervalPusher, `port-interval-pusher`, `uptime-heartbeat-keep-pushing`)
 
 ### User-visible changes
 - The plugin shows nothing in Discord: the changes are in `plugins/UptimeHeartbeat/config.yaml` and the log.
@@ -129,7 +129,13 @@ here; delete a section once it is empty.
 - An `interval` below 1 (v3: a busy loop) or a `url` that is not an http or https URL with a host (v3: an error at every push) disables the plugin at load, with the key named.
 - `%ping%` is measured only for URLs that contain it (v3 asked Discord at every push).
 - Stopping or reloading the plugin no longer logs a spurious error.
-- New English log lines number the listener (`UptimeHeartbeat listener 1 started (every 60 s)`, `UptimeHeartbeat listener 2 stopped: the status monitor refused the push (code 404)`), at v3's levels.
+- `uptime-heartbeat-keep-pushing`: a listener keeps pushing at its interval after every failure, a 404 (unknown or paused push token) included, until the plugin unloads; `UptimeHeartbeat listener N stopped: ...` is gone.
+- `uptime-heartbeat-keep-pushing`: log lines number the listener and show its URL only as its origin (scheme, host, port if given), never the user info, path or query, and URLs in error texts and tracebacks are cut the same way: `UptimeHeartbeat listener 2: pushing to https://status.example.com failed with code 404 (the status monitor refused the push)`, `... failed: Connection timeout to host https://status.example.com`, at debug level `UptimeHeartbeat listener 1 pushed to https://status.example.com (code 200)`.
+- `uptime-heartbeat-keep-pushing`: each kind of failure (status code, error type) is logged at its level (404 and 521 warnings, the others errors) once per failure episode, the rest only at debug level; the episode ends once pushing has worked three times in a row, with one info line: `UptimeHeartbeat listener 1: pushing to https://status.example.com works again after 37 failed pushes`. The REST ping's failures likewise, ending with `UptimeHeartbeat listener 1 measures the REST ping again`.
+- `uptime-heartbeat-keep-pushing`: a config error for an invalid `url` no longer quotes the URL (pydantic's input is hidden, and a URL whose host or port cannot be read gets `not a URL: its host or port cannot be read`).
+- `uptime-heartbeat-keep-pushing`: a failed ping of any kind leaves `-1` in the URL and the push goes on, as in v3 (the port skipped the push after an unexpected error).
+- `uptime-heartbeat-keep-pushing`: an unexpected error's traceback is part of its error line, redacted, instead of a separate exception record.
+- `uptime-heartbeat-keep-pushing`: the bundled `config.yaml` comment describes this instead of the 404 stop; an existing `plugins/UptimeHeartbeat/config.yaml` keeps its old comment.
 ### Choices made without the owner
 - Bundled config: implemented no listeners and a commented example on `status.example.com`; alternative: v3's sample listener on the owner's status domain with a placeholder token.
 - `%ping%`: implemented v3's REST ping, a timed `GET /users/@me` through discord.py's undocumented `HTTPClient.request` and `Route`; alternative: discord.py's public gateway latency (`bot.latency`), a different quantity.
@@ -138,8 +144,12 @@ here; delete a section once it is empty.
 - URL check: implemented an http or https URL with a host and no spaces, checked at load; alternative: v3's unchecked URL, which fails at every push.
 - When pushing starts: implemented at READY (at once when the plugin loads into a ready bot), so that the monitor shows the bot as up only once it is connected; alternative: at load, before the gateway connects.
 - Redirects: kept v3's behavior of not following them (a 3xx logs an error); alternative: follow them, so that an `http://` URL redirected to `https://` works.
+- Failure log policy (`uptime-heartbeat-keep-pushing`): implemented failure episodes: each kind (status code, exception type) is logged at its level once per episode and the rest at debug level, and an episode ends once the step has worked three times in a row, with one info line (`works again after N failed pushes`, or `measures the REST ping again`), so steady, alternating (502 and 504) and flapping failures log one line per kind; the price is a recovery line two intervals late. Alternative: your example as first built (a failure logged when its kind differs from the previous one, the episode ending at the first success), which a cross-review found still logged at every push for alternating kinds and for flapping; or a reminder while a failure lasts (for example hourly).
+- Error texts and tracebacks (`uptime-heartbeat-keep-pushing`): implemented cutting every http or https URL in them to its origin and removing the listener URL's user info, path, query and fragment wherever they appear (a server's malformed answer can quote the request line), with an unexpected error's traceback logged as text; alternative: log only the error's type, without its text or traceback.
+- Core gap, unchanged (`uptime-heartbeat-keep-pushing`): a YAML syntax error in `plugins/UptimeHeartbeat/config.yaml` is logged with PyYAML's snippet of the faulty line (about 30 characters after the error), which can show the start of a listener's URL; alternative: drop the snippets from the core's YAML errors.
 ### Manual checks
-- Smoke checklist in `openspec/changes/archive/2026-10-10-port-interval-pusher/design.md` (needs a token and an Uptime Kuma push monitor or another endpoint that shows its requests).
+- Smoke checklist in `openspec/changes/archive/2026-10-10-port-interval-pusher/design.md` (needs a token and an Uptime Kuma push monitor or another endpoint that shows its requests); its steps 4 and 5 are replaced by the next one's.
+- Smoke checklist in `openspec/changes/archive/2026-10-10-uptime-heartbeat-keep-pushing/design.md`: a wrong token or a paused monitor logs one warning and keeps pushing, a resumed monitor logs `works again` at the third push in a row that works, an unanswered address times out with the origin only, and `docker compose logs bot | grep <token>` finds nothing.
 - After a discord.py upgrade, check that pushes carry a real ping and not `-1`: the ping uses discord.py's undocumented `HTTPClient.request` and `Route`.
 
 ## Feedback (v3 Feedbacker, `port-feedbacker`)

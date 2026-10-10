@@ -1,9 +1,11 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after `rename-plugins` (the owner's plugin renames), which followed
-`port-giveaway`, the thirteenth plugin port. Core is complete. Read
-this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and
-binding; do not re-open them unless you find a serious problem, and then ask the owner.
+Updated 2026-10-10 after `uptime-heartbeat-keep-pushing` (the owner's first follow-up change:
+UptimeHeartbeat never stops a listener and logs URLs as origins only), which followed
+`rename-plugins` (the owner's plugin renames) and `port-giveaway`, the thirteenth plugin port.
+Core is complete. Read this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The
+decisions are accepted and binding; do not re-open them unless you find a serious problem, and then
+ask the owner.
 
 Talk to the owner in Traditional Chinese. Everything written into the repository is English.
 
@@ -212,15 +214,25 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 - **UptimeHeartbeat** (v3 IntervalPusher; `xincord.plugins.uptime_heartbeat`, no intents, no lang,
   config `listeners[].url` and `interval`): the first background loop and outgoing HTTP. `pusher.py`
   has `Pusher(number, listener, get, ping, sleep)`, v3's loop with its effects passed in (push at
-  once, then `interval` seconds after each attempt; a 404 ends it; failures are logged), `rest_ping`
-  (times `bot.http.request(Route("GET", "/users/@me"))`, JDA's REST ping) and aiohttp's
-  `open_session` and `get_status` (no redirects, v3's timeouts); `xincord-plugins` declares aiohttp.
-  `cog.py` creates one task per listener in `cog_load`, each awaiting `bot.wait_until_ready()`, and
-  cancels and awaits them in `cog_unload`. Reuse: `plugin_fakes.Ready` (READY for offline bots; its
-  `close` cancels the tasks left running), `http_fakes.running_monitor()` (`Monitor`, a local HTTP
-  server), patching `discord.http.HTTPClient.request` to record REST calls, an injected `sleep` with
-  a fake clock, `bot.remove_cog` to run `cog_unload` without unloading the modules, and the REST
-  probe through `Route.BASE` and `http.static_login` (skill step 7).
+  once, then `interval` seconds after each attempt; no failure ends it, a 404 included, since
+  `uptime-heartbeat-keep-pushing`), `rest_ping` (times `bot.http.request(Route("GET",
+  "/users/@me"))`, JDA's REST ping) and aiohttp's `open_session` and `get_status` (no redirects,
+  v3's timeouts); `xincord-plugins` declares aiohttp and yarl. `logs.py` holds the owner's log
+  rules: `origin(url)` (scheme, host and port, all that a line shows of a URL), `redact(text,
+  *urls)` (URLs in error texts and tracebacks cut to their origin, and the listener URL's
+  `private_parts` removed wherever they appear) and `Failures` (one for the pushes, one for the
+  pings: each kind of failure is logged once per episode, the rest at debug level, and an episode
+  ends after three successes in a row with one info line). `config.py`'s models hide their input
+  in validation errors. `cog.py` creates one task per listener in `cog_load`, each awaiting
+  `bot.wait_until_ready()`, and cancels and awaits them in `cog_unload`; its `sleep` attribute is
+  the loops' delay, which tests replace. Reuse:
+  `plugin_fakes.Ready` (READY for offline bots; its `close` cancels the tasks left running),
+  `http_fakes.running_monitor()` (`Monitor`, a local HTTP server), patching
+  `discord.http.HTTPClient.request` to record REST calls, an injected `sleep` with a fake clock,
+  `bot.remove_cog` to run `cog_unload` without unloading the modules, the REST probe through
+  `Route.BASE` and `http.static_login` (skill step 7), and `Failures` and `redact` for any loop that
+  fails repeatedly or whose URLs carry secrets (a cross-review found the gaps that the design's
+  "Cross-review" lists).
 - **Feedback** (v3 Feedbacker; `xincord.plugins.feedback`, no intents, en-US and zh-TW, five config
   replies, `/feedback`): the first port with v3 component IDs and a modal. `cog.py` has `IDS =
   ComponentIds("feedback", (action, user_id, star_count, submit_channel_id),
@@ -354,7 +366,7 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `port-basic-calculator`, `port-auto-role`, `port-bot-info`, `port-simple-command`,
 `port-welcome-bye-guild`, `port-interval-pusher`, `port-feedbacker`, `port-economy`,
 `port-dynamic-voice-channel`, `port-voice-logger`, `port-chat-logger`, `port-giveaway`,
-`rename-plugins`. Each one's `design.md` in
+`rename-plugins`, `uptime-heartbeat-keep-pushing`. Each one's `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
@@ -378,12 +390,12 @@ TicketAwayNotice (v3 TicketAddons), NtustAnnouncements (v3 NtustManager), NtustC
 NtustCourse), MusicPlayer (with Lavalink in `compose.yaml`). Update `docs/porting-guide.md` after
 each one.
 
-The owner also asked for follow-up changes (section 6), not started yet: UptimeHeartbeat logs only
-the host on failure and never stops a listener; CustomCommands defines its commands in the config
-file; ChatLogger keeps 5 years by default in its own files, starting a new file when one grows too
-large; the v3 data import (`xincord migrate`) before cutover, which must read a renamed plugin's v3
-data from `plugins/<new name>/` once `migrate_v3` moved it (or from both places) and write the new
-store namespaces (`WelcomeGoodbye`).
+The owner also asked for follow-up changes (section 6). Done: UptimeHeartbeat logs URLs as origins
+only and never stops a listener (`uptime-heartbeat-keep-pushing`). Not started yet: CustomCommands
+defines its commands in the config file; ChatLogger keeps 5 years by default in its own files,
+starting a new file when one grows too large; the v3 data import (`xincord migrate`) before
+cutover, which must read a renamed plugin's v3 data from `plugins/<new name>/` once `migrate_v3`
+moved it (or from both places) and write the new store namespaces (`WelcomeGoodbye`).
 
 ### Working tips from this session
 
@@ -433,7 +445,10 @@ Answered on 2026-10-10 (afternoon), from the review queue (the answered items we
 - **BotInfo:** `source_url` keeps its default, `https://github.com/xinshoutw/xincord`. The
   repository stays private until the port is finished; then the owner makes it public.
 - **IntervalPusher:** failure logs will show only the host, and a failed push will never stop a
-  listener (it keeps pushing at its interval). Both come in a follow-up change.
+  listener (it keeps pushing at its interval). Both come in a follow-up change. Done in
+  `uptime-heartbeat-keep-pushing` (2026-10-10), with a log policy chosen there and listed in the
+  review queue: a failure is logged when it starts or changes kind, then once when pushing works
+  again.
 - **BasicCalculator:** the defect fixes and the answers they change are accepted (negation after
   an operator, `^` grouping from the right, integer exponents, division by zero, negative
   exponents), and so is the golden-test approach.
@@ -738,6 +753,22 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - CI's `astral-sh/setup-uv` step is pinned by SHA but has no `version` input, so it installs the
   newest uv (0.13.0 on 2026-10-10, before this session's changes too), and `uv sync` warns that
   `uv_build>=0.12.24,<0.13` does not include it; the gate still passes.
+- aiohttp 3.14.4's error texts name the whole URL: `ConnectionTimeoutError` (`Connection timeout to
+  host <url>`), a malformed answer's `ClientResponseError` (`..., url='<url>'`, without the user
+  info, after the server's bad line, which can be the request line sent back) and
+  `InvalidUrlClientError`; `ServerDisconnectedError` carries the partial answer; a refused
+  connection or a failed DNS lookup names `host:port` only, and the 30-second total limit raises a
+  bare `TimeoutError`. Redact URLs that carry secrets out of such texts before logging them
+  (UptimeHeartbeat's `redact`) and format tracebacks yourself: `logger.exception` prints the text
+  as it is.
+- pydantic's `ValidationError` text shows each invalid input (`input_value=...`, up to about 50
+  characters), and the core logs it chained to its `ConfigError`: a model with secrets sets
+  `ConfigDict(hide_input_in_errors=True)` (merged with `Model`'s config) and fixed messages.
+- ruff's BLE001 accepts `except Exception` only when the handler re-raises or logs with
+  `logger.exception` or `exc_info`; a handler that logs a redacted traceback as text needs
+  `# noqa: BLE001`.
+- PyYAML's syntax errors quote a snippet of the faulty line (about 30 characters after the error),
+  and the core's `ConfigError` passes it on, so a URL on that line can show in the log.
 
 **v3 behaviors never to reproduce:** loading plugins in reverse dependency order, non-atomic JSON
 writes that reset corrupt files, recursive placeholder expansion, shared mutable placeholder
