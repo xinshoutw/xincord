@@ -1,0 +1,25 @@
+# Golden data for the BotInfo tests. The text is v3's, from
+# XsDiscordBotKt@3a59607:Plugins/BotInfo/src/main/resources/lang/; the source field is new in
+# xincord (decision C3).
+
+# The reply's embed while the bot is in guilds of 3 and 4 members, with the default config, as
+# Embed.to_dict() without "type" and "flags".
+reply:
+  en-US:
+    author: {name: "Info Query", icon_url: "https://i.imgur.com/a7z4ch2.png"}
+    title: "☛ ORDERLY BOT's INFORMATION"
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    color: 65535
+    fields:
+      - {name: "Server Counts", value: "2", inline: false}
+      - {name: "Member Counts", value: "7", inline: false}
+      - {name: "Source Code", value: "https://github.com/xinshoutw/xincord", inline: false}
+  zh-TW:
+    author: {name: "狀態查詢", icon_url: "https://i.imgur.com/a7z4ch2.png"}
+    title: "☛ 序之徒的資訊"
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    color: 65535
+    fields:
+      - {name: "伺服器總數", value: "2", inline: false}
+      - {name: "成員總數", value: "7", inline: false}
+      - {name: "原始碼", value: "https://github.com/xinshoutw/xincord", inline: false}
