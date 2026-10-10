@@ -9,8 +9,6 @@ Kotlin:
 import asyncio
 from typing import TYPE_CHECKING
 
-import pytest
-
 from xincord.plugins.welcome_bye_guild.store import (
     NAMESPACE,
     Bindings,
@@ -21,21 +19,17 @@ from xincord.plugins.welcome_bye_guild.store import (
 )
 
 if TYPE_CHECKING:
+    import pytest
+
     from xincord.core.storage import JSON, Store
 
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Each guild's channels are stored"
-)
 
-
-@XFAIL
 async def test_unknown_guild(store: Store) -> None:
     """Requirement: Each guild's channels are stored."""
     assert await read(store, 10) == Bindings(welcome=0, bye=0)
     assert await store.keys(NAMESPACE) == []
 
 
-@XFAIL
 async def test_v3_document(store: Store) -> None:
     """Requirement: Each guild's channels are stored."""
     assert await set_channel(store, 10, "welcome", 5) == (Bindings(welcome=5), 0)
@@ -44,7 +38,6 @@ async def test_v3_document(store: Store) -> None:
     assert await read(store, 10) == Bindings(welcome=5)
 
 
-@XFAIL
 async def test_snowflakes_stay_exact(store: Store) -> None:
     """Requirement: Each guild's channels are stored."""
     channel_id = 1277193832378667040  # more digits than a double holds exactly
@@ -54,7 +47,6 @@ async def test_snowflakes_stay_exact(store: Store) -> None:
     assert await read(store, 1) == Bindings(bye=channel_id)
 
 
-@XFAIL
 async def test_missing_field(store: Store) -> None:
     """Requirement: Each guild's channels are stored."""
     await store.put(NAMESPACE, "10", {"welcomeChannelId": 5})
@@ -64,7 +56,6 @@ async def test_missing_field(store: Store) -> None:
     assert await read(store, 20) == Bindings(bye=6)
 
 
-@XFAIL
 async def test_unchanged_channel(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Each guild's channels are stored."""
     assert await set_channel(store, 10, "welcome", 0) == (Bindings(), 0)
@@ -82,7 +73,6 @@ async def test_unchanged_channel(store: Store, monkeypatch: pytest.MonkeyPatch) 
     assert writes == []
 
 
-@XFAIL
 async def test_concurrent_changes(store: Store) -> None:
     """Requirement: Each guild's channels are stored."""
     await asyncio.gather(set_channel(store, 10, "welcome", 5), set_channel(store, 10, "bye", 6))
@@ -90,7 +80,6 @@ async def test_concurrent_changes(store: Store) -> None:
     assert await read(store, 10) == Bindings(welcome=5, bye=6)
 
 
-@XFAIL
 async def test_forgetting_a_guild(store: Store) -> None:
     """Requirement: Each guild's channels are stored."""
     await set_channel(store, 10, "welcome", 5)
