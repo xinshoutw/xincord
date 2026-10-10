@@ -76,9 +76,6 @@ async def test_plain_strings_are_not_translated() -> None:
     assert await translate(plain, discord.Locale.taiwan_chinese) is None
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Commands can be localized from a table"
-)
 async def test_translated_from_the_table() -> None:
     """Requirement: Commands can be localized from a table."""
 
@@ -89,9 +86,6 @@ async def test_translated_from_the_table() -> None:
     assert await translate(string, discord.Locale.japanese) == "kisoku"
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Commands can be localized from a table"
-)
 async def test_locale_missing_from_the_table() -> None:
     """Requirement: Commands can be localized from a table."""
 

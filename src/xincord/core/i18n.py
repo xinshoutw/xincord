@@ -115,11 +115,11 @@ def localized(default: str, translations: Mapping[str, str]) -> app_commands.loc
         default: The text that Discord shows in the locales that ``translations`` lacks.
         translations: The texts by Discord locale (``zh-TW``, ``ja``, ...).
     """
-    raise NotImplementedError
+    return app_commands.locale_str(default, translations=dict(translations))
 
 
 class Translator(app_commands.Translator):
-    """Resolves command strings created by :meth:`Lang.command`."""
+    """Resolves command strings created by :meth:`Lang.command` and :func:`localized`."""
 
     @override
     async def translate(
@@ -128,10 +128,18 @@ class Translator(app_commands.Translator):
         locale: discord.Locale,
         context: app_commands.TranslationContextTypes,
     ) -> str | None:
-        """Return the string's register value in ``locale``, or None to keep the default."""
-        lang, key = string.extras.get("lang"), string.extras.get("key")
+        """Return the string's text in ``locale``, or None to keep the default.
+
+        The text is the register value of a :meth:`Lang.command` string, or the table entry of a
+        :func:`localized` one.
+        """
+        extras = string.extras
+        lang, key = extras.get("lang"), extras.get("key")
         if isinstance(lang, Lang) and isinstance(key, str):
             return lang.localization(key, locale.value)
+        translations = extras.get("translations")
+        if isinstance(translations, dict):
+            return cast("dict[str, str]", translations).get(locale.value)
         return None
 
 
