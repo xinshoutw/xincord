@@ -8,6 +8,8 @@ Kotlin:
 """
 
 import asyncio
+import logging
+import sqlite3
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, cast
 
@@ -53,9 +55,11 @@ def row(*children: dict[str, object]) -> discord.Component:
     return discord.ActionRow(cast("ActionRowPayload", {"type": 1, "components": list(children)}))
 
 
-def target(scene: Scene, components: list[discord.Component]) -> FakeMessage:
+def target(
+    scene: Scene, components: list[discord.Component], kind: type[FakeMessage] = FakeMessage
+) -> FakeMessage:
     """The bot's message ``TARGET`` with an embed, in the builder's channel."""
-    message = FakeMessage(
+    message = kind(
         components=components,
         sent=scene.channel.sent,
         id=TARGET,
@@ -64,6 +68,36 @@ def target(scene: Scene, components: list[discord.Component]) -> FakeMessage:
     )
     scene.channel.messages[TARGET] = message
     return message
+
+
+def rows_of(view: object) -> list[list[object]]:
+    """The custom IDs of a sent view's components, row by row, as Discord gets them."""
+    assert isinstance(view, discord.ui.View)
+    return [
+        [cast("dict[str, object]", component).get("custom_id") for component in row["components"]]
+        for row in view.to_components()
+    ]
+
+
+def failing_store(scene: Scene, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make the store refuse every write, as a full disk does."""
+
+    async def put(namespace: str, key: str, value: JSON) -> None:
+        del namespace, key, value
+        message = "disk I/O error"
+        raise sqlite3.OperationalError(message)
+
+    monkeypatch.setattr(scene.store, "put", put)
+
+
+@dataclass
+class EditedOnce(FakeMessage):
+    """A message whose first edit goes through; Discord refuses the next ones."""
+
+    async def edit(self, **fields: object) -> None:
+        """Record the edit, then refuse later ones."""
+        await super().edit(**fields)
+        self.error = forbidden()
 
 
 @dataclass
@@ -118,11 +152,7 @@ async def test_button_added_to_a_panel(scene: Scene) -> None:
     view = fields["view"]
     assert isinstance(view, discord.ui.View)
     assert view.is_finished()  # the router handles its buttons, not discord.py
-    sent_rows = [
-        [cast("dict[str, object]", component).get("custom_id") for component in row["components"]]
-        for row in view.to_components()
-    ]
-    assert sent_rows == [
+    assert rows_of(view) == [
         [press(0), press(1)],  # the stored list's length (v3: the row's size, B6)
         [None],  # the link button's row stays (v3 dropped every row but the first, B17)
     ]
@@ -302,3 +332,56 @@ async def test_broken_list(scene: Scene) -> None:
     assert methods(interaction.sent)[-1] == "followup.send"
     assert message.sent == []  # nothing placed on the message
     assert scene.session().draft == DRAFT
+
+
+async def test_unstored_panel(scene: Scene, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Requirement: A panel that cannot be posted keeps the builder."""
+    scene.keep(DRAFT)
+    failing_store(scene, monkeypatch)
+
+    interaction = await scene.press("confirm-create")
+
+    reply = "Creating the ticket button failed: disk I/O error"
+    assert interaction.sent[-1] == ("followup.send", {"content": reply, "ephemeral": True})
+    assert methods(scene.channel.sent) == ["channel.send", "message.delete"]
+    assert scene.session().draft == DRAFT
+
+
+@pytest.mark.xfail(strict=True, reason="A panel that cannot be posted keeps the builder")
+async def test_unstored_button(scene: Scene, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Requirement: A panel that cannot be posted keeps the builder."""
+    first: dict[str, object] = {"type": 2, "style": 3, "custom_id": press(0), "label": "Old"}
+    message = target(scene, [row(first)])
+    await scene.store.put(NAMESPACE, "10", {str(TARGET): [STORED]})
+    scene.keep(DRAFT, target=Target(TARGET, discord.Embed(title="Panel")))
+    failing_store(scene, monkeypatch)
+
+    interaction = await scene.press("confirm-create")
+
+    reply = "Creating the ticket button failed: disk I/O error"
+    assert interaction.sent[-1] == ("followup.send", {"content": reply, "ephemeral": True})
+    # The button goes again: no button without its entry, and the next confirmation does not
+    # give a second button the same ID, which Discord refuses.
+    assert [rows_of(fields["view"]) for _, fields in message.sent] == [
+        [[press(0), press(1)]],
+        [[press(0)]],
+    ]
+    assert scene.session().draft == DRAFT
+    assert await scene.store.get(NAMESPACE, "10") == {str(TARGET): [STORED]}
+
+
+@pytest.mark.xfail(strict=True, reason="A panel that cannot be posted keeps the builder")
+async def test_unstored_button_kept(
+    scene: Scene, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: A panel that cannot be posted keeps the builder."""
+    target(scene, [], EditedOnce)
+    scene.keep(DRAFT, target=Target(TARGET, discord.Embed(title="Panel")))
+    failing_store(scene, monkeypatch)
+
+    with caplog.at_level(logging.WARNING):
+        interaction = await scene.press("confirm-create")
+
+    reply = "Creating the ticket button failed: disk I/O error"
+    assert interaction.sent[-1] == ("followup.send", {"content": reply, "ephemeral": True})
+    assert "Ticket cannot remove the button that it did not store from message 600" in caplog.text

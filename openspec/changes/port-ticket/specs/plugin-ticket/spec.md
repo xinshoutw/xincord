@@ -218,12 +218,18 @@ end of that list and delete the builder.
 ### Requirement: A panel that cannot be posted keeps the builder
 When the panel cannot be posted, edited or stored, or the message has since filled its row, the
 draft SHALL come back, the builder SHALL stay and the user SHALL get the create-failed text with the
-error ephemerally; a second confirmation while the first runs SHALL get the session-expired text.
+error ephemerally; a panel posted or a button added whose entry cannot be stored SHALL go again,
+and a second confirmation while the first runs SHALL get the session-expired text.
 
 #### Scenario: Refused post
 - **WHEN** the channel refuses the panel
 - **THEN** the reply is the create-failed text with the error, the builder stays and the draft is
   kept
+
+#### Scenario: Unstored entry
+- **WHEN** the store fails after the panel was posted, or after the button was added to the message
+- **THEN** the panel is deleted, or the message gets its earlier buttons back, and the reply is the
+  create-failed text with the error
 
 #### Scenario: Double confirmation
 - **WHEN** the administrator presses `confirm-create` twice while the panel is being posted

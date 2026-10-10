@@ -138,6 +138,11 @@
 - [x] 24.1 Gate passes, push, CI green (before the review)
 - [ ] 24.2 Cross-review the change (other paths into the features, repeated or concurrent
       presses, state left behind); fix each finding xfail-first
+- [x] 24.3 xfail tests for "Unstored entry" (found during the review: when the store failed after
+      `/add-ticket`'s button was added, the button stayed without its entry, and every later
+      confirmation for that message gave a second button its ID, which Discord refuses)
+- [ ] 24.4 Take the button off the message again when its entry cannot be stored; remove the
+      markers
 
 ## 25. Close
 
