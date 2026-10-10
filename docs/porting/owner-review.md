@@ -148,3 +148,26 @@ here; delete a section once it is empty.
 - The bot's application must allow the Server Members intent in the developer portal (v3 always requested it); without it, startup stops with a privileged-intents error.
 - At cutover, bind the welcome and bye channels again in each guild listed in v3's `plugins/WelcomeByeGuild/data/`, or build the deferred migration first.
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `WelcomeByeGuild` enabled); an image build with the plugin enabled is still open.
+
+## IntervalPusher (`port-interval-pusher`)
+
+### User-visible changes
+- The plugin shows nothing in Discord: the changes are in `plugins/IntervalPusher/config.yaml` and the log.
+- The bundled `config.yaml` lists no listeners and shows an example on `status.example.com` in a comment (v3 shipped one listener on `status.xinshou.tw` with a placeholder token, disabled); a v3 file loads unchanged and warns `unknown key enabled`.
+- An `interval` below 1 (v3: a busy loop) or a `url` that is not an http or https URL with a host (v3: an error at every push) disables the plugin at load, with the key named.
+- `%ping%` is measured only for URLs that contain it (v3 asked Discord at every push).
+- Stopping or reloading the plugin no longer logs a spurious error.
+- New English log lines number the listener (`IntervalPusher listener 1 started (every 60 s)`, `IntervalPusher listener 2 stopped: the status monitor refused the push (code 404)`), at v3's levels.
+### Choices made without the owner
+- Bundled config: implemented no listeners and a commented example on `status.example.com`; alternative: v3's sample listener on the owner's status domain with a placeholder token.
+- `%ping%`: implemented v3's REST ping, a timed `GET /users/@me` through discord.py's undocumented `HTTPClient.request` and `Route`; alternative: discord.py's public gateway latency (`bot.latency`), a different quantity.
+- HTTP client: implemented aiohttp, already installed with discord.py and now declared by `xincord-plugins`; alternative: httpx, a new dependency.
+- Interval range: implemented 1 to 2147483647 seconds (v3's `Int` without zero and negatives); alternative: a larger minimum, such as 10 seconds.
+- URL check: implemented an http or https URL with a host and no spaces, checked at load; alternative: v3's unchecked URL, which fails at every push.
+- Failure logs: kept v3's full URL, push token included; alternative: only the host.
+- When pushing starts: implemented at READY (at once when the plugin loads into a ready bot), so that the monitor shows the bot as up only once it is connected; alternative: at load, before the gateway connects.
+- Redirects: kept v3's behavior of not following them (a 3xx logs an error); alternative: follow them, so that an `http://` URL redirected to `https://` works.
+### Manual checks
+- Smoke checklist in `openspec/changes/archive/2026-10-10-port-interval-pusher/design.md` (needs a token and an Uptime Kuma push monitor or another endpoint that shows its requests).
+- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `IntervalPusher` enabled, with and without a listener); an image build with the plugin enabled is still open.
+- After a discord.py upgrade, check that pushes carry a real ping and not `-1`: the ping uses discord.py's undocumented `HTTPClient.request` and `Route`.

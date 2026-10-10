@@ -1,6 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after `port-welcome-bye-guild`, the sixth plugin port. Core is complete. Read
+Updated 2026-10-10 after `port-interval-pusher`, the seventh plugin port. Core is complete. Read
 this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and
 binding; do not re-open them unless you find a serious problem, and then ask the owner.
 
@@ -197,7 +197,19 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   `get_channel` and `as_guild()`, `FakeChannel(type=...)`, `FakeMember` with placeholder
   attributes, `FakeInteraction(guild=, guild_locale=, permissions=)`, `Bot.user` patched as a
   property, and the scratch probe through discord.py's own objects (skill step 7).
-- **Still to build:** the plugins after WelcomeByeGuild (section 5).
+- **IntervalPusher** (`xincord.plugins.interval_pusher`, no intents, no lang, config
+  `listeners[].url` and `interval`): the first background loop and outgoing HTTP. `pusher.py` has
+  `Pusher(number, listener, get, ping, sleep)`, v3's loop with its effects passed in (push at once,
+  then `interval` seconds after each attempt; a 404 ends it; failures are logged), `rest_ping`
+  (times `bot.http.request(Route("GET", "/users/@me"))`, JDA's REST ping) and aiohttp's
+  `open_session` and `get_status` (no redirects, v3's timeouts); `xincord-plugins` declares aiohttp.
+  `cog.py` creates one task per listener in `cog_load`, each awaiting `bot.wait_until_ready()`, and
+  cancels and awaits them in `cog_unload`. Reuse: `plugin_fakes.Ready` (READY for offline bots; its
+  `close` cancels the tasks left running), `http_fakes.running_monitor()` (`Monitor`, a local HTTP
+  server), patching `discord.http.HTTPClient.request` to record REST calls, an injected `sleep`
+  with a fake clock, `bot.remove_cog` to run `cog_unload` without unloading the modules, and the
+  REST probe through `Route.BASE` and `http.static_login` (skill step 7).
+- **Still to build:** the plugins after IntervalPusher (section 5).
 
 ## 5. Status and next steps
 
@@ -208,19 +220,20 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `core-command-tree`, `core-component-routing`, `core-interaction-values`, `core-startup`,
 `core-reload`, `core-console`, `core-status-log`, `container`, `port-example`,
 `port-basic-calculator`, `port-auto-role`, `port-bot-info`, `port-simple-command`,
-`port-welcome-bye-guild`. Each one's
+`port-welcome-bye-guild`, `port-interval-pusher`. Each one's
 `design.md` in `openspec/changes/archive/` records its decisions and "v3 behaved differently"
 notes; `docs/porting-guide.md` has the differences table.
 
 ### Next: the plugins
 
-Core is complete; _Example (the template), BasicCalculator, AutoRole, BotInfo, SimpleCommand and
-WelcomeByeGuild are ported. Next: **IntervalPusher** (`port-interval-pusher`). Port the plugins in
-C1 order with the `port-plugin` skill (`.claude/skills/port-plugin/SKILL.md`), one OpenSpec change
-each (`port-<plugin-kebab>`): _Example (done), BasicCalculator (done), AutoRole (done), BotInfo
-(done, with the configurable AGPL source link of C3), SimpleCommand (done), WelcomeByeGuild (done),
-then IntervalPusher, Feedbacker, Economy, DynamicVoiceChannel, VoiceLogger, ChatLogger, Giveaway,
-Ticket, TicketAddons, NtustManager, NtustCourse, MusicPlayer (with Lavalink in `compose.yaml`).
+Core is complete; _Example (the template), BasicCalculator, AutoRole, BotInfo, SimpleCommand,
+WelcomeByeGuild and IntervalPusher are ported. Next: **Feedbacker** (`port-feedbacker`). Port the
+plugins in C1 order with the `port-plugin` skill (`.claude/skills/port-plugin/SKILL.md`), one
+OpenSpec change each (`port-<plugin-kebab>`): _Example (done), BasicCalculator (done), AutoRole
+(done), BotInfo (done, with the configurable AGPL source link of C3), SimpleCommand (done),
+WelcomeByeGuild (done), IntervalPusher (done), then Feedbacker, Economy, DynamicVoiceChannel,
+VoiceLogger, ChatLogger, Giveaway, Ticket, TicketAddons, NtustManager, NtustCourse, MusicPlayer
+(with Lavalink in `compose.yaml`).
 Update `docs/porting-guide.md` after each one.
 
 ### Working tips from this session
@@ -318,6 +331,13 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - A stub whose annotations use `discord` keeps the import under `TYPE_CHECKING` until code uses it
   at runtime, or ruff's TC rules fail the gate.
 - Python 3.14 accepts `except A, B:` without parentheses, and ruff formats it that way.
+- ruff's TRY400 wants `logger.exception` for `logger.error` inside `except` (`# noqa: TRY400`
+  where a traceback is noise), and TRY401 refuses the exception object in `logger.exception`.
+- aiohttp's `RawTestServer.close()` waits for the requests still in flight: answer them first, or
+  the teardown waits for the client's timeout (`http_fakes.Monitor.close`). Autouse fixtures are
+  torn down after the fixtures a test requests.
+- `asyncio.CancelledError` is a `BaseException`: `except Exception` leaves cancellation alone.
+  Kotlin's `catch (e: Exception)` caught `CancellationException`.
 
 **discord.py 2.7.1 facts**
 - Decorators evaluate app-command annotations at import time; keep those imports at runtime
@@ -386,6 +406,14 @@ setup-uv v10.2.0, setup-node v7.1.0.
   the cached `Member` when there was one. JDA ignored the bot's own removal.
 - At `on_ready`, `Client.guilds` holds every guild of READY, unavailable ones included (READY adds
   them before their GUILD_CREATE), so stored data of other guilds belongs to guilds the bot left.
+- `wait_until_ready` raises until `login` or `async with bot` creates the READY event; the
+  `--no-online` check enters `async with bot`, so loops wait for a READY that never comes, and
+  `Bot.close` unloads the extensions (running `cog_unload`) before it closes the HTTP client.
+- `HTTPClient.request(Route(...))` is the REST call behind discord.py's methods; it retries a 500,
+  502, 504 or 524 (and a reset connection) up to five times, sleeping 1 + 2 x tries seconds, then
+  raises `DiscordServerError`.
+- A probe can log in offline: point `discord.http.Route.BASE` at a local server and call
+  `bot.http.static_login(token)` inside `async with bot`; set `bot._ready` for READY.
 - A scratch probe can drive real discord.py objects offline: set `bot._connection.user` to a
   `ClientUser`, build `discord.Interaction(data=..., state=bot._connection)` and call
   `command._invoke_with_namespace(...)` (patch `Interaction.edit_original_response`); set
