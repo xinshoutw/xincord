@@ -12,3 +12,8 @@ class Config(Model):
 
     v3's ``enabled`` key is gone: the core config's ``plugins`` list enables the plugin.
     """
+
+    @property
+    def source_url(self) -> str:
+        """Stub until the config has the source link."""
+        raise NotImplementedError

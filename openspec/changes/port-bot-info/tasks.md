@@ -11,7 +11,7 @@
 
 ## 3. Config
 
-- [ ] 3.1 xfail tests for "The config sets the source link", with the field stubbed
+- [x] 3.1 xfail tests for "The config sets the source link", with the field stubbed
 - [ ] 3.2 Add `source_url` and its validation to the config model; remove the markers
 
 ## 4. Counts
