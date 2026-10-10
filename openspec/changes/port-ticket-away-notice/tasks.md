@@ -20,7 +20,7 @@
 
 ## 4. Problems
 
-- [ ] 4.1 xfail tests for "Problems with notices are reported"
+- [x] 4.1 xfail tests for "Problems with notices are reported"
 - [ ] 4.2 Log the missing owner, the refused lookup and the refused notice, and check at load that
       the notice can be posted; remove the markers
 

@@ -116,8 +116,9 @@ global placeholders (`bot_id`, `bot_name`).
 ### Requirement: Problems with notices are reported
 When Discord answers that the member `user_id` is not in the guild, refuses to look the member up,
 or refuses the notice, the plugin SHALL log a warning that names the guild and the member or the
-channel, and post nothing for that channel. A `not-online` template that cannot be posted, such as
-one with a component ID, SHALL keep the plugin from loading, with an error that names the file.
+channel, and post nothing for that channel. Any other failure SHALL be logged as an error with its
+traceback. A `not-online` template that cannot be posted, such as one with a component ID, SHALL
+keep the plugin from loading, with an error that names the file.
 
 #### Scenario: Owner not a member
 - **WHEN** Discord answers that user 20 is not a member of guild 10
@@ -130,6 +131,10 @@ one with a component ID, SHALL keep the plugin from loading, with an error that 
 #### Scenario: Refused notice
 - **WHEN** the channel refuses the notice
 - **THEN** a warning names the channel and guild 10
+
+#### Scenario: Unexpected failure
+- **WHEN** the notice fails without an answer from Discord, as when the connection drops
+- **THEN** an error names the channel, with the traceback
 
 #### Scenario: Template that cannot be posted
 - **WHEN** the operator's `not-online.yaml` holds a button with a `uid`

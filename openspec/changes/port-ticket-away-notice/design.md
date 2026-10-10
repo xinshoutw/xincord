@@ -81,8 +81,8 @@ listener holds nothing up.
 
 ### The owner's status and the delay
 
-A notice is an `asyncio` task kept in the cog's `notices` set until it ends; its done callback
-logs an unexpected failure with its traceback. It:
+A notice is an `asyncio` task kept in the cog's `notices` set until it ends (see "Problems" for its
+failures). It:
 
 1. reads the owner (`user_id`) from `guild.get_member`, else `await guild.fetch_member` (v3's
    `retrieveMemberById`); a member from Discord's REST API has no presence, so discord.py reports
@@ -117,6 +117,9 @@ SERVER ❖`.
 - Another `discord.HTTPException` from `fetch_member`: a warning with the error, and no notice.
 - A notice that Discord refuses (`discord.HTTPException`, such as a missing Send Messages): a
   warning that names the channel and the guild. v3 left it to JDA's failure log.
+- Any other failure inside the task (a dropped connection, an answer discord.py cannot read) is
+  logged with its traceback by the task itself (`logger.exception`), so that none is lost in a task
+  that nothing awaits; cancellation is no `Exception` and stays quiet.
 - `setup` renders the `not-online` template once with no values and closes its files: a template
   that the plugin can never post (a component with a `uid`, a `model_key`, a missing `file_path`,
   too many rows) raises `ConfigError` with the file named, so the plugin does not load
