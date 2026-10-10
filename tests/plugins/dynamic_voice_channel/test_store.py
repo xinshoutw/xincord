@@ -25,15 +25,9 @@ from xincord.plugins.dynamic_voice_channel.store import (
 if TYPE_CHECKING:
     from xincord.core.storage import JSON, Store
 
-BINDINGS = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Bindings are kept per guild in v3's documents",
-)
 LOBBY = Binding(20, "Lobby", "A", "B")
 
 
-@BINDINGS
 async def test_first_binding(store: Store) -> None:
     """Requirement: Bindings are kept per guild in v3's documents."""
     await bind(store, 10, LOBBY)
@@ -49,14 +43,12 @@ async def test_first_binding(store: Store) -> None:
     assert await read_bindings(store, 10) == [LOBBY]
 
 
-@BINDINGS
 async def test_guild_without_bindings(store: Store) -> None:
     """Requirement: Bindings are kept per guild in v3's documents."""
     assert await read_bindings(store, 10) == []
     assert await store.keys(NAMESPACE) == []
 
 
-@BINDINGS
 async def test_missing_formats(store: Store) -> None:
     """Requirement: Bindings are kept per guild in v3's documents."""
     # Moshi's defaults for formatName1 and formatName2; unknown fields are ignored.
@@ -65,7 +57,6 @@ async def test_missing_formats(store: Store) -> None:
     assert await read_bindings(store, 10) == [Binding(20, "Lobby", "", "")]
 
 
-@BINDINGS
 def test_find() -> None:
     """Requirement: Bindings are kept per guild in v3's documents."""
     first, other, second = (
@@ -82,7 +73,6 @@ def test_find() -> None:
     assert find([], 20, "Lobby") is None
 
 
-@BINDINGS
 async def test_binding_again(store: Store) -> None:
     """Requirement: Bindings are kept per guild in v3's documents."""
     # v3's bind appended a second entry instead of replacing the first.
@@ -107,7 +97,6 @@ async def test_binding_again(store: Store) -> None:
     ]
 
 
-@BINDINGS
 async def test_unbinding(store: Store) -> None:
     """Requirement: Bindings are kept per guild in v3's documents."""
     await bind(store, 10, LOBBY)
@@ -118,7 +107,6 @@ async def test_unbinding(store: Store) -> None:
     assert await store.keys(NAMESPACE) == []  # nothing written for a binding that is not there
 
 
-@BINDINGS
 async def test_unbinding_duplicates(store: Store) -> None:
     """Requirement: Bindings are kept per guild in v3's documents."""
     await store.put(
@@ -136,7 +124,6 @@ async def test_unbinding_duplicates(store: Store) -> None:
     assert await store.get(NAMESPACE, "10") == [{"categoryId": 21, "defaultName": "Lobby"}]
 
 
-@BINDINGS
 async def test_dropping_bindings(store: Store) -> None:
     """Requirement: Bindings are kept per guild in v3's documents."""
     for binding in (Binding(20, "A"), Binding(21, "B"), Binding(22, "C")):
@@ -150,7 +137,6 @@ async def test_dropping_bindings(store: Store) -> None:
     assert await store.keys(NAMESPACE) == []
 
 
-@BINDINGS
 async def test_concurrent_binds(store: Store) -> None:
     """Requirement: Bindings are kept per guild in v3's documents."""
     lobbies = [Binding(20, f"Lobby {number}") for number in range(20)]
@@ -162,7 +148,6 @@ async def test_concurrent_binds(store: Store) -> None:
     )
 
 
-@BINDINGS
 @pytest.mark.parametrize(
     "document",
     [
