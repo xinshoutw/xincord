@@ -6,6 +6,8 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/resources/lang/zh-TW/register.yaml:1-19
 """
 
+from typing import Literal
+
 from pydantic import Field
 
 from xincord.core.config import Model
@@ -30,6 +32,9 @@ class CommandSpec(Model):
     template: str | None = None
     # discord.py's permission names; v3's commands were for administrators.
     permissions: tuple[str, ...] = ("administrator",)
+    # Where the message goes: a post in the command's channel (v3's way), a public reply, or a
+    # reply that only the user sees.
+    reply: Literal["channel", "public", "ephemeral"] = "channel"
     guilds: tuple[int, ...] = ()  # the guilds that get the command; empty for every guild
 
     @property

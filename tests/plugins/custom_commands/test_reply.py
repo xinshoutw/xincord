@@ -8,7 +8,6 @@ import logging
 from typing import TYPE_CHECKING, cast
 
 import discord
-import pytest
 from discord import app_commands
 
 from discord_fakes import FakeChannel, FakeInteraction
@@ -16,6 +15,8 @@ from xincord.plugins.custom_commands.cog import CustomCommands
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
+
+    import pytest
 
     from conftest import Operator
     from discord_fakes import Sent
@@ -57,7 +58,6 @@ async def invoke(bot: Bot, name: str, locale: discord.Locale) -> list[Sent]:
     return sent
 
 
-@pytest.mark.xfail(strict=True, reason="A command can answer with a public or an ephemeral reply")
 async def test_public_reply(operator: Operator) -> None:
     """Requirement: A command can answer with a public or an ephemeral reply."""
     bot = await loaded(operator)
@@ -69,7 +69,6 @@ async def test_public_reply(operator: Operator) -> None:
     assert sent[1][1]["content"] == "rules alice"  # zh-TW, the default locale
 
 
-@pytest.mark.xfail(strict=True, reason="A command can answer with a public or an ephemeral reply")
 async def test_ephemeral_reply(operator: Operator) -> None:
     """Requirement: A command can answer with a public or an ephemeral reply."""
     bot = await loaded(operator)
@@ -81,7 +80,6 @@ async def test_ephemeral_reply(operator: Operator) -> None:
     assert sent[1][1]["content"] == "faq en-US"
 
 
-@pytest.mark.xfail(strict=True, reason="A command can answer with a public or an ephemeral reply")
 async def test_ephemeral_fallback(operator: Operator) -> None:
     """Requirement: A command can answer with a public or an ephemeral reply."""
     bot = await loaded(operator)
@@ -92,7 +90,6 @@ async def test_ephemeral_fallback(operator: Operator) -> None:
     assert sent[1][1]["content"] == "faq alice"
 
 
-@pytest.mark.xfail(strict=True, reason="A command can answer with a public or an ephemeral reply")
 async def test_unknown_answer(operator: Operator, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A command can answer with a public or an ephemeral reply."""
     operator.template("faq", 'content: "Ask in #help"\n')

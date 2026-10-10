@@ -17,10 +17,10 @@ from xincord.core.placeholders import placeholder_values
 from xincord.core.templates import render_message
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Iterable, Mapping, Sequence
 
     from xincord.core.i18n import Lang
-    from xincord.core.templates import Message, Templates
+    from xincord.core.templates import Message, MessageTemplate, Templates
 
     from .config import CommandSpec, Config
 
@@ -59,7 +59,8 @@ class CustomCommands(commands.Cog):
         Only members with the entry's permissions see it by default (administrators, as in v3,
         unless the entry says otherwise); Discord enforces that, and a guild's administrators can
         change it in the server's integration settings. An entry that lists guilds is uploaded
-        to those guilds only.
+        to those guilds only. The command tree defers the command ephemerally unless it replies
+        publicly: an ephemeral deferral cannot turn into a public reply.
         """
         names = {key: value.name for key, value in spec.localizations.items() if value.name}
         descriptions = {
@@ -68,6 +69,8 @@ class CustomCommands(commands.Cog):
         extras: dict[str, object] = {}
         if spec.guilds:
             extras["guilds"] = frozenset(spec.guilds)
+        if spec.reply == "public":
+            extras["defer"] = False
         command: app_commands.Command[Any, ..., None] = app_commands.Command(
             name=localized(spec.name, names),
             description=localized(spec.description, descriptions),
@@ -78,29 +81,28 @@ class CustomCommands(commands.Cog):
         return command
 
     async def post_message(self, interaction: discord.Interaction) -> None:
-        """Post the command's message template in its channel, then delete the response.
+        """Answer with the command's message template, where the command's entry says.
 
-        The message is public, so it is rendered in the default locale for every user, as in v3,
-        with the placeholders of the user, the bot and the interaction (v3's global ones, the
-        bot's, among them). When the channel takes no messages or refuses this one, the deferred
-        response shows the message instead; v3 had already deleted it.
+        ``channel``, v3's way: post the message in the command's channel, then delete the deferred
+        response; when the channel takes no messages or refuses this one, the deferred response
+        shows the message instead (v3 had already deleted it). ``public``: defer publicly, since
+        the command tree left it alone, and edit that response into the message. ``ephemeral``:
+        edit the tree's ephemeral deferred response into it. Posts and public replies are rendered
+        in the default locale for every user, as v3's posts; an ephemeral reply in the user's. The
+        placeholders are the user's, the bot's and the interaction's (v3's, the bot's, among them).
         """
         name = interaction.command.name if interaction.command else ""
-        template = self.templates.message(self.specs[name].template_name, self.lang.default_locale)
+        spec = self.specs[name]
+        if spec.reply == "public":
+            await interaction.response.defer(thinking=True)
+        locale = interaction.locale.value if spec.reply == "ephemeral" else self.lang.default_locale
+        template = self.templates.message(spec.template_name, locale)
         values = placeholder_values(interaction)
-        channel = _postable(interaction.channel)
-        if channel is None:
-            logger.warning(
-                "CustomCommands cannot post %s in %r, which takes no messages, so it shows it "
-                "privately",
-                name,
-                interaction.channel,
-            )
-        elif await _send(channel, name, render_message(template, values)):
+        if spec.reply == "channel" and await _post(interaction.channel, name, template, values):
             await interaction.delete_original_response()
             return
-        # Rendered again: discord.py closes a message's files once it sent them, even when Discord
-        # refused the message.
+        # Rendered again after a refused post: discord.py closes a message's files once it sent
+        # them, even when Discord refused the message.
         reply = render_message(template, values)
         await interaction.edit_original_response(
             content=reply.content or None,
@@ -116,6 +118,22 @@ def _permissions(names: Iterable[str]) -> discord.Permissions | None:
     for name in names:
         value |= discord.Permissions.VALID_FLAGS[name]
     return discord.Permissions(value) if value else None
+
+
+async def _post(
+    channel: object, name: str, template: MessageTemplate, values: Mapping[str, str]
+) -> bool:
+    """Post the message of command ``name`` in ``channel``; return whether Discord took it."""
+    postable = _postable(channel)
+    if postable is None:
+        logger.warning(
+            "CustomCommands cannot post %s in %r, which takes no messages, so it shows it "
+            "privately",
+            name,
+            channel,
+        )
+        return False
+    return await _send(postable, name, render_message(template, values))
 
 
 def _postable(channel: object) -> Postable | None:
