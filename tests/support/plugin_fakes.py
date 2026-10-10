@@ -1,8 +1,10 @@
 """Fakes for tests that load plugins and run the bot."""
 
 import asyncio
+import gc
 import importlib
 import textwrap
+import warnings
 from dataclasses import dataclass, field
 from importlib.metadata import EntryPoint
 from pathlib import Path
@@ -182,6 +184,18 @@ def _state(bot: Bot) -> ConnectionState[Bot]:
 
 
 WAIT = 5  # seconds before until() gives up
+
+
+def unclosed() -> list[str]:
+    """Collect the garbage and return the warnings about resources that nothing closed.
+
+    Python warns when it collects an unclosed ``sqlite3`` connection; recorded here, the warning
+    fails the test that leaked it instead of whichever test runs when the collector does.
+    """
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", ResourceWarning)
+        gc.collect()
+    return [str(warning.message) for warning in caught if warning.category is ResourceWarning]
 
 
 def write_config(text: str) -> None:

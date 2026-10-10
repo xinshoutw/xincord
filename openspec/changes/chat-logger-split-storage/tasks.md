@@ -64,7 +64,7 @@
 - [x] 8.2 xfail tests for "Stored messages live in the plugin's own files" and the core's "Plugins
       can use their own tables": a commit that fails while another connection holds a lock
 - [x] 8.3 Roll back a failed commit in `transaction` and in `Store.run`; remove the markers
-- [ ] 8.4 xfail tests for "The message files are open while the plugin is loaded" and "Stored
+- [x] 8.4 xfail tests for "The message files are open while the plugin is loaded" and "Stored
       messages are kept for the retention period": a cancelled open or close, a corrupt file
       named, leftover temporary files removed at open, a file that cannot be deleted
 - [ ] 8.5 Close what a cancelled open opened, name the corrupt file, clear the leftovers, try each

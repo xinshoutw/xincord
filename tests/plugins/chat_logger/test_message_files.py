@@ -9,23 +9,26 @@ Kotlin:
 """
 
 import asyncio
-import gc
 import logging
 import sqlite3
+import threading
 from contextlib import closing
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 from discord.utils import time_snowflake
 
+from plugin_fakes import WAIT, unclosed
 from xincord.plugins.chat_logger import messages
 from xincord.plugins.chat_logger.files import file_name
 from xincord.plugins.chat_logger.messages import Edit, MessageFiles, Stored
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Callable, Sequence
-    from pathlib import Path
+
+    type WriteFile = Callable[[datetime, Sequence[int]], str]
 
 type Row = tuple[int, int, int, int, str, int]  # v3's columns, with the guild and the channel
 
@@ -33,11 +36,29 @@ NOON = datetime(2026, 10, 11, 12, 0, 0, tzinfo=UTC)
 MIB = 1024 * 1024
 LONG = "x" * 4000  # about a page of a file
 FIRST = "messages-20261011T120005Z.db"  # the file of a first message created at 12:00:05
+OPEN = "The message files are open while the plugin is loaded"
 
 
 def at(seconds: float, sequence: int = 0) -> int:
     """The ID of a message created ``seconds`` after noon; ``sequence`` sets its lowest bits."""
     return time_snowflake(NOON + timedelta(seconds=seconds)) + sequence
+
+
+def ago(days: float) -> datetime:
+    """The time ``days`` days before noon."""
+    return NOON - timedelta(days=days)
+
+
+def created(*days: float) -> list[int]:
+    """The IDs of messages created ``days`` days before noon."""
+    return [time_snowflake(ago(day)) for day in days]
+
+
+def join_threads() -> None:
+    """Wait until the message files' threads have ended."""
+    for thread in threading.enumerate():
+        if thread.name.startswith("xincord-chat-logger"):
+            thread.join(WAIT)
 
 
 def name(seconds: int) -> str:
@@ -274,17 +295,10 @@ async def test_failed_work_keeps_nothing(open_files: Opener, directory: Path) ->
 async def test_expired_files(
     open_files: Opener,
     directory: Path,
-    write_file: Callable[[datetime, Sequence[int]], str],
+    write_file: WriteFile,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Requirement: Stored messages are kept for the retention period."""
-
-    def ago(days: float) -> datetime:
-        return NOON - timedelta(days=days)
-
-    def created(*days: float) -> list[int]:
-        return [time_snowflake(ago(day)) for day in days]
-
     # The first file's range ends 1830 days ago, the second's 1800 days ago, the third's never.
     first = write_file(ago(1900), created(1900, 1840))
     second = write_file(ago(1830), created(1828, 1810))
@@ -444,6 +458,7 @@ async def test_after_closing(open_files: Opener, directory: Path) -> None:
     assert rows(directory) == {FIRST: [(at(5), 10, 30, 7, "a", 0)]}
 
 
+@pytest.mark.xfail(strict=True, reason=OPEN)
 async def test_corrupt_file(open_files: Opener, directory: Path) -> None:
     """Requirement: The message files are open while the plugin is loaded."""
     files = await open_files()
@@ -453,9 +468,153 @@ async def test_corrupt_file(open_files: Opener, directory: Path) -> None:
     garbage.write_bytes(b"not a database " * 100)
 
     broken = MessageFiles(directory, MIB)
-    with pytest.raises(sqlite3.DatabaseError):
+    with pytest.raises(sqlite3.DatabaseError, match=f"{name(60)}: file is not a database"):
         await broken.open()
-    gc.collect()  # a connection left open would warn here, and the warning fails the test
 
+    assert unclosed() == []
     assert not broken.is_open
     assert garbage.read_bytes() == b"not a database " * 100
+
+
+class Connections:
+    """Connections to message files that the test makes for the plugin, as ``connect`` would.
+
+    Each waits for ``release`` (one second at most) when ``slow``, and any thread may close it,
+    so that the test can check each one and close what the plugin left open.
+    """
+
+    def __init__(self) -> None:
+        self.made: list[sqlite3.Connection] = []
+        self.entered = threading.Event()
+        self.release = threading.Event()
+        self.slow = False
+
+    def connect(self, path: Path) -> sqlite3.Connection:
+        """Open an existing message file."""
+        self.entered.set()
+        if self.slow:
+            self.release.wait(1)
+        made = sqlite3.connect(path, autocommit=False, check_same_thread=False)
+        self.made.append(made)
+        return made
+
+    def open(self) -> list[bool]:
+        """Which of the connections are still open; closes them for the next tests."""
+        still_open: list[bool] = []
+        for made in self.made:
+            try:
+                _ = made.total_changes
+            except sqlite3.ProgrammingError:  # closed
+                still_open.append(False)
+            else:
+                still_open.append(True)
+                made.close()
+        return still_open
+
+
+@pytest.mark.xfail(strict=True, reason=OPEN)
+async def test_cancelled_open(
+    directory: Path, write_file: WriteFile, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Requirement: The message files are open while the plugin is loaded."""
+    write_file(NOON, [at(0)])
+    write_file(NOON + timedelta(minutes=1), [at(60)])
+    connections = Connections()
+    connections.slow = True  # the opening goes on after its caller gave up
+    monkeypatch.setattr(messages, "connect", connections.connect)
+    files = MessageFiles(directory, MIB)
+    opening = asyncio.create_task(files.open())
+    await asyncio.to_thread(connections.entered.wait, WAIT)
+
+    opening.cancel()  # a shutdown during a reload
+    with pytest.raises(asyncio.CancelledError):
+        await opening
+    connections.release.set()
+    join_threads()
+
+    assert not files.is_open
+    assert connections.open() == [False, False]
+
+
+@pytest.mark.xfail(strict=True, reason=OPEN)
+async def test_cancelled_close(
+    open_files: Opener, write_file: WriteFile, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Requirement: The message files are open while the plugin is loaded."""
+    write_file(NOON, [at(0)])
+    connections = Connections()
+    monkeypatch.setattr(messages, "connect", connections.connect)
+    files = await open_files()
+    entered, release = threading.Event(), threading.Event()
+    real = messages.transaction
+
+    def transaction(connection: sqlite3.Connection, work: Callable[..., object]) -> object:
+        entered.set()
+        release.wait(1)  # a slow job ahead of the closing one
+        return real(connection, work)
+
+    monkeypatch.setattr(messages, "transaction", transaction)
+    editing = asyncio.create_task(files.edit(at(0), "edited"))
+    await asyncio.to_thread(entered.wait, WAIT)
+    closing = asyncio.create_task(files.close())
+    await asyncio.sleep(0)  # the closing job waits behind the edit
+
+    closing.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await closing
+    release.set()
+    await editing
+    join_threads()
+
+    assert not files.is_open
+    assert connections.open() == [False]
+
+
+@pytest.mark.xfail(strict=True, reason="A new message file starts when the newest is full")
+async def test_leftovers_removed_at_open(open_files: Opener, directory: Path) -> None:
+    """Requirement: A new message file starts when the newest is full."""
+    directory.mkdir(parents=True)
+    for leftover in (f"{FIRST}.tmp", f"{FIRST}.tmp-journal"):  # an attempt that a crash ended
+        (directory / leftover).write_bytes(b"left by an attempt")
+    (directory / "notes.txt").write_text("kept", encoding="utf-8")
+
+    await open_files()
+
+    assert [path.name for path in directory.iterdir()] == ["notes.txt"]
+
+
+@pytest.mark.xfail(strict=True, reason="Stored messages are kept for the retention period")
+async def test_undeletable_file(
+    open_files: Opener,
+    directory: Path,
+    write_file: WriteFile,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Requirement: Stored messages are kept for the retention period."""
+    first = write_file(ago(1900), created(1900))
+    second = write_file(ago(1850), created(1850))
+    third = write_file(ago(1800), created(1))
+    real_unlink = Path.unlink
+
+    def unlink(path: Path, *, missing_ok: bool = False) -> None:
+        if path.name == first:
+            raise PermissionError(13, "Permission denied", str(path))
+        real_unlink(path, missing_ok=missing_ok)
+
+    monkeypatch.setattr(Path, "unlink", unlink)
+    files = await open_files()
+
+    with caplog.at_level(logging.INFO):
+        await files.prune(time_snowflake(ago(1826)))
+
+    assert sorted(path.name for path in directory.glob("messages-*")) == [first, third]
+    assert f"ChatLogger cannot delete the message file {first}" in caplog.text
+    assert (
+        f"ChatLogger deleted the message file {second}, whose messages all expired" in caplog.text
+    )
+    monkeypatch.setattr(Path, "unlink", real_unlink)
+    await files.close()
+    again = await open_files()  # the next start
+    await again.prune(time_snowflake(ago(1826)))
+    assert sorted(path.name for path in directory.glob("messages-*")) == [third]

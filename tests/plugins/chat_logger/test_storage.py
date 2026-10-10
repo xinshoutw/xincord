@@ -9,7 +9,6 @@ Kotlin:
 """
 
 import asyncio
-import gc
 import sqlite3
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
@@ -18,6 +17,7 @@ import pytest
 from discord.utils import time_snowflake
 
 import payloads
+from plugin_fakes import unclosed
 from xincord.core.bot import Bot
 from xincord.plugins.chat_logger.messages import MessageFiles
 
@@ -54,9 +54,9 @@ def record_opens(monkeypatch: pytest.MonkeyPatch) -> list[MessageFiles]:
 
 
 def no_leak(opened: list[MessageFiles]) -> None:
-    """Let the files go: a connection left open would warn now, and the warning fails the test."""
+    """Let the files go and check that no connection was left open."""
     opened.clear()
-    gc.collect()
+    assert unclosed() == []
 
 
 async def test_first_file(scene: Scene) -> None:
@@ -140,7 +140,7 @@ async def test_reload(scene: Scene) -> None:
     await scene.edit(100, 30, "hi")  # the new version finds the message stored before
     assert len(scene.posts(5)) == 1
     del previous
-    gc.collect()  # the previous version's connections would warn here if left open
+    assert unclosed() == []  # no connection of the previous version is left open
 
 
 async def test_failed_load(
