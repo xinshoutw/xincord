@@ -44,6 +44,12 @@ localizations; a runtime permission check; new commands.
   are public institution codes and stay.
 - v3's `info.yaml` keys `author`, `coreApi` and `version` have no counterpart. v3 logged
   `SimpleCommand is disabled.` when off; a plugin missing from `plugins` is never imported.
+- uv_build ships every file in the package. Checked on 2026-10-10: the wheel from
+  `uv build --package xincord-plugins` lists the six zh-TW lang files and the `SimpleCommand` entry
+  point, and `xincord --no-online`, run from a scratch virtual environment with both wheels and
+  `plugins: [SimpleCommand]`, loads the plugin, writes `register.yaml` and the five templates under
+  `plugins/SimpleCommand/lang/zh-TW/`, writes no `plugins/SimpleCommand/config.yaml`, and exits
+  with 0.
 
 ### Posting (`cog.py`)
 

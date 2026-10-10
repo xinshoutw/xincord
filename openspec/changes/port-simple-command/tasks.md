@@ -22,7 +22,7 @@
 
 ## 5. Conventions and docs
 
-- [ ] 5.1 Check that the built wheel ships `lang/` and that `xincord --no-online` loads the plugin
+- [x] 5.1 Check that the built wheel ships `lang/` and that `xincord --no-online` loads the plugin
 - [ ] 5.2 Porting guide rows and pitfalls, and skill corrections (whole messages and their files,
       shared callbacks)
 - [ ] 5.3 Audit the inventory against the scenarios and the design
