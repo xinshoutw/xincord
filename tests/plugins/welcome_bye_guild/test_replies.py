@@ -23,18 +23,6 @@ if TYPE_CHECKING:
     from xincord.core.storage import JSON, Store
     from xincord.plugins.welcome_bye_guild.cog import WelcomeByeGuild
 
-BIND = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Administrators bind a channel"
-)
-UNBIND = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Administrators unbind a channel"
-)
-ACCESS = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Only administrators change the channels"
-)
-LOCALE = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Replies use the guild's locale"
-)
 GOLDEN = golden("welcome_bye_guild")
 ADMINISTRATOR = discord.Permissions(administrator=True)
 EN = discord.Locale.american_english
@@ -121,7 +109,6 @@ def spy_writes(store: Store, monkeypatch: pytest.MonkeyPatch) -> list[str]:
     return writes
 
 
-@BIND
 async def test_option_channel(cog: WelcomeByeGuild, store: Store) -> None:
     """Requirement: Administrators bind a channel."""
     guild = make_guild()
@@ -133,7 +120,6 @@ async def test_option_channel(cog: WelcomeByeGuild, store: Store) -> None:
     assert await read(store, 10) == Bindings(welcome=5)
 
 
-@BIND
 async def test_command_channel(cog: WelcomeByeGuild, store: Store) -> None:
     """Requirement: Administrators bind a channel."""
     guild = make_guild()
@@ -145,7 +131,6 @@ async def test_command_channel(cog: WelcomeByeGuild, store: Store) -> None:
     assert await read(store, 10) == Bindings(bye=5)
 
 
-@BIND
 async def test_already_bound(
     cog: WelcomeByeGuild, store: Store, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -161,7 +146,6 @@ async def test_already_bound(
     assert writes == []
 
 
-@BIND
 @pytest.mark.parametrize(
     "kind",
     [
@@ -185,7 +169,6 @@ async def test_no_text_channel(
     assert await store.keys(NAMESPACE) == []
 
 
-@BIND
 async def test_option_that_is_not_a_text_channel(cog: WelcomeByeGuild, store: Store) -> None:
     """Requirement: Administrators bind a channel."""
     guild = make_guild()
@@ -198,7 +181,6 @@ async def test_option_that_is_not_a_text_channel(cog: WelcomeByeGuild, store: St
     assert await store.keys(NAMESPACE) == []
 
 
-@BIND
 async def test_one_channel_for_both(cog: WelcomeByeGuild, store: Store) -> None:
     """Requirement: Administrators bind a channel."""
     guild = make_guild()
@@ -210,7 +192,6 @@ async def test_one_channel_for_both(cog: WelcomeByeGuild, store: Store) -> None:
     assert await read(store, 10) == Bindings(welcome=5, bye=5)
 
 
-@UNBIND
 async def test_nothing_bound(cog: WelcomeByeGuild, store: Store) -> None:
     """Requirement: Administrators unbind a channel."""
     text = await unbind(cog, command("bye-channel-unbind", make_guild()))
@@ -219,7 +200,6 @@ async def test_nothing_bound(cog: WelcomeByeGuild, store: Store) -> None:
     assert await store.keys(NAMESPACE) == []
 
 
-@UNBIND
 async def test_unbind(cog: WelcomeByeGuild, store: Store) -> None:
     """Requirement: Administrators unbind a channel."""
     await set_channel(store, 10, "welcome", 5)
@@ -231,7 +211,6 @@ async def test_unbind(cog: WelcomeByeGuild, store: Store) -> None:
     assert await read(store, 10) == Bindings(welcome=0, bye=6)
 
 
-@UNBIND
 async def test_deleted_channel(cog: WelcomeByeGuild, store: Store) -> None:
     """Requirement: Administrators unbind a channel."""
     await set_channel(store, 10, "welcome", 5)
@@ -242,7 +221,6 @@ async def test_deleted_channel(cog: WelcomeByeGuild, store: Store) -> None:
     assert text == GOLDEN["replies"]["en-US"]["welcome-unbind-success"]
 
 
-@ACCESS
 @pytest.mark.parametrize("name", ["welcome-channel-bind", "bye-channel-unbind"])
 async def test_member_without_administrator(cog: WelcomeByeGuild, store: Store, name: str) -> None:
     """Requirement: Only administrators change the channels."""
@@ -260,7 +238,6 @@ async def test_member_without_administrator(cog: WelcomeByeGuild, store: Store, 
     assert await store.items(NAMESPACE) == {"10": {"welcomeChannelId": 0, "byeChannelId": 6}}
 
 
-@ACCESS
 async def test_outside_a_guild(cog: WelcomeByeGuild, store: Store) -> None:
     """Requirement: Only administrators change the channels."""
     interaction = command("welcome-channel-unbind", None, locale=EN)
@@ -271,7 +248,6 @@ async def test_outside_a_guild(cog: WelcomeByeGuild, store: Store) -> None:
     assert await store.keys(NAMESPACE) == []
 
 
-@LOCALE
 async def test_guild_locale(cog: WelcomeByeGuild) -> None:
     """Requirement: Replies use the guild's locale."""
     interaction = command("welcome-channel-unbind", make_guild(), locale=EN)
@@ -279,7 +255,6 @@ async def test_guild_locale(cog: WelcomeByeGuild) -> None:
     assert await unbind(cog, interaction) == GOLDEN["replies"]["en-US"]["welcome-unbind-empty"]
 
 
-@LOCALE
 @pytest.mark.parametrize("guild_locale", [discord.Locale.japanese, discord.Locale.british_english])
 async def test_other_locales(cog: WelcomeByeGuild, guild_locale: discord.Locale) -> None:
     """Requirement: Replies use the guild's locale."""
@@ -288,7 +263,6 @@ async def test_other_locales(cog: WelcomeByeGuild, guild_locale: discord.Locale)
     assert await unbind(cog, interaction) == GOLDEN["replies"]["zh-TW"]["welcome-unbind-empty"]
 
 
-@LOCALE
 @pytest.mark.parametrize("locale", [EN, ZH])
 async def test_every_reply(cog: WelcomeByeGuild, locale: discord.Locale) -> None:
     """Requirement: Replies use the guild's locale."""

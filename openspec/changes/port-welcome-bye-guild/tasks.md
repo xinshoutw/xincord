@@ -30,7 +30,7 @@
 
 - [x] 6.1 xfail tests for "Administrators bind a channel", "Administrators unbind a channel", "Only
       administrators change the channels" and "Replies use the guild's locale", against stubs
-- [ ] 6.2 Implement `bind_channel`, `unbind_channel`, the access check and `_reply`; remove the
+- [x] 6.2 Implement `bind_channel`, `unbind_channel`, the access check and `_reply`; remove the
       markers
 
 ## 7. Joins and removals
