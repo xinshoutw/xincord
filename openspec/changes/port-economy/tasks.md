@@ -27,7 +27,7 @@
 
 ## 6. Storage
 
-- [ ] 6.1 xfail tests for "Wallets are kept per guild in v3's documents" and "Changes are atomic"
+- [x] 6.1 xfail tests for "Wallets are kept per guild in v3's documents" and "Changes are atomic"
       against stubs in `store.py`
 - [ ] 6.2 Implement `read`, `read_all` and `change`; remove the markers
 
