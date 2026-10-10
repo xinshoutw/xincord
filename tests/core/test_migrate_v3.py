@@ -172,3 +172,93 @@ def test_enabled_v3_plugins(tmp_path: Path) -> None:
 
     assert load_config(tmp_path / "config.yaml", CoreConfig, "").plugins == ("AutoRole",)
     assert any("AutoRole" in line for line in report)
+
+
+# Decision B18 as amended on 2026-10-10 (docs/porting/decisions.md): v3 names and their new
+# names, sorted by the new name.
+RENAMED = (
+    ("BasicCalculator", "Calculator"),
+    ("SimpleCommand", "CustomCommands"),
+    ("_Example", "Example"),
+    ("Feedbacker", "Feedback"),
+    ("NtustManager", "NtustAnnouncements"),
+    ("NtustCourse", "NtustCourseWatch"),
+    ("TicketAddons", "TicketAwayNotice"),
+    ("IntervalPusher", "UptimeHeartbeat"),
+    ("WelcomeByeGuild", "WelcomeGoodbye"),
+)
+
+
+def write_plugin(root: Path, name: str, text: str) -> Path:
+    """Write ``root/plugins/<name>/config.yaml`` and return the plugin's directory."""
+    directory = root / "plugins" / name
+    directory.mkdir(parents=True)
+    (directory / "config.yaml").write_text(text, encoding="utf-8")
+    return directory
+
+
+@pytest.mark.xfail(strict=True, reason="v3 plugin switches migrate to the enabled list")
+def test_renamed_v3_plugins(tmp_path: Path) -> None:
+    """Requirement: v3 plugin switches migrate to the enabled list."""
+    (tmp_path / "config.yaml").write_text(V3_TEXT, encoding="utf-8")
+    for old, _ in RENAMED:
+        write_plugin(tmp_path, old, "enabled: true\n")
+    names = [new for _, new in RENAMED]
+
+    assert enabled_v3_plugins(tmp_path) == names
+    report = migrate_directory(tmp_path)
+
+    assert load_config(tmp_path / "config.yaml", CoreConfig, "").plugins == tuple(names)
+    assert f"plugins: enabled {', '.join(names)}" in report
+
+
+@pytest.mark.xfail(strict=True, reason="Renamed plugins' v3 directories move to their new names")
+def test_renamed_directory_moves(tmp_path: Path) -> None:
+    """Requirement: Renamed plugins' v3 directories move to their new names."""
+    (tmp_path / "config.yaml").write_text(V3_TEXT, encoding="utf-8")
+    text = "enabled: false\nform_success: done\n"
+    old = write_plugin(tmp_path, "Feedbacker", text)
+    (old / "lang" / "zh-TW").mkdir(parents=True)
+    write_plugin(tmp_path, "AutoRole", "enabled: true\n")
+
+    report = migrate_directory(tmp_path)
+
+    new = tmp_path / "plugins" / "Feedback"
+    assert (new / "config.yaml").read_text(encoding="utf-8") == text
+    assert (new / "lang" / "zh-TW").is_dir()
+    assert not old.exists()
+    assert (tmp_path / "plugins" / "AutoRole" / "config.yaml").is_file()
+    assert f"{old}: moved to {new}" in report
+
+
+@pytest.mark.xfail(strict=True, reason="Renamed plugins' v3 directories move to their new names")
+def test_existing_new_directory_is_kept(tmp_path: Path) -> None:
+    """Requirement: Renamed plugins' v3 directories move to their new names."""
+    (tmp_path / "config.yaml").write_text(V3_TEXT, encoding="utf-8")
+    old = write_plugin(tmp_path, "Feedbacker", "enabled: true\n")
+    new = write_plugin(tmp_path, "Feedback", "form_success: newer\n")
+
+    report = migrate_directory(tmp_path)
+
+    assert (old / "config.yaml").read_text(encoding="utf-8") == "enabled: true\n"
+    assert (new / "config.yaml").read_text(encoding="utf-8") == "form_success: newer\n"
+    assert f"{old}: kept, {new} exists" in report
+    assert load_config(tmp_path / "config.yaml", CoreConfig, "").plugins == ("Feedback",)
+
+
+@pytest.mark.xfail(strict=True, reason="Renamed plugins' v3 directories move to their new names")
+def test_migrated_directory_is_left_alone(tmp_path: Path) -> None:
+    """Requirement: Renamed plugins' v3 directories move to their new names."""
+    (tmp_path / "config.yaml").write_text(V3_TEXT, encoding="utf-8")
+    write_plugin(tmp_path, "BasicCalculator", "enabled: true\n")
+    migrate_directory(tmp_path)
+    assert (tmp_path / "plugins" / "Calculator" / "config.yaml").is_file()
+
+    old = write_plugin(tmp_path, "Feedbacker", "enabled: true\n")
+    migrated = migrate_directory(tmp_path)  # config.yaml is in the new schema now
+    (tmp_path / "config.yaml").write_text(V3_TEXT, encoding="utf-8")
+    backed_up = migrate_directory(tmp_path)  # config.v3.yaml exists
+
+    assert (old / "config.yaml").is_file()
+    assert not (tmp_path / "plugins" / "Feedback").exists()
+    assert len(migrated) == len(backed_up) == 1
