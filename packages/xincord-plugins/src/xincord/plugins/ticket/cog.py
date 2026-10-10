@@ -22,6 +22,7 @@ from .texts import Texts
 from .views import preview_button, preview_embed
 
 if TYPE_CHECKING:
+    from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
     from xincord.core.templates import Message, Templates
@@ -111,6 +112,10 @@ class Ticket(commands.Cog):
 
     async def add_ticket(self, interaction: discord.Interaction, message_id: str) -> None:
         """Edit the deferred response into the builder of a button for message ``message_id``."""
+        raise NotImplementedError
+
+    async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
+        """Send a press, a selection or a submission to its handler; ``setup`` routes here."""
         raise NotImplementedError
 
     async def _open(

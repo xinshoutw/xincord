@@ -33,7 +33,7 @@
 
 ## 7. Adding to a message
 
-- [ ] 7.1 xfail tests for "The add command opens the builder for a message" against a stub callback
+- [x] 7.1 xfail tests for "The add command opens the builder for a message" against a stub callback
 - [ ] 7.2 Implement the add callback and its checks; remove the markers
 
 ## 8. Sessions

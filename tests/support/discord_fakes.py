@@ -157,11 +157,20 @@ class FakeChannel:
     type: discord.ChannelType = discord.ChannelType.text
     next_id: int = 500  # the ID of the next message sent to the channel
     message_error: Exception | None = None  # what editing the channel's messages raises
+    # The channel's messages that fetch_message finds, the sent ones too.
+    messages: dict[int, FakeMessage] = field(default_factory=dict[int, "FakeMessage"])
 
     @property
     def mention(self) -> str:
         """The mention markup."""
         return f"<#{self.id}>"
+
+    async def fetch_message(self, message_id: int, /) -> FakeMessage:
+        """The channel's message ``message_id``, as Discord answers; NotFound otherwise."""
+        found = self.messages.get(message_id)
+        if found is None or found.deleted:
+            raise not_found()
+        return found
 
     def get_partial_message(self, message_id: int, /) -> FakeMessage:
         """The channel's message ``message_id``, without fetching it, as discord.py's."""
@@ -175,7 +184,9 @@ class FakeChannel:
             raise self.error
         self.sent.append(("channel.send", fields))
         self.next_id += 1
-        return FakeMessage(sent=self.sent, id=self.next_id - 1, channel_id=self.id)
+        message = FakeMessage(sent=self.sent, id=self.next_id - 1, channel_id=self.id)
+        self.messages[message.id] = message
+        return message
 
 
 @dataclass
@@ -305,6 +316,8 @@ class FakeMessage:
     deleted: bool = False
     channel_id: int = 5
     guild_id: int = 10
+    author: object = None  # who sent it
+    embeds: list[discord.Embed] = field(default_factory=list[discord.Embed])
 
     @property
     def jump_url(self) -> str:
@@ -513,3 +526,13 @@ def buttons(view: object) -> list[tuple[str | None, str | None]]:
         assert isinstance(item, discord.ui.Button)
         found.append((item.label, item.custom_id))
     return found
+
+
+def button_rows(view: object) -> list[list[tuple[str | None, str | None, int]]]:
+    """The label, the custom ID and the style of each button of a rendered view, row by row."""
+    assert isinstance(view, discord.ui.View)
+    found: dict[int, list[tuple[str | None, str | None, int]]] = {}
+    for item in view.children:
+        assert isinstance(item, discord.ui.Button)
+        found.setdefault(item.row or 0, []).append((item.label, item.custom_id, item.style.value))
+    return [found[row] for row in sorted(found)]

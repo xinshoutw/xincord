@@ -18,7 +18,14 @@ import discord
 import pytest
 from discord import app_commands
 
-from discord_fakes import FakeGuild, FakeInteraction, FakeMember, FakeMessage, embed_dict
+from discord_fakes import (
+    FakeGuild,
+    FakeInteraction,
+    FakeMember,
+    FakeMessage,
+    button_rows,
+    embed_dict,
+)
 from plugin_fakes import golden
 from xincord.plugins.ticket.cog import IDS, Session
 from xincord.plugins.ticket.model import Draft
@@ -49,16 +56,6 @@ def run(locale: str = "en-US", message_id: int = 43) -> FakeInteraction:
         permissions=discord.Permissions(administrator=True),
         original=FakeMessage(id=message_id),
     )
-
-
-def rows(view: object) -> list[list[tuple[str | None, str | None, int]]]:
-    """The label, the ID and the style of each button of a rendered view, row by row."""
-    assert isinstance(view, discord.ui.View)
-    found: dict[int, list[tuple[str | None, str | None, int]]] = {}
-    for item in view.children:
-        assert isinstance(item, discord.ui.Button)
-        found.setdefault(item.row or 0, []).append((item.label, item.custom_id, item.style.value))
-    return [found[row] for row in sorted(found)]
 
 
 def expected_rows(name: str, locale: str) -> list[list[tuple[str | None, str | None, int]]]:
@@ -131,7 +128,7 @@ async def test_builder(cog: Ticket, locale: str) -> None:
     assert fields["content"] == ""  # the template has no content
     [embed] = cast("tuple[discord.Embed, ...]", fields["embeds"])
     assert embed_dict(embed) == GOLDEN["preview"][locale]["embed"]
-    assert rows(fields["view"]) == expected_rows(NAME, locale)
+    assert button_rows(fields["view"]) == expected_rows(NAME, locale)
 
 
 async def test_new_draft(cog: Ticket) -> None:
