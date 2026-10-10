@@ -87,7 +87,7 @@
       outlived sessions, outages and left guilds)
 - [x] 14.5 Post each channel's status changes under a lock and forget the tracked statuses with
       sessions, outages and left guilds; remove the markers
-- [ ] 14.6 xfail test for "A key that is not a guild ID" (found in the review: such a key stopped the
+- [x] 14.6 xfail test for "A key that is not a guild ID" (found in the review: such a key stopped the
       checks and the load into a ready bot), and a test of the list check on that load
 - [ ] 14.7 Skip such keys with a warning; remove the marker
 

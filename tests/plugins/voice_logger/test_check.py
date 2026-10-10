@@ -8,16 +8,17 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
+import pytest
 
 from discord_fakes import FakeChannel, FakeGuild, FakeVoiceChannel
-from plugin_fakes import dispatch
+from plugin_fakes import dispatch, load_plugin
+from xincord.core.bot import Bot
 from xincord.plugins.voice_logger.settings import Setting
 from xincord.plugins.voice_logger.store import NAMESPACE, add_channels, read_settings
 
 if TYPE_CHECKING:
-    import pytest
+    from pathlib import Path
 
-    from xincord.core.bot import Bot
     from xincord.core.storage import JSON, Store
 
 
@@ -94,3 +95,50 @@ async def test_unavailable_or_unreadable(
     assert await store.get(NAMESPACE, "20") == []
     assert "VoiceLogger cannot check the settings of guild 20" in caplog.text
     assert (await read_settings(store, 30))[5] == Setting(allow=(30,))
+
+
+async def ready_bot(store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Bot:
+    """Load the plugin into a bot that is ready and knows the available guild 10."""
+    guilds = {10: available(10)}
+
+    def is_ready(_bot: Bot) -> bool:
+        return True
+
+    def get_guild(_bot: Bot, guild_id: int, /) -> FakeGuild | None:
+        return guilds.get(guild_id)
+
+    monkeypatch.setattr(Bot, "is_ready", is_ready)
+    monkeypatch.setattr(Bot, "get_guild", get_guild)
+    return await load_plugin("VoiceLogger", tmp_path / "plugins", store)
+
+
+async def test_loaded_into_a_ready_bot(
+    store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Requirement: Settings are checked when the bot is ready."""
+    await listed(store, 10)
+
+    bot = await ready_bot(store, tmp_path, monkeypatch)
+
+    assert bot.loaded == ("VoiceLogger",)
+    assert (await read_settings(store, 10))[5] == Setting(allow=(30,))
+
+
+@pytest.mark.xfail(strict=True, reason="Settings are checked when the bot is ready")
+async def test_a_key_that_is_not_a_guild_id(
+    store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: Settings are checked when the bot is ready."""
+    # A hand edit or a faulty migration; the plugin never writes such a key.
+    document: dict[str, JSON] = {"5": {"allow_mode": True, "allow": [31], "block": []}}
+    await store.put(NAMESPACE, "general", document)
+    await listed(store, 10)
+
+    bot = await ready_bot(store, tmp_path, monkeypatch)
+    await dispatch(bot, "ready")
+
+    assert bot.loaded == ("VoiceLogger",)
+    warning = "VoiceLogger ignores the settings stored under 'general', which is not a guild ID"
+    assert caplog.text.count(warning) == 2  # at the load and at READY
+    assert (await read_settings(store, 10))[5] == Setting(allow=(30,))
+    assert await store.get(NAMESPACE, "general") == document
