@@ -10,7 +10,7 @@ import discord
 
 from xincord.core.templates import Templates
 
-from .cog import Giveaway
+from .cog import IDS, Giveaway
 from .config import Config
 
 if TYPE_CHECKING:
@@ -35,3 +35,6 @@ async def setup(bot: Bot) -> None:
     await bot.add_cog(cog)
     # A guild command, as in v3. discord.py removes it when the plugin unloads.
     bot.tree.add_command(cog.command())
+    # The builder's buttons and modals and the posts' buttons with IDS's IDs, v3's too, reach
+    # cog.handle; the core drops the route when the plugin unloads.
+    bot.route(__name__, IDS, cog.handle)

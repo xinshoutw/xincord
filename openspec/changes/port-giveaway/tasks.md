@@ -119,7 +119,7 @@
 ## 22. Routes
 
 - [x] 22.1 xfail tests for "v3's posts keep working" through `bot.on_interaction`
-- [ ] 22.2 Route `IDS` to `handle` in `setup`; remove the markers
+- [x] 22.2 Route `IDS` to `handle` in `setup`; remove the markers
 
 ## 23. Left guilds
 

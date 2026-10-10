@@ -24,7 +24,6 @@ if TYPE_CHECKING:
     from discord_fakes import FakeInteraction, Sent
 
 GOLDEN = golden("giveaway")
-REASON = "v3's posts keep working"
 NOW = 1772244000  # the tests' clock
 GIVEAWAY = Instance(
     id="3f2a9c1b7e4d4a60",
@@ -62,7 +61,6 @@ def button_ids(view: object) -> list[str | None]:
     return [item.custom_id for item in view.children if isinstance(item, discord.ui.Button)]
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 async def test_v3_post(scene: Scene) -> None:
     """Requirement: v3's posts keep working."""
     await scene.add(GIVEAWAY)
@@ -86,7 +84,6 @@ async def test_v3_post(scene: Scene) -> None:
     assert IDS.upgrade(custom_id) == expected[0]
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 @pytest.mark.parametrize("kind", [COMPONENT, MODAL])
 async def test_v3_builder(scene: Scene, kind: discord.InteractionType) -> None:
     """Requirement: v3's posts keep working."""
@@ -105,7 +102,6 @@ async def test_v3_builder(scene: Scene, kind: discord.InteractionType) -> None:
     assert interaction.sent == [("response.send_message", {"content": reply, "ephemeral": True})]
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 async def test_new_ids(scene: Scene) -> None:
     """Requirement: v3's posts keep working."""
     await scene.add(GIVEAWAY)
