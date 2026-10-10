@@ -1,7 +1,8 @@
-"""Message rendering: text, URLs, empty embeds, colors and timestamps.
+"""Message rendering: text, URLs, empty embeds, colors, timestamps and fields.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/messagecreator/v1/builder/MessageBuilder.kt:28-157
+    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/messagecreator/v1/builder/MessageBuilder.kt:185-205
 """
 
 from datetime import UTC, datetime
@@ -9,7 +10,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from xincord.core.templates import TemplateError, load_message, render_message
+from xincord.core.templates import EmbedField, TemplateError, load_message, render_message
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -24,6 +25,9 @@ VALUES = {
     "color": "#ff0000",
 }
 NOW = datetime(2026, 10, 10, 12, 0, tzinfo=UTC)
+# JDA's EmbedBuilder.ZERO_WIDTH_SPACE, a left-to-right mark that stands for an empty field text.
+JDA_EMPTY = chr(0x200E)
+FIELDS = pytest.mark.xfail(strict=True, reason="Embed fields follow JDA")
 
 
 def render(tmp_path: Path, text: str, values: dict[str, str] = VALUES) -> Message:
@@ -131,3 +135,59 @@ def test_image_url_is_set(tmp_path: Path) -> None:
     (embed,) = render(tmp_path, 'embeds:\n  - {image_url: "%picture%"}\n').embeds
 
     assert embed.image.url == "https://example.com/a.png"
+
+
+@FIELDS
+def test_empty_field_text(tmp_path: Path) -> None:
+    """Requirement: Embed fields follow JDA."""
+
+    message = render(
+        tmp_path,
+        'embeds:\n  - fields: [{name: "%dash%", value: "%empty%"}, {name: "", value: " \\t"}]\n',
+        VALUES | {"empty": ""},
+    )
+
+    (embed,) = message.embeds
+    assert [(field.name, field.value) for field in embed.fields] == [
+        ("-", JDA_EMPTY),
+        (JDA_EMPTY, JDA_EMPTY),
+    ]
+
+
+@FIELDS
+def test_padded_field_text(tmp_path: Path) -> None:
+    """Requirement: Embed fields follow JDA."""
+
+    message = render(tmp_path, 'embeds:\n  - fields: [{name: " name ", value: "value\\n\\n"}]\n')
+
+    (embed,) = message.embeds
+    assert [(field.name, field.value) for field in embed.fields] == [("name", "value")]
+
+
+@FIELDS
+def test_java_trim(tmp_path: Path) -> None:
+    """Requirement: Embed fields follow JDA."""
+    # Java's String.trim removes the characters up to U+0020 only: control characters go, while
+    # a no-break space and an ideographic space stay.
+    kept = chr(0xA0) + "x" + chr(0x3000)
+
+    message = render(
+        tmp_path,
+        'embeds:\n  - fields: [{name: "%padded%", value: "%kept%"}]\n',
+        VALUES | {"padded": chr(1) + "\n name\r" + chr(0x1F), "kept": kept},
+    )
+
+    (embed,) = message.embeds
+    assert [(field.name, field.value) for field in embed.fields] == [("name", kept)]
+
+
+@FIELDS
+def test_model_fields_follow_jda(tmp_path: Path) -> None:
+    """Requirement: Embed fields follow JDA."""
+    path = tmp_path / "template.yml"
+    path.write_text('embeds:\n  - fields: [{model_key: "f"}]\n', encoding="utf-8")
+
+    message = render_message(load_message(path), VALUES, models={"f": EmbedField(" n ", "")})
+
+    (embed,) = message.embeds
+    assert [(field.name, field.value) for field in embed.fields] == [("n", JDA_EMPTY)]

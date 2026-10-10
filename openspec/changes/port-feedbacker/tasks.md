@@ -1,6 +1,6 @@
 ## 1. Core templates
 
-- [ ] 1.1 xfail tests for "Embed fields follow JDA" (no stub can raise inside the renderer, so the
+- [x] 1.1 xfail tests for "Embed fields follow JDA" (no stub can raise inside the renderer, so the
       marker has no `raises`)
 - [ ] 1.2 Trim fields and give empty ones U+200E in `render_message`; remove the markers
 - [ ] 1.3 xfail tests for "Modal submissions are read back" against a stub `modal_values`
