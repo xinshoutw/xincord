@@ -299,3 +299,17 @@ async def test_undeletable_channel(scene: Scene, caplog: pytest.LogCaptureFixtur
 
     assert interaction.sent[-1][0] == "edit_original_response"
     assert "cannot delete the channel 700" in caplog.text
+
+
+@pytest.mark.xfail(strict=True, reason="Submitting the reason opens a ticket channel")
+async def test_typed_mentions_ping_nobody(scene: Scene) -> None:
+    """Requirement: Submitting the reason opens a ticket channel."""
+    ticket = await open_ticket(scene, reason="<@9> <@&5> @everyone")
+
+    [fields] = sends(ticket.category.sent)
+    mentions = fields["allowed_mentions"]
+    assert isinstance(mentions, discord.AllowedMentions)
+    # Only the staff roles ping: no user, role or everyone that a member typed (v3's S1).
+    assert mentions.users is False
+    assert mentions.everyone is False
+    assert [role.id for role in cast("list[discord.Object]", mentions.roles)] == [3, 4]
