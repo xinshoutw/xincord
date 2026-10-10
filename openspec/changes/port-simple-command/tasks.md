@@ -12,7 +12,7 @@
 
 - [x] 3.1 xfail tests for "A command posts its message in the channel", with the golden embeds and
       the posting stubbed
-- [ ] 3.2 Implement the posting and the fallback to the deferred response; remove the markers
+- [x] 3.2 Implement the posting and the fallback to the deferred response; remove the markers
 
 ## 4. Commands
 

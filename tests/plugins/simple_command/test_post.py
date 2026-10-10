@@ -32,9 +32,6 @@ if TYPE_CHECKING:
 
 GOLDEN = golden("simple_command")
 NAMES = ("cub-none-card", "tsib-none-card", "ctcb-none-card", "ctcb-remit", "chpytwtp-remit")
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="A command posts its message in the channel"
-)
 LINK_BUTTON = """\
 content: "Pay here"
 components:
@@ -110,7 +107,6 @@ def files(fields: dict[str, object], key: str) -> Sequence[discord.File]:
     return cast("Sequence[discord.File]", fields[key])
 
 
-@XFAIL
 async def test_message(cog: SimpleCommand) -> None:
     """Requirement: A command posts its message in the channel."""
     sent = await run(cog)
@@ -119,7 +115,6 @@ async def test_message(cog: SimpleCommand) -> None:
     assert embeds(sent[0][1]) == [GOLDEN["messages"]["cub-none-card"]]
 
 
-@XFAIL
 @pytest.mark.parametrize("name", NAMES)
 async def test_every_command(cog: SimpleCommand, name: str) -> None:
     """Requirement: A command posts its message in the channel."""
@@ -128,7 +123,6 @@ async def test_every_command(cog: SimpleCommand, name: str) -> None:
     assert embeds(sent[0][1]) == [GOLDEN["messages"][name]]
 
 
-@XFAIL
 @pytest.mark.parametrize("locale", [discord.Locale.american_english, discord.Locale.japanese])
 async def test_default_locale(cog: SimpleCommand, locale: discord.Locale) -> None:
     """Requirement: A command posts its message in the channel."""
@@ -137,7 +131,6 @@ async def test_default_locale(cog: SimpleCommand, locale: discord.Locale) -> Non
     assert embeds(sent[0][1]) == [GOLDEN["messages"]["ctcb-remit"]]
 
 
-@XFAIL
 async def test_default_locale_over_an_operator_template(store: Store, tmp_path: Path) -> None:
     """Requirement: A command posts its message in the channel."""
     template = 'content: "en-US"\n'
@@ -149,7 +142,6 @@ async def test_default_locale_over_an_operator_template(store: Store, tmp_path: 
     assert embeds(sent[0][1]) == [GOLDEN["messages"]["ctcb-remit"]]
 
 
-@XFAIL
 async def test_bot_placeholders(store: Store, tmp_path: Path) -> None:
     """Requirement: A command posts its message in the channel."""
     cog = await load_with('content: "%bot_name% (%bot_id%)"\n', tmp_path, store)
@@ -159,7 +151,6 @@ async def test_bot_placeholders(store: Store, tmp_path: Path) -> None:
     assert sent[0][1]["content"] == "xincord (99)"
 
 
-@XFAIL
 async def test_link_button(store: Store, tmp_path: Path) -> None:
     """Requirement: A command posts its message in the channel."""
     cog = await load_with(LINK_BUTTON, tmp_path, store)
@@ -170,7 +161,6 @@ async def test_link_button(store: Store, tmp_path: Path) -> None:
     assert buttons(sent[0][1]["view"]) == [("Pay", None)]
 
 
-@XFAIL
 async def test_layout_and_files(store: Store, tmp_path: Path) -> None:
     """Requirement: A command posts its message in the channel."""
     image = tmp_path / "qr.png"
@@ -188,7 +178,6 @@ async def test_layout_and_files(store: Store, tmp_path: Path) -> None:
             file.close()
 
 
-@XFAIL
 async def test_channel_refuses_the_message(
     cog: SimpleCommand, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -201,7 +190,6 @@ async def test_channel_refuses_the_message(
     assert "cannot post cub-none-card" in caplog.text
 
 
-@XFAIL
 async def test_refused_files_are_rendered_again(store: Store, tmp_path: Path) -> None:
     """Requirement: A command posts its message in the channel."""
     image = tmp_path / "qr.png"
@@ -220,12 +208,15 @@ async def test_refused_files_are_rendered_again(store: Store, tmp_path: Path) ->
             file.close()
 
 
-@XFAIL
-async def test_channel_without_messages(cog: SimpleCommand) -> None:
+async def test_channel_without_messages(
+    cog: SimpleCommand, caplog: pytest.LogCaptureFixture
+) -> None:
     """Requirement: A command posts its message in the channel."""
     forum = SimpleNamespace(id=6, name="questions")  # a forum or a category has no send
 
-    sent = await run(cog, channel=forum)
+    with caplog.at_level(logging.WARNING):
+        sent = await run(cog, channel=forum)
 
     assert [method for method, _ in sent] == ["edit_original_response"]
     assert embeds(sent[0][1]) == [GOLDEN["messages"]["cub-none-card"]]
+    assert "cannot post cub-none-card" in caplog.text
