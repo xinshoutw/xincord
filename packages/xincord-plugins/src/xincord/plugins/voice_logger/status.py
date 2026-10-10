@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, cast
 from discord.utils import snowflake_time
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
+    from collections.abc import Awaitable, Callable, Mapping
     from datetime import datetime
 
 SET = 192  # the audit log type of a set or changed status (JDA's VOICE_CHANNEL_STATUS_UPDATE)
@@ -22,8 +22,44 @@ RETRY_DELAY = 2.0  # seconds before the audit log is read again for an entry tha
 ATTEMPTS = 2  # reads of the audit log per status change
 DIGITS = re.compile(r"[0-9]+")
 
+ENTRIES = 10  # entries per read of the audit log, newest first (v3 read one)
+STATUS_EVENT = "VOICE_CHANNEL_STATUS_UPDATE"  # Discord's gateway event, which discord.py drops
+
 type Fetch = Callable[[int], Awaitable[object | None]]  # reads the audit log of one type
 type Sleep = Callable[[float], Awaitable[None]]
+
+
+@dataclass(frozen=True)
+class StatusUpdate:
+    """Discord's ``VOICE_CHANNEL_STATUS_UPDATE``: a voice channel's new status, empty if none."""
+
+    channel_id: int
+    guild_id: int
+    status: str
+
+
+def parse_update(payload: Mapping[str, object]) -> StatusUpdate | None:
+    """The fields of Discord's payload, or None when it lacks the channel or the guild.
+
+    Discord sends null for a cleared status; JDA read a missing or null status as empty.
+    """
+    channel_id, guild_id = _snowflake(payload.get("id")), _snowflake(payload.get("guild_id"))
+    if channel_id is None or guild_id is None:
+        return None
+    status = payload.get("status")
+    return StatusUpdate(channel_id, guild_id, status if isinstance(status, str) else "")
+
+
+def classify(old: str, new: str) -> str | None:
+    """The template of a change from status ``old`` to ``new``, or None if it is no change.
+
+    JDA fired its event only for a different status. v3 checked an empty new status first.
+    """
+    if new == old:
+        return None
+    if not new:
+        return "on-status-delete"
+    return "on-status-update" if old else "on-status-new"
 
 
 def match(log: object, kind: int, channel_id: int, status: str, at: datetime) -> int | None:

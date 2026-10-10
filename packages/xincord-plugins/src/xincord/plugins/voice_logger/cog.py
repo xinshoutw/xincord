@@ -4,24 +4,29 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:29-439
 """
 
+import asyncio
 import logging
 import re
+from functools import partial
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import discord
 from discord import app_commands
 from discord.ext import commands
+from discord.http import Route
 
 from xincord.core.component_ids import ComponentIds
-from xincord.core.placeholders import actor_values, placeholder_values
+from xincord.core.placeholders import actor_values, global_values, placeholder_values
 from xincord.core.templates import render_message
 
-from .logs import Place, voice_change
+from .logs import UNKNOWN_MEMBER, Place, voice_change
 from .settings import list_text, targets
+from .status import ENTRIES, classify, find_actor, parse_update
 from .store import add_channels, read_setting, read_settings, remove, toggle
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
+    from datetime import datetime
 
     from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
@@ -30,6 +35,7 @@ if TYPE_CHECKING:
 
     from .logs import VoiceChannelLike
     from .settings import Setting
+    from .status import Sleep
     from .store import Kind
 
 logger = logging.getLogger(__name__)
@@ -70,6 +76,10 @@ class VoiceLogger(commands.Cog):
         self.store = store
         self.lang = lang
         self.templates = templates
+        # Each voice channel's status from Discord's updates, as JDA's cache kept it; empty ones
+        # are left out.
+        self.statuses: dict[int, str] = {}
+        self.sleep: Sleep = asyncio.sleep  # before the audit log is read again
 
     def command(self) -> app_commands.Group:
         """Build v3's ``/voice-logger`` with its subcommand ``setting``, from ``register.yaml``.
@@ -174,10 +184,80 @@ class VoiceLogger(commands.Cog):
     async def on_gateway_voice_channel_status_update(self, payload: dict[str, object]) -> None:
         """Post a voice channel's status change to the listen channels that detect the channel.
 
-        Raises:
-            NotImplementedError: Not implemented yet.
+        ``setup`` relays the gateway event, which discord.py does not parse. Statuses are tracked
+        from these events, as JDA's channel cache did: Discord sends them in no channel object, so
+        a status not seen since the plugin loaded is empty. Only cached voice channels count, as
+        JDA's ``VoiceChannel`` lookup. The cache is read before anything awaits.
         """
-        raise NotImplementedError
+        update = parse_update(payload)
+        if update is None:
+            logger.warning(
+                "VoiceLogger ignored a malformed voice channel status update: %r", payload
+            )
+            return
+        guild = self.bot.get_guild(update.guild_id)
+        channel = None if guild is None else guild.get_channel(update.channel_id)
+        if guild is None or channel is None or channel.type is not discord.ChannelType.voice:
+            return
+        old = self.statuses.pop(channel.id, "")
+        if update.status:
+            self.statuses[channel.id] = update.status
+        name = classify(old, update.status)
+        if name is None:
+            return
+        place, at = Place.of(channel), discord.utils.utcnow()
+        listen = targets(await read_settings(self.store, guild.id), [(place.id, place.category_id)])
+        if not listen:  # v3 read the audit log and the member first, for nothing
+            return
+        values = {
+            "vl_channel_mention": place.mention,
+            "vl_channel_url": place.url,
+            "vl_category_mention": place.category_mention,
+            "vl_status_before": old,
+            "vl_status_after": update.status,
+        }
+        member = await self._status_member(guild, place.id, update.status, at)
+        bot = self.bot.user
+        actor = (
+            global_values(self.bot) | UNKNOWN_MEMBER
+            if member is None or bot is None
+            else actor_values(member, bot)
+        )
+        await self._post(guild, listen, name, actor | values)
+
+    async def _status_member(
+        self, guild: discord.Guild, channel_id: int, status: str, at: datetime
+    ) -> discord.Member | None:
+        """The member who set ``status`` on the channel, from the audit log, if it tells.
+
+        v3's ``retrieveMemberById``: the member is fetched from Discord. A user who left the
+        guild, or an audit log without the entry, gives no member.
+        """
+        fetch = partial(self._audit_log, guild)
+        user_id = await find_actor(fetch, channel_id, status, at, self.sleep)
+        if user_id is None:
+            return None
+        try:
+            return await guild.fetch_member(user_id)
+        except discord.HTTPException:
+            return None
+
+    async def _audit_log(self, guild: discord.Guild, kind: int) -> object | None:
+        """The guild's newest audit log entries of type ``kind``, or None when Discord refuses.
+
+        discord.py's ``Guild.audit_logs`` drops the channel and the status of types 192 and 193,
+        which it does not know, so the request goes through its HTTP client as it is.
+        """
+        route = Route("GET", "/guilds/{guild_id}/audit-logs", guild_id=guild.id)
+        try:
+            return await self.bot.http.request(
+                route, params={"action_type": kind, "limit": ENTRIES}
+            )
+        except discord.HTTPException as error:
+            logger.warning(
+                "VoiceLogger cannot read the audit log of %s (%s): %s", guild.name, guild.id, error
+            )
+            return None
 
     async def _post(
         self, guild: discord.Guild, listen: Sequence[int], name: str, values: Mapping[str, str]

@@ -31,14 +31,6 @@ if TYPE_CHECKING:
     from xincord.plugins.voice_logger.cog import VoiceLogger
 
 GOLDEN = golden("voice_logger")
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Voice channel status changes are logged"
-)
-ACTOR_XFAIL = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Status changes name their member from the audit log",
-)
 LOCALES = {"en-US": discord.Locale.american_english, "zh-TW": discord.Locale.taiwan_chinese}
 STATUS = "VOICE_CHANNEL_STATUS_UPDATE"
 AUDIT = "GET /guilds/10/audit-logs"
@@ -147,7 +139,6 @@ def read(type_: int) -> tuple[str, dict[str, object]]:
     return (AUDIT, {"json": None, "params": {"action_type": type_, "limit": 10}})
 
 
-@XFAIL
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_new_status(scene: Scene, locale: str) -> None:
     """Requirement: Voice channel status changes are logged."""
@@ -161,7 +152,6 @@ async def test_new_status(scene: Scene, locale: str) -> None:
     assert scene.rest.sent == [read(SET)]
 
 
-@XFAIL
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_changed_and_cleared_status(scene: Scene, locale: str) -> None:
     """Requirement: Voice channel status changes are logged."""
@@ -178,7 +168,6 @@ async def test_changed_and_cleared_status(scene: Scene, locale: str) -> None:
     assert scene.rest.sent == [read(SET), read(SET), read(CLEARED)]  # v3 read type 192 each time
 
 
-@XFAIL
 async def test_nothing_to_log(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Voice channel status changes are logged."""
     await toggle(scene.store, 10, 5)  # the block mode, nothing blocked: every channel
@@ -199,7 +188,6 @@ async def test_nothing_to_log(scene: Scene, caplog: pytest.LogCaptureFixture) ->
     assert "VoiceLogger ignored a malformed voice channel status update" in caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason="Voice channel status changes are logged")
 async def test_relayed(scene: Scene) -> None:
     """Requirement: Voice channel status changes are logged."""
     # Through discord.py's parser table, as its gateway hands the event over.
@@ -211,7 +199,6 @@ async def test_relayed(scene: Scene) -> None:
     assert scene.posts(5) == [GOLDEN["status"]["en-US"]["new"]]
 
 
-@ACTOR_XFAIL
 async def test_late_entry(scene: Scene, sleeps: list[float]) -> None:
     """Requirement: Status changes name their member from the audit log."""
     await scene.listen(5, [30])
@@ -223,7 +210,6 @@ async def test_late_entry(scene: Scene, sleeps: list[float]) -> None:
     assert (scene.rest.sent, sleeps) == ([read(SET), read(SET)], [2.0])
 
 
-@ACTOR_XFAIL
 async def test_no_entry(scene: Scene, sleeps: list[float]) -> None:
     """Requirement: Status changes name their member from the audit log."""
     # As for a status that Discord clears by itself: v3 named whoever last set any status.
@@ -236,7 +222,6 @@ async def test_no_entry(scene: Scene, sleeps: list[float]) -> None:
     assert sleeps == [2.0]
 
 
-@ACTOR_XFAIL
 async def test_audit_log_refused(
     scene: Scene, sleeps: list[float], caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -258,7 +243,6 @@ async def test_audit_log_refused(
     assert sleeps == []
 
 
-@ACTOR_XFAIL
 async def test_member_gone(scene: Scene) -> None:
     """Requirement: Status changes name their member from the audit log."""
     await scene.listen(5, [30])
@@ -269,7 +253,6 @@ async def test_member_gone(scene: Scene) -> None:
     assert scene.posts(5) == [without_member(GOLDEN["status"]["en-US"]["new"])]
 
 
-@ACTOR_XFAIL
 async def test_not_detected(scene: Scene) -> None:
     """Requirement: Status changes name their member from the audit log."""
     # v3 read the audit log and fetched the member before it looked for listen channels.

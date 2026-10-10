@@ -8,7 +8,18 @@ Kotlin:
 from dataclasses import dataclass
 from typing import Protocol, Self
 
-NONE = "-"  # stands for a missing category, as the core's values do for missing names
+NONE = "-"  # stands for a missing category or member, as the core's values do for missing names
+# v3's member keys when no member is known: texts show "-", and the avatar URLs are empty, so the
+# templates' thumbnails are left out.
+UNKNOWN_MEMBER = {
+    "user_id": "0",
+    "user_mention": NONE,
+    "user_name": NONE,
+    "user_avatar_url": "",
+    "member_display_name": NONE,
+    "member_avatar_url": "",
+    "member_fixed_name": NONE,
+}
 
 
 class VoiceChannelLike(Protocol):

@@ -11,6 +11,7 @@ import discord
 from xincord.core.templates import Templates
 
 from .cog import IDS, VoiceLogger
+from .status import STATUS_EVENT
 
 if TYPE_CHECKING:
     from xincord.core.bot import Bot
@@ -38,3 +39,6 @@ async def setup(bot: Bot) -> None:
     # The menu's buttons and select menus with IDS's IDs, v3's too, reach cog.handle; the core
     # drops the route when the plugin unloads.
     bot.route(__name__, IDS, cog.handle)
+    # discord.py does not parse Discord's voice channel status updates; the core relays them to
+    # cog.on_gateway_voice_channel_status_update.
+    bot.relay_gateway_event(STATUS_EVENT)
