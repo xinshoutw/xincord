@@ -133,8 +133,14 @@
 - [x] 23.3 Porting guide rows and pitfalls, and skill corrections
 - [x] 23.4 Audit the inventory against the scenarios and the design
 
-## 24. Close
+## 24. Review
 
-- [ ] 24.1 Gate passes, push, CI green
-- [ ] 24.2 Archive the change and run `openspec validate --all --strict`
-- [ ] 24.3 Update `HANDOFF.md`, `docs/porting/owner-review.md` and the skill; push; CI green
+- [x] 24.1 Gate passes, push, CI green (before the review)
+- [ ] 24.2 Cross-review the change (other paths into the features, repeated or concurrent
+      presses, state left behind); fix each finding xfail-first
+
+## 25. Close
+
+- [ ] 25.1 Gate passes, push, CI green
+- [ ] 25.2 Archive the change and run `openspec validate --all --strict`
+- [ ] 25.3 Update `HANDOFF.md`, `docs/porting/owner-review.md` and the skill; push; CI green
