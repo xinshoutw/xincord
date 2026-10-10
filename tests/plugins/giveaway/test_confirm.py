@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, cast
 import discord
 import pytest
 
-from discord_fakes import FakeChannel, FakeMessage, forbidden
+from discord_fakes import FakeChannel, FakeMessage, FakeResponse, forbidden, not_found
 from plugin_fakes import WAIT, golden
 from xincord.plugins.giveaway.model import Draft, Instance, Prize, new_id
 from xincord.plugins.giveaway.store import Giveaways
@@ -287,3 +287,20 @@ async def test_post_cannot_be_deleted(
 
     assert failure(pressed) == GOLDEN["failed"]["en-US"] + "disk I/O error"
     assert "Giveaway cannot delete the post 500, which it did not store" in caplog.text
+
+
+@pytest.mark.xfail(strict=True, reason="A giveaway that cannot be posted keeps the builder")
+async def test_acknowledgement_fails(scene: Scene, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Requirement: A giveaway that cannot be posted keeps the builder."""
+    scene.keep(COMPLETE)
+
+    async def defer(_response: FakeResponse, **fields: object) -> None:
+        del fields
+        raise not_found()  # Discord no longer knows the interaction
+
+    monkeypatch.setattr(FakeResponse, "defer", defer)
+    with pytest.raises(discord.NotFound):  # the core logs it
+        await scene.press("confirm-create")
+
+    assert scene.draft() == COMPLETE  # a later press can still post
+    assert posts(scene) == []

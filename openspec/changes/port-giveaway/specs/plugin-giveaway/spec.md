@@ -330,6 +330,10 @@ v3's `create-failed` with the error as an ephemeral follow-up.
 - **WHEN** the giveaway cannot be stored after the post was made
 - **THEN** the post is deleted and the user gets `create-failed`
 
+#### Scenario: Acknowledgement fails
+- **WHEN** Discord refuses the acknowledgement of the press, before anything is posted
+- **THEN** the draft stays, so that a later press can post it
+
 ### Requirement: Cancelling ends the draft
 cancel SHALL drop the user's draft and replace the builder message with v3's `create-cancelled`,
 without embeds or buttons.
