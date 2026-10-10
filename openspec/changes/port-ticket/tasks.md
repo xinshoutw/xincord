@@ -18,7 +18,7 @@
 
 - [x] 4.1 xfail tests for "Panels are stored as v3's documents" against stubs in `model.py` and
       `store.py`
-- [ ] 4.2 Implement `parse_entry`, `entry_json` and `Panels`; remove the markers
+- [x] 4.2 Implement `parse_entry`, `entry_json` and `Panels`; remove the markers
 
 ## 5. Preview
 

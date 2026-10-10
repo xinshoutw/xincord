@@ -29,9 +29,6 @@ async def keep(store: Store, document: JSON, guild: int = GUILD) -> None:
     await store.put(NAMESPACE, str(guild), document)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panels are stored as v3's documents"
-)
 async def test_v3_document(store: Store) -> None:
     """Requirement: Panels are stored as v3's documents."""
     await keep(store, json.loads(GOLDEN["document"]))
@@ -46,9 +43,6 @@ async def test_v3_document(store: Store) -> None:
     assert second == Entry(GOLDEN["refund"], (), 1270000000000000003)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panels are stored as v3's documents"
-)
 @pytest.mark.parametrize(
     ("message", "index"),
     [("1", "0"), (PANEL, "2"), (PANEL, "-1"), (PANEL, "x"), (PANEL, "")],
@@ -66,9 +60,6 @@ async def test_missing_entries(store: Store, message: str, index: str) -> None:
     assert await store.get(NAMESPACE, str(GUILD)) == before
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panels are stored as v3's documents"
-)
 async def test_appending_keeps_the_others(store: Store) -> None:
     """Requirement: Panels are stored as v3's documents."""
     kept: JSON = {"reasonTitle": "a", "adminIds": [], "categoryId": 0, "extra": 1}
@@ -89,9 +80,6 @@ async def test_appending_keeps_the_others(store: Store) -> None:
     assert list(added[1]) == ["reasonTitle", "adminIds", "categoryId"]  # Moshi's order
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panels are stored as v3's documents"
-)
 async def test_placed_before_stored(store: Store) -> None:
     """Requirement: Panels are stored as v3's documents."""
     panels = Panels(store)
@@ -113,9 +101,6 @@ async def test_placed_before_stored(store: Store) -> None:
     }
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panels are stored as v3's documents"
-)
 @pytest.mark.parametrize(
     "entry",
     [
@@ -139,9 +124,6 @@ async def test_broken_entries(store: Store, entry: JSON) -> None:
     assert await store.get(NAMESPACE, str(GUILD)) == {PANEL: [entry]}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panels are stored as v3's documents"
-)
 @pytest.mark.parametrize("document", [[], "x", {PANEL: "x"}, {PANEL: {}}])
 async def test_broken_documents(store: Store, document: JSON) -> None:
     """Requirement: Panels are stored as v3's documents."""
@@ -156,9 +138,6 @@ async def test_broken_documents(store: Store, document: JSON) -> None:
     assert await store.get(NAMESPACE, str(GUILD)) == document
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panels are stored as v3's documents"
-)
 async def test_forgotten_guilds(store: Store) -> None:
     """Requirement: Panels are stored as v3's documents."""
     await keep(store, {"1": []})
