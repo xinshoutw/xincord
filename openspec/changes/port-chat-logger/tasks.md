@@ -101,6 +101,10 @@
       blocked thread or stopped an allowed one)
 - [x] 16.8 Ask Discord about the uncached IDs and drop only those it does not have; remove the
       marker
+- [x] 16.9 xfail test for the bulk deletion of "Logs reach every listen channel" (found in the
+      review: a purge tried a gone or refusing listen channel once per message)
+- [ ] 16.10 Skip the listen channels that are gone or refuse for the rest of a bulk deletion;
+      remove the marker
 
 ## 17. Close
 

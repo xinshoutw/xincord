@@ -268,7 +268,7 @@ fit before `...`.
 Each log SHALL be rendered in the guild's locale, falling back to zh-TW, and sent to each detecting
 listen channel on its own. A listen channel that Discord no longer has SHALL be forgotten with a log
 line, and one that refuses the message SHALL get a warning naming the guild and the channel, while
-the other listen channels still get theirs.
+the other listen channels still get theirs; a bulk deletion SHALL not try either again.
 
 #### Scenario: Locale without templates
 - **WHEN** the guild's locale is French
@@ -281,6 +281,11 @@ the other listen channels still get theirs.
 #### Scenario: Refused listen channel
 - **WHEN** listen channel 5 refuses the message
 - **THEN** a warning names the guild and the channel, 5's settings stay, and channel 6 gets the log
+
+#### Scenario: Bulk deletion
+- **WHEN** three stored messages are deleted at once while listen channel 5 is gone, 6 refuses and
+  7 takes messages
+- **THEN** channels 5 and 6 are tried once each, and channel 7 gets the three logs
 
 ### Requirement: Stored messages are kept for the retention period
 When the bot is ready, and every hour after, the plugin SHALL delete the stored messages created
