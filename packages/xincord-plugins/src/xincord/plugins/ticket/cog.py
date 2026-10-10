@@ -7,6 +7,7 @@ Kotlin:
 
 import logging
 import re
+import sqlite3
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
@@ -18,10 +19,12 @@ from xincord.core.component_ids import ComponentIds
 from xincord.core.placeholders import global_values, placeholder_values
 from xincord.core.templates import modal_values, render_message, render_modal
 
+from .channels import Postable
 from .drafts import defaults, select_roles, select_style, submit
-from .model import hex_color
+from .model import DataError, hex_color
+from .store import Panels
 from .texts import Texts, readable_error
-from .views import preview_button, preview_embed
+from .views import panel_button, preview_button, preview_embed
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -31,6 +34,7 @@ if TYPE_CHECKING:
     from xincord.core.storage import Store
     from xincord.core.templates import Message, Templates
 
+    from .channels import Posted
     from .model import Draft
 
 logger = logging.getLogger(__name__)
@@ -87,6 +91,10 @@ IDS = ComponentIds(
 )
 
 
+class PanelError(Exception):
+    """A panel cannot be posted or its button added; the message says why, for the user."""
+
+
 @dataclass(frozen=True)
 class Target:
     """The message that ``/add-ticket`` adds a button to, and its first embed for the preview."""
@@ -113,6 +121,7 @@ class Ticket(commands.Cog):
         self.store = store
         self.lang = lang
         self.templates = templates
+        self.panels = Panels(store)
         # Each user's draft per guild, by user ID and guild ID; v3's StepManager.steps, per user.
         self.drafts: dict[tuple[int, int], Session] = {}
 
@@ -359,8 +368,108 @@ class Ticket(commands.Cog):
             self.drafts[interaction.user.id, cast("int", interaction.guild_id)] = changed
 
     async def _confirm(self, interaction: discord.Interaction, session: Session) -> None:
-        """Post the panel, or add its button to the message, and store it."""
-        raise NotImplementedError
+        """Post the panel, or add its button to the message, store it and delete the builder.
+
+        The draft is taken before the first await, so a second press meanwhile gets the
+        session-expired text. When nothing could be posted or stored, the draft comes back (unless
+        the user started another), the builder stays and ``create-failed`` tells the user why; v3
+        deleted the builder first and never acknowledged the press, so failures were invisible
+        (B15).
+        """
+        key = (interaction.user.id, cast("int", interaction.guild_id))
+        del self.drafts[key]
+        try:
+            await interaction.response.defer()  # v3's deferEdit: the builder stays for now
+            if session.target is None:
+                await self._post(interaction, key[1], session.draft)
+            else:
+                await self._add(interaction, key[1], session.draft, session.target)
+        except PanelError as error:
+            self.drafts.setdefault(key, session)
+            logger.warning(
+                "Ticket cannot create a panel in channel %s of guild %s: %s",
+                interaction.channel_id,
+                key[1],
+                error,
+            )
+            failed = self.texts(interaction).get("error.create-failed", {"tt@error": str(error)})
+            await interaction.followup.send(failed, ephemeral=True)
+            return
+        except BaseException:
+            # Discord refused the acknowledgement, or the task was cancelled, before any post.
+            self.drafts.setdefault(key, session)
+            raise
+        await interaction.delete_original_response()
+
+    async def _post(self, interaction: discord.Interaction, guild_id: int, draft: Draft) -> None:
+        """Post v3's ``confirm-create`` in the builder's channel and store its button's entry.
+
+        Raises:
+            PanelError: The channel takes no messages or refused the panel, or the store failed (the
+                panel is then deleted).
+        """
+        channel = cast("object", interaction.channel)
+        if not isinstance(channel, Postable):
+            msg = "the channel takes no messages"
+            raise PanelError(msg)
+        message = render_message(
+            self.templates.message("confirm-create", interaction.locale.value),
+            global_values(interaction.client),
+            build_id=IDS.build,
+            models={"tt@embed": preview_embed(draft), "tt@btn": panel_button(draft, 0, IDS.build)},
+        )
+        try:
+            posted = await channel.send(
+                content=message.content or None,
+                embeds=message.embeds,
+                view=message.view,
+                files=message.files,
+            )
+        except discord.HTTPException as error:
+            raise PanelError(readable_error(error)) from error
+        try:
+            await self.panels.add(guild_id, str(posted.id), draft.entry())
+        except (DataError, sqlite3.Error) as error:
+            await _delete(posted)
+            raise PanelError(readable_error(error)) from error
+
+    async def _add(
+        self, interaction: discord.Interaction, guild_id: int, draft: Draft, target: Target
+    ) -> None:
+        """Append the panel's button to the target's first row and store its entry.
+
+        Under the guild's lock, the message is fetched again, so that two confirmations for one
+        message never take the same index (v3 edited from its snapshot). The index is the stored
+        list's length (v3 used the row's size, B6), and only the view changes: v3 kept the first
+        embed and the first row alone (B17) and threw for a message without rows.
+
+        Raises:
+            PanelError: The message is gone or full, Discord refused the edit, or the store failed.
+        """
+        texts = self.texts(interaction)
+        channel = interaction.channel
+
+        async def place(index: int) -> None:
+            message = await _fetch(channel, target.message_id)
+            if message is None:
+                missing = {"tt@message-id": str(target.message_id)}
+                raise PanelError(texts.get("error.message-not-found", missing))
+            if message.flags.components_v2 or is_full(message):
+                raise PanelError(texts.get("error.message-full"))
+            view = discord.ui.View.from_message(message, timeout=None)
+            button = panel_button(draft, index, IDS.build)
+            button.row = 0  # the first action row, or a new one
+            view.add_item(button)
+            view.stop()  # the router handles its buttons, not discord.py
+            try:
+                await message.edit(view=view)
+            except discord.HTTPException as error:
+                raise PanelError(readable_error(error)) from error
+
+        try:
+            await self.panels.add(guild_id, str(target.message_id), draft.entry(), place)
+        except (DataError, sqlite3.Error) as error:
+            raise PanelError(readable_error(error)) from error
 
     def _session(self, interaction: discord.Interaction) -> Session | None:
         """The user's draft in the guild, if the interaction comes from the builder showing it."""
@@ -417,6 +526,16 @@ class Ticket(commands.Cog):
     def public(self) -> Texts:
         """The texts of public messages (the control row, the archive's markers): zh-TW, as v3."""
         return Texts(self.lang, self.lang.default_locale)
+
+
+async def _delete(posted: Posted) -> None:
+    """Delete a panel whose entry was not stored; a failure is logged."""
+    try:
+        await posted.delete()
+    except discord.HTTPException as error:
+        logger.warning(
+            "Ticket cannot delete the panel %s, which it did not store: %s", posted.id, error
+        )
 
 
 async def _tell(interaction: discord.Interaction, text: str) -> None:

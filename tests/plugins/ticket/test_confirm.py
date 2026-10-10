@@ -80,7 +80,6 @@ class GatedChannel(FakeChannel):
         return await super().send(**fields)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Confirming posts a new panel")
 async def test_posted_panel(scene: Scene) -> None:
     """Requirement: Confirming posts a new panel."""
     scene.keep(DRAFT)
@@ -103,9 +102,6 @@ async def test_posted_panel(scene: Scene) -> None:
     assert scene.cog.drafts == {}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Confirming adds a button to the message"
-)
 async def test_button_added_to_a_panel(scene: Scene) -> None:
     """Requirement: Confirming adds a button to the message."""
     first: dict[str, object] = {"type": 2, "style": 3, "custom_id": press(0), "label": "Old"}
@@ -122,19 +118,19 @@ async def test_button_added_to_a_panel(scene: Scene) -> None:
     view = fields["view"]
     assert isinstance(view, discord.ui.View)
     assert view.is_finished()  # the router handles its buttons, not discord.py
-    assert [(item.row, getattr(item, "custom_id", None)) for item in view.children] == [
-        (0, press(0)),
-        (0, press(1)),  # the stored list's length (v3: the row's size, B6)
-        (1, None),  # the link button's row stays (v3 dropped every row but the first, B17)
+    sent_rows = [
+        [cast("dict[str, object]", component).get("custom_id") for component in row["components"]]
+        for row in view.to_components()
+    ]
+    assert sent_rows == [
+        [press(0), press(1)],  # the stored list's length (v3: the row's size, B6)
+        [None],  # the link button's row stays (v3 dropped every row but the first, B17)
     ]
     assert await scene.store.get(NAMESPACE, "10") == {
         str(TARGET): [STORED, {"reasonTitle": "Why?", "adminIds": [3], "categoryId": 30}]
     }
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Confirming adds a button to the message"
-)
 async def test_button_added_to_a_message_without_rows(scene: Scene) -> None:
     """Requirement: Confirming adds a button to the message."""
     message = target(scene, [])
@@ -146,11 +142,6 @@ async def test_button_added_to_a_message_without_rows(scene: Scene) -> None:
     assert button_rows(fields["view"]) == [[("Open", press(0), 3)]]  # v3 threw
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="A panel that cannot be posted keeps the builder",
-)
 async def test_refused_post(scene: Scene) -> None:
     """Requirement: A panel that cannot be posted keeps the builder."""
     scene.channel.error = forbidden()
@@ -167,11 +158,6 @@ async def test_refused_post(scene: Scene) -> None:
     assert await scene.store.get(NAMESPACE, "10") is None
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="A panel that cannot be posted keeps the builder",
-)
 @pytest.mark.parametrize(
     ("change", "error"),
     [
@@ -194,11 +180,6 @@ async def test_message_changed_since(scene: Scene, change: str, error: str) -> N
     assert await scene.store.get(NAMESPACE, "10") is None
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="A panel that cannot be posted keeps the builder",
-)
 async def test_broken_document(scene: Scene) -> None:
     """Requirement: A panel that cannot be posted keeps the builder."""
     await scene.store.put(NAMESPACE, "10", [])  # not v3's shape
@@ -213,11 +194,6 @@ async def test_broken_document(scene: Scene) -> None:
     assert await scene.store.get(NAMESPACE, "10") == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="A panel that cannot be posted keeps the builder",
-)
 async def test_channel_without_messages(scene: Scene) -> None:
     """Requirement: A panel that cannot be posted keeps the builder."""
     scene.keep(DRAFT)
@@ -240,11 +216,6 @@ async def test_channel_without_messages(scene: Scene) -> None:
     assert scene.session().draft == DRAFT
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="A panel that cannot be posted keeps the builder",
-)
 async def test_double_confirmation(scene: Scene) -> None:
     """Requirement: A panel that cannot be posted keeps the builder."""
     channel = GatedChannel(id=5)
@@ -267,3 +238,67 @@ async def test_double_confirmation(scene: Scene) -> None:
         )
     ]
     assert methods(channel.sent) == ["channel.send"]  # v3 would have posted twice
+
+
+@dataclass
+class BrokenChannel(FakeChannel):
+    """A channel whose sends fail with ``failure``, or give messages that fail to change."""
+
+    failure: BaseException | None = None
+
+    async def send(self, **fields: object) -> FakeMessage:
+        """Send, then fail, or return a message whose edits and deletion fail."""
+        if self.failure is not None:
+            raise self.failure
+        message = await super().send(**fields)
+        message.error = forbidden()
+        return message
+
+
+async def test_unexpected_failure(scene: Scene) -> None:
+    """Requirement: A panel that cannot be posted keeps the builder."""
+    scene.channel = BrokenChannel(id=5, failure=RuntimeError("bug"))
+    scene.keep(DRAFT)
+
+    with pytest.raises(RuntimeError, match="bug"):
+        await scene.press("confirm-create")
+
+    assert scene.session().draft == DRAFT  # the draft comes back; the core logs the error
+
+
+async def test_undeletable_panel(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: A panel that cannot be posted keeps the builder."""
+    scene.channel = BrokenChannel(id=5)
+    await scene.store.put(NAMESPACE, "10", [])  # not v3's shape
+    scene.keep(DRAFT)
+
+    interaction = await scene.press("confirm-create")
+
+    assert methods(interaction.sent)[-1] == "followup.send"
+    assert "cannot delete the panel 500" in caplog.text
+
+
+async def test_refused_edit(scene: Scene) -> None:
+    """Requirement: A panel that cannot be posted keeps the builder."""
+    message = target(scene, [])
+    message.error = forbidden()
+    scene.keep(DRAFT, target=Target(TARGET, discord.Embed(title="Panel")))
+
+    interaction = await scene.press("confirm-create")
+
+    reply = "Creating the ticket button failed: 403 Forbidden (error code: 0): Missing Permissions"
+    assert interaction.sent[-1] == ("followup.send", {"content": reply, "ephemeral": True})
+    assert await scene.store.get(NAMESPACE, "10") is None
+
+
+async def test_broken_list(scene: Scene) -> None:
+    """Requirement: A panel that cannot be posted keeps the builder."""
+    message = target(scene, [])
+    await scene.store.put(NAMESPACE, "10", {str(TARGET): {}})  # not v3's shape
+    scene.keep(DRAFT, target=Target(TARGET, discord.Embed(title="Panel")))
+
+    interaction = await scene.press("confirm-create")
+
+    assert methods(interaction.sent)[-1] == "followup.send"
+    assert message.sent == []  # nothing placed on the message
+    assert scene.session().draft == DRAFT

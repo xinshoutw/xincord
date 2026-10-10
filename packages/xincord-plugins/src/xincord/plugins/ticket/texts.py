@@ -47,13 +47,9 @@ def units(text: str) -> int:
 
 def clip(text: str, limit: int) -> str:
     """The longest start of ``text`` within ``limit`` UTF-16 code units, characters kept whole."""
-    if units(text) <= limit:
-        return text
-    taken: list[str] = []
     used = 0
-    for char in text:
+    for index, char in enumerate(text):
         used += units(char)
         if used > limit:
-            break
-        taken.append(char)
-    return "".join(taken)
+            return text[:index]
+    return text

@@ -51,4 +51,4 @@ def panel_button(
     draft: Draft, index: int, build_id: IdBuilder
 ) -> discord.ui.Button[discord.ui.View]:
     """The panel's button ``index``, v3's ``buildTicketButton``: it opens the reason modal."""
-    raise NotImplementedError
+    return _button(draft, build_id({"action": "press", "btn_index": str(index)}))

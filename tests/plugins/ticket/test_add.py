@@ -159,3 +159,13 @@ async def test_channel_without_messages(scene: Scene) -> None:
 
     expected = {"content": f"Cannot find the message by id: {TARGET}"}
     assert interaction.sent == [("edit_original_response", expected)]
+
+
+async def test_outside_guild(scene: Scene) -> None:
+    """Requirement: The add command opens the builder for a message."""
+    interaction = scene.interaction({"type": 1, "name": "add-ticket"}, COMMAND)
+    interaction.guild = None  # a guild command never runs there
+
+    await scene.cog.add_ticket(interaction.as_interaction(), str(TARGET))
+
+    assert interaction.sent == []

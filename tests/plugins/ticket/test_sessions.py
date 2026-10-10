@@ -65,3 +65,12 @@ async def test_another_users_draft(scene: Scene) -> None:
     interaction = await scene.press("modify-author", scene.who(user=9))
 
     assert interaction.sent == [EXPIRED]
+
+
+async def test_unknown_sub_action(scene: Scene) -> None:
+    """Requirement: Only the latest builder of a draft works."""
+    scene.keep(Draft("Old"))
+
+    interaction = await scene.press("unknown")
+
+    assert interaction.sent == []  # no response, as in v3
