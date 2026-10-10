@@ -91,7 +91,7 @@
 - [x] 16.3 xfail tests for "Edited at once" and "Deleted at once" (found during the review: the
       cached message that `on_message` gets took an edit parsed before the listener ran, and with
       `log_all` false a deletion reached the store before the insert)
-- [ ] 16.4 Store messages from the relayed `MESSAGE_CREATE` payload and let their edits and
+- [x] 16.4 Store messages from the relayed `MESSAGE_CREATE` payload and let their edits and
       deletions wait for the insert; remove the markers
 
 ## 17. Close

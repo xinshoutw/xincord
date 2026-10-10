@@ -142,16 +142,7 @@ async def test_outside_a_guild(scene: Scene) -> None:
     assert [row[0] for row in await scene.rows()] == [100]
 
 
-@pytest.mark.parametrize(
-    "config",
-    [
-        "log_all: true\n",
-        pytest.param(
-            "log_all: false\n",
-            marks=pytest.mark.xfail(strict=True, reason="Deletions of stored messages are logged"),
-        ),
-    ],
-)
+@pytest.mark.parametrize("config", ["log_all: true\n", "log_all: false\n"])
 async def test_deleted_at_once(scene: Scene) -> None:
     """Requirement: Deletions of stored messages are logged."""
     await scene.listen(5, [30])

@@ -151,7 +151,6 @@ async def test_typed_placeholders(scene: Scene) -> None:
     assert values(post)[4:] == ["%bot_id% %cl_msg_after%", "%user_mention%"]
 
 
-@pytest.mark.xfail(strict=True, reason="Edits of stored messages are logged")
 @pytest.mark.parametrize("config", ["log_all: true\n", "log_all: false\n"])
 async def test_edited_at_once(scene: Scene) -> None:
     """Requirement: Edits of stored messages are logged."""

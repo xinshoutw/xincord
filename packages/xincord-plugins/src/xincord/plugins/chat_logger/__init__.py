@@ -12,6 +12,7 @@ from xincord.core.templates import Templates
 
 from .cog import IDS, ChatLogger
 from .config import Config
+from .created import EVENT
 
 if TYPE_CHECKING:
     from xincord.core.bot import Bot
@@ -42,3 +43,6 @@ async def setup(bot: Bot) -> None:
     # The menu's buttons and select menus with IDS's IDs, v3's too, reach cog.handle; the core
     # drops the route when the plugin unloads.
     bot.route(__name__, IDS, cog.handle)
+    # New messages reach cog.on_gateway_message_create as Discord sent them: discord.py's cached
+    # message, which on_message gets, takes later edits in place.
+    bot.relay_gateway_event(EVENT)

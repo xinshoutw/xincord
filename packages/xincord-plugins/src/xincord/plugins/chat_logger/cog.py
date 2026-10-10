@@ -21,12 +21,13 @@ from xincord.plugins.listen_channels.menu import ListenChannels, Menu
 from xincord.plugins.listen_channels.settings import targets
 from xincord.plugins.listen_channels.store import ListenSettings
 
+from .created import parse_created
 from .logs import Place, author_values, message_url, unknown_author
 from .messages import MessageLog, Stored
 from .text import fit, message_text
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
+    from collections.abc import Awaitable, Callable, Iterable
 
     from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
@@ -63,6 +64,8 @@ class ChatLogger(commands.Cog):
         # The menu, its components, the posts and the checks at READY, shared with VoiceLogger.
         self.listen = ListenChannels(bot, self.settings, Menu(lang, templates, IDS, "cl", MENU))
         self.tasks: tuple[asyncio.Task[None], ...] = ()  # the retention loop once loaded
+        # The messages whose insert is under way, by ID; their edits and deletions wait for it.
+        self.inserting: dict[int, asyncio.Event] = {}
         self.sleep: Sleep = asyncio.sleep  # between the retention's deletions
 
     @override
@@ -139,20 +142,30 @@ class ChatLogger(commands.Cog):
         await self.listen.handle(interaction, parsed)
 
     @commands.Cog.listener()
-    async def on_message(self, message: discord.Message) -> None:
+    async def on_gateway_message_create(self, payload: dict[str, object]) -> None:
         """Store a guild message that the bot did not send, other bots' and webhooks' included.
 
-        With ``log_all`` false, only when a listen channel of the guild detects its channel; v3
-        stored only the channels that had a table already, a set that no setting changed.
+        ``setup`` relays ``MESSAGE_CREATE``: discord.py hands ``on_message`` its cached message,
+        which an edit parsed before the listener runs changes in place, while the payload keeps
+        the text that the message was sent with. With ``log_all`` false, only when a listen
+        channel of the guild detects its channel; v3 stored only the channels that had a table
+        already. The message's edits and deletions wait for this insert (``inserting``).
         """
-        guild = message.guild
-        if guild is None or self._own(message.author):
+        created = parse_created(payload)
+        if created is None or self._own(created.author_id):
             return
-        place = Place.of(message.channel.id, message.channel)
-        text = message_text(message.content, message.embeds)
-        if not self.config.log_all and not await self._targets(guild.id, place):
-            return
-        await self.messages.add(message.id, guild.id, place.id, message.author.id, text)
+        guild = self.bot.get_guild(created.guild_id)
+        channel = None if guild is None else guild.get_channel_or_thread(created.channel_id)
+        place = Place.of(created.channel_id, channel)
+        inserted = self.inserting.setdefault(created.message_id, asyncio.Event())
+        try:
+            if self.config.log_all or await self._targets(created.guild_id, place):
+                await self.messages.add(
+                    created.message_id, created.guild_id, place.id, created.author_id, created.text
+                )
+        finally:
+            inserted.set()
+            self.inserting.pop(created.message_id, None)
 
     @commands.Cog.listener()
     async def on_raw_message_edit(self, payload: discord.RawMessageUpdateEvent) -> None:
@@ -164,10 +177,11 @@ class ChatLogger(commands.Cog):
         the member from the update (v3's ``Placeholder.get(event.member)``).
         """
         message, guild_id = payload.message, payload.guild_id
-        if guild_id is None or self._own(message.author):
+        if guild_id is None or self._own(message.author.id):
             return
         place = Place.of(payload.channel_id, message.channel)
         text = message_text(message.content, message.embeds)
+        await self._inserted([payload.message_id])
         edit = await self.messages.edit(payload.message_id, text)
         guild = self.bot.get_guild(guild_id)
         if edit is None or guild is None:
@@ -195,6 +209,7 @@ class ChatLogger(commands.Cog):
         if payload.guild_id is None:
             return
         place = self._place(payload.guild_id, payload.channel_id)
+        await self._inserted([payload.message_id])
         stored = await self.messages.pop(payload.message_id)
         await self._log_deletions(payload.guild_id, place, [] if stored is None else [stored])
 
@@ -208,6 +223,7 @@ class ChatLogger(commands.Cog):
         if payload.guild_id is None:
             return
         place = self._place(payload.guild_id, payload.channel_id)
+        await self._inserted(payload.message_ids)
         taken = await self.messages.pop_all(payload.message_ids)
         await self._log_deletions(payload.guild_id, place, [stored for _, stored in taken])
 
@@ -294,10 +310,21 @@ class ChatLogger(commands.Cog):
                     guild_id,
                 )
 
-    def _own(self, author: discord.abc.Snowflake) -> bool:
-        """Whether ``author`` is the bot, whose messages v3 did not store."""
+    async def _inserted(self, message_ids: Iterable[int]) -> None:
+        """Wait for the inserts of these messages that are under way.
+
+        discord.py runs listeners as concurrent tasks: an edit or a deletion that arrives right
+        after its message reaches the store after the message's insert, which waits for the
+        settings first with ``log_all`` false.
+        """
+        for message_id in message_ids:
+            if (inserting := self.inserting.get(message_id)) is not None:
+                await inserting.wait()
+
+    def _own(self, user_id: int) -> bool:
+        """Whether ``user_id`` is the bot's, whose messages v3 did not store."""
         bot = self.bot.user
-        return bot is not None and author.id == bot.id
+        return bot is not None and user_id == bot.id
 
     async def _targets(self, guild_id: int, place: Place) -> list[int]:
         """The listen channels of the guild that detect ``place``, in stored order."""
