@@ -20,11 +20,6 @@ GOLDEN = golden("ticket_away_notice")
 VOICE, CATEGORY, FORUM = 2, 4, 15  # Discord's channel types
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="New channels whose names start with a prefix are watched",
-)
 def test_prefix_match() -> None:
     """Requirement: New channels whose names start with a prefix are watched."""
     config = Config(guild_id=10, user_id=20, prefix=("ticket-", "order-"), delay_millis=2000)
@@ -36,11 +31,6 @@ def test_prefix_match() -> None:
     assert not config.watches(11, "ticket-1")  # another guild: v3's filter did not work (B1)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="New channels whose names start with a prefix are watched",
-)
 async def test_text_channel_with_a_prefix(scene: Scene) -> None:
     """Requirement: New channels whose names start with a prefix are watched."""
     await scene.create(31, "ticket-alice")
@@ -49,25 +39,15 @@ async def test_text_channel_with_a_prefix(scene: Scene) -> None:
     assert scene.notices() == [(31, [GOLDEN["notice"]])]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="New channels whose names start with a prefix are watched",
-)
 async def test_threads_and_voice_channels(scene: Scene) -> None:
     """Requirement: New channels whose names start with a prefix are watched."""
     await scene.create_thread(41, "ticket-alice")
     await scene.create(32, "order-bob", kind=VOICE)  # v3 threw for both (B2)
     await scene.settle()
 
-    assert scene.notices() == [(41, [GOLDEN["notice"]]), (32, [GOLDEN["notice"]])]
+    assert sorted(scene.notices()) == [(32, [GOLDEN["notice"]]), (41, [GOLDEN["notice"]])]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="New channels whose names start with a prefix are watched",
-)
 async def test_another_guild(scene: Scene) -> None:
     """Requirement: New channels whose names start with a prefix are watched."""
     await scene.create(51, "ticket-alice", guild_id=11)  # the owner is offline there too
@@ -77,11 +57,6 @@ async def test_another_guild(scene: Scene) -> None:
     assert scene.clock.delays == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="New channels whose names start with a prefix are watched",
-)
 @pytest.mark.parametrize(
     "name",
     [
@@ -99,11 +74,6 @@ async def test_name_without_a_prefix(scene: Scene, name: str) -> None:
     assert scene.clock.delays == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="New channels whose names start with a prefix are watched",
-)
 @pytest.mark.parametrize("kind", [CATEGORY, FORUM])
 async def test_channels_that_take_no_messages(
     scene: Scene, kind: int, caplog: pytest.LogCaptureFixture

@@ -28,5 +28,9 @@ class Config(Model):
     delay_millis: Annotated[int, Field(ge=1, le=JAVA_LONG_MAX)]  # the wait before the notice
 
     def watches(self, guild_id: int, name: str) -> bool:
-        """Whether a new channel named ``name`` in guild ``guild_id`` gets a notice."""
-        raise NotImplementedError
+        """Whether a new channel named ``name`` in guild ``guild_id`` gets a notice.
+
+        Only ``guild_id`` counts: v3's guild filter never applied (B1). The prefixes compare
+        case-sensitively, as Kotlin's ``startsWith``; an empty one matches every name, as in v3.
+        """
+        return guild_id == self.guild_id and name.startswith(self.prefix)

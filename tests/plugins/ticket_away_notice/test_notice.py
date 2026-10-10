@@ -19,11 +19,6 @@ GOLDEN = golden("ticket_away_notice")
 LOOKUP = "GET /guilds/10/members/20"  # Discord's member request for the owner
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The notice waits for the delay while the owner is offline",
-)
 async def test_owner_offline(scene: Scene) -> None:
     """Requirement: The notice waits for the delay while the owner is offline."""
     await scene.create(31, "ticket-alice")
@@ -37,11 +32,6 @@ async def test_owner_offline(scene: Scene) -> None:
     assert scene.notices() == [(31, [GOLDEN["notice"]])]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The notice waits for the delay while the owner is offline",
-)
 @pytest.mark.parametrize("status", ["online", "idle", "dnd"])
 async def test_owner_online_idle_or_busy(scene: Scene, status: str) -> None:
     """Requirement: The notice waits for the delay while the owner is offline."""
@@ -54,11 +44,6 @@ async def test_owner_online_idle_or_busy(scene: Scene, status: str) -> None:
     assert scene.notices() == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The notice waits for the delay while the owner is offline",
-)
 async def test_owner_back_during_the_wait(scene: Scene) -> None:
     """Requirement: The notice waits for the delay while the owner is offline."""
     await scene.create(31, "ticket-alice")
@@ -70,11 +55,6 @@ async def test_owner_back_during_the_wait(scene: Scene) -> None:
     assert scene.notices() == []  # v3 posted anyway
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The notice waits for the delay while the owner is offline",
-)
 @pytest.mark.parametrize(
     ("event", "payload"),
     [
@@ -95,11 +75,6 @@ async def test_channel_gone_during_the_wait(
     assert scene.notices() == []  # v3 posted, and the request failed
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The notice waits for the delay while the owner is offline",
-)
 async def test_owner_not_cached(scene: Scene) -> None:
     """Requirement: The notice waits for the delay while the owner is offline."""
     await scene.uncache_owner()
@@ -113,11 +88,6 @@ async def test_owner_not_cached(scene: Scene) -> None:
     assert scene.notices() == [(31, [GOLDEN["notice"]])]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The notice waits for the delay while the owner is offline",
-)
 async def test_channels_created_together(scene: Scene) -> None:
     """Requirement: The notice waits for the delay while the owner is offline."""
     await scene.create(31, "ticket-alice")
@@ -131,11 +101,6 @@ async def test_channels_created_together(scene: Scene) -> None:
     assert sorted(channel for channel, _ in scene.notices()) == [31, 32]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The notice waits for the delay while the owner is offline",
-)
 @pytest.mark.parametrize("notice", [GOLDEN["operator_notice"]], ids=["operator"])
 async def test_operator_v3_notice(scene: Scene) -> None:
     """Requirement: The notice waits for the delay while the owner is offline."""

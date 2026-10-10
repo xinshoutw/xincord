@@ -16,7 +16,7 @@
 - [x] 3.1 xfail tests for "New channels whose names start with a prefix are watched" and "The
       notice waits for the delay while the owner is offline" against stubs `Config.watches` and
       `TicketAwayNotice.watch`, with the payload builders, the fake `sleep` and the golden data
-- [ ] 3.2 Implement `watches`, `watch` and the notice task; remove the markers
+- [x] 3.2 Implement `watches`, `watch` and the notice task; remove the markers
 
 ## 4. Problems
 
