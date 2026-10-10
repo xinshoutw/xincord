@@ -1,8 +1,14 @@
-"""The stars of a form: v3's star text and the star count that an ID carries.
+"""The stars of a form: v3's star text, the star count that an ID carries and the highlight.
 
 Kotlin:
+    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Feedbacker.kt:106-124
     XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Feedbacker.kt:139-145
 """
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import discord
 
 MAX_STARS = 5  # v3's five star buttons
 FULL, EMPTY = "★ ", "☆ "  # v3's stars, each followed by a space
@@ -26,3 +32,8 @@ def star_count(text: str) -> int:
     except KeyError:
         msg = f"star count {text!r} is not a whole number from 0 to {MAX_STARS}"
         raise ValueError(msg) from None
+
+
+def highlight(message: discord.Message, pressed: str) -> discord.ui.View | discord.ui.LayoutView:
+    """Return the message's components with the pressed button primary and the others secondary."""
+    raise NotImplementedError

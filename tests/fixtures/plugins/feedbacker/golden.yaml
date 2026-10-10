@@ -31,3 +31,14 @@ ask:
     title: "請給予星等與評價"
     footer: {text: "❖ ORDERLY SERVER ❖"}
 star_labels: ["★", "★★", "★★★", "★★★★", "★★★★★"]
+
+# The feedback modal per locale: its title and its paragraph input's label and placeholder.
+modal:
+  en-US:
+    title: "How was today's service? :D"
+    label: "Please briefly describe your feedback"
+    placeholder: "Awesome!"
+  zh-TW:
+    title: "您覺得今天的服務怎麼樣呢？ :D"
+    label: "請簡述評價內容"
+    placeholder: "超讚"

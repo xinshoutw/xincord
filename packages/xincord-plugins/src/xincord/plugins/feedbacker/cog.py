@@ -15,7 +15,7 @@ from xincord.core.placeholders import MemberLike, actor_values
 from xincord.core.templates import render_message
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
 
     from discord import app_commands
 
@@ -128,6 +128,10 @@ class Feedbacker(commands.Cog):
         except discord.HTTPException as error:
             msg = f"the channel {_name(interaction.channel)} refused it: {error}"
             raise FormError(msg) from error
+
+    async def press_star(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
+        """Open the feedback modal for the rated member and highlight the pressed star."""
+        raise NotImplementedError
 
 
 def _postable(channel: object) -> Postable | None:

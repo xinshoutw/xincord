@@ -62,6 +62,25 @@ class FakeResponse:
         """Record an edit of the component's message."""
         self.sent.append(("response.edit_message", fields))
 
+    async def send_message(self, content: str | None = None, **fields: object) -> None:
+        """Record a reply, such as an ephemeral one."""
+        self.sent.append(("response.send_message", {"content": content, **fields}))
+
+    async def send_modal(self, modal: discord.ui.Modal, /) -> None:
+        """Record the modal that answers a button press."""
+        self.sent.append(("response.send_modal", {"modal": modal}))
+
+
+@dataclass
+class FakeFollowup:
+    """``Interaction.followup``: appends each follow-up message to the interaction's ``sent``."""
+
+    sent: list[Sent]
+
+    async def send(self, content: str | None = None, **fields: object) -> None:
+        """Record a follow-up message, such as an ephemeral one."""
+        self.sent.append(("followup.send", {"content": content, **fields}))
+
 
 @dataclass
 class FakeInteraction:
@@ -85,6 +104,11 @@ class FakeInteraction:
     def response(self) -> FakeResponse:
         """The response, recording into ``sent``."""
         return FakeResponse(self.sent)
+
+    @property
+    def followup(self) -> FakeFollowup:
+        """The follow-up webhook, recording into ``sent``."""
+        return FakeFollowup(self.sent)
 
     async def edit_original_response(self, **fields: object) -> None:
         """Record an edit of the deferred response."""
@@ -122,6 +146,47 @@ class FakeChannel:
         if self.error is not None:
             raise self.error
         self.sent.append(("channel.send", fields))
+
+
+@dataclass
+class FakeMessage:
+    """A message with components that records its edits and its deletion into ``sent``.
+
+    ``error``, when set, is raised by ``edit`` and ``delete`` instead. ``channel.fetch_message``
+    returns the message itself, as the core fetches a message again to upgrade its legacy IDs.
+    """
+
+    components: list[discord.Component] = field(default_factory=list[discord.Component])
+    sent: list[Sent] = field(default_factory=list[Sent])
+    id: int = 42
+    flags: discord.MessageFlags = field(default_factory=discord.MessageFlags)
+    error: Exception | None = None
+
+    @property
+    def channel(self) -> SimpleNamespace:
+        """The message's channel, which can fetch the message."""
+
+        async def fetch_message(message_id: int, /) -> FakeMessage:
+            assert message_id == self.id
+            return self
+
+        return SimpleNamespace(fetch_message=fetch_message)
+
+    async def edit(self, **fields: object) -> None:
+        """Record an edit, or raise ``error``."""
+        if self.error is not None:
+            raise self.error
+        self.sent.append(("message.edit", fields))
+
+    async def delete(self) -> None:
+        """Record the deletion, or raise ``error``."""
+        if self.error is not None:
+            raise self.error
+        self.sent.append(("message.delete", {}))
+
+    def as_message(self) -> discord.Message:
+        """This fake, typed as the discord.py message it stands for."""
+        return cast("discord.Message", self)
 
 
 @dataclass(frozen=True)
