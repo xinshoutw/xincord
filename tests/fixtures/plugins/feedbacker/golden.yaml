@@ -11,3 +11,12 @@ config:
   form_success: "建立成功"
   form_failure: "建立失敗"
   form_submit_failure: "送出失敗"
+
+# %fb_stars% for each star count, as v3's "★ ".repeat(n) + "☆ ".repeat(5 - n) wrote it.
+fb_stars:
+  0: "☆ ☆ ☆ ☆ ☆ "
+  1: "★ ☆ ☆ ☆ ☆ "
+  2: "★ ★ ☆ ☆ ☆ "
+  3: "★ ★ ★ ☆ ☆ "
+  4: "★ ★ ★ ★ ☆ "
+  5: "★ ★ ★ ★ ★ "

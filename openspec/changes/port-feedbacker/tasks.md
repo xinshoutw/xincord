@@ -24,7 +24,7 @@
 
 ## 5. Stars
 
-- [ ] 5.1 xfail tests for "Stars follow v3's text" against stubs `stars` and `star_count` in
+- [x] 5.1 xfail tests for "Stars follow v3's text" against stubs `stars` and `star_count` in
       `form.py`
 - [ ] 5.2 Implement them; remove the markers
 
