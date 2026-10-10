@@ -405,10 +405,11 @@ async def test_previous_version_fails_too(
     """Requirement: Hot reload follows dependencies and intents."""
     alpha = fake_plugins.add("Alpha", READS_A_FILE)
     beta = fake_plugins.add("Beta", NEEDS_ALPHA)
+    fake_plugins.add("Gamma", RECORD)  # needs nothing, and stays
     (tmp_path / "Alpha").mkdir()
     data = tmp_path / "Alpha" / "data.txt"
     data.write_text("data", encoding="utf-8")
-    bot = fake_plugins.bot(["Alpha", "Beta"], tmp_path, store)
+    bot = fake_plugins.bot(["Alpha", "Beta", "Gamma"], tmp_path, store)
     await bot.load_plugins()
     data.unlink()
 
@@ -418,7 +419,7 @@ async def test_previous_version_fails_too(
     ):
         await bot.reload_plugin("Alpha")
 
-    assert bot.loaded == ()
+    assert bot.loaded == ("Gamma",)
     assert not {alpha, beta} & set(bot.extensions)
     assert (bot.get_cog("Probe"), bot.get_cog("BetaProbe")) == (None, None)
     with pytest.raises(PluginError, match="no plugin loads from"):
