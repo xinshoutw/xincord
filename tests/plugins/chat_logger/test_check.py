@@ -7,8 +7,6 @@ Kotlin:
 import logging
 from typing import TYPE_CHECKING
 
-import pytest
-
 import payloads
 from discord_fakes import forbidden, not_found
 from plugin_fakes import dispatch
@@ -17,6 +15,8 @@ from xincord.plugins.listen_channels.settings import Setting
 from xincord.plugins.listen_channels.store import ListenSettings
 
 if TYPE_CHECKING:
+    import pytest
+
     from conftest import Scene
 
 
@@ -44,7 +44,6 @@ async def test_deleted_channels(scene: Scene, caplog: pytest.LogCaptureFixture) 
     )
 
 
-@pytest.mark.xfail(strict=True, reason="Settings are checked when the bot is ready")
 async def test_archived_threads(scene: Scene) -> None:
     """Requirement: Settings are checked when the bot is ready."""
     settings = ListenSettings(scene.store, NAMESPACE)

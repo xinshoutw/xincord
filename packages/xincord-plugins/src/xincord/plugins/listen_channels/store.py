@@ -140,8 +140,8 @@ class ListenSettings:
                 )
         return sorted(ids)
 
-    async def prune(self, guild_id: int, known: Container[int]) -> list[int]:
-        """Drop from every list the IDs that ``known`` lacks; return them, each once, in order.
+    async def prune(self, guild_id: int, gone: Container[int]) -> list[int]:
+        """Drop the IDs of ``gone`` from every list; return the ones dropped, each once, in order.
 
         v3 filtered the lists to the guild's channels when it loaded them. Nothing is written when
         nothing is dropped; a changed entry is written in v3's shape, and the others stay as they
@@ -156,11 +156,11 @@ class ListenSettings:
             document: dict[str, JSON] = {}
             for channel, (raw, setting) in entries.items():
                 listed = (*setting.allow, *setting.block)
-                dropped |= dict.fromkeys(item for item in listed if item not in known)
+                dropped |= dict.fromkeys(item for item in listed if item in gone)
                 kept = replace(
                     setting,
-                    allow=tuple(item for item in setting.allow if item in known),
-                    block=tuple(item for item in setting.block if item in known),
+                    allow=tuple(item for item in setting.allow if item not in gone),
+                    block=tuple(item for item in setting.block if item not in gone),
                 )
                 document[str(channel)] = raw if kept == setting else _entry(kept)
             if dropped:

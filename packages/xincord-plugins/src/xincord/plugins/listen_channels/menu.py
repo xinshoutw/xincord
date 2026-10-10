@@ -187,18 +187,21 @@ class ListenChannels:
                 await self._check(guild)
 
     async def _check(self, guild: discord.Guild) -> None:
-        """Drop the channels that ``guild`` no longer has from its lists, as v3's startup did.
+        """Drop the channels that Discord no longer has from the guild's lists, as v3's start did.
 
-        Its active threads count, as JDA's cache held them. Listen channels are not checked: a
-        deleted one is forgotten when a log finds it gone, and a thread is not cached while it is
-        archived. A guild whose settings cannot be read is skipped with an error, so that the
-        others are still checked.
+        discord.py caches the guild's channels and its active threads; a listed ID that it has
+        not cached, such as an archived thread, is asked of Discord, and dropped only when Discord
+        answers that it does not exist. Listen channels are not checked: a deleted one is
+        forgotten when a log finds it gone. A guild whose settings cannot be read is skipped with
+        an error, so that the others are still checked.
         """
         plugin = self.settings.namespace
-        # JDA's channel lookup found the cached threads too; discord.py keeps them apart.
-        known = {channel.id for channel in (*guild.channels, *guild.threads)}
+        cached = {channel.id for channel in (*guild.channels, *guild.threads)}
         try:
-            dropped = await self.settings.prune(guild.id, known)
+            settings = await self.settings.read_settings(guild.id)
+            listed = {item for entry in settings.values() for item in (*entry.allow, *entry.block)}
+            gone = {item for item in sorted(listed - cached) if await self._gone(item)}
+            dropped = await self.settings.prune(guild.id, gone)
         except DataError:
             logger.exception("%s cannot check the settings of guild %s", plugin, guild.id)
             return
@@ -210,6 +213,20 @@ class ListenChannels:
                 guild.name,
                 guild.id,
             )
+
+    async def _gone(self, channel_id: int) -> bool:
+        """Whether Discord answers that the channel does not exist.
+
+        Any other refusal, such as a private thread that the bot cannot see, or an outage, keeps
+        the channel.
+        """
+        try:
+            await self.bot.http.get_channel(channel_id)
+        except discord.NotFound:
+            return True
+        except discord.HTTPException:
+            return False
+        return False
 
     async def _press(
         self, interaction: discord.Interaction, where: tuple[int, int], action: str | None

@@ -99,7 +99,7 @@
 - [x] 16.7 xfail test for "Archived threads" (found in the review: the READY check dropped every
       listed thread that discord.py had not cached, archived ones included, which unblocked a
       blocked thread or stopped an allowed one)
-- [ ] 16.8 Ask Discord about the uncached IDs and drop only those it does not have; remove the
+- [x] 16.8 Ask Discord about the uncached IDs and drop only those it does not have; remove the
       marker
 
 ## 17. Close
