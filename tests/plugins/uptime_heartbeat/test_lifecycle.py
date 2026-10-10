@@ -11,20 +11,23 @@ import json
 import logging
 from typing import TYPE_CHECKING, cast
 
+import pytest
 from discord.http import HTTPClient
 
-from plugin_fakes import WAIT, load_plugin
+from plugin_fakes import WAIT, load_plugin, until
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    import pytest
     from discord.http import Route
 
     from http_fakes import Monitor
     from plugin_fakes import Ready
     from xincord.core.storage import Store
     from xincord.plugins.uptime_heartbeat.cog import UptimeHeartbeat
+
+
+FIXED_DELAY = "Each listener pushes at once, then after a fixed delay"
 
 
 async def load(tmp_path: Path, store: Store, *urls: str) -> UptimeHeartbeat:
@@ -154,8 +157,9 @@ async def test_reload(tmp_path: Path, store: Store, monitor: Monitor, ready: Rea
     assert [url.path for _, url in monitor.requests] == ["/old", "/new"]
 
 
+@pytest.mark.xfail(strict=True, reason=FIXED_DELAY)
 async def test_independent_listeners(
-    tmp_path: Path, store: Store, monitor: Monitor, ready: Ready
+    tmp_path: Path, store: Store, monitor: Monitor, ready: Ready, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: Each listener pushes at once, then after a fixed delay."""
     monitor.silent.add("/silent")
@@ -165,11 +169,14 @@ async def test_independent_listeners(
     cog = await load(
         tmp_path, store, monitor.url("/silent"), monitor.url("/gone"), monitor.url("/alive")
     )
-    silent, gone, alive = cog.tasks
+    tasks = cog.tasks
     await monitor.received(3)
-    async with asyncio.timeout(WAIT):
-        await gone  # the 404 ends this loop only
+    refused = (
+        f"UptimeHeartbeat listener 2: pushing to {monitor.root} failed with code 404 "
+        "(the status monitor refused the push)"
+    )
+    await until(lambda: refused in caplog.messages)
 
     assert {url.path for _, url in monitor.requests} == {"/silent", "/gone", "/alive"}
-    assert not silent.done()
-    assert not alive.done()  # waiting for its next push
+    # /silent waits for an answer, /gone and /alive for their next push: v3 ended /gone's loop.
+    assert not any(task.done() for task in tasks)

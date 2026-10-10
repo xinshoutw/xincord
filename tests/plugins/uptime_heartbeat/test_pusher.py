@@ -23,6 +23,8 @@ TOKEN = "xxxxxxxxxx"  # the push token: in the URL's path, never in a log line
 URL = f"https://status.example.com/api/push/{TOKEN}?status=up&msg=OK&ping=%ping%"
 PUSHED = URL.replace("%ping%", "42")
 ENDPOINT = "https://status.example.com"  # the URL's origin, all that the logs show of it
+STATUS = "The status code decides what follows"
+FIXED_DELAY = "Each listener pushes at once, then after a fixed delay"
 
 
 class Stop(Exception):  # noqa: N818 - it ends the loop, it reports no error
@@ -154,27 +156,30 @@ async def test_success(status: int, caplog: pytest.LogCaptureFixture) -> None:
     assert caplog.messages == [f"UptimeHeartbeat listener 1 pushed to {ENDPOINT} (code {status})"]
 
 
+@pytest.mark.xfail(strict=True, reason=STATUS)
 async def test_not_found(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
-    keep_pushing = await Fakes(answers=(404,)).pusher().push()
+    await Fakes(answers=(404,)).pusher().push()
 
-    assert not keep_pushing  # until the plugin reloads or the bot restarts
+    # Uptime Kuma's answer for an unknown or paused push token; the loop goes on (v3 stopped it).
     [record] = records_above(caplog, logging.INFO)
     assert record.levelno == logging.WARNING
     assert record.getMessage() == (
-        "UptimeHeartbeat listener 1 stopped: the status monitor refused the push (code 404)"
+        f"UptimeHeartbeat listener 1: pushing to {ENDPOINT} failed with code 404 "
+        "(the status monitor refused the push)"
     )
 
 
+@pytest.mark.xfail(strict=True, reason=STATUS)
 async def test_monitor_offline(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
-    keep_pushing = await Fakes(answers=(521,)).pusher().push()
+    await Fakes(answers=(521,)).pusher().push()
 
-    assert keep_pushing
     [record] = records_above(caplog, logging.INFO)
     assert record.levelno == logging.WARNING
     assert record.getMessage() == (
-        "UptimeHeartbeat listener 1: the status monitor is offline (code 521)"
+        f"UptimeHeartbeat listener 1: pushing to {ENDPOINT} failed with code 521 "
+        "(the status monitor is offline)"
     )
 
 
@@ -322,11 +327,13 @@ async def test_every_attempt_is_followed_by_the_delay() -> None:
     assert [call for call in fakes.calls if call.startswith("sleep")] == ["sleep 5"] * 5
 
 
-async def test_not_found_ends_the_loop() -> None:
-    """Requirement: The status code decides what follows."""
-    fakes = Fakes(answers=(200, 404), stop_after=10)
+@pytest.mark.xfail(strict=True, reason=FIXED_DELAY)
+async def test_pushing_goes_on_after_a_404() -> None:
+    """Requirement: Each listener pushes at once, then after a fixed delay."""
+    fakes = Fakes(answers=(200, 404, 404, 200), stop_after=4)
 
-    await fakes.pusher().run()  # returns: no Stop from a third sleep
+    with pytest.raises(Stop):  # v3 ended the loop after a 404, until a reload or restart
+        await fakes.pusher().run()
 
-    assert fakes.pushes == 2
-    assert [call for call in fakes.calls if call.startswith("sleep")] == ["sleep 60"]
+    assert fakes.pushes == 4
+    assert [call for call in fakes.calls if call.startswith("sleep")] == ["sleep 60"] * 4

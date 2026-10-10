@@ -7,7 +7,7 @@
 
 ## 2. Pushing goes on after every failure
 
-- [ ] 2.1 xfail tests for "The status code decides what follows" and "Each listener pushes at once,
+- [x] 2.1 xfail tests for "The status code decides what follows" and "Each listener pushes at once,
       then after a fixed delay": a 404 and every other failure keep the loop going, the 404 and 521
       lines name the origin, independent listeners
 - [ ] 2.2 Let `Pusher.run` push until it is cancelled, log the 404 and 521 lines with the origin
