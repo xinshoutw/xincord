@@ -38,6 +38,11 @@ leave, per-guild commands to edit the config.
   repository.
 - v3's `info.yaml` keys `author`, `coreApi` and `version` have no counterpart, as for _Example.
   v3 logged `AutoRole is disabled.` when off; a plugin missing from `plugins` is never imported.
+- uv_build ships every file in the package. Checked on 2026-10-10: the wheel from
+  `uv build --package xincord-plugins` lists `auto_role/config.yaml` and the `AutoRole` entry
+  point, and `xincord --no-online`, run from a scratch virtual environment with both wheels and
+  `plugins: [AutoRole]`, loads the plugin, writes `plugins/AutoRole/config.yaml` and no `lang/`,
+  and exits with 0.
 
 ### Config
 
