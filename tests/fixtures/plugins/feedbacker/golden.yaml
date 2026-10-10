@@ -65,7 +65,7 @@ review:
 # default member permissions, as v3 checked Administrator when the command ran.
 command:
   type: 1
-  name: "feedbacker"
+  name: "feedback"
   description: "Create a feedback form for a member"
   nsfw: false
   default_member_permissions: null
@@ -83,5 +83,5 @@ command:
       channel_types: [0]
       name_localizations: {"en-US": "submit-channel", "zh-TW": "submit-channel"}
       description_localizations: {"en-US": "where to send the feedback result", "zh-TW": "回饋結果要送到哪個頻道"}
-  name_localizations: {"en-US": "feedbacker", "zh-TW": "評價表單"}
+  name_localizations: {"en-US": "feedback", "zh-TW": "評價表單"}
   description_localizations: {"en-US": "create a channel for member feedback", "zh-TW": "為使用者建立一個評價選單"}

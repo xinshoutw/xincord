@@ -9,6 +9,8 @@ Kotlin:
 from importlib.resources import files
 from typing import TYPE_CHECKING
 
+import pytest
+
 from plugin_fakes import load_plugin
 from xincord.core.plugins import PluginInfo, discover
 
@@ -23,21 +25,23 @@ LANG_FILES = tuple(
 )
 
 
+@pytest.mark.xfail(strict=True, reason="The plugin installs as Feedback")
 def test_discovered_by_name() -> None:
-    """Requirement: The plugin installs as Feedbacker."""
+    """Requirement: The plugin installs as Feedback."""
     # No dependencies and no intents: Discord resolves the member option and the submitter, and
     # the submit channel comes from the guild cache of discord.py's default intents.
-    assert discover(["Feedbacker"]) == [PluginInfo("Feedbacker", "xincord.plugins.feedbacker")]
+    assert discover(["Feedback"]) == [PluginInfo("Feedback", "xincord.plugins.feedback")]
 
 
+@pytest.mark.xfail(strict=True, reason="The plugin installs as Feedback")
 async def test_first_load_creates_the_files(store: Store, tmp_path: Path) -> None:
-    """Requirement: The plugin installs as Feedbacker."""
-    bot = await load_plugin("Feedbacker", tmp_path / "plugins", store)
-    directory = tmp_path / "plugins" / "Feedbacker"
+    """Requirement: The plugin installs as Feedback."""
+    bot = await load_plugin("Feedback", tmp_path / "plugins", store)
+    directory = tmp_path / "plugins" / "Feedback"
 
-    assert bot.loaded == ("Feedbacker",)
+    assert bot.loaded == ("Feedback",)
     written = (directory / "config.yaml").read_text(encoding="utf-8")
-    bundled = files("xincord.plugins.feedbacker").joinpath("config.yaml")
+    bundled = files("xincord.plugins.feedback").joinpath("config.yaml")
     assert written == bundled.read_text(encoding="utf-8")
     assert len(LANG_FILES) == 8
     for name in LANG_FILES:

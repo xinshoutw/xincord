@@ -38,7 +38,7 @@
 
 ## 7. Feedback
 
-- [ ] 7.1 xfail tests for "The plugin installs as Feedback", "The command is a localized guild
+- [x] 7.1 xfail tests for "The plugin installs as Feedback", "The command is a localized guild
       command" (`/feedback`) and "v3's forms keep working" (`feedback:1:` IDs)
 - [ ] 7.2 Rename the package, the entry point, the cog, the command and its `register.yaml` keys,
       the ID namespace, the log lines, the tests and the fixtures; remove the markers
