@@ -44,6 +44,26 @@ Web Dashboard (B13).
   on-status-update,on-status-delete}.yaml` per locale), each with a final newline (six files had
   none). The texts are v3's.
 - No `config.yaml`: v3's only key was `enabled`, which the core's `plugins` list replaces.
+- uv_build ships every file in the package. Checked on 2026-10-10: the wheel from
+  `uv build --package xincord-plugins` lists the six modules, the 24 lang files and the
+  `VoiceLogger` entry point; `xincord --no-online`, run from a scratch virtual environment with
+  both wheels and `plugins: [VoiceLogger]`, writes the 24 lang files and no `config.yaml`, loads
+  the plugin and exits with 0.
+- A scratch probe drove the plugin through discord.py's own objects (a zh-TW guild added with
+  `_add_guild_from_data`, `discord.Interaction` built from gateway payloads, the tree's `_call`,
+  `bot.on_interaction`, `state.parse_voice_state_update` and `DiscordWebSocket.received_message`),
+  with `HTTPClient.request` and the webhook adapter's `request` recorded: the command deferred with
+  type 5 and the ephemeral flag and edited `@original` into the en-US menu; the allow list button
+  answered type 7 with the select menu alone (channel types 2 and 4, 1 to 25, no embed); choosing
+  the category answered type 7 with the menu listing it; v3's `voice-logger@a:toggle_btn` toggled
+  twice; a join of a voice channel of that category posted the zh-TW join embed with
+  `POST /channels/<listen channel>/messages`, a mute posted nothing, a switch to a channel outside
+  categories posted the switch embed with `-`, and a leave that nothing detected posted nothing;
+  `VOICE_CHANNEL_STATUS_UPDATE` messages through discord.py's gateway code were relayed: a set, a
+  changed and a cleared status read `GET /guilds/10/audit-logs` with `action_type` 192, 192 and
+  193 and `limit` 10, fetched `GET /guilds/10/members/7` and posted the three zh-TW status embeds;
+  a stage channel's status posted nothing; a status cleared without an audit log entry read the
+  audit log twice and posted `-` without a thumbnail.
 
 ### Core: gateway events discord.py does not parse
 
@@ -191,7 +211,7 @@ channels.
 - The member: `status.find_actor(fetch, channel_id, status, at, sleep)` reads the guild's audit log
   (`GET /guilds/<id>/audit-logs?action_type=<type>&limit=10` through `bot.http.request(Route(...))`,
   because discord.py's `Guild.audit_logs` drops the fields), type 192 for a set or changed status and
-  193 for a cleared one. `status.match(entries, channel_id, status, at)` takes the entries of that
+  193 for a cleared one. `status.match(log, kind, channel_id, status, at)` takes the entries of that
   type whose `options.channel_id` or `target_id` is the channel and whose ID's time is within 30
   seconds of `at` (when the listener started), and returns the user of the newest one whose
   `options.status` is the new status, else of the newest one. Without a match, the audit log is read
