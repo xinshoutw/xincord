@@ -15,9 +15,11 @@ from discord.ext import commands
 from xincord.core.placeholders import placeholder_values
 from xincord.core.templates import render_message
 
-from .store import Binding, bind, unbind
+from .rooms import create as create_room
+from .store import NAMESPACE, Binding, bind, unbind
 
 if TYPE_CHECKING:
+    import asyncio
     from collections.abc import Callable, Coroutine
 
     from xincord.core.i18n import Lang
@@ -188,8 +190,25 @@ class DynamicVoiceChannel(commands.Cog):
     async def on_voice_state_update(
         self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState
     ) -> None:
-        """Give a member who joins a lobby alone a room of their own (v3's voice update)."""
-        raise NotImplementedError
+        """Give a member who joined a lobby alone a room of their own (v3's voice update).
+
+        discord.py also reports mutes, deafens and streams, which keep the channel; JDA's voice
+        update did not. JDA ran its listener on the event thread, with the cache as of the event;
+        discord.py runs listeners as tasks, and later events may change the cache meanwhile, so
+        the joined channel's members are read first, before anything awaits. A guild's voice
+        changes are then handled one after another.
+        """
+        joined, left = after.channel, before.channel
+        if joined is None or (left is not None and left.id == joined.id):
+            return
+        if list(joined.voice_states) != [member.id]:
+            return
+        async with self._voice_lock(member.guild.id):
+            await create_room(self.bot, self.store, member, joined)
+
+    def _voice_lock(self, guild_id: int) -> asyncio.Lock:
+        """The lock of the guild's voice changes; the store keeps it across reloads."""
+        return self.store.lock(f"{NAMESPACE}:voice:{guild_id}")
 
     async def _reply(self, interaction: discord.Interaction, key: str) -> None:
         """Edit the deferred response into the message ``key``, in the user's locale, as v3.

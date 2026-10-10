@@ -30,10 +30,6 @@ if TYPE_CHECKING:
     from xincord.core.bot import Bot
     from xincord.core.storage import Store
 
-CREATES = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Joining an empty lobby creates a room"
-)
-FAILS = pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Failures leave a lobby")
 OWNER = discord.PermissionOverwrite(manage_channels=True, manage_permissions=True)
 
 
@@ -85,7 +81,6 @@ def created(lobby_id: int = 30, name: str = "| Bob") -> list[Sent]:
     ]
 
 
-@CREATES
 @pytest.mark.parametrize("who", ["member", "bot"])
 async def test_first_join(bot: Bot, store: Store, rest: FakeRest, who: str) -> None:
     """Requirement: Joining an empty lobby creates a room."""
@@ -100,7 +95,6 @@ async def test_first_join(bot: Bot, store: Store, rest: FakeRest, who: str) -> N
     assert [channel.id for channel in guild.voice_channels] == [30, 1030]
 
 
-@CREATES
 async def test_not_alone(bot: Bot, store: Store, rest: FakeRest) -> None:
     """Requirement: Joining an empty lobby creates a room."""
     await bind_lobby(store)
@@ -113,7 +107,6 @@ async def test_not_alone(bot: Bot, store: Store, rest: FakeRest) -> None:
     assert await read_rooms(store, 10) == {}
 
 
-@CREATES
 @pytest.mark.parametrize(
     "channel",
     [
@@ -142,7 +135,6 @@ async def test_not_a_lobby(
     assert await read_rooms(store, 10) == {}
 
 
-@CREATES
 async def test_a_tracked_room_is_not_a_lobby(bot: Bot, store: Store, rest: FakeRest) -> None:
     """Requirement: Joining an empty lobby creates a room."""
     # A room that kept the lobby's name, as when its rename failed.
@@ -156,7 +148,6 @@ async def test_a_tracked_room_is_not_a_lobby(bot: Bot, store: Store, rest: FakeR
     assert await read_rooms(store, 10) == {30: 5}
 
 
-@CREATES
 async def test_same_channel(bot: Bot, store: Store, rest: FakeRest) -> None:
     """Requirement: Joining an empty lobby creates a room."""
     # discord.py reports mutes, deafens and streams too; JDA's voice update did not.
@@ -173,7 +164,6 @@ async def test_same_channel(bot: Bot, store: Store, rest: FakeRest) -> None:
     assert await read_rooms(store, 10) == {}
 
 
-@CREATES
 async def test_gone_before_the_plugin_saw_it(bot: Bot, store: Store, rest: FakeRest) -> None:
     """Requirement: Joining an empty lobby creates a room."""
     await bind_lobby(store)
@@ -188,7 +178,6 @@ async def test_gone_before_the_plugin_saw_it(bot: Bot, store: Store, rest: FakeR
     assert await read_rooms(store, 10) == {}
 
 
-@CREATES
 async def test_gone_while_the_guild_was_busy(bot: Bot, store: Store, rest: FakeRest) -> None:
     """Requirement: Joining an empty lobby creates a room."""
     # Two lobbies of one guild: Bob's room waits for Alice's, and Bob leaves meanwhile.
@@ -213,7 +202,6 @@ async def test_gone_while_the_guild_was_busy(bot: Bot, store: Store, rest: FakeR
     assert await read_rooms(store, 10) == {30: 7}
 
 
-@CREATES
 async def test_unusable_name(
     bot: Bot, store: Store, rest: FakeRest, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -238,7 +226,6 @@ async def test_unusable_name(
     assert "guild (10)" in record.getMessage()
 
 
-@FAILS
 async def test_copy_refused(
     bot: Bot, store: Store, rest: FakeRest, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -259,7 +246,6 @@ async def test_copy_refused(
     assert "guild (10)" in record.getMessage()
 
 
-@FAILS
 @pytest.mark.parametrize("step", [1, 2, 3])
 async def test_later_step_refused(
     bot: Bot, store: Store, rest: FakeRest, caplog: pytest.LogCaptureFixture, step: int
