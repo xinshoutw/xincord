@@ -23,7 +23,6 @@ if TYPE_CHECKING:
 # v3's shipped listener, with an example domain instead of the owner's status domain.
 TOKEN = "xxxxxxxxxx"  # the push token: in the URL's path, never in a log line
 PUSH_URL = f"https://status.example.com/api/push/{TOKEN}?status=up&msg=OK&ping=%ping%"
-ORIGIN_ONLY = "Logs show only the URL's origin"
 V3_CONFIG = f"""\
 enabled: true
 listeners:
@@ -134,7 +133,6 @@ async def test_accepted_urls(url: str, tmp_path: Path, store: Store) -> None:
     assert [entry.url for entry in loaded_cog(bot).listeners] == [url]
 
 
-@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
 @pytest.mark.parametrize(
     ("url", "secret"),
     [
