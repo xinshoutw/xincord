@@ -15,15 +15,16 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from xincord.core.component_ids import ComponentIds
 from xincord.core.placeholders import global_values, placeholder_values
 from xincord.core.templates import modal_values, render_message, render_modal
 
-from .channels import Postable
+from .channels import Guild, Postable, cached_channel
+from .controls import ControlRow
 from .drafts import defaults, select_roles, select_style, submit
+from .ids import IDS
 from .model import Controls, DataError, hex_color
 from .store import Panels
-from .texts import Texts, clip, readable_error
+from .texts import Texts, clip, readable_error, tell
 from .tickets import can_copy, category_of, opener, overwrites
 from .views import control_row, panel_button, preview_button, preview_embed
 
@@ -37,6 +38,8 @@ if TYPE_CHECKING:
 
     from .channels import Category, Posted, TicketChannel
     from .model import Draft, Entry
+
+__all__ = ["IDS", "Session", "Target", "Ticket"]
 
 logger = logging.getLogger(__name__)
 
@@ -67,31 +70,12 @@ ROW_SIZE = 5  # the components an action row holds at most
 
 
 @runtime_checkable
-class Guild(Protocol):
-    """A guild whose cached channels can be looked up."""
-
-    def get_channel(self, channel_id: int, /) -> object:
-        """The cached channel ``channel_id``, or None."""
-        ...
-
-
-@runtime_checkable
 class Fetching(Protocol):
     """A channel that fetches its messages, as v3's ``retrieveMessageById``."""
 
     async def fetch_message(self, message_id: int, /) -> discord.Message:
         """The channel's message ``message_id``."""
         ...
-
-
-# v3's fields in v3's order, the user ID in hex as v3 wrote it, and v3's prefix, so that v3's
-# panels and ticket channels keep working.
-IDS = ComponentIds(
-    "ticket",
-    ("action", "sub_action", "color_index", "user_id", "msg_id", "btn_index"),
-    legacy_prefix="ticket@",
-    legacy_hex=("user_id",),
-)
 
 
 class PanelError(Exception):
@@ -115,8 +99,11 @@ class Session:
     target: Target | None = None
 
 
-class Ticket(commands.Cog):
-    """The plugin's state and handlers; ``setup`` registers them."""
+class Ticket(ControlRow, commands.Cog):
+    """The plugin's state and handlers; ``setup`` registers them.
+
+    The control row's handlers and the texts come from :class:`ControlRow`.
+    """
 
     def __init__(self, bot: commands.Bot, store: Store, lang: Lang, templates: Templates) -> None:
         """Keep the bot, the store and what ``setup`` loaded."""
@@ -235,12 +222,6 @@ class Ticket(commands.Cog):
         elif action in LOCKS:
             await self.lock(interaction, fields, locked=action == "lock")
 
-    async def lock(
-        self, interaction: discord.Interaction, fields: Mapping[str, str], *, locked: bool
-    ) -> None:
-        """Deny or allow the ticket's member View Channel, then show the other control row."""
-        raise NotImplementedError
-
     async def ask(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
         """Answer a panel button with the reason modal of its stored entry.
 
@@ -260,7 +241,7 @@ class Ticket(commands.Cog):
             else await self.panels.entry(guild_id, message_id, index)
         )
         if message_id is None or entry is None:
-            await _tell(interaction, self.texts(interaction).get("error.not-found"))
+            await tell(interaction, self.texts(interaction).get("error.not-found"))
             return
         values = placeholder_values(interaction) | {
             "tt@msg-id": message_id,
@@ -394,7 +375,7 @@ class Ticket(commands.Cog):
         """
         session = self._session(interaction)
         if session is None:
-            await _tell(interaction, self.texts(interaction).get("error.expired"))
+            await tell(interaction, self.texts(interaction).get("error.expired"))
             return
         if sub_action == "confirm-create":
             await self._confirm(interaction, session)
@@ -411,7 +392,7 @@ class Ticket(commands.Cog):
         """Handle a selection in the builder's select ``sub_action``, as a press."""
         session = self._session(interaction)
         if session is None:
-            await _tell(interaction, self.texts(interaction).get("error.expired"))
+            await tell(interaction, self.texts(interaction).get("error.expired"))
             return
         await self._select(interaction, session, sub_action, values)
 
@@ -419,7 +400,7 @@ class Ticket(commands.Cog):
         """Handle a submission of the builder's modal ``sub_action``, as a press."""
         session = self._session(interaction)
         if session is None:
-            await _tell(interaction, self.texts(interaction).get("error.expired"))
+            await tell(interaction, self.texts(interaction).get("error.expired"))
             return
         await self._apply(interaction, session, sub_action)
 
@@ -466,7 +447,7 @@ class Ticket(commands.Cog):
             )
         except discord.HTTPException as error:
             reason = {"tt@error": readable_error(error)}
-            await _tell(interaction, self.texts(interaction).get("error.refused", reason))
+            await tell(interaction, self.texts(interaction).get("error.refused", reason))
             return False
         return True
 
@@ -494,7 +475,7 @@ class Ticket(commands.Cog):
             chosen = values[0] if values else ""
             if not _is_category(interaction.guild, chosen):
                 texts = self.texts(interaction)
-                await _tell(
+                await tell(
                     interaction, texts.get("error.category-not-found", {"tt@category-id": chosen})
                 )
                 return
@@ -514,7 +495,7 @@ class Ticket(commands.Cog):
         changed = submit(session.draft, sub_action, values)
         if isinstance(changed, str):
             typed = {"tt@color": values.get("color", "")}
-            await _tell(interaction, self.texts(interaction).get(changed, typed))
+            await tell(interaction, self.texts(interaction).get(changed, typed))
             return
         await self._update(interaction, session, changed)
 
@@ -678,19 +659,6 @@ class Ticket(commands.Cog):
             },
         )
 
-    def texts(self, interaction: discord.Interaction) -> Texts:
-        """The texts of a reply to the user who acted: their locale, else zh-TW (v3's templates).
-
-        ``Lang.text`` falls back per key to zh-TW, which v3 showed every locale without lang files:
-        its templates fell back to zh-TW and its texts were Chinese.
-        """
-        return Texts(self.lang, interaction.locale.value)
-
-    @property
-    def public(self) -> Texts:
-        """The texts of public messages (the control row, the archive's markers): zh-TW, as v3."""
-        return Texts(self.lang, self.lang.default_locale)
-
 
 async def _delete_channel(channel: TicketChannel) -> None:
     """Delete a ticket channel whose opener was refused; a failure is logged."""
@@ -710,11 +678,6 @@ async def _delete(posted: Posted) -> None:
         )
 
 
-async def _tell(interaction: discord.Interaction, text: str) -> None:
-    """Answer the interaction with ``text``, ephemerally, as v3's replies."""
-    await interaction.response.send_message(text, ephemeral=True)
-
-
 def _values(data: Mapping[str, object]) -> list[str]:
     """A select's chosen values, snowflakes as text for entity selects."""
     values = data.get("values")
@@ -725,10 +688,7 @@ def _values(data: Mapping[str, object]) -> list[str]:
 
 def _is_category(guild: object, text: str) -> bool:
     """Whether the guild's cache knows ``text`` as a category's ID, v3's ``getCategoryById``."""
-    channel = (
-        guild.get_channel(int(text)) if text.isdecimal() and isinstance(guild, Guild) else None
-    )
-    return getattr(channel, "type", None) is discord.ChannelType.category
+    return getattr(cached_channel(guild, text), "type", None) is discord.ChannelType.category
 
 
 async def _fetch(channel: object, message_id: int) -> discord.Message | None:

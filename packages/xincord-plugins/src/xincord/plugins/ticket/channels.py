@@ -12,6 +12,20 @@ if TYPE_CHECKING:
     import discord
 
 
+@runtime_checkable
+class Guild(Protocol):
+    """A guild whose cached channels can be looked up."""
+
+    def get_channel(self, channel_id: int, /) -> object:
+        """The cached channel ``channel_id``, or None."""
+        ...
+
+
+def cached_channel(guild: object, text: str) -> object:
+    """The channel of the guild's cache whose ID ``text`` is, or None (a text that is no ID too)."""
+    return guild.get_channel(int(text)) if text.isdecimal() and isinstance(guild, Guild) else None
+
+
 class Posted(Protocol):
     """A message that the bot sent, as the plugin uses it."""
 

@@ -14,6 +14,8 @@ from xincord.plugins.redaction import redact
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
+    import discord
+
     from xincord.core.i18n import Lang
 
 TEXT = "text"  # the stem of the lang file that holds them
@@ -30,6 +32,11 @@ class Texts:
     def get(self, key: str, values: Mapping[str, str] | None = None) -> str:
         """The text ``key`` of ``text.yaml`` with its ``%tt@...%`` values, inserted as written."""
         return render(self.lang.text(f"{TEXT}.{key}", self.locale), values or {})
+
+
+async def tell(interaction: discord.Interaction, text: str) -> None:
+    """Answer the interaction with ``text``, ephemerally, as v3's replies."""
+    await interaction.response.send_message(text, ephemeral=True)
 
 
 def readable_error(error: BaseException) -> str:

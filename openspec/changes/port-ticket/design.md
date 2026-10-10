@@ -49,8 +49,11 @@ category or role list; archiving embeds, stickers, reactions or edits; the Web D
 - `tickets.py`: `category_of`, `overwrites` (the ticket channel's map) and `opener` (its messages).
 - `archive.py`: the archive engine over Protocols of the channels, messages, threads and webhook,
   with `thread_name`, `webhook_name`, `forwarded_name` and the markers.
-- `cog.py`: the cog `Ticket`, `IDS`, the commands, `handle` and the handlers, `on_guild_remove`
-  and the READY check.
+- `ids.py`: `IDS`, which `cog.py` re-exports.
+- `controls.py`: `ControlRow`, the cog's base: the texts of the replies and the control row's
+  handlers (lock, unlock, delete, save and the save select), so that `cog.py` stays under 800 lines.
+- `cog.py`: the cog `Ticket`, the commands, `handle` and the other handlers, `on_guild_remove` and
+  the READY check.
 - `lang/<locale>/` with v3's `register.yaml`, `message/*.yaml` and `modal/*.yaml`, two of them fixed
   (below), and the new `text.yaml`. `confirm-add.yaml`, which v3 never used, ships unchanged.
 
