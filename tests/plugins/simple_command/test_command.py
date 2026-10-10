@@ -30,9 +30,6 @@ if TYPE_CHECKING:
 
 GOLDEN = golden("simple_command")
 NAMES = ("cub-none-card", "tsib-none-card", "ctcb-none-card", "ctcb-remit", "chpytwtp-remit")
-XFAIL = pytest.mark.xfail(
-    strict=True, reason="The commands are localized administrator guild commands"
-)
 
 
 def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
@@ -40,7 +37,6 @@ def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
     return {key: actual.get(key) for key in expected}
 
 
-@XFAIL
 async def test_command_payload(bot: Bot) -> None:
     """Requirement: The commands are localized administrator guild commands."""
     global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
@@ -52,7 +48,6 @@ async def test_command_payload(bot: Bot) -> None:
     assert not {entry["name"] for entry in global_payload} & set(NAMES)
 
 
-@XFAIL
 @pytest.mark.parametrize("name", NAMES)
 async def test_command_callback(bot: Bot, cog: SimpleCommand, name: str) -> None:
     """Requirement: The commands are localized administrator guild commands."""

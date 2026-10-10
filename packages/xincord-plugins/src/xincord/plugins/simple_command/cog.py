@@ -5,9 +5,10 @@ Kotlin:
 """
 
 import logging
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from xincord.core.templates import render_message
@@ -19,6 +20,10 @@ if TYPE_CHECKING:
     from xincord.core.templates import Message, Templates
 
 logger = logging.getLogger(__name__)
+
+# v3's commands, in v3's order; each one posts the message template of the same name.
+COMMANDS = ("cub-none-card", "tsib-none-card", "ctcb-none-card", "ctcb-remit", "chpytwtp-remit")
+DESCRIPTION = "generate message"  # v3's description of every command
 
 
 @runtime_checkable
@@ -44,6 +49,20 @@ class SimpleCommand(commands.Cog):
         """Keep what ``setup`` loaded."""
         self.lang = lang
         self.templates = templates
+
+    def command(self, name: str) -> app_commands.Command[Any, ..., None]:
+        """Build the guild command ``name``, localized from ``register.yaml``.
+
+        As in v3, only administrators see it by default; Discord enforces that, and a guild's
+        administrators can change it in the server's integration settings.
+        """
+        lang = self.lang
+        command: app_commands.Command[Any, ..., None] = app_commands.Command(
+            name=lang.command(name, f"{name}.name"),
+            description=lang.command(DESCRIPTION, f"{name}.description"),
+            callback=self.post_message,
+        )
+        return app_commands.default_permissions(administrator=True)(command)
 
     async def post_message(self, interaction: discord.Interaction) -> None:
         """Post the message named after the command in its channel, then delete the response.

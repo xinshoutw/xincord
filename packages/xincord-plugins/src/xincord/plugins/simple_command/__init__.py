@@ -10,7 +10,7 @@ import discord
 
 from xincord.core.templates import Templates
 
-from .cog import SimpleCommand
+from .cog import COMMANDS, SimpleCommand
 
 if TYPE_CHECKING:
     from xincord.core.bot import Bot
@@ -23,7 +23,7 @@ DEFAULT_LOCALE = "zh-TW"
 
 
 async def setup(bot: Bot) -> None:
-    """Load the lang files and the templates, then add the cog.
+    """Load the lang files and the templates, then add the cog and its commands.
 
     The plugin has no config: v3's only key was ``enabled``.
     """
@@ -31,3 +31,6 @@ async def setup(bot: Bot) -> None:
     lang = context.lang(DEFAULT_LOCALE)
     cog = SimpleCommand(lang, Templates.load(lang))
     await bot.add_cog(cog)
+    # Guild commands, as in v3. discord.py removes them when the plugin unloads.
+    for name in COMMANDS:
+        bot.tree.add_command(cog.command(name))
