@@ -21,7 +21,7 @@
 
 ## 5. Wallets
 
-- [ ] 5.1 xfail tests for "Changes follow v3's arithmetic" and "Boards rank the wallets" against
+- [x] 5.1 xfail tests for "Changes follow v3's arithmetic" and "Boards rank the wallets" against
       stubs in `wallet.py`
 - [ ] 5.2 Implement `OPERATIONS` and `rank`; remove the markers
 
