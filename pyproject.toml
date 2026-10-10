@@ -89,7 +89,12 @@ pythonpath = ["scripts", "tests/support"]
 addopts = ["--import-mode=importlib"]
 strict = true
 xfail_strict = true
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    # discord.py 2.7.1 checks listeners and hooks with asyncio.iscoroutinefunction, which Python
+    # 3.14 deprecates; outside tests, Python ignores DeprecationWarnings from library modules.
+    "ignore:'asyncio.iscoroutinefunction' is deprecated:DeprecationWarning:discord\\.",
+]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
