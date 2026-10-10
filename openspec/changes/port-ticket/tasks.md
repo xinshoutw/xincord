@@ -143,6 +143,10 @@
       confirmation for that message gave a second button its ID, which Discord refuses)
 - [x] 24.4 Take the button off the message again when its entry cannot be stored; remove the
       markers
+- [x] 24.5 xfail test for "A long text" (found during the review: `/add-ticket` with a text of
+      more than about 1960 characters made the invalid-ID reply exceed Discord's 2000 characters,
+      and the command stayed "thinking")
+- [ ] 24.6 Show at most 100 characters of the typed text; remove the marker
 
 ## 25. Close
 

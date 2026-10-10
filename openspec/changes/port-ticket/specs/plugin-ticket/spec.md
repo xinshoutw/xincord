@@ -92,8 +92,8 @@ edit the deferred response into v3's `create-ticket` builder.
 ### Requirement: The add command opens the builder for a message
 `/add-ticket` SHALL fetch the message from the command's channel and edit the deferred response
 into v3's `add-ticket` builder, the preview showing its first embed; it SHALL answer instead when
-the ID is not a number, the message is not found, the bot did not send it, its first action row
-holds five components or a select, or it has no embed.
+the ID is not a number (showing its first 100 characters), the message is not found, the bot did
+not send it, its first action row holds five components or a select, or it has no embed.
 
 #### Scenario: An added button's draft
 - **WHEN** an administrator runs `/add-ticket` with the ID of the bot's panel, whose row has two
@@ -105,6 +105,11 @@ holds five components or a select, or it has no embed.
 - **WHEN** the ID is `abc`, or names no message of the channel, another user's message, a message
   whose first row is full or holds a select, or one without an embed
 - **THEN** the response is the matching error text and no draft is kept
+
+#### Scenario: A long text
+- **WHEN** the ID is a text of 6000 characters
+- **THEN** the response is the invalid-ID text with the text's first 100 characters, within
+  Discord's 2000
 
 ### Requirement: The preview shows the draft
 The builder SHALL show a preview embed (the author with its icon, the title, the description and

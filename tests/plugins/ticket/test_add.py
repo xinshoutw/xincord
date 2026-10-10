@@ -139,6 +139,20 @@ async def test_refused_messages(scene: Scene, text: str, message: str, reply: st
     assert scene.cog.drafts == {}
 
 
+@pytest.mark.xfail(strict=True, reason="The add command opens the builder for a message")
+async def test_long_text(scene: Scene) -> None:
+    """Requirement: The add command opens the builder for a message."""
+    panel(scene)
+
+    interaction = await add(scene, "x" * 6000)  # Discord's longest string option
+
+    # Within Discord's 2000 characters: the whole text made Discord refuse the reply, and the
+    # command stayed "thinking".
+    reply = "The message ID must be a number: " + "x" * 100
+    assert interaction.sent == [("edit_original_response", {"content": reply})]
+    assert scene.cog.drafts == {}
+
+
 async def test_message_without_rows(scene: Scene) -> None:
     """Requirement: The add command opens the builder for a message."""
     panel(scene, components=[])
