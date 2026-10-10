@@ -108,3 +108,30 @@ update:
       - {name: "`變更次數`", value: "1", inline: false}
       - {name: "`--> 變更前 <--`", value: "hello", inline: false}
       - {name: "`==> 變更後 <==`", value: "hi", inline: false}
+
+# The deletion embed per locale: message 100 of member 7, stored as "hello" and edited into "hi",
+# is deleted in channel 30 of category 20, guild 10; the member is fetched from Discord.
+# #C02020 is 12591136.
+deletion:
+  en-US:
+    title: "☛ Message Deleted"
+    thumbnail: {url: "https://cdn.discordapp.com/embed/avatars/0.png"}
+    color: 12591136
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    fields:
+      - {name: "`Member`", value: "<@7>", inline: false}
+      - {name: "`Category`", value: "<#20>", inline: false}
+      - {name: "`Channel`", value: "<#30>", inline: false}
+      - {name: "`Change Count`", value: "1", inline: false}
+      - {name: "`--> Content <--`", value: "hi", inline: false}
+  zh-TW:
+    title: "☛ 刪除訊息"
+    thumbnail: {url: "https://cdn.discordapp.com/embed/avatars/0.png"}
+    color: 12591136
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    fields:
+      - {name: "`類別`", value: "<#20>", inline: false}
+      - {name: "`頻道`", value: "<#30>", inline: false}
+      - {name: "`使用者`", value: "<@7>", inline: false}
+      - {name: "`變更次數`", value: "1", inline: false}
+      - {name: "`--> 內容 <--`", value: "hi", inline: false}

@@ -126,6 +126,16 @@ class ChatLogger(commands.Cog):
         }
         await self.listen.post(guild, listen, "on-msg-update", author | values)
 
+    @commands.Cog.listener()
+    async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent) -> None:
+        """Log a deleted stored message to the listen channels that detect its channel."""
+        raise NotImplementedError
+
+    @commands.Cog.listener()
+    async def on_raw_bulk_message_delete(self, payload: discord.RawBulkMessageDeleteEvent) -> None:
+        """Log each stored message of a bulk deletion, as a deletion of its own."""
+        raise NotImplementedError
+
     def _own(self, author: discord.abc.Snowflake) -> bool:
         """Whether ``author`` is the bot, whose messages v3 did not store."""
         bot = self.bot.user
