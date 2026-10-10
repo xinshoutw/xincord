@@ -8,7 +8,7 @@ Kotlin:
 import logging
 import re
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 import discord
 from discord import app_commands
@@ -23,6 +23,8 @@ from .texts import Texts
 from .views import preview_button, preview_embed
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
+
     from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
@@ -32,6 +34,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+BUTTON = 2  # the component type of a button, which v3's onButtonInteraction took
+# The component types of user, role, mentionable and channel selects: v3's
+# EntitySelectInteractionEvent.
+ENTITY_SELECTS = frozenset((5, 6, 7, 8))
 MESSAGE_ID = re.compile(r"[0-9]{1,20}")  # a snowflake as /add-ticket's text option gives it
 ROW_SIZE = 5  # the components an action row holds at most
 
@@ -158,7 +164,40 @@ class Ticket(commands.Cog):
         return Target(message.id, message.embeds[0])
 
     async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
-        """Send a press, a selection or a submission to its handler; ``setup`` routes here."""
+        """Send a press, a selection or a submission to its handler; ``setup`` routes here.
+
+        As v3's ``onButtonInteraction``, ``onEntitySelectInteraction`` and ``onModalInteraction``:
+        the action ``create`` drives the builder; the panel's and the control row's buttons, the
+        save select and the reason modal have their own. Anything else, string selects included,
+        gets no response.
+        """
+        fields = parsed.fields
+        action = fields.get("action")
+        sub_action = fields.get("sub_action", "")
+        data = cast("Mapping[str, object]", interaction.data or {})
+        if interaction.type is discord.InteractionType.component:
+            kind = data.get("component_type")
+            if kind == BUTTON and action == "create":
+                await self.press(interaction, sub_action, fields)
+            elif kind in ENTITY_SELECTS and action == "create":
+                await self.choose(interaction, sub_action, _values(data))
+        elif interaction.type is discord.InteractionType.modal_submit and action == "create":
+            await self.submit(interaction, sub_action)
+
+    async def press(
+        self, interaction: discord.Interaction, sub_action: str, fields: Mapping[str, str]
+    ) -> None:
+        """Handle a press of the builder's button ``sub_action``."""
+        raise NotImplementedError
+
+    async def choose(
+        self, interaction: discord.Interaction, sub_action: str, values: Sequence[str]
+    ) -> None:
+        """Handle a selection in the builder's select ``sub_action``."""
+        raise NotImplementedError
+
+    async def submit(self, interaction: discord.Interaction, sub_action: str) -> None:
+        """Handle a submission of the builder's modal ``sub_action``."""
         raise NotImplementedError
 
     async def _open(
@@ -207,6 +246,14 @@ class Ticket(commands.Cog):
     def public(self) -> Texts:
         """The texts of public messages (the control row, the archive's markers): zh-TW, as v3."""
         return Texts(self.lang, self.lang.default_locale)
+
+
+def _values(data: Mapping[str, object]) -> list[str]:
+    """A select's chosen values, snowflakes as text for entity selects."""
+    values = data.get("values")
+    return (
+        [str(value) for value in cast("list[object]", values)] if isinstance(values, list) else []
+    )
 
 
 async def _fetch(channel: object, message_id: int) -> discord.Message | None:
