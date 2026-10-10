@@ -1,6 +1,6 @@
 ## 1. Resources
 
-- [ ] 1.1 Bundle v3's zh-TW `register.yaml` and the five message templates, with example account
+- [x] 1.1 Bundle v3's zh-TW `register.yaml` and the five message templates, with example account
       numbers under a comment in place of v3's
 
 ## 2. Installation
