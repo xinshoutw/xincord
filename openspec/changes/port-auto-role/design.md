@@ -82,7 +82,9 @@ lacks Manage Roles, and each configured role it cannot give there, with the same
 join. It runs from an `on_ready` listener, and from `cog_load` when the bot is already ready (a
 reload with `/xincord reload`, the console or SIGHUP), because `on_ready` does not fire again for
 a reloaded plugin. `setup` runs before the gateway connects, and `--no-online` never connects, so
-nothing is checked before the bot is ready.
+nothing is checked before the bot is ready. A guild that Discord reports unavailable (an outage)
+is skipped: discord.py knows neither its roles nor the bot's member there (`guild.me` is None), and
+no member can join it meanwhile.
 
 ### Tests
 

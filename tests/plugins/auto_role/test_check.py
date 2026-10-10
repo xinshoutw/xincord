@@ -9,6 +9,7 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
+import pytest
 
 from discord_fakes import FakeGuild, FakeRole
 from plugin_fakes import dispatch, load_plugin
@@ -16,8 +17,6 @@ from xincord.core.bot import Bot
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-    import pytest
 
     from xincord.core.storage import Store
 
@@ -102,3 +101,24 @@ async def test_loaded_into_a_ready_bot(
 
     assert bot.loaded == ("AutoRole",)
     assert_warned(caplog)
+
+
+@pytest.mark.xfail(
+    strict=True, raises=AttributeError, reason="Problems are logged when the bot is ready"
+)
+async def test_unavailable_guild(
+    store: Store,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Requirement: Problems are logged when the bot is ready."""
+    config = "guilds:\n  - guild_id: 10\n    role_ids: [11]\n"
+    bot = await load_plugin("AutoRole", tmp_path / "plugins", store, config=config)
+    # discord.py keeps an unavailable guild without roles or members, so guild.me is None.
+    monkeypatch.setattr(bot, "get_guild", {10: FakeGuild(10, "guild", unavailable=True)}.get)
+
+    with caplog.at_level(logging.WARNING):
+        await dispatch(bot, "ready")
+
+    assert "AutoRole" not in caplog.text

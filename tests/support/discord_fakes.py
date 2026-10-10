@@ -137,11 +137,12 @@ class FakeGuild:
     permissions: discord.Permissions = field(
         default_factory=lambda: discord.Permissions(manage_roles=True)
     )
+    unavailable: bool = False  # during a Discord outage
 
     @property
-    def me(self) -> SimpleNamespace:
-        """The bot's member in the guild, with its permissions only."""
-        return SimpleNamespace(guild_permissions=self.permissions)
+    def me(self) -> SimpleNamespace | None:
+        """The bot's member in the guild, with its permissions only; None while unavailable."""
+        return None if self.unavailable else SimpleNamespace(guild_permissions=self.permissions)
 
     def get_role(self, role_id: int, /) -> FakeRole | None:
         """The guild's role with that ID, if any."""

@@ -104,7 +104,7 @@ and the remaining roles still requested.
 When the bot becomes ready, or when the plugin loads into a ready bot, the plugin SHALL log a
 warning for each configured guild that the bot is not in, each configured guild where it lacks
 Manage Roles, and each configured role that it cannot give there. Nothing SHALL be checked before
-the bot is ready.
+the bot is ready, and a guild that Discord reports unavailable SHALL be skipped.
 
 #### Scenario: Ready
 - **WHEN** the plugin loaded before the bot was ready, and the bot becomes ready with a configured
@@ -115,3 +115,7 @@ the bot is ready.
 #### Scenario: Loaded into a ready bot
 - **WHEN** the plugin loads while the bot is ready, as after `/xincord reload AutoRole`
 - **THEN** the warnings are logged during the load
+
+#### Scenario: Unavailable guild
+- **WHEN** a configured guild is unavailable, as during a Discord outage, when the check runs
+- **THEN** the check skips that guild without an error or a warning
