@@ -197,12 +197,16 @@ channels.
 - `setup` relays `VOICE_CHANNEL_STATUS_UPDATE`; `on_gateway_voice_channel_status_update(payload)`
   reads `id`, `guild_id` and `status` (null or missing is empty; a malformed payload is ignored with
   a warning).
-- The cog keeps `statuses`, each voice channel's last status from these events, in memory, as JDA's
-  channel cache did. A status is empty until an event names it: Discord sends statuses in no channel
-  object, so JDA's cache started empty too. Before anything awaits, the listener reads the cached
-  guild and channel (nothing for an uncached guild or channel, or a channel that is not a voice
-  channel: JDA's `VoiceChannel` lookup), compares the new status with the tracked one (nothing when
-  equal, as JDA), records the new one, and reads the channel's mention, jump URL and category.
+- The cog keeps `statuses`, each guild's voice channel statuses from these events, in memory, as
+  JDA's channel cache did. A status is empty until an event names it: Discord sends statuses in no
+  channel object, so JDA's cache started empty too, and started again with each new session. The
+  statuses are therefore forgotten at each READY, and a guild's when it becomes unavailable or the
+  bot leaves it. Before anything awaits, the listener reads the cached guild and channel (nothing
+  for an uncached guild or channel, or a channel that is not a voice channel: JDA's `VoiceChannel`
+  lookup), compares the new status with the tracked one (nothing when equal, as JDA), records the
+  new one, and reads the channel's mention, jump URL and category.
+- The rest runs under `store.lock("VoiceLogger:status:<channel ID>")`, so a channel's changes are
+  posted in the order they arrive, also when one waits 2 seconds for its audit log entry.
 - `status.classify(old, new)`: `delete` when the new status is empty, else `new` when the old one
   is, else `update` (v3's order). Templates `on-status-delete`, `on-status-new` and
   `on-status-update`; values `vl_channel_mention`, `vl_channel_url`, `vl_category_mention` (or
@@ -214,8 +218,9 @@ channels.
   because discord.py's `Guild.audit_logs` drops the fields), type 192 for a set or changed status and
   193 for a cleared one. `status.match(log, kind, channel_id, status, at)` takes the entries of that
   type whose `options.channel_id` or `target_id` is the channel and whose ID's time is within 30
-  seconds of `at` (when the listener started), and returns the user of the newest one whose
-  `options.status` is the new status, else of the newest one. Without a match, the audit log is read
+  seconds of `at` (when the listener started), leaves out type-192 entries whose `options.status`
+  is another status (an earlier change's), and returns the user of the newest one with the new
+  status, else of the newest one. Without a match, the audit log is read
   once more after 2 seconds, in case its entry comes after the gateway event. The user is fetched as
   the guild's member (`guild.fetch_member`, v3's `retrieveMemberById`) for `actor_values`.
 - Without a member (no entry, as for a status that Discord clears by itself; an audit log that
@@ -231,9 +236,10 @@ channels.
 `check_guilds()`: for each guild with settings, a guild that `bot.get_guild` does not know is a
 guild the bot left, and its settings are deleted with an info line (v3's `JsonManager` deleted the
 files of such guilds at its first use, inside a loop that then threw); an unavailable guild is left
-alone; in an available guild, `prune` drops the allow and block IDs that `guild.get_channel` does
-not know, with an info line, as v3's startup did. A guild whose settings cannot be read is skipped
-with an error. Listen channels are not checked at READY: a deleted one is forgotten when a log
+alone; in an available guild, `prune` drops the allow and block IDs that are not among
+`guild.channels`, with an info line, as v3's startup did. A guild whose settings cannot be read is skipped
+with an error, and a stored key that is not a guild ID (the plugin never writes one) is left as it
+is with a warning. Listen channels are not checked at READY: a deleted one is forgotten when a log
 finds it gone, and a listen channel in a thread is not cached while the thread is archived.
 
 ### Tests
@@ -249,7 +255,8 @@ finds it gone, and a listen channel in a thread is not cached while the thread i
   listeners it dispatched.
 - `tests/support/discord_fakes.py`: `FakeRest` also records query parameters and can answer a
   request with a payload (the audit log); `FakeGuild.fetch_member` finds `members` or raises
-  `NotFound`; `FakeVoiceChannel.jump_url`.
+  `NotFound`; `FakeVoiceChannel.jump_url`; `FakeInteraction.guild_id` and `channel_id`.
+  `test_status.py` bundles its fixtures in a `Scene` dataclass, as ruff allows five arguments.
 - `tests/fixtures/plugins/voice_logger/golden.yaml`: v3's embeds per locale for the menu, `delete`,
   the select menus and the six logs, and the translated command payload.
 
@@ -383,7 +390,9 @@ Every section of `docs/porting/analysis/inventory/VoiceLogger.md` maps to this c
   "Refused listen channel"; one message per listen channel and event is kept; the audit log is read
   once or twice per detected status change (Risks).
 - Concurrency (11): the shared substitutor is per-render values; the global map is the store under
-  the guild's lock ("Concurrent changes"); the REST callback chain is awaited in order.
+  the guild's lock ("Concurrent changes"); the REST callback chain is awaited in order, and one
+  channel's status changes keep their order ("A change waits for its entry"); JDA's cache, rebuilt
+  with each session, is "A new session or an outage" and "The bot leaves".
 - Bugs (12): 1 is the store read per use; 2 is "First selection" and "Delete"; 3 is "Switch"; 4 is
   "Leave without a category"; 5 is "Matching entry", "Cleared status", "No entry" and "Audit log
   refused"; 6 is "Deleted listen channel" and "Refused listen channel"; 7 is the menu in every
@@ -409,8 +418,13 @@ Every section of `docs/porting/analysis/inventory/VoiceLogger.md` maps to this c
   cache started empty). Discord's Request Channel Info (gateway opcode 43) could read them.
 - The audit log is read once or twice per detected status change; a status that Discord clears by
   itself always costs two reads and a 2-second delay.
-- Attribution depends on Discord's audit log: two changes of one channel within 30 seconds whose
-  entries lack the status, or an entry later than 2 seconds, can name the wrong member or none.
+- Attribution depends on Discord's audit log: an entry later than 2 seconds names no member, and
+  when the same text is set again within 30 seconds of an earlier setting (by another member, after
+  a clear) whose entry is the only one there, the earlier member is named; the time of the previous
+  event of the channel could bound the entries. If Discord's `options.status` ever differs from
+  the gateway's text, set statuses name no member.
+- A channel's status logs wait for each other: one that waits 2 seconds for its entry delays the
+  next change of that channel.
 - discord.py passes the cached voice state as `after`, so a join and a leave that discord.py parses
   before the listener runs reach the listener as no change (the join is not logged), and a switch
   followed by a leave as a leave from the first channel. JDA handled each event before the next.
