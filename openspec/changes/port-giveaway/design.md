@@ -28,11 +28,12 @@ checking winners' membership; expiring drafts by time; the Web Dashboard (B13).
 `packages/xincord-plugins/src/xincord/plugins/giveaway/`:
 
 - `__init__.py`: `DEPENDS = ()`, `SOFT_DEPENDS = ()`, `INTENTS = discord.Intents.none()` (guild
-  leaves need only the default guilds intent; members come with each interaction),
-  `DEFAULT_LOCALE = "zh-TW"` (the bundled `defaultLocale`), and `setup`, which loads the config
-  first, then the lang files with the config's `defaultLocale`, the templates, the cog, the command
-  and the route.
-- `config.py`: `Config` (below).
+  leaves need only the default guilds intent; members come with each interaction), and `setup`,
+  which loads the config first, then the lang files with the config's `defaultLocale`, the
+  templates, the cog, the command and the route.
+- `config.py`: `Config` (below) and `DEFAULT_LOCALE = "zh-TW"`, the default of `defaultLocale`.
+- `channels.py`: the Protocols of the channels and messages that the plugin posts to and edits
+  (`Posted`, `Editable`, `Postable`, `Channel`) and `postable`.
 - `model.py` (pure): `Prize`, `Policy`, `Draft` (v3's `GiveawayConfig`), `Winners`, `Instance`
   (v3's `GiveawayInstance`), `parse_instance` / `instance_json` (v3's Moshi JSON), `DataError`,
   `draw_winners` and the transitions `join`, `draw` and `is_due`.
@@ -251,10 +252,17 @@ replaced them when it updated the post.
 `test_inputs.py`, `test_winners.py`, `test_store.py`, `test_command.py`, `test_preview.py`,
 `test_modals.py`, `test_submit.py`, `test_builder.py`, `test_confirm.py`, `test_post.py`,
 `test_join.py`, `test_draw.py`, `test_auto_draw.py`, `test_routes.py` and `test_leave.py`.
-`conftest.py` loads the plugin (a `config` fixture that tests parametrize), gives the bot its user,
-stands for READY (`plugin_fakes.Ready`), fixes the cog's clock and seeds its random generator; a
-`scene` fixture bundles the bot, the store, the cog, a guild and helpers that press buttons and
-submit modals through `bot.on_interaction`. `tests/fixtures/plugins/giveaway/golden.yaml` holds
+`conftest.py` loads the plugin (the `config` and `files` fixtures, which tests parametrize, are the
+operator's `config.yaml` and other files), gives the bot its user, stands for READY
+(`plugin_fakes.Ready`) and puts the plugin's modules back after each test (`plugin_modules`: a failed
+load would make discord.py import new dataclasses, which never equal the old ones); its `scene`
+fixture fixes the cog's clock and bundles the bot, the store, the builder's channel and helpers that
+run the command's draft (`keep`, `draft`), press builder buttons (`press`), submit modals
+(`submit`), press a post's buttons (`click`) and store giveaways (`add`, `stored`) through the
+plugin's route handler, as `Who` (`scene.who(...)`: the member, the locale, Administrator, the
+message). Tests that draw seed the cog's `random`; `test_auto_draw.py` drives the loop with
+`Ticks` (each sleep recorded and moving the clock); `test_confirm.py` catches a double press with a
+`GatedChannel`; `test_routes.py` goes through `bot.on_interaction` with v3's IDs. `tests/fixtures/plugins/giveaway/golden.yaml` holds
 v3's texts per locale (the preview, the post, the buttons, the modals, the replies, the draw
 results and the command payload) and v3's example document. `discord_fakes` gains the message that
 `FakeChannel.send` and `FakeInteraction.edit_original_response` return (with `id` and `jump_url`)
@@ -348,9 +356,101 @@ waits five seconds after READY (v3: after each load); winners who left the guild
 - v3's `plugins/Giveaway/data/*.json` are not read: the giveaways made by v3 are not found after
   the switch until the deferred migration copies them (B11).
 
+### Packaging and the probe
+
+`uv build --package xincord-plugins` ships `giveaway/config.yaml` and the 30 lang files, and the
+entry point `Giveaway = xincord.plugins.giveaway`; `xincord --no-online` in an empty directory with
+`plugins: [Giveaway]`, from a scratch venv holding both wheels, wrote the 31 files, loaded the
+plugin and exited 0. A scratch probe (not committed) drove the plugin through discord.py's own
+objects, recording HTTP: the command deferred ephemerally (type 5, flags 64) and edited
+`@original` into the builder; set-title answered with a type-9 modal whose input sits in a
+label (type 18); the modal submission, a `discord.Interaction` with the builder as its message,
+updated the builder with type 7; the confirmation deferred (type 6), posted
+`POST /channels/5/messages` and edited `@original` into `create-finished` with empty embeds and
+components; Join / Leave and Draw Winners answered with type 7 and an ephemeral follow-up (flags
+64); a v3 `giveaway@a:reroll;c:<id>` reached the plugin, after which the core fetched the message
+and upgraded its IDs; the automatic draw sent `PATCH /channels/41/messages/777` and
+`POST /channels/41/messages` without a fetch. Every message carried the core's allowed mentions
+(users only).
+
 ### Inventory audit
 
-Filled in by task 24.3.
+Every section of `docs/porting/analysis/inventory/Giveaway.md` maps to this change:
+
+- Overview (1): the entry object and `info.yaml` are "The plugin installs as Giveaway" ("Discovered
+  by name"); `component_prefix: giveaway@` is `IDS`'s legacy prefix ("v3's posts keep working");
+  no intents is `INTENTS`.
+- Lifecycle (2): exporting the lang files and reading the config are "First load creates the files"
+  and "The config keeps v3's keys"; the first-touch loading of every data file and template is gone
+  (the store is read when needed; a "v3 behaved differently" entry); `enabled` is the core's
+  `plugins` list; the `defaultLocale` resolution is "Invalid values" and "Locale without lang
+  files"; the `StringLocalizer` is the Translator; the scheduler's start, clamp, five-second delay,
+  `runCatching` and stop are "Due giveaways are drawn automatically" ("First pass", "Later
+  passes", "Failed pass", "Unload") and "Clamped interval"; the drafts that survived v3's plugin
+  reload are dropped by xincord's reload (kept: drafts are memory, as v3's full reload).
+- Slash command (3): the definition is "Command payload"; the core's defer is "Command callback";
+  the unreachable `guild == null` branch is a guard (`test_outside_guild`); the session that
+  replaces an older one is "New draft"; the first render is "Builder".
+- Components (4.0): the codec is `IDS` with v3's fields and prefix; the routing table is `handle`
+  ("v3's post", "v3's builder", "Other actions"); malformed IDs are logged by the core; select menus
+  and unknown actions get no response, as in v3.
+- Builder (4.1): v3's rows, styles and labels are "Builder" (golden data); the preview is "The
+  preview shows the draft"; the language rules are "Each message uses one language" (v3's mixed
+  languages are a difference); rendering through the command's hook is fixed (each interaction
+  answers); who can press and the session-expired reply are "Only the latest builder of a draft
+  works"; the sub-actions are "Builder buttons open pre-filled modals", "The builder removes prizes
+  and switches the winner policy", "Confirming checks the draft and the administrator",
+  "Confirming posts the giveaway" and "Cancelling ends the draft".
+- Modals (4.2): the labels, the value and placeholder set only when non-blank and no `min_length`
+  are the core's `render_modal` (checked in `test_modals.py`); the modal table is golden data; the
+  pre-fill is "Title modal", "End time modal", "Prize modal" and "Typed placeholders" (v3's
+  recursive substitution is a difference); the core placeholders of the press are
+  `test_interaction_values`; submissions, Kotlin's trim and the validation table are "Submitted
+  modals change the draft" and "Trimmed values"; the unknown sub-action is a difference; end-time
+  parsing is "End times are read and shown in the configured zone" (years past 9999 a difference);
+  winner counts and thumbnail URLs are "Winner counts" and "Thumbnail URLs".
+- Confirm (4.3): v3's order of checks is "Incomplete draft" and "Not an administrator"; the
+  unreachable `Guild not found.` is left out (guild-only); `deferEdit`, the ID, the instance, the
+  post, the store after the post and the deleted post are "Posted", "Double press", `test_new_ids`,
+  "Channel refuses" and "Store fails"; `create-finished` is "Posted"; `create-failed`, the orphaned
+  session and the silent synchronous failures are differences ("A giveaway that cannot be posted
+  keeps the builder").
+- Post (4.4): the creator's language, the embed, the colors, the status, the fields, the clipping,
+  the thumbnail, the footer and the buttons are "The post shows the giveaway" (golden data, "Long
+  texts"); `resolveGiveaway` is "Unknown giveaway" (`Guild not found.` and `Invalid giveaway id.`
+  fold into it: a difference); participate is "Members join and leave"; draw, reroll, permissions,
+  rejections and `draw-result` are "The creator or an administrator draws and administrators
+  reroll"; mentions in an ephemeral result or an embed never ping.
+- Expiry (4.5): drafts without a time limit are kept; the 15-minute builder is fixed; the posts'
+  buttons are permanent through the store and the routes.
+- Events (5): the slash command, button and modal routes are above; select menus get no response;
+  the guild leave is "Leaving a guild drops its drafts" (the deleted file is a difference).
+- Configuration (6): `enabled`, `defaultLocale` and `autoDrawIntervalSeconds` are "The config keeps
+  v3's keys"; kaml's strict mode is the core's unknown-key warning.
+- Localization (7): the locales, the fallback and the hard-coded texts are `text.yaml` and "Each
+  message uses one language"; the files are "First load creates the files"; the content templates
+  are `create-finished`, `create-failed`, `create-cancelled`, `draw-result` and `auto-draw-result`
+  in "Posted", "Channel refuses", "Cancelled", "Draw" and "First pass"; the `ga@*` keys keep v3's
+  names.
+- Persistence (8): the document per guild, its schema and defaults and v3's example are "Giveaways
+  are stored as v3's documents"; the writes (create, join, draw, auto draw) run under the guild's
+  lock; the non-atomic whole-file write, the re-save at load and the reset of broken files are
+  differences; no retention, as in v3; the deletion at the leave is a difference; the migration is
+  deferred (B11), and the documents keep v3's shape for it.
+- External dependencies (9): `java.time` is `times.py`, `java.net.URI` `inputs.is_http_url`,
+  `UUID` `model.new_id` and `Random.Default` `random.SystemRandom`.
+- Discord requirements (10): no intents; the permissions are in the smoke checklist; the automatic
+  draw no longer needs Read Message History (no fetch), the core's upgrade of v3 posts does (a
+  risk); mentions follow B19; joins answer with interaction responses instead of channel edits.
+- Concurrency (11): the races are fixed by the guild's lock and the event loop ("Joins at once",
+  `test_draws_at_once`, "Double press", `test_new_draft_while_posting`).
+- Bugs (12): items 1 to 14, 16 and 18 are "v3 behaved differently" entries; 15 (unknown actions get
+  no response, malformed IDs are logged) and 17 (`Ready to draw` rarely shown) are kept, with the
+  reason in "Kept from v3"; the dead code (`isReady`, the select handlers, the `runCatching`
+  fallback, the unread timestamps, the identical footers) is not ported, except the timestamps,
+  which stay in the documents.
+- Testability (13): the pure functions are `times.py`, `inputs.py`, `model.py`, `drafts.py` and
+  `texts.py`, each with its tests; the Discord doubles are `discord_fakes` and the scene.
 
 ## Risks / Trade-offs
 
