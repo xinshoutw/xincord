@@ -30,9 +30,12 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `event.deferEdit()` on a modal submission, then the bot's own sends | `interaction.response.defer()` (a deferred message update), then `interaction.followup.send(..., ephemeral=True)` for a reply | B5 |
 | `component.withStyle(...)` on the message's rows, `editOriginalComponents` | `View.from_message(...)` (`LayoutView` for Components V2), change the items, `view.stop()`, `interaction.message.edit(view=...)` (Feedbacker's `highlight`) | |
 | `getOption("member").asMember` | a `discord.Member \| discord.User` option, checked against `MemberLike`: discord.py passes the user when Discord resolved no member | |
+| `getOption("member").asUser` | the same option without the check: any user, in the guild or not (Economy) | |
+| `Placeholder.globalSubstitutor`, used by `getCreateBuilder(key, locale)` without a substitutor | `global_values(interaction.client)` (`bot_id`, `bot_name`; `xincord.core.placeholders`) | B10 |
+| Kotlin `Int` amounts (32 bits, wrapping) | Python `int`: exact and unbounded; JSON keeps them exact (Economy) | |
 | JDA's `addField`: trimmed name and value, U+200E for an empty one | the core's `render_message` does the same | B10 |
 | JSON files and embedded MongoDB | SQLite (`sqlite3` + `asyncio.to_thread`), key-value table plus per-plugin tables | B8 |
-| `JsonGuildFileManager` (`plugins/<Name>/data/<guildId>.json`) | the store's key-value table: namespace = the plugin's name, key = the guild ID, value = v3's document unchanged, changed under `store.lock("<Name>:<guildId>")` | B8, B11 |
+| `JsonGuildFileManager` (`plugins/<Name>/data/<guildId>.json`) | the store's key-value table: namespace = the plugin's name, key = the guild ID, value = v3's document unchanged, changed under `store.lock("<Name>:<guildId>")` or in one `Store.update` (Economy's wallets) | B8, B11 |
 | `OptionData(CHANNEL).setChannelTypes(...)` | an `app_commands.Transformer` whose `channel_types` lists JDA's types and that passes on the `AppCommandChannel` (WelcomeByeGuild's `TextChannelOption`) | B5 |
 | `event.member.hasPermission(ADMINISTRATOR)` | `interaction.permissions.administrator` (Discord's resolved permissions; Administrator cannot be set per channel) | |
 | `GuildMemberRemoveEvent` / `GuildLeaveEvent` | `on_raw_member_remove` (also uncached members) / `on_guild_remove` | B3 |
@@ -166,6 +169,30 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   StringConstraints(pattern=r"\S", max_length=2000)]`: Discord refuses an empty message or one over
   2000 characters. New optional replies get English defaults (no CJK in Python) and zh-TW texts in
   the bundled file.
+- Amounts that v3 kept in Kotlin `Int`s (Economy's money and cost) are Python integers: exact,
+  never wrapped, never floats; the store's JSON keeps them exact.
+- A change that must not lose a concurrent one is a single `Store.update(namespace, key, fn)`: `fn`
+  runs in one transaction on the store's thread, reads the document and returns a new one, and
+  passes what the caller needs back through a list it appends to (Economy's `store.change`).
+  `store.lock(...)` around `get` and `put` serializes only the plugin's own coroutines
+  (WelcomeByeGuild).
+- A guild's data stays when the bot leaves the guild if v3 kept it (Economy's wallets, which may
+  hold real value); only plugins whose v3 deleted it on leave delete it (WelcomeByeGuild).
+- A list that v3 required to be non-empty and shipped with real IDs (Economy's `admin_id`) has no
+  default and ships empty, so the plugin waits for the operator and the error names the key.
+- v3 keys of a dropped feature (Economy's Google Sheets keys) are not fields: v3's files load and
+  warn about them, as about `enabled`.
+- v3's global placeholders, for templates that v3 rendered without a substitutor, are
+  `global_values(interaction.client)` (moved into the core from BotInfo and SimpleCommand by
+  Economy).
+- A v3 `component_prefix` whose IDs carried no fields (Economy's `economy@`) gets
+  `ComponentIds("<package>", ("action",), legacy_prefix=...)` and a handler that ignores the
+  fields; the core's decoder reads `economy@` alone or with v3's `<letter>:<value>` segments.
+- Commands that differ in their handler take a `kind` in the `COMMANDS` table, and `command(name)`
+  builds each with the matching bound method (Economy's `balance`, `board` and `change`).
+- A template whose first embed's description is the template of rows (Economy's boards) is
+  checked in `setup` for every locale, so a broken one fails at load with the file named
+  (`check_boards`).
 
 ## Pitfalls
 
@@ -306,6 +333,9 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   does.
 - **Deleted messages and legacy IDs.** After a handler that deletes the message of a v3 ID (a v3
   modal opened before the switch), the core's upgrade cannot fetch it and logs an error.
+- **Option texts on a built command.** `app_commands.describe(...)` applied to a built `Command`
+  gives every option it does not name an ellipsis as its description: call it once with all the
+  options (Economy's `command`). `rename(...)` leaves the options it does not name alone.
 
 v3 behaviors never to reproduce: loading plugins in reverse dependency order, non-atomic JSON
 writes that silently reset corrupt files, recursive placeholder expansion, shared mutable
@@ -428,3 +458,16 @@ Every deliberate difference, added by the change that introduces it.
 | Feedbacker | a star count above 5 or below 0 threw after the member had typed a feedback | the press fails before the modal opens | port-feedbacker |
 | Feedbacker | the command needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers it | port-feedbacker |
 | Feedbacker | a config without one of the three replies, or with an unknown key, stopped the whole bot even with the plugin disabled | only Feedbacker is disabled, unknown keys warn, and a blank reply or one over 2000 characters is refused at load | port-feedbacker |
+| Economy | amounts were 32-bit `Int`s that wrapped silently (`2147483647 + 1` was saved as `-2147483648`), and a `value` beyond 32 bits left the response "thinking" | amounts are exact integers, and any value Discord sends is applied | port-economy |
+| Economy | `/balance`, the button and the boards created the wallet and the guild's file when reading, so every member who ran `/balance` appeared on the boards at 0 | reading writes nothing; only changed wallets are ranked | port-economy |
+| Economy | a user who is not an administrator and named another member in `/balance` silently got their own wallet | they get `no-permission` | port-economy |
+| Economy | board ties had no defined order (Java `HashMap` order and a stable sort) | ties are ordered by user ID | port-economy |
+| Economy | a change could lose a concurrent one (the button callback ran beside the gateway thread without a lock) | a change is one store transaction | port-economy |
+| Economy | an unreadable file was replaced by `{}` and saved, losing the guild's wallets; files were written in place | an unreadable entry stops the command with an error and is never overwritten; the store writes in transactions | port-economy |
+| Economy | each change reply set only the before values of the amounts it changed; the other key kept what an earlier command had left in the user's cached placeholders | every change reply has both before values | port-economy |
+| Economy | a board template without a description threw at each use and gave no reply | the plugin does not load, and the error names the file | port-economy |
+| Economy | Economy did not load without the GoogleSheetAPI plugin, which only the dead Sheets storage used | no dependency; the Sheets keys only warn | port-economy |
+| Economy | an empty `admin_id`, a `port` outside 1 to 65535 or a limit outside 1 to 25 stopped the whole bot, even with the plugin disabled; the bundled `config.yaml` held two real user IDs | only Economy is disabled (the `port` is gone), unknown keys warn, the file is read only when `plugins` lists the plugin, and the bundled file lists no administrator | port-economy |
+| Economy | the commands needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers them | port-economy |
+| Economy | every load and reload rewrote every guild file, and a file whose name was not a number stopped the load | the store is read only when a command needs it; v3's files are not read (migration deferred, B11) | port-economy |
+| Economy | any button ID starting with `economy@` showed the wallet | the core's v3 decoder reads `economy@` alone or with v3's `<letter>:<value>` segments; no v3 template or production message has such a button | port-economy |

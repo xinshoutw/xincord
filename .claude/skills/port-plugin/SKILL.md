@@ -33,10 +33,11 @@ Names: `<Plugin>` is the v3 name (`AutoRole`, `_Example`), `<kebab>` its kebab c
    newlines and CRLF line endings), example values only: never real IDs, account numbers or
    tokens. A list whose v3 default held real IDs or pointed at the owner's servers ships empty,
    with placeholder values in a comment (AutoRole's `guilds`, IntervalPusher's `listeners` on
-   `status.example.com`); a template whose v3 text held a real account number gets an all-zero
-   example under a comment that asks the operator to put theirs (SimpleCommand). Copy such files
-   with a script that replaces the value, and check that no real number remains, instead of
-   reading the real values.
+   `status.example.com`); when v3 required that list to be non-empty, it has no default and the
+   plugin waits for the operator with the key named (Economy's `admin_id`); a template whose v3
+   text held a real account number gets an all-zero example under a comment that asks the
+   operator to put theirs (SimpleCommand). Copy such files with a script that replaces the value,
+   and check that no real number remains, instead of reading the real values.
 4. **Per requirement, xfail-first.** Test (fails for the expected reason; check with
    `pytest --runxfail`) -> commit with `xfail(strict=True)` -> implement and remove the marker ->
    commit. Tick `tasks.md` in the same commits. The project's Claude Code hooks (ruff on each edit,
@@ -135,6 +136,8 @@ async def setup(bot: Bot) -> None:
 - v3 keys without a default stay required (IntervalPusher's `listeners`, Feedbacker's replies). A
   new key is optional, so that v3's files load; a text default is English, because Python files
   hold no CJK, and the bundled file can hold the zh-TW text (Feedbacker's `form_failure`).
+- Keys of a v3 feature that is not ported (Economy's Google Sheets keys, decision B12) are not
+  fields: v3's files load and warn about each of them, as about `enabled`.
 
 ### Storage
 
@@ -144,9 +147,14 @@ async def setup(bot: Bot) -> None:
   decimal, value = v3's JSON document unchanged (its camelCase keys included), so that the deferred
   migration (B11) can copy v3's files. A missing document or field reads as v3's default (Moshi's);
   read-only paths never write (v3 created files there); read-modify-write runs under
-  `store.lock(f"{NAMESPACE}:{guild_id}")`, because discord.py runs handlers concurrently. Delete a
-  guild's data in `on_guild_remove` and, from `on_ready` and from `cog_load` in a ready bot, for every
-  guild that `bot.get_guild` does not know (WelcomeByeGuild's `store.py` and `forget_left_guilds`).
+  `store.lock(f"{NAMESPACE}:{guild_id}")` (WelcomeByeGuild), because discord.py runs handlers
+  concurrently, or as one `Store.update(NAMESPACE, key, fn)`, a single transaction whose `fn`
+  returns a new document and hands values back through a list it appends to (Economy's
+  `store.change`, for balances). An entry that is not v3's shape raises and is never overwritten.
+  When v3 deleted a guild's data on leave, delete it in `on_guild_remove` and, from `on_ready` and
+  from `cog_load` in a ready bot, for every guild that `bot.get_guild` does not know
+  (WelcomeByeGuild's `store.py` and `forget_left_guilds`); when v3 kept it, keep it (Economy).
+- Amounts that v3 kept in Kotlin `Int`s are Python integers: exact, never wrapped, never floats.
 
 ### Commands
 
@@ -155,8 +163,10 @@ async def setup(bot: Bot) -> None:
 - The callback is the cog's bound method (`callback=self.example_command`): discord.py makes the
   cog the command's binding, so `cog_app_command_error` and the cog's `interaction_check` apply as
   for a decorated cog command. Localize the options by calling `app_commands.rename(...)` and
-  `app_commands.describe(...)` on the built command, with values
-  `lang.command(<v3 default>, "<register.yaml key>")`.
+  `app_commands.describe(...)` on the built command, each once with every option (`describe` gives
+  the options it does not name an ellipsis), with values
+  `lang.command(<v3 default>, "<register.yaml key>")`. Commands with different handlers take a
+  `kind` in the `COMMANDS` table (Economy's `CommandSpec`).
 - Keep `import discord` (and every name in the callback's annotations) at runtime: discord.py
   evaluates the annotations when the command is built. ruff does not flag a move into
   `TYPE_CHECKING`; the plugin's tests do, because the plugin stops loading.
@@ -184,7 +194,8 @@ async def setup(bot: Bot) -> None:
 - A user option that v3 read with `asMember` is `discord.Member | discord.User`: discord.py passes
   the user when Discord resolved no member, where a `discord.Member` annotation raises before the
   callback and leaves the deferred response "thinking". Check the member against `MemberLike` in
-  the callback and answer (Feedbacker's `create_form`).
+  the callback and answer (Feedbacker's `create_form`). One that v3 read with `asUser` takes the
+  same annotation without the check: any user counts (Economy's `member`).
 - v3's runtime `member.hasPermission(ADMINISTRATOR)` is `interaction.permissions.administrator`,
   checked after `interaction.guild is None` (never true in a guild: discord.py creates a placeholder
   guild). A reply v3 rendered in `event.guild.locale` uses
@@ -255,8 +266,10 @@ async def setup(bot: Bot) -> None:
 - A template that v3 rendered with `getCreateBuilder(key)` and no locale, such as a public message,
   renders in `lang.default_locale` for every user (SimpleCommand); one rendered with the user's
   locale uses `interaction.locale.value`. Without a substitutor, v3 used only its global keys:
-  `bot_id` and `bot_name` (`_bot_values` in BotInfo and SimpleCommand; a third plugin that needs
-  them moves the helper into `xincord.core.placeholders`).
+  `bot_id` and `bot_name`, `xincord.core.placeholders.global_values(interaction.client)` (BotInfo,
+  SimpleCommand, Economy's `no-permission`).
+- A template whose first embed's description is the template of rows (Economy's boards) is checked
+  for every locale in `setup`, so that a broken one fails at load with the file named.
 
 ### Components
 
@@ -264,7 +277,8 @@ async def setup(bot: Bot) -> None:
   fields first, in v3 declaration order (`action` first in every v3 plugin), new fields appended;
   `legacy_prefix` is v3's `component_prefix` from `info.yaml` or `<lowercase name>@`; `legacy_hex`
   lists the fields v3 declared as `FieldType.INT_HEX` or `LONG_HEX`. A plugin without v3
-  components has no legacy prefix.
+  components has no legacy prefix. A v3 prefix whose IDs had no fields (Economy's `economy@`) gets
+  the fields `("action",)` and a handler that ignores them.
 - Templates set `uid: {action: ..., ...}`; `setup` calls `bot.route(__name__, IDS, handler)`. The
   handler gets `ParsedId` (values are strings), dispatches on `action`, and may raise: the core
   logs it with the plugin's name and upgrades legacy IDs on the message afterwards.

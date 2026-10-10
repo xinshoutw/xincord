@@ -108,7 +108,7 @@ class Economy(commands.Cog):
             command = app_commands.Command(
                 name=label, description=description, callback=self.change_wallet
             )
-        # One call each: describe gives every option it does not name the text "...".
+        # One call each: describe gives every option it does not name an ellipsis as its text.
         options = {
             key: text for key, text in (("member", spec.member), ("value", spec.value)) if text
         }
