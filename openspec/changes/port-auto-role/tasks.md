@@ -23,7 +23,7 @@
 
 ## 5. Skipped roles
 
-- [ ] 5.1 xfail tests for "Roles that cannot be given are skipped", with the problems routed to a
+- [x] 5.1 xfail tests for "Roles that cannot be given are skipped", with the problems routed to a
       stub
 - [ ] 5.2 Log the skipped roles, the missing permission and the failed requests; remove the
       markers
