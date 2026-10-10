@@ -7,7 +7,7 @@ Kotlin:
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, override, runtime_checkable
 
 import discord
 from discord.ext import commands
@@ -74,6 +74,18 @@ class TicketAwayNotice(commands.Cog):
         self.templates = templates
         self.sleep: Sleep = asyncio.sleep  # the wait before a notice, which tests replace
         self.notices: set[asyncio.Task[None]] = set()  # the notices under way
+
+    @override
+    async def cog_unload(self) -> None:
+        """Cancel the notices under way and wait for them to end.
+
+        An unload and a reload remove the cog, so a notice that waits then is dropped; v3's
+        ``queueAfter`` could not be cancelled.
+        """
+        notices = list(self.notices)
+        for task in notices:
+            task.cancel()
+        await asyncio.gather(*notices, return_exceptions=True)
 
     @commands.Cog.listener()
     async def on_guild_channel_create(self, channel: discord.abc.GuildChannel) -> None:
