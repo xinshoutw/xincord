@@ -109,7 +109,7 @@
 
 - [x] 20.1 xfail tests for "The creator or an administrator draws and administrators reroll"
       against a stub `draw`
-- [ ] 20.2 Implement `model.draw`, the handler and the result; remove the markers
+- [x] 20.2 Implement `model.draw`, the handler and the result; remove the markers
 
 ## 21. Automatic draw
 

@@ -22,9 +22,9 @@ from xincord.core.placeholders import global_values, placeholder_values
 from xincord.core.templates import modal_values, render_message, render_modal
 
 from .drafts import problem, remove_last_prize, submit, switch_policy
-from .model import DataError, Draft, Instance, join, new_id
+from .model import DataError, Draft, Drawer, Instance, draw, join, new_id
 from .store import Giveaways
-from .texts import Texts, language, post_buttons, post_embed, preview
+from .texts import Texts, language, post_buttons, post_embed, preview, result
 from .times import format_end_time
 
 if TYPE_CHECKING:
@@ -43,6 +43,13 @@ logger = logging.getLogger(__name__)
 IDS = ComponentIds("giveaway", ("action", "sub_action", "giveaway_id"), legacy_prefix="giveaway@")
 BUTTON = 2  # the component type of a button, which v3's onButtonInteraction took
 # The builder's buttons that open the modal of the same name, and the modals that change a draft.
+# The text of each refusal of a draw or a reroll.
+REFUSALS = {
+    "not-allowed": "error.not-allowed",
+    "already-drawn": "error.drawn",
+    "too-early": "error.too-early",
+    "not-drawn": "error.not-drawn",
+}
 MODALS = frozenset(
     ("set-title", "set-description", "set-end-time", "set-sponsor", "set-thumbnail", "add-prize")
 )
@@ -239,8 +246,37 @@ class Giveaway(commands.Cog):
     async def draw(
         self, interaction: discord.Interaction, giveaway_id: str | None, *, reroll: bool
     ) -> None:
-        """Draw the giveaway's winners, or draw them again."""
-        raise NotImplementedError
+        """Draw the giveaway's winners, or draw them again, as v3's draw and reroll.
+
+        The draw is stored under the guild's lock before anything is sent, so two draws, or a draw
+        and the automatic draw, never both draw. The post is updated through the press and v3's
+        ``draw-result`` follows ephemerally, both in the giveaway's language; a refusal gets v3's
+        text.
+        """
+        drawer = Drawer(interaction.user.id, admin=interaction.permissions.administrator)
+        now = int(self.clock())
+
+        def transition(current: Instance) -> tuple[str, Instance]:
+            return draw(current, drawer, reroll=reroll, now=now, rng=self.random)
+
+        found = await self._change(interaction, giveaway_id, transition)
+        if found is None:
+            return
+        outcome, instance = found
+        texts = self._giveaway_texts(instance)
+        if outcome != "drawn":
+            end = {"ga@end": str(instance.config.end_at)}
+            await _tell(interaction, texts.get(REFUSALS[outcome], end))
+            return
+        await self._refresh(interaction, instance)
+        message = render_message(
+            self.templates.message("draw-result", texts.locale),
+            global_values(interaction.client) | result(instance, texts, reroll=reroll),
+            build_id=IDS.build,
+        )
+        await interaction.followup.send(
+            content=message.content, embeds=message.embeds, ephemeral=True
+        )
 
     async def press(self, interaction: discord.Interaction, sub_action: str) -> None:
         """Handle a press of the builder's button ``sub_action``.

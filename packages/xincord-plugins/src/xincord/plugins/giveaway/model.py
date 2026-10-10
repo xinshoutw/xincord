@@ -124,6 +124,42 @@ def join(instance: Instance, user_id: int, now: int) -> tuple[str, Instance]:
     return "joined", replace(instance, participant_ids=(*participants, user_id))
 
 
+@dataclass(frozen=True)
+class Drawer:
+    """Who presses Draw Winners or Reroll, and whether they have Administrator."""
+
+    user_id: int
+    admin: bool
+
+
+def draw(
+    instance: Instance, drawer: Drawer, *, reroll: bool, now: int, rng: random.Random
+) -> tuple[str, Instance]:
+    """v3's draw and reroll by ``drawer``: the refusal, else ``drawn`` and the drawn giveaway.
+
+    Drawing is for the creator or an administrator once the end time has come and before a draw;
+    rerolling is for administrators once drawn. Both draw every prize from the participants.
+    """
+    admin = drawer.admin
+    allowed = admin if reroll else admin or drawer.user_id == instance.creator_id
+    if not allowed:
+        return "not-allowed", instance
+    if reroll and not instance.ended:
+        return "not-drawn", instance
+    if not reroll and instance.ended:
+        return "already-drawn", instance
+    if not reroll and now < instance.config.end_at:
+        return "too-early", instance
+    return "drawn", drawn(instance, now, rng)
+
+
+def drawn(instance: Instance, now: int, rng: random.Random) -> Instance:
+    """The giveaway drawn at ``now``: every prize's winners, ended at ``now``."""
+    config = instance.config
+    winners = draw_winners(config.prizes, config.policy, instance.participant_ids, rng)
+    return replace(instance, winner_results=winners, ended=True, ended_at=now)
+
+
 def parse_instance(entry: JSON, where: str) -> Instance:
     """Read v3's JSON of a giveaway, as Moshi did; ``where`` names it in errors.
 

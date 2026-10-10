@@ -30,7 +30,6 @@ if TYPE_CHECKING:
     from discord_fakes import FakeInteraction
 
 GOLDEN = golden("giveaway")
-REASON = "The creator or an administrator draws and administrators reroll"
 NOW = 1772244000  # the tests' clock
 END = 1772330400  # a day later
 GIVEAWAY = Instance(
@@ -79,7 +78,6 @@ def told(interaction: FakeInteraction) -> object:
     return fields["content"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(("user", "admin"), [(7, False), (9, True)], ids=["creator", "admin"])
 async def test_draw(scene: Scene, user: int, admin: bool) -> None:  # noqa: FBT001
     """Requirement: The creator or an administrator draws and administrators reroll."""
@@ -104,7 +102,6 @@ async def test_draw(scene: Scene, user: int, admin: bool) -> None:  # noqa: FBT0
     assert result == f"**{GOLDEN['result']['en-US']['drawn']}**\n{lines}"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_reroll(scene: Scene, locale: str) -> None:
     """Requirement: The creator or an administrator draws and administrators reroll."""
@@ -122,7 +119,6 @@ async def test_reroll(scene: Scene, locale: str) -> None:
     assert result.startswith(f"**{GOLDEN['result'][locale]['rerolled']}**\n")
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_no_participants(scene: Scene, locale: str) -> None:
     """Requirement: The creator or an administrator draws and administrators reroll."""
@@ -137,7 +133,6 @@ async def test_no_participants(scene: Scene, locale: str) -> None:
     assert post["fields"][4]["value"] == f"Nitro: {not_enough}\nSticker: {not_enough}"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(
     ("action", "giveaway", "user", "admin"),
     [
@@ -164,7 +159,6 @@ async def test_not_allowed(
     assert await scene.stored(GIVEAWAY.id) == replace(giveaway, locale_tag="zh-TW")
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(
     ("action", "giveaway", "reply"),
     [
@@ -186,7 +180,6 @@ async def test_wrong_time(
     assert await scene.stored(GIVEAWAY.id) == replace(giveaway, locale_tag=locale)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_draws_at_once(scene: Scene) -> None:
     """Requirement: The creator or an administrator draws and administrators reroll."""
     await scene.add(GIVEAWAY)
@@ -202,7 +195,6 @@ async def test_draws_at_once(scene: Scene) -> None:
     assert told(refused) == GOLDEN["replies"]["en-US"]["drawn"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_long_result(scene: Scene) -> None:
     """Requirement: The creator or an administrator draws and administrators reroll."""
     participants = tuple(range(10**17, 10**17 + 120))

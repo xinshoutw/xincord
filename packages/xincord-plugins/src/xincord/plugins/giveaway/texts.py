@@ -38,6 +38,7 @@ FIELD_NAME_MAX = 256
 FIELD_VALUE_MAX = 1024
 DESCRIPTION_MAX = 4096
 EMBED_MAX = 6000  # the total of an embed's texts
+RESULT_MAX = 1800  # v3's bound of a draw result's body
 # JDA's EmbedBuilder.ZERO_WIDTH_SPACE (a left-to-right mark) for an empty field, which Discord
 # refuses.
 EMPTY_FIELD = chr(0x200E)
@@ -207,6 +208,21 @@ def post_buttons(
             disabled=not instance.ended,
         ),
     )
+
+
+def result(instance: Instance, texts: Texts, *, reroll: bool) -> dict[str, str]:
+    """The ``ga@header``, ``ga@body`` and ``ga@title`` of a draw's result, as v3 built them.
+
+    The body is v3's no participants text, or one winner line per prize clipped to 1800
+    characters.
+    """
+    header = texts.get("result.rerolled" if reroll else "result.drawn")
+    body = (
+        clip(winner_lines(instance, texts), RESULT_MAX)
+        if instance.participant_ids
+        else texts.get("result.no-participants")
+    )
+    return {"ga@header": header, "ga@body": body, "ga@title": instance.config.title}
 
 
 def winner_lines(instance: Instance, texts: Texts) -> str:
