@@ -1,0 +1,40 @@
+embeds:
+  - author:
+      name: "Message Log"
+    title:
+      text: "☛ %channel_name%'s Channel Setting"
+    footer:
+      text: "❖ ORDERLY SERVER ❖"
+
+    fields:
+      - name: "Channel Mode"
+        value: "<%cl_channel_mode%>"
+
+      - name: "Allowlist Channels"
+        value: "%cl_allow_list_format%"
+
+      - name: "Blocklist Channels"
+        value: "%cl_block_list_format%"
+
+components:
+  - !ButtonsComponent
+    buttons:
+      - uid:
+          action: "toggle_btn"
+        style: 1
+        label: "Toggle Mode"
+
+      - uid:
+          action: "modify_allow_btn"
+        style: 3
+        label: "Modify Allowlist"
+
+      - uid:
+          action: "modify_block_btn"
+        style: 2
+        label: "Modify Blocklist"
+
+      - uid:
+          action: "delete_btn"
+        style: 4
+        label: "Delete"

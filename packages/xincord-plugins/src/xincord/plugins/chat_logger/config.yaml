@@ -1,0 +1,12 @@
+# ChatLogger: list it under `plugins` in the core config.yaml to enable it. It reads the text of
+# messages, which Discord's privileged Message Content intent allows: turn that intent on for the
+# bot in the Discord developer portal first, or Discord refuses the bot's connection.
+
+# true: store the messages of every channel the bot can read, so that the edits and deletions in a
+# channel that a listen channel starts to detect are logged at once. false: store only the messages
+# of the channels that a listen channel detects.
+log_all: true
+
+# How many days a message's text is kept, 1 to 3650. Edits and deletions of older messages are not
+# logged.
+retention_days: 30
