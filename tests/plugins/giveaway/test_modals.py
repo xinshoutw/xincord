@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from discord_fakes import FakeInteraction
 
 GOLDEN = golden("giveaway")
-REASON = "Builder buttons open pre-filled modals"
 TAIPEI = 'timeZone: "Asia/Taipei"\n'
 
 type Input = tuple[str, str | None, discord.ui.TextInput[discord.ui.Modal]]
@@ -42,7 +41,6 @@ def inputs(modal: discord.ui.Modal) -> list[Input]:
     return found
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 @pytest.mark.parametrize("name", list(GOLDEN["modals"]))
 async def test_modals(scene: Scene, name: str, locale: str) -> None:
@@ -67,7 +65,6 @@ async def test_modals(scene: Scene, name: str, locale: str) -> None:
     assert all(text_input.min_length is None for _, _, text_input in found)  # v3 set none
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_title_modal(scene: Scene) -> None:
     """Requirement: Builder buttons open pre-filled modals."""
     scene.keep(Draft(title="Nitro"))
@@ -77,7 +74,6 @@ async def test_title_modal(scene: Scene) -> None:
     assert title.default == "Nitro"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(
     ("name", "draft", "default"),
     [
@@ -97,7 +93,6 @@ async def test_values(scene: Scene, name: str, draft: Draft, default: str | None
     assert text_input.default == default
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("config", [TAIPEI])
 @pytest.mark.parametrize(("end_at", "shown"), [(1772330400, "2026-03-01 10:00"), (0, None)])
 async def test_end_time_modal(scene: Scene, end_at: int, shown: str | None) -> None:
@@ -109,7 +104,6 @@ async def test_end_time_modal(scene: Scene, end_at: int, shown: str | None) -> N
     assert end_time.default == shown
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_prize_modal(scene: Scene, locale: str) -> None:
     """Requirement: Builder buttons open pre-filled modals."""
@@ -122,7 +116,6 @@ async def test_prize_modal(scene: Scene, locale: str) -> None:
     assert count.default == "1"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_typed_placeholders(scene: Scene) -> None:
     """Requirement: Builder buttons open pre-filled modals."""
     scene.keep(Draft(title="%bot_name%"))
@@ -143,7 +136,6 @@ OPERATOR_MODAL = {
 }
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("files", [OPERATOR_MODAL])
 async def test_interaction_values(scene: Scene) -> None:
     """Requirement: Builder buttons open pre-filled modals."""

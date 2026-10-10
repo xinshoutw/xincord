@@ -14,11 +14,12 @@ from discord import app_commands
 from discord.ext import commands
 
 from xincord.core.component_ids import ComponentIds
-from xincord.core.placeholders import global_values
-from xincord.core.templates import render_message
+from xincord.core.placeholders import global_values, placeholder_values
+from xincord.core.templates import render_message, render_modal
 
 from .model import Draft
 from .texts import Texts, language, preview
+from .times import format_end_time
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -155,8 +156,26 @@ class Giveaway(commands.Cog):
     async def _open_modal(
         self, interaction: discord.Interaction, session: Session, sub_action: str
     ) -> None:
-        """Open the modal ``sub_action``, pre-filled with the draft."""
-        raise NotImplementedError
+        """Open v3's modal ``sub_action`` in the user's language, pre-filled with the draft.
+
+        As v3's ``Placeholder.get(event)`` with the ``ga@*`` values put in: the press's values and
+        the draft's, inserted as written (v3 expanded them, and a title of ``%ga@title%`` threw).
+        An empty value leaves the input empty, as v3's.
+        """
+        locale = language(self.lang, interaction.locale.value)
+        draft = session.draft
+        end_time = format_end_time(draft.end_at, self.config.zone) if draft.end_at > 0 else ""
+        next_prize = {"ga@index": str(len(draft.prizes) + 1)}
+        values = placeholder_values(interaction) | {
+            "ga@title": draft.title,
+            "ga@description": draft.description,
+            "ga@end-time": end_time,
+            "ga@sponsor": draft.sponsor,
+            "ga@thumbnail": draft.thumbnail_url,
+            "ga@prize-name": Texts(self.lang, locale).get("new-prize", next_prize),
+        }
+        modal = render_modal(self.templates.modal(sub_action, locale), values, build_id=IDS.build)
+        await interaction.response.send_modal(modal)
 
     async def _apply(
         self, interaction: discord.Interaction, session: Session, sub_action: str
