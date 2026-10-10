@@ -26,7 +26,6 @@ if TYPE_CHECKING:
     from conftest import Scene
     from xincord.core.storage import Store
 
-REASON = "Data is forgotten with the guild"
 # log_all true keeps the messages of a left guild until the retention, as v3 kept them; false
 # deletes them, as v3 meant to (its deletion at the leave used the wrong key).
 KEPT = [("log_all: true\n", [100, 200]), ("log_all: false\n", [200])]
@@ -52,7 +51,6 @@ async def stored(store: Store) -> list[int]:
     return [row[0] for row in rows]
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 @pytest.mark.parametrize(("config", "kept"), KEPT)
 async def test_the_bot_leaves(scene: Scene, kept: list[int]) -> None:
     """Requirement: Data is forgotten with the guild."""
@@ -64,7 +62,6 @@ async def test_the_bot_leaves(scene: Scene, kept: list[int]) -> None:
     assert await stored(scene.store) == kept
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 @pytest.mark.parametrize(("config", "kept"), LEFT)
 async def test_left_while_offline(
     scene: Scene, kept: list[int], caplog: pytest.LogCaptureFixture
@@ -80,7 +77,6 @@ async def test_left_while_offline(
     assert "ChatLogger deleted the settings of guild 20, which the bot left" in caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 async def test_messages_of_a_left_guild(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Data is forgotten with the guild."""
     await two_guilds(scene.store)
@@ -97,7 +93,6 @@ async def test_messages_of_a_left_guild(scene: Scene, caplog: pytest.LogCaptureF
     assert "ChatLogger deleted the stored messages of guild 30, which the bot left" in caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 async def test_loaded_into_a_ready_bot(
     store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

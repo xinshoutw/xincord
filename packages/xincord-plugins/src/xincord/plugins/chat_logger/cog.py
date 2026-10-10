@@ -67,12 +67,15 @@ class ChatLogger(commands.Cog):
 
     @override
     async def cog_load(self) -> None:
-        """Start the retention loop, which waits until the bot is ready.
+        """Start the retention loop, which waits until the bot is ready, and check a ready bot.
 
         ``setup`` runs before the gateway connects, and ``--no-online`` never connects, so nothing
-        is deleted before READY; in a ready bot, as after a reload, the loop deletes at once.
+        is deleted before READY; in a ready bot, as after a reload, the loop deletes at once and
+        the guilds are checked, since no ``on_ready`` follows.
         """
         self.tasks = (asyncio.create_task(self._retain(), name="ChatLogger retention"),)
+        if self.bot.is_ready():
+            await self.check_guilds()
 
     @override
     async def cog_unload(self) -> None:
@@ -248,9 +251,48 @@ class ChatLogger(commands.Cog):
             return global_values(self.bot) | unknown_author(user_id)
         return {} if bot is None else author_values(member, bot)
 
+    @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        """Check the guilds when the bot is ready, for each session."""
+        await self.check_guilds()
+
+    @commands.Cog.listener()
+    async def on_guild_remove(self, guild: discord.Guild) -> None:
+        """Delete the data of a guild that the bot left or was removed from.
+
+        The settings go at once (v3 deleted them at its next start), and the stored messages with
+        ``log_all`` false, as v3 meant to: its deletion used a key without the ``CL:`` prefix and
+        deleted nothing. With ``log_all`` true, v3 kept them; the retention deletes them now.
+        discord.py does not fire this during an outage.
+        """
+        await self.settings.forget(guild.id)
+        if not self.config.log_all:
+            await self.messages.forget(guild.id)
+
+    async def check_guilds(self) -> None:
+        """Forget the guilds that the bot left while offline, and drop deleted list entries.
+
+        The settings are checked as VoiceLogger's; the stored messages follow ``log_all``.
+        """
+        await self.listen.check_guilds()
+        await self.forget_left_guilds()
+
     async def forget_left_guilds(self) -> None:
-        """Delete the stored messages of the guilds that the bot left, with ``log_all`` false."""
-        raise NotImplementedError
+        """Delete the stored messages of the guilds that the bot left, with ``log_all`` false.
+
+        By ``on_ready``, discord.py knows every guild of the session, unavailable ones included.
+        v3 deleted such guilds' database files at its start with ``log_all`` false, and kept them
+        with true.
+        """
+        if self.config.log_all:
+            return
+        for guild_id in await self.messages.guild_ids():
+            if self.bot.get_guild(guild_id) is None:
+                await self.messages.forget(guild_id)
+                logger.info(
+                    "ChatLogger deleted the stored messages of guild %s, which the bot left",
+                    guild_id,
+                )
 
     def _own(self, author: discord.abc.Snowflake) -> bool:
         """Whether ``author`` is the bot, whose messages v3 did not store."""

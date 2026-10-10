@@ -189,12 +189,14 @@ class ListenChannels:
     async def _check(self, guild: discord.Guild) -> None:
         """Drop the channels that ``guild`` no longer has from its lists, as v3's startup did.
 
-        Listen channels are not checked: a deleted one is forgotten when a log finds it gone,
-        and a thread is not cached while it is archived. A guild whose settings cannot be read is
-        skipped with an error, so that the others are still checked.
+        Its active threads count, as JDA's cache held them. Listen channels are not checked: a
+        deleted one is forgotten when a log finds it gone, and a thread is not cached while it is
+        archived. A guild whose settings cannot be read is skipped with an error, so that the
+        others are still checked.
         """
         plugin = self.settings.namespace
-        known = {channel.id for channel in guild.channels}
+        # JDA's channel lookup found the cached threads too; discord.py keeps them apart.
+        known = {channel.id for channel in (*guild.channels, *guild.threads)}
         try:
             dropped = await self.settings.prune(guild.id, known)
         except DataError:

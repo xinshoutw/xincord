@@ -74,7 +74,7 @@
 
 - [x] 14.1 xfail tests for "Data is forgotten with the guild" and "Settings are checked when the bot
       is ready"
-- [ ] 14.2 Implement `on_guild_remove`, `on_ready`, `cog_load` and the checks; remove the markers
+- [x] 14.2 Implement `on_guild_remove`, `on_ready`, `cog_load` and the checks; remove the markers
 
 ## 15. Conventions and docs
 

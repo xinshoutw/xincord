@@ -363,6 +363,7 @@ class FakeGuild:
     member_count: int | None = None  # None when Discord has not sent it (unavailable since startup)
     preferred_locale: discord.Locale = discord.Locale.american_english
     channels: list[FakeChannel] = field(default_factory=list[FakeChannel])  # the cached channels
+    threads: list[FakeChannel] = field(default_factory=list[FakeChannel])  # the active threads
     icon: FakeAsset | None = None
     rules_channel: FakeChannel | None = None
     system_channel: FakeChannel | None = None
