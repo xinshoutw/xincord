@@ -35,7 +35,7 @@ class VoiceChannelOption(app_commands.Transformer[discord.Client]):
     """v3's ``channel`` options: Discord offers voice channels only, which JDA's cast required.
 
     A ``discord.VoiceChannel`` annotation would need the channel in discord.py's cache; this passes
-    on the channel that Discord resolved. WelcomeByeGuild and Feedbacker have the same transformer
+    on the channel that Discord resolved. WelcomeGoodbye and Feedbacker have the same transformer
     for text channels.
     """
 

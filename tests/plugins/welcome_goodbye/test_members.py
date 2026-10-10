@@ -28,7 +28,7 @@ from discord_fakes import (
 )
 from plugin_fakes import dispatch, golden
 from xincord.core.bot import Bot
-from xincord.plugins.welcome_bye_guild.store import set_channel
+from xincord.plugins.welcome_goodbye.store import set_channel
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from discord_fakes import Sent
     from xincord.core.storage import Store
 
-GOLDEN = golden("welcome_bye_guild")
+GOLDEN = golden("welcome_goodbye")
 AVATAR = FakeAsset("https://cdn.example/alice.png")
 
 
@@ -161,7 +161,7 @@ async def test_welcome_refused(bot: Bot, store: Store, caplog: pytest.LogCapture
     with caplog.at_level(logging.WARNING):
         await dispatch(bot, "member_join", alice(guild).as_member())
 
-    assert "WelcomeByeGuild cannot post the welcome message in welcome (5) of guild (10)" in (
+    assert "WelcomeGoodbye cannot post the welcome message in welcome (5) of guild (10)" in (
         caplog.text
     )
 
@@ -229,4 +229,4 @@ async def test_bye_refused(
     with caplog.at_level(logging.WARNING):
         await dispatch(bot, "raw_member_remove", removal(alice(guild)))
 
-    assert "WelcomeByeGuild cannot post the bye message in bye (7) of guild (10)" in caplog.text
+    assert "WelcomeGoodbye cannot post the bye message in bye (7) of guild (10)" in caplog.text

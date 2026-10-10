@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 from discord_fakes import FakeGuild
 from plugin_fakes import dispatch, load_plugin
 from xincord.core.bot import Bot
-from xincord.plugins.welcome_bye_guild.store import NAMESPACE, set_channel
+from xincord.plugins.welcome_goodbye.store import NAMESPACE, set_channel
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -52,7 +52,7 @@ async def test_left_while_offline(
         await dispatch(bot, "ready")
 
     assert await store.keys(NAMESPACE) == ["10", "20"]
-    assert "WelcomeByeGuild deleted the channels of guild 30, which the bot left" in caplog.text
+    assert "WelcomeGoodbye deleted the channels of guild 30, which the bot left" in caplog.text
 
 
 async def test_loaded_into_a_ready_bot(
@@ -70,7 +70,7 @@ async def test_loaded_into_a_ready_bot(
     monkeypatch.setattr(Bot, "is_ready", is_ready)
     monkeypatch.setattr(Bot, "get_guild", get_guild)
 
-    bot = await load_plugin("WelcomeByeGuild", tmp_path / "plugins", store)
+    bot = await load_plugin("WelcomeGoodbye", tmp_path / "plugins", store)
 
-    assert bot.loaded == ("WelcomeByeGuild",)
+    assert bot.loaded == ("WelcomeGoodbye",)
     assert await store.keys(NAMESPACE) == ["10", "20"]

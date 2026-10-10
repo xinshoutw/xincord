@@ -19,8 +19,8 @@ from discord_fakes import (
     FakeRole,
     FakeUser,
 )
-from xincord.plugins.welcome_bye_guild.store import Bindings
-from xincord.plugins.welcome_bye_guild.values import command_values, member_event_values
+from xincord.plugins.welcome_goodbye.store import Bindings
+from xincord.plugins.welcome_goodbye.values import command_values, member_event_values
 
 # v3's keys (inventory section 7), before the wbg@ prefix.
 GUILD_KEYS = (

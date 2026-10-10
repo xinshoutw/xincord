@@ -15,7 +15,7 @@ type Kind = Literal["welcome", "bye"]
 
 KINDS: tuple[Kind, ...] = ("welcome", "bye")
 
-NAMESPACE = "WelcomeByeGuild"  # the store namespace: the plugin's name, keys are guild IDs
+NAMESPACE = "WelcomeGoodbye"  # the store namespace: the plugin's name, keys are guild IDs
 # v3's GuildSetting fields, the keys of its plugins/WelcomeByeGuild/data/<guildId>.json files.
 FIELDS: dict[Kind, str] = {"welcome": "welcomeChannelId", "bye": "byeChannelId"}
 

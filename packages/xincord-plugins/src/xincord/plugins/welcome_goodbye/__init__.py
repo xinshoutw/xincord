@@ -1,4 +1,4 @@
-"""WelcomeByeGuild: members who join or leave a guild are welcomed or seen off in bound channels.
+"""WelcomeGoodbye: members who join or leave a guild are welcomed or seen off in bound channels.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/Event.kt:18-80
@@ -10,7 +10,7 @@ import discord
 
 from xincord.core.templates import Templates
 
-from .cog import COMMANDS, WelcomeByeGuild
+from .cog import COMMANDS, WelcomeGoodbye
 
 if TYPE_CHECKING:
     from xincord.core.bot import Bot
@@ -30,7 +30,7 @@ async def setup(bot: Bot) -> None:
     """
     context = bot.plugin_context(__name__)
     lang = context.lang(DEFAULT_LOCALE)
-    cog = WelcomeByeGuild(bot, context.store, lang, Templates.load(lang))
+    cog = WelcomeGoodbye(bot, context.store, lang, Templates.load(lang))
     await bot.add_cog(cog)
     # Guild commands, as in v3. discord.py removes them when the plugin unloads.
     for name in COMMANDS:

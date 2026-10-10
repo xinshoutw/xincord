@@ -18,19 +18,19 @@ from discord import app_commands
 
 from discord_fakes import FakeChannel, FakeGuild, FakeInteraction, FakeMember
 from plugin_fakes import golden
-from xincord.plugins.welcome_bye_guild.cog import TextChannelOption
+from xincord.plugins.welcome_goodbye.cog import TextChannelOption
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from xincord.core.bot import Bot
     from xincord.core.command_tree import CommandTree
-    from xincord.plugins.welcome_bye_guild.cog import WelcomeByeGuild
+    from xincord.plugins.welcome_goodbye.cog import WelcomeGoodbye
 
     # discord.py calls a cog command's function with the cog, its binding.
-    type Callback = Callable[[WelcomeByeGuild, discord.Interaction], Awaitable[None]]
+    type Callback = Callable[[WelcomeGoodbye, discord.Interaction], Awaitable[None]]
 
-GOLDEN = golden("welcome_bye_guild")
+GOLDEN = golden("welcome_goodbye")
 NAMES = ("welcome-channel-bind", "welcome-channel-unbind", "bye-channel-bind", "bye-channel-unbind")
 
 
@@ -59,7 +59,7 @@ async def test_command_payload(bot: Bot) -> None:
         ("bye-channel-unbind", "bye-unbind-empty"),
     ],
 )
-async def test_command_callback(bot: Bot, cog: WelcomeByeGuild, name: str, reply: str) -> None:
+async def test_command_callback(bot: Bot, cog: WelcomeGoodbye, name: str, reply: str) -> None:
     """Requirement: The commands are localized administrator guild commands."""
     command = bot.tree.get_command(name)
     assert isinstance(command, app_commands.Command)

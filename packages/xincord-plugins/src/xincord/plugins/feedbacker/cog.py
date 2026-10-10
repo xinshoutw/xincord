@@ -61,7 +61,7 @@ class TextChannelOption(app_commands.Transformer[discord.Client]):
     """v3's ``submit-channel`` option: Discord offers text channels only, as JDA's ``TEXT``.
 
     discord.py's ``discord.TextChannel`` annotation would also offer announcement channels and need
-    the channel in the cache; this passes on the channel that Discord resolved. WelcomeByeGuild has
+    the channel in the cache; this passes on the channel that Discord resolved. WelcomeGoodbye has
     the same transformer for its ``channel`` option.
     """
 

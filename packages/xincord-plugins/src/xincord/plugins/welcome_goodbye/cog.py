@@ -91,7 +91,7 @@ COMMANDS = {
 }
 
 
-class WelcomeByeGuild(commands.Cog):
+class WelcomeGoodbye(commands.Cog):
     """The plugin's state, handlers and listeners; ``setup`` registers them."""
 
     def __init__(self, bot: commands.Bot, store: Store, lang: Lang, templates: Templates) -> None:
@@ -130,7 +130,7 @@ class WelcomeByeGuild(commands.Cog):
             if self.bot.get_guild(guild_id) is None:
                 await forget(self.store, guild_id)
                 logger.info(
-                    "WelcomeByeGuild deleted the channels of guild %s, which the bot left",
+                    "WelcomeGoodbye deleted the channels of guild %s, which the bot left",
                     guild_id,
                 )
 
@@ -185,7 +185,7 @@ class WelcomeByeGuild(commands.Cog):
             )
         except discord.HTTPException as error:
             logger.warning(
-                "WelcomeByeGuild cannot post the %s message in %s (%s) of %s (%s): %s",
+                "WelcomeGoodbye cannot post the %s message in %s (%s) of %s (%s): %s",
                 kind,
                 channel.name,
                 channel.id,

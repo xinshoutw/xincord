@@ -9,9 +9,7 @@ Kotlin:
 import asyncio
 from typing import TYPE_CHECKING
 
-import pytest
-
-from xincord.plugins.welcome_bye_guild.store import (
+from xincord.plugins.welcome_goodbye.store import (
     NAMESPACE,
     Bindings,
     forget,
@@ -21,6 +19,8 @@ from xincord.plugins.welcome_bye_guild.store import (
 )
 
 if TYPE_CHECKING:
+    import pytest
+
     from xincord.core.storage import JSON, Store
 
 
@@ -30,7 +30,6 @@ async def test_unknown_guild(store: Store) -> None:
     assert await store.keys(NAMESPACE) == []
 
 
-@pytest.mark.xfail(strict=True, reason="Each guild's channels are stored")
 async def test_v3_document(store: Store) -> None:
     """Requirement: Each guild's channels are stored."""
     assert await set_channel(store, 10, "welcome", 5) == (Bindings(welcome=5), 0)

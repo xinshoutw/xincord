@@ -26,7 +26,7 @@
 
 - [x] 5.1 xfail tests for "The plugin installs as WelcomeGoodbye" and "Each guild's channels are
       stored" (the `WelcomeGoodbye` namespace)
-- [ ] 5.2 Rename the package, the entry point, the cog, the namespace, the log lines, the tests
+- [x] 5.2 Rename the package, the entry point, the cog, the namespace, the log lines, the tests
       and the fixtures; remove the markers
 
 ## 6. UptimeHeartbeat

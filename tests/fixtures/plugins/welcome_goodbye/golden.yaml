@@ -1,4 +1,4 @@
-# Golden data for the WelcomeByeGuild tests. The text is v3's, from
+# Golden data for the WelcomeGoodbye tests. The text is v3's, from
 # XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/resources/lang/.
 
 # Each command reply per locale, with the channel general (5) as the chosen channel and as the
