@@ -6,6 +6,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/json/JsonGuildFileManager.kt:7-40
 """
 
+import logging
 import re
 from dataclasses import replace
 from typing import TYPE_CHECKING, Literal
@@ -18,8 +19,10 @@ if TYPE_CHECKING:
 
     from xincord.core.storage import JSON, Store
 
+logger = logging.getLogger(__name__)
+
 NAMESPACE = "VoiceLogger"  # the plugin's name; keys are guild IDs
-CHANNEL_ID = re.compile(r"[1-9][0-9]*")  # the keys of a document: listen channel IDs in decimal
+ID = re.compile(r"[1-9][0-9]*")  # a guild or channel ID in decimal, as the keys hold them
 
 type Kind = Literal["allow", "block"]
 type Entries = dict[int, tuple[JSON, Setting]]  # each stored entry with the settings it holds
@@ -115,8 +118,20 @@ async def forget(store: Store, guild_id: int) -> None:
 
 
 async def guild_ids(store: Store) -> list[int]:
-    """Return the guilds with settings, in order."""
-    return sorted(int(key) for key in await store.keys(NAMESPACE))
+    """Return the guilds with settings, in order.
+
+    A key that is not a guild ID (a hand edit or a faulty migration; the plugin never writes one)
+    is left as it is, with a warning.
+    """
+    ids: list[int] = []
+    for key in await store.keys(NAMESPACE):
+        if ID.fullmatch(key):
+            ids.append(int(key))
+        else:
+            logger.warning(
+                "VoiceLogger ignores the settings stored under %r, which is not a guild ID", key
+            )
+    return sorted(ids)
 
 
 async def prune(store: Store, guild_id: int, known: Container[int]) -> list[int]:
@@ -184,7 +199,7 @@ async def _read(store: Store, guild_id: int) -> Entries:
         raise DataError(msg)
     entries: Entries = {}
     for key, entry in document.items():
-        if not CHANNEL_ID.fullmatch(key):
+        if not ID.fullmatch(key):
             msg = f"guild {guild_id}: {key!r} is not a channel ID"
             raise DataError(msg)
         entries[int(key)] = (entry, _setting(entry, guild_id, key))

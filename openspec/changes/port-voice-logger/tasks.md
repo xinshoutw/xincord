@@ -89,7 +89,7 @@
       sessions, outages and left guilds; remove the markers
 - [x] 14.6 xfail test for "A key that is not a guild ID" (found in the review: such a key stopped the
       checks and the load into a ready bot), and a test of the list check on that load
-- [ ] 14.7 Skip such keys with a warning; remove the marker
+- [x] 14.7 Skip such keys with a warning; remove the marker
 
 ## 15. Close
 

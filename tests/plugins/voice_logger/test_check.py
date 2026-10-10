@@ -8,7 +8,6 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 from discord_fakes import FakeChannel, FakeGuild, FakeVoiceChannel
 from plugin_fakes import dispatch, load_plugin
@@ -18,6 +17,8 @@ from xincord.plugins.voice_logger.store import NAMESPACE, add_channels, read_set
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import pytest
 
     from xincord.core.storage import JSON, Store
 
@@ -124,7 +125,6 @@ async def test_loaded_into_a_ready_bot(
     assert (await read_settings(store, 10))[5] == Setting(allow=(30,))
 
 
-@pytest.mark.xfail(strict=True, reason="Settings are checked when the bot is ready")
 async def test_a_key_that_is_not_a_guild_id(
     store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
