@@ -32,3 +32,6 @@ async def setup(bot: Bot) -> None:
     lang = context.lang(DEFAULT_LOCALE)
     cog = Ticket(bot, context.store, lang, Templates.load(lang))
     await bot.add_cog(cog)
+    # Guild commands, as in v3. discord.py removes them when the plugin unloads.
+    for command in cog.commands():
+        bot.tree.add_command(command)

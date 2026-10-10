@@ -92,7 +92,6 @@ def listed(actual: object, expected: object) -> object:
     return actual
 
 
-@pytest.mark.xfail(strict=True, reason="The commands are localized administrator guild commands")
 async def test_command_payloads(bot: Bot) -> None:
     """Requirement: The commands are localized administrator guild commands."""
     global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
@@ -103,7 +102,6 @@ async def test_command_payloads(bot: Bot) -> None:
     assert not {NAME, "add-ticket"} & {entry["name"] for entry in global_payload}
 
 
-@pytest.mark.xfail(strict=True, reason="The commands are localized administrator guild commands")
 async def test_command_callback(bot: Bot, cog: Ticket) -> None:
     """Requirement: The commands are localized administrator guild commands."""
     command = bot.tree.get_command(NAME)
@@ -121,9 +119,6 @@ async def test_command_callback(bot: Bot, cog: Ticket) -> None:
     assert edited == "edit_original_response"
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The create command opens the builder"
-)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_builder(cog: Ticket, locale: str) -> None:
     """Requirement: The create command opens the builder."""
@@ -139,9 +134,6 @@ async def test_builder(cog: Ticket, locale: str) -> None:
     assert rows(fields["view"]) == expected_rows(NAME, locale)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The create command opens the builder"
-)
 async def test_new_draft(cog: Ticket) -> None:
     """Requirement: The create command opens the builder."""
     await cog.create_ticket(run("zh-TW", message_id=43).as_interaction())
@@ -164,9 +156,6 @@ async def test_new_draft(cog: Ticket) -> None:
     assert draft.button_emoji == chr(0x2709)  # v3's envelope, without a variation selector
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The create command opens the builder"
-)
 async def test_outside_guild(cog: Ticket) -> None:
     """Requirement: The create command opens the builder."""
     interaction = run()

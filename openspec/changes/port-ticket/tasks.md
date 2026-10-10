@@ -29,7 +29,7 @@
 
 - [x] 6.1 xfail tests for "The commands are localized administrator guild commands" and "The
       create command opens the builder"
-- [ ] 6.2 Build and register the commands, `defaults` and the create callback; remove the markers
+- [x] 6.2 Build and register the commands, `defaults` and the create callback; remove the markers
 
 ## 7. Adding to a message
 
