@@ -4,6 +4,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChatLogger.kt:31-382
 """
 
+import asyncio
 from typing import TYPE_CHECKING, Any
 
 import discord
@@ -21,6 +22,8 @@ from .messages import MessageLog, Stored
 from .text import fit, message_text
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
@@ -33,6 +36,9 @@ NAMESPACE = "ChatLogger"  # the plugin's name: its settings in the store
 IDS = ComponentIds("chat_logger", ("action",), legacy_prefix="chat-logger@")
 ROOT = "chat-logger"  # v3's command, and the root of its register.yaml keys
 MENU = "chat-logger@setting"  # the settings menu's template
+HOUR = 3600  # seconds between the deletions of the messages older than the retention
+
+type Sleep = Callable[[float], Awaitable[object]]
 
 
 class ChatLogger(commands.Cog):
@@ -50,6 +56,12 @@ class ChatLogger(commands.Cog):
         self.messages = MessageLog(store)
         # The menu, its components, the posts and the checks at READY, shared with VoiceLogger.
         self.listen = ListenChannels(bot, self.settings, Menu(lang, templates, IDS, "cl", MENU))
+        self.tasks: tuple[asyncio.Task[None], ...] = ()  # the retention loop once loaded
+        self.sleep: Sleep = asyncio.sleep  # between the retention's deletions
+
+    async def prune(self) -> None:
+        """Delete the stored messages older than the retention."""
+        raise NotImplementedError
 
     def command(self) -> app_commands.Group:
         """Build v3's ``/chat-logger`` with its subcommand ``setting``, from ``register.yaml``.
