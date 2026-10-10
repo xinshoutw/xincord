@@ -10,7 +10,6 @@ Kotlin:
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 from xincord.core.plugins import PluginInfo, discover
 
@@ -19,7 +18,6 @@ if TYPE_CHECKING:
 
     from xincord.core.bot import Bot
 
-XFAIL = pytest.mark.xfail(strict=True, reason="The plugin installs as DynamicVoiceChannel")
 MESSAGES = ("bind-success", "must-under-category", "unbind-fail", "unbind-success")
 LANG_FILES = tuple(
     f"{locale}/{name}"
@@ -28,7 +26,6 @@ LANG_FILES = tuple(
 )
 
 
-@XFAIL
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as DynamicVoiceChannel."""
     # No dependencies: v3's SQLiteAPI was never used. The voice states intent is v3's
@@ -42,14 +39,12 @@ def test_discovered_by_name() -> None:
     ]
 
 
-@XFAIL
 async def test_the_bot_requests_the_voice_states_intent(bot: Bot) -> None:
     """Requirement: The plugin installs as DynamicVoiceChannel."""
     assert bot.loaded == ("DynamicVoiceChannel",)
     assert bot.intents.voice_states
 
 
-@XFAIL
 async def test_first_load_creates_the_lang_files(bot: Bot, tmp_path: Path) -> None:
     """Requirement: The plugin installs as DynamicVoiceChannel."""
     directory = tmp_path / "plugins" / "DynamicVoiceChannel"
