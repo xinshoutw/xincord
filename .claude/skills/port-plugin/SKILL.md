@@ -276,12 +276,15 @@ async def setup(bot: Bot) -> None:
   params=...)`, because `Guild.audit_logs` drops their `options`, and matched by type, channel and
   time (`status.match`), never as the guild's newest entry; `guild.fetch_member` stands for JDA's
   `retrieveMemberById`.
-- Message events: `on_message` (skip `message.guild is None` and the bot's own messages, which
-  come too), `on_raw_message_edit` (`payload.message` is the updated message that discord.py
-  builds from the payload; `on_message_edit` needs the cached one), `on_raw_message_delete` and
-  `on_raw_bulk_message_delete`. Read the channel's place before the first await: a thread's parent
-  and that channel's category come from `thread.parent`, since `Thread.category_id` raises without
-  it (ChatLogger's `Place.of`). `INTENTS = discord.Intents(guild_messages=True,
+- Message events: a new message comes from the relayed `MESSAGE_CREATE` payload
+  (`bot.relay_gateway_event("MESSAGE_CREATE")`, `on_gateway_message_create`; skip direct messages
+  and the bot's own), because `on_message` gets discord.py's cached `Message`, which an edit parsed
+  before the listener runs has changed in place; `on_raw_message_edit` (`payload.message` is a new
+  message built from the update; `on_message_edit` needs the cached one), `on_raw_message_delete`
+  and `on_raw_bulk_message_delete` wait for the message's handling under way (ChatLogger's
+  `inserting`). Read the channel's place before the first await: a thread's parent and that
+  channel's category come from `thread.parent`, since `Thread.category_id` raises without it
+  (ChatLogger's `Place.of`). Test frames that arrive together with `plugin_fakes.burst`. `INTENTS = discord.Intents(guild_messages=True,
   message_content=True)`: the message content intent is privileged, and Discord refuses the bot's
   connection unless the developer portal allows it; the smoke checklist says so.
 - State that mirrors Discord's (VoiceLogger's tracked voice statuses) is forgotten at each READY

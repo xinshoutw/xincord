@@ -26,8 +26,8 @@ entries; storing attachments, stickers or reactions; a purge command; the Web Da
 
 ### Shared listen channels
 
-v3 copied `ChannelData`, `JsonManager`, the settings menu and `sendListenChannel` between VoiceLogger
-and ChatLogger. They move from `xincord.plugins.voice_logger` into
+v3 copied `ChannelData`, `JsonManager`, the settings menu and `sendListenChannel` between
+VoiceLogger and ChatLogger. They move from `xincord.plugins.voice_logger` into
 `packages/xincord-plugins/src/xincord/plugins/listen_channels/`, a package without an entry point
 that both plugins import; neither plugin needs the other:
 
@@ -59,8 +59,9 @@ allowed; in the block mode none may be blocked. `targets(settings, places)` take
 
 - `packages/xincord-plugins/src/xincord/plugins/chat_logger/`: `__init__.py` (metadata and
   `setup`), `config.py`, `text.py` (pure: a message's text and the texts that fit a field),
-  `logs.py` (pure: what a log shows of a channel and an author), `messages.py` (the stored
-  messages), `cog.py` (the command, the listeners, the retention loop and the checks) and `lang/`.
+  `created.py` (a new message from its `MESSAGE_CREATE` payload), `logs.py` (pure: what a log
+  shows of a channel and an author), `messages.py` (the stored messages), `cog.py` (the command,
+  the listeners, the retention loop and the checks) and `lang/`.
   Entry point `ChatLogger = "xincord.plugins.chat_logger"`.
 - `DEPENDS` and `SOFT_DEPENDS` are empty: v3's `SQLiteAPI` dependency is the core store (B12).
   `INTENTS = discord.Intents(guild_messages=True, message_content=True)`, v3's `GUILD_MESSAGES` and
@@ -68,10 +69,11 @@ allowed; in the block mode none may be blocked. `targets(settings, places)` take
   the developer portal does not allow it, and without it messages arrive without their text. The
   members intent is not needed: messages carry their author, and the author of a deletion is
   fetched. `DEFAULT_LOCALE = "zh-TW"`, v3's default and fallback.
-- `lang/` holds v3's 16 files (`register.yaml`, `placeholder.yaml` and `message/{chat-logger@setting,
-  delete,modify-allow,modify-block,on-msg-delete,on-msg-update}.yaml` per locale), each with a final
-  newline (six files had none). The texts are v3's. `config.yaml` holds v3's `log_all` and the new
-  `retention_days`, with comments that name the Message Content intent.
+- `lang/` holds v3's 16 files (`register.yaml`, `placeholder.yaml` and
+  `message/{chat-logger@setting,delete,modify-allow,modify-block,on-msg-delete,on-msg-update}.yaml`
+  per locale), each with a final newline (six files had none). The texts are v3's. `config.yaml`
+  holds v3's `log_all` and the new `retention_days`, with comments that name the Message Content
+  intent.
 - uv_build ships every file in the package. Checked on 2026-10-10: the wheel from
   `uv build --package xincord-plugins` lists the six modules, `config.yaml`, the 16 lang files, the
   shared `listen_channels` package and the `ChatLogger` entry point; `xincord --no-online`, run from
@@ -162,10 +164,19 @@ the template `chat-logger@setting`; the select menus offer v3's ten channel type
 
 ### Storing messages
 
-`on_message` stores each guild message that the bot did not send, other bots' and webhooks'
-included (v3's filter), with `log_all` true; with `log_all` false, only when a listen channel of the
-guild detects its channel. The channel (`logs.Place.of`) is read before anything awaits:
-discord.py runs listeners as tasks and later events change its cache meanwhile.
+`setup` relays `MESSAGE_CREATE` (`bot.relay_gateway_event`, the core's), and
+`on_gateway_message_create(payload)` stores each guild message that the bot did not send, other
+bots' and webhooks' included (v3's filter), from Discord's payload (`created.parse_created`), with
+`log_all` true; with `log_all` false, only when a listen channel of the guild detects its channel.
+discord.py's `on_message` gets its cached `Message`, which a `MESSAGE_UPDATE` parsed before the
+listener runs changes in place, and discord.py parses the frames that arrived together without
+yielding: a scratch probe through discord.py's gateway code stored the edited text and lost the
+edit's log. The payload keeps the text that the message was sent with, as JDA's event did. The
+channel (`logs.Place.of`) is read before anything awaits: discord.py runs listeners as tasks and
+later events change its cache meanwhile. The insert registers in `inserting` before anything
+awaits, and the message's edits and deletions wait for it (`_inserted`), so that they reach the
+store after it, also when the insert waits for the settings (`log_all` false) and a deletion
+arrives at once, as a ghost ping's does.
 
 `text.message_text(content, embeds)`: the content, then each rich embed's author name and title
 (one line each), its description and its fields (name and value on two lines), the parts separated
@@ -200,8 +211,8 @@ templates show no thumbnail; v3 posted nothing.
 ### Texts in the logs
 
 `text.fit(text)` keeps `cl_msg_before` and `cl_msg_after` within an embed field: a text longer than
-1024 UTF-16 code units (JDA's count) is cut to the characters that fit before `...`. The core renders
-each value once, so `%...%` in a message is shown as written.
+1024 UTF-16 code units (JDA's count) is cut to the characters that fit before `...`. The core
+renders each value once, so `%...%` in a message is shown as written.
 
 ### Posts
 
@@ -212,7 +223,8 @@ settings, another `discord.HTTPException` is a warning, and the other channels s
 
 ### Retention
 
-`cog_load` starts one task that waits for READY, then deletes the messages older than
+`cog_load` checks the guilds of a ready bot first (see below), so that a failing check leaves no
+loop behind, then starts one task that waits for READY, then deletes the messages older than
 `retention_days` (`MessageLog.prune(time_snowflake(now - retention))`) and sleeps an hour, again and
 again; `cog_unload` cancels and awaits it. A failed deletion (`sqlite3.Error`) is logged with its
 traceback and the loop goes on. `--no-online` never becomes ready, so it deletes nothing. The sleep
@@ -249,6 +261,9 @@ lists hold voice channels and categories only, so its check is unchanged.
   parsers reach the listeners. `FakeGuild.threads` stands for the active threads.
 - The retention loop's sleep is replaced by `Hours`, which records each delay and waits until the
   test ends the hour.
+- `plugin_fakes.burst(bot, events)` parses several gateway events before any listener runs and
+  then runs the listeners as concurrent tasks, as discord.py does with frames that arrived
+  together ("Edited at once", "Deleted at once").
 - `tests/fixtures/plugins/chat_logger/golden.yaml`: v3's embeds per locale for the menu, `delete`,
   the select menus and the two logs, and the translated command payload.
 - VoiceLogger's tests follow the moved code: `ListenSettings(store, NAMESPACE)` replaces the store
@@ -413,9 +428,10 @@ Every section of `docs/porting/analysis/inventory/ChatLogger.md` maps to this ch
   "Refused listen channel"; one member fetch per logged deletion (one per author in a bulk
   deletion) and one message per listen channel and event are kept (Risks).
 - Concurrency (11): JDA's sequential dispatch became discord.py's tasks: the place is read before
-  any await, each `MessageLog` operation is one transaction ("Second edit"), the settings change
-  under the guild's lock (shared, VoiceLogger's "Concurrent changes"), and each log renders with its
-  own values.
+  any await, a new message is read from its payload and its edits and deletions wait for its
+  insert ("Edited at once", "Deleted at once"), each `MessageLog` operation is one transaction
+  ("Second edit"), the settings change under the guild's lock (shared, VoiceLogger's "Concurrent
+  changes"), and each log renders with its own values.
 - Bugs (12): 1 is the store read per use; 2 is "Modify a list" (allow mode); 3 is "Delete"; 4 is
   "Only detected channels"; 5 is one table without per-channel tables; 6 is "The bot leaves" with
   `log_all` false; 7 is the core's store; 8 is "Author gone"; 9 is "Long text" and "Long list"; 10
@@ -439,9 +455,8 @@ Every section of `docs/porting/analysis/inventory/ChatLogger.md` maps to this ch
 
 - Message content is stored for `retention_days` days in the shared database file; anyone with the
   file can read it. The default is 30 days.
-- With `log_all: false`, the settings are read for every message, and a message that is deleted
-  before its insert reached the store (the insert waits for that read) stays stored until the
-  retention removes it.
+- With `log_all: false`, the settings are read for every message; the message's edits and
+  deletions wait for that read and the insert.
 - A purge of many detected messages posts one embed per message; Discord's rate limit spreads them
   over time (about one per second per listen channel).
 - The message log shares the store's worker thread with the other plugins (see the storage

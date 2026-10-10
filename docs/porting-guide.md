@@ -66,7 +66,7 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `guild.getGuildChannelById(id).sendMessage(...)` to a channel that a command set up | `bot.get_partial_messageable(id, guild_id=...).send(...)`, which needs no cache; `discord.NotFound` means the channel is gone (VoiceLogger's listen channels) | |
 | `deferEdit()` and `hook.editOriginal(MessageEditData.fromCreateData(...))` on a component | `interaction.response.edit_message(content=..., embeds=..., view=..., attachments=...)`: one type-7 response that replaces the message (`embeds=()` and `view=None` clear them) | B5 |
 | `EntitySelectInteractionEvent.values` | `interaction.data["values"]`, snowflakes as strings, with `component_type` 5 to 8 | |
-| `MessageReceivedEvent` | `on_message(message)`: `message.guild` is None outside guilds (and for a guild that discord.py has not cached); the bot's own messages come too, compare `bot.user.id` | B3 |
+| `MessageReceivedEvent` | `bot.relay_gateway_event("MESSAGE_CREATE")` and a cog listener `on_gateway_message_create(payload)`, Discord's payload as the message was sent: `on_message` gets discord.py's cached `Message`, which an edit parsed before the listener runs changes in place; the bot's own messages come too, compare `bot.user.id` (ChatLogger's `created.py`) | B3 |
 | `MessageUpdateEvent` (every `MESSAGE_UPDATE`, the message cached or not) | `on_raw_message_edit(payload)` with `payload.message`, the updated message that discord.py builds from the payload (since 2.5); `on_message_edit` needs the cached message | B3 |
 | `MessageDeleteEvent` / `MessageBulkDeleteEvent` | `on_raw_message_delete(payload)` / `on_raw_bulk_message_delete(payload)`, uncached messages too; discord.py never splits a bulk deletion | B3 |
 | `Message.contentRaw` and `getEmbeds()` | `message.content` and `message.embeds`; an embed's `type` is `rich` for bots' and webhooks' embeds and a preview type (`link`, `article`, `image`, `video`, `gifv`) for the ones Discord adds from links | |
@@ -448,6 +448,12 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   threads out; `guild.threads` holds the active ones (ChatLogger's `Place.of`).
 - **Embed types.** `Embed.from_dict` leaves `type` None when the payload has none; Discord's
   default is `rich`.
+- **The cached message changes in place.** discord.py parses the gateway frames that arrived
+  together without yielding, then runs the listeners as tasks: `on_message` gets the cached
+  `Message`, which a `MESSAGE_UPDATE` parsed meanwhile has already changed, and a listener's awaits
+  let later events' listeners overtake it. Read a new message from the relayed `MESSAGE_CREATE`
+  payload, and let a message's later events wait for its handling (ChatLogger's `inserting`);
+  `plugin_fakes.burst` reproduces such frames in tests.
 - **Privileged message content.** A plugin that declares `message_content` makes the core request
   it, and Discord closes the gateway (4014) unless the developer portal allows it: the bot does not
   connect at all. Without the intent, messages arrive without their text.

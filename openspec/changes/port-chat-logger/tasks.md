@@ -85,7 +85,7 @@
 
 ## 16. Review
 
-- [ ] 16.1 Gate passes, push, CI green (before the review)
+- [x] 16.1 Gate passes, push, CI green (before the review)
 - [ ] 16.2 Cross-review the change (other paths into the features, repeated events, state left
       behind); fix each finding xfail-first
 - [x] 16.3 xfail tests for "Edited at once" and "Deleted at once" (found during the review: the
