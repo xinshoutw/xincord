@@ -72,7 +72,6 @@ def amounts(embed: dict[str, Any]) -> list[str]:
     return [field["value"] for field in embed["fields"]]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=SHOWN)
 @pytest.mark.parametrize("locale", [EN, ZH], ids=["en-US", "zh-TW"])
 async def test_own_wallet(cog: Economy, store: Store, locale: discord.Locale) -> None:
     """Requirement: The balance shows a wallet."""
@@ -84,7 +83,6 @@ async def test_own_wallet(cog: Economy, store: Store, locale: discord.Locale) ->
     assert replied(interaction) == [GOLDEN["balance"][locale.value]]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=SHOWN)
 async def test_no_wallet_yet(cog: Economy, store: Store) -> None:
     """Requirement: The balance shows a wallet."""
     interaction = balance(ALICE)
@@ -97,7 +95,6 @@ async def test_no_wallet_yet(cog: Economy, store: Store) -> None:
     assert await store.keys(NAMESPACE) == []  # v3 created the wallet and the guild's file
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=SHOWN)
 @pytest.mark.parametrize("member", [BOB, FakeUser(id=7, name="bob")], ids=["member", "user"])
 async def test_administrator_names_a_member(
     cog: Economy, store: Store, member: FakeMember | FakeUser
@@ -112,7 +109,6 @@ async def test_administrator_names_a_member(
     assert replied(interaction) == [GOLDEN["balance"]["en-US"]]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=SHOWN)
 @pytest.mark.parametrize("locale", [EN, ZH], ids=["en-US", "zh-TW"])
 async def test_member_names_someone_else(
     cog: Economy, store: Store, locale: discord.Locale
@@ -126,7 +122,6 @@ async def test_member_names_someone_else(
     assert replied(interaction) == [GOLDEN["no-permission"][locale.value]]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=SHOWN)
 async def test_member_names_themselves(cog: Economy, store: Store) -> None:
     """Requirement: The balance shows a wallet."""
     await give_bob(store)
@@ -137,9 +132,6 @@ async def test_member_names_themselves(cog: Economy, store: Store) -> None:
     assert replied(interaction) == [GOLDEN["balance"]["en-US"]]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The commands are localized guild commands"
-)
 async def test_outside_a_guild(cog: Economy) -> None:
     """Requirement: The commands are localized guild commands."""
     interaction = balance(BOB)
