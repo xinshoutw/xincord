@@ -21,7 +21,6 @@ if TYPE_CHECKING:
     from discord_fakes import FakeInteraction
 
 GOLDEN = golden("giveaway")
-LATEST = "Only the latest builder of a draft works"
 
 
 def expired(locale: str = "en-US") -> list[tuple[str, dict[str, object]]]:
@@ -35,7 +34,6 @@ def sent(interaction: FakeInteraction) -> list[tuple[str, dict[str, object]]]:
     return list(interaction.sent)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=LATEST)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_no_draft(scene: Scene, locale: str) -> None:
     """Requirement: Only the latest builder of a draft works."""
@@ -47,7 +45,6 @@ async def test_no_draft(scene: Scene, locale: str) -> None:
     assert scene.cog.drafts == {}
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=LATEST)
 async def test_older_builder(scene: Scene) -> None:
     """Requirement: Only the latest builder of a draft works."""
     scene.keep(Draft(title="New"), scene.who(message_id=44))
@@ -60,7 +57,6 @@ async def test_older_builder(scene: Scene) -> None:
     assert scene.draft() == Draft(title="New")
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=LATEST)
 async def test_someone_elses_draft(scene: Scene) -> None:
     """Requirement: Only the latest builder of a draft works."""
     scene.keep(Draft(title="Mine"))
@@ -71,7 +67,6 @@ async def test_someone_elses_draft(scene: Scene) -> None:
     assert scene.draft() == Draft(title="Mine")
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=LATEST)
 async def test_unknown_sub_action(scene: Scene) -> None:
     """Requirement: Only the latest builder of a draft works."""
     scene.keep(Draft(title="Mine"))

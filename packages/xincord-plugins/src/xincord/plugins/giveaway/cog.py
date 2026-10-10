@@ -33,6 +33,10 @@ if TYPE_CHECKING:
 # v3's fields in v3's order, all text, and v3's prefix, so that v3's posts keep working.
 IDS = ComponentIds("giveaway", ("action", "sub_action", "giveaway_id"), legacy_prefix="giveaway@")
 BUTTON = 2  # the component type of a button, which v3's onButtonInteraction took
+# The builder's buttons that open the modal of the same name, and the modals that change a draft.
+MODALS = frozenset(
+    ("set-title", "set-description", "set-end-time", "set-sponsor", "set-thumbnail", "add-prize")
+)
 
 
 @dataclass(frozen=True)
@@ -112,12 +116,82 @@ class Giveaway(commands.Cog):
             await self.submit(interaction, sub_action)
 
     async def press(self, interaction: discord.Interaction, sub_action: str) -> None:
-        """Handle a press of the builder's button ``sub_action``."""
-        raise NotImplementedError
+        """Handle a press of the builder's button ``sub_action``.
+
+        Without the user's draft, or from a builder message other than the one that shows it, the
+        user gets v3's session-expired text; v3 found the draft by the user and the guild only, so
+        an older builder drove the newest draft. Unknown sub-actions get no response, as in v3.
+        """
+        session = self._session(interaction)
+        if session is None:
+            await _tell(interaction, self._texts(interaction).get("error.expired"))
+            return
+        match sub_action:
+            case "remove-prize":
+                await self._remove_prize(interaction, session)
+            case "toggle-duplicate-policy":
+                await self._switch_policy(interaction, session)
+            case "confirm-create":
+                await self._confirm(interaction, session)
+            case "cancel":
+                await self._cancel(interaction)
+            case _ if sub_action in MODALS:
+                await self._open_modal(interaction, session, sub_action)
+            case _:
+                pass
 
     async def submit(self, interaction: discord.Interaction, sub_action: str) -> None:
-        """Handle a submission of the builder's modal ``sub_action``."""
+        """Handle a submission of the builder's modal ``sub_action``.
+
+        As a press, without the draft the user gets the session-expired text. An unknown
+        sub-action gets no response; v3 re-rendered the preview.
+        """
+        session = self._session(interaction)
+        if session is None:
+            await _tell(interaction, self._texts(interaction).get("error.expired"))
+        elif sub_action in MODALS:
+            await self._apply(interaction, session, sub_action)
+
+    async def _open_modal(
+        self, interaction: discord.Interaction, session: Session, sub_action: str
+    ) -> None:
+        """Open the modal ``sub_action``, pre-filled with the draft."""
         raise NotImplementedError
+
+    async def _apply(
+        self, interaction: discord.Interaction, session: Session, sub_action: str
+    ) -> None:
+        """Change the draft with the submitted modal ``sub_action``."""
+        raise NotImplementedError
+
+    async def _remove_prize(self, interaction: discord.Interaction, session: Session) -> None:
+        """Remove the draft's last prize."""
+        raise NotImplementedError
+
+    async def _switch_policy(self, interaction: discord.Interaction, session: Session) -> None:
+        """Switch the draft's winner policy."""
+        raise NotImplementedError
+
+    async def _confirm(self, interaction: discord.Interaction, session: Session) -> None:
+        """Check the draft and post the giveaway."""
+        raise NotImplementedError
+
+    async def _cancel(self, interaction: discord.Interaction) -> None:
+        """Drop the user's draft."""
+        raise NotImplementedError
+
+    def _session(self, interaction: discord.Interaction) -> Session | None:
+        """The user's draft in the guild, if the interaction comes from the builder showing it."""
+        guild_id = interaction.guild_id
+        session = None if guild_id is None else self.drafts.get((interaction.user.id, guild_id))
+        message = interaction.message
+        if session is None or message is None or message.id != session.message_id:
+            return None
+        return session
+
+    def _texts(self, interaction: discord.Interaction) -> Texts:
+        """The texts in the user's language."""
+        return Texts(self.lang, language(self.lang, interaction.locale.value))
 
     def _builder(self, interaction: discord.Interaction, draft: Draft) -> Message:
         """v3's ``create-giveaway`` with the preview of ``draft``, in the user's language.
@@ -132,3 +206,8 @@ class Giveaway(commands.Cog):
             build_id=IDS.build,
             models={"ga@preview-embed": embed},
         )
+
+
+async def _tell(interaction: discord.Interaction, text: str) -> None:
+    """Answer the interaction with ``text``, ephemerally, as v3's replies."""
+    await interaction.response.send_message(text, ephemeral=True)

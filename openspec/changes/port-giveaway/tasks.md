@@ -57,7 +57,7 @@
 
 - [x] 11.1 xfail tests for "Only the latest builder of a draft works" against stubs `press` and
       `submit`, with `handle` dispatching to them
-- [ ] 11.2 Look the draft up by user, guild and builder message, answer the session-expired text,
+- [x] 11.2 Look the draft up by user, guild and builder message, answer the session-expired text,
       dispatch the sub-actions; remove the markers
 
 ## 12. Modals
