@@ -6,7 +6,7 @@ Kotlin:
 """
 
 import logging
-from typing import TYPE_CHECKING, NamedTuple, Protocol, override, runtime_checkable
+from typing import TYPE_CHECKING, Any, NamedTuple, Protocol, override, runtime_checkable
 
 import discord
 from discord import app_commands
@@ -48,12 +48,28 @@ class Postable(TextChannelLike, Protocol):
 
 
 class TextChannelOption(app_commands.Transformer[discord.Client]):
-    """Stub until the commands exist."""
+    """v3's ``channel`` option: Discord offers text channels only, as JDA's ``ChannelType.TEXT``.
+
+    discord.py's ``discord.TextChannel`` annotation would also offer announcement channels and
+    need the channel in the cache; this passes on the channel that Discord resolved.
+    """
+
+    @property
+    @override
+    def type(self) -> discord.AppCommandOptionType:
+        """A channel option."""
+        return discord.AppCommandOptionType.channel
+
+    @property
+    @override
+    def channel_types(self) -> list[discord.ChannelType]:
+        """Text channels only."""
+        return [discord.ChannelType.text]
 
     @override
     async def transform(self, interaction: discord.Interaction, value: object, /) -> object:
-        """Stub until the commands exist."""
-        raise NotImplementedError
+        """Pass on the ``AppCommandChannel`` that Discord resolved."""
+        return value
 
 
 class CommandSpec(NamedTuple):
@@ -178,10 +194,42 @@ class WelcomeByeGuild(commands.Cog):
                 error,
             )
 
+    def command(self, name: str) -> app_commands.Command[Any, ..., None]:
+        """Build v3's command ``name``, localized from ``register.yaml``, for administrators.
+
+        As in v3, only administrators see it by default; Discord enforces that, and a guild that
+        grants it to others in its integration settings meets the check in ``_guild``. The bind
+        commands share ``bind_channel`` and the unbind commands ``unbind_channel``.
+        """
+        lang, spec = self.lang, COMMANDS[name]
+        key = name.replace("-", "_")  # v3's register.yaml keys
+        description = lang.command(spec.description, f"{key}.description")
+        command: app_commands.Command[Any, ..., None]
+        if spec.option is None:
+            command = app_commands.Command(
+                name=lang.command(name, f"{key}.name"),
+                description=description,
+                callback=self.unbind_channel,
+            )
+        else:
+            command = app_commands.Command(
+                name=lang.command(name, f"{key}.name"),
+                description=description,
+                callback=self.bind_channel,
+            )
+            app_commands.rename(channel=lang.command("channel", f"{key}.options.channel.name"))(
+                command
+            )
+            app_commands.describe(
+                channel=lang.command(spec.option, f"{key}.options.channel.description")
+            )(command)
+        return app_commands.default_permissions(administrator=True)(command)
+
     async def bind_channel(
         self,
         interaction: discord.Interaction,
-        channel: app_commands.AppCommandChannel | None = None,
+        channel: app_commands.Transform[app_commands.AppCommandChannel, TextChannelOption]
+        | None = None,
     ) -> None:
         """Bind the option's text channel, else the command's, as the welcome or bye channel.
 

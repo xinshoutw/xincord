@@ -30,7 +30,6 @@ if TYPE_CHECKING:
     # discord.py calls a cog command's function with the cog, its binding.
     type Callback = Callable[[WelcomeByeGuild, discord.Interaction], Awaitable[None]]
 
-REASON = "The commands are localized administrator guild commands"
 GOLDEN = golden("welcome_bye_guild")
 NAMES = ("welcome-channel-bind", "welcome-channel-unbind", "bye-channel-bind", "bye-channel-unbind")
 
@@ -40,7 +39,6 @@ def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
     return {key: actual.get(key) for key in expected}
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 async def test_command_payload(bot: Bot) -> None:
     """Requirement: The commands are localized administrator guild commands."""
     global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
@@ -52,7 +50,6 @@ async def test_command_payload(bot: Bot) -> None:
     assert not {entry["name"] for entry in global_payload} & set(NAMES)
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 @pytest.mark.parametrize(
     ("name", "reply"),
     [
@@ -87,7 +84,6 @@ async def test_command_callback(bot: Bot, cog: WelcomeByeGuild, name: str, reply
     assert fields["content"] == GOLDEN["replies"]["en-US"][reply]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_text_channels_only() -> None:
     """Requirement: The commands are localized administrator guild commands."""
     resolved = SimpleNamespace(id=5, name="general", type=discord.ChannelType.text)
