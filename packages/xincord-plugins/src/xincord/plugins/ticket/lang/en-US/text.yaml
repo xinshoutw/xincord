@@ -1,0 +1,60 @@
+# The texts that v3 wrote in its code (Ticket.kt, StepManager.kt and StepData.kt).
+# The plugin fills the %tt@...% placeholders; their values are inserted as written.
+
+# A new panel's values in the builder (StepData.kt:181-196, in the words of v3's en-US modals).
+defaults:
+  reason-title: "Do you have any questions we can help with?"
+  author: "Ticket Service"
+  author-icon-url: "https://img.lovepik.com/free-png/20211116/lovepik-customer-service-personnel-icon-png-image_400960955_wh1200.png"
+  title: "🛠 Contact Us"
+  description: "✨ Click the **[button]** below and tell us your problem; we will answer as soon as we can! ✨"
+  button-text: "Contact Us"
+  button-emoji: "✉"
+
+# The labels of a ticket channel's control row (Ticket.kt:784-821), in the default locale.
+control:
+  lock: "Close"
+  unlock: "Open"
+  save: "Save Conversation"
+  delete: "Delete"
+
+# Replies to the user who acted.
+reply:
+  go-to-channel: "Please go to %tt@channel% and wait for a staff member to reply."
+  choose-channel: "Choose the text channel to save the conversation in"
+  saving: "Saving..."
+  saved: "Saved in the thread %tt@thread%"
+
+error:
+  not-found: "Error (the ticket settings were not found; they may have been deleted)"
+  admin-only: "Only administrators can use this."
+  no-member: "Error (the member cannot be found)"
+  not-text-channel: "Error (this channel is not a text channel)"
+  choose-text-channel: "Please choose a text channel."
+  no-history-permission: "The bot cannot read this ticket's message history."
+  no-target-permission: "The bot lacks permissions in the target channel (VIEW_CHANNEL / MESSAGE_SEND / MESSAGE_SEND_IN_THREADS / CREATE_PUBLIC_THREADS / MANAGE_WEBHOOKS)"
+  save-failed: "Saving failed: %tt@error%"
+  no-category: "Error (the category cannot be found)"
+  # v3 wrote these four in English for every locale.
+  message-not-found: "Cannot find the message by id: %tt@message-id%"
+  message-full: "This message is full of buttons, please recreate a new message"
+  category-not-found: "Cannot find a category with the id %tt@category-id%!"
+  button-empty: "Either ButtonText or ButtonEmoji must be provided!"
+  # New in xincord.
+  expired: "This setup has expired; run the command again."
+  invalid-message-id: "The message ID must be a number: %tt@message-id%"
+  not-own-message: "Buttons can only be added to the bot's own messages."
+  no-embed: "This message has no embed, so no ticket button can be added."
+  invalid-color: "Invalid color; use #RRGGBB or 0xRRGGBB: %tt@color%"
+  refused: "Discord refused this change: %tt@error%"
+  create-failed: "Creating the ticket button failed: %tt@error%"
+  ticket-failed: "Opening the ticket failed: %tt@error%"
+  lock-failed: "Changing the ticket's permissions failed: %tt@error%"
+  delete-failed: "Deleting the ticket failed: %tt@error%"
+
+# The markers of a flattened thread in the archive (Ticket.kt:719-746), in the default locale.
+archive:
+  start: "[Thread start]\nAuthor: %tt@owner%\nName: %tt@name%\nStarted: %tt@time%"
+  end: "[Thread end]\nAuthor: %tt@owner%\nName: %tt@name%\nLast message: %tt@time%"
+  error: "[Thread flattening failed]\nAuthor: %tt@owner%\nName: %tt@name%\nError: %tt@error%"
+  no-message: "No messages"
