@@ -72,6 +72,17 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `Message.contentRaw` and `getEmbeds()` | `message.content` and `message.embeds`; an embed's `type` is `rich` for bots' and webhooks' embeds and a preview type (`link`, `article`, `image`, `video`, `gifv`) for the ones Discord adds from links | |
 | SQLiteAPI's `SQLiteFileManager` (ChatLogger: a file per guild, a table per channel) | a plugin table in the core store through `Store.run`, named `<Plugin>_<table>` (`ChatLogger_messages`), each operation one transaction | B8, B12 |
 | Code that v3 copied between plugins (VoiceLogger's and ChatLogger's `ChannelData`, `JsonManager` and settings menu) | a package under `xincord.plugins` without an entry point that both plugins import (`xincord.plugins.listen_channels`: `ListenSettings`, `ListenChannels`) | B3 |
+| An in-memory builder session per user and guild that renders through the slash command's `InteractionHook` (Giveaway's `StepManager`) | the cog's drafts per user and guild with the builder message's ID; each press or submission answers with `response.edit_message(...)` (type 7), so the builder outlives the 15-minute hook and an older builder answers that the session expired (Giveaway) | |
+| `event.message.editMessage(...)` and `event.reply(...).setEphemeral(true)` on a post's button | `response.edit_message(...)` with the whole post, then `followup.send(..., ephemeral=True)`: one interaction response, which no channel rate limit delays (Giveaway's joins and draws) | B5 |
+| `guild.getTextChannelById(c).retrieveMessageById(m)` then `editMessage` | `bot.get_partial_messageable(c, guild_id=g).get_partial_message(m).edit(...)`: no cache, no fetch, any channel kind (Giveaway's automatic draw) | |
+| `scheduleAtFixedRate(task, 5, period)` started in `load()` | a `cog_load` task: `wait_until_ready()`, `sleep(5)`, then a pass and `sleep(period)` in a loop; each pass logs its failure and the loop goes on (Giveaway) | B3 |
+| `kotlin.random.Random.Default` and `shuffled(random).take(k)` | `random.SystemRandom()` on the cog (tests swap in a seeded `random.Random`) and `rng.sample(pool, k)`, the same distribution | |
+| `DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")` (SMART) and `atZone(ZoneId.systemDefault())` | a regex with range checks, the day clamped to the month and `24:00` as the next day, then `datetime(..., tzinfo=zone).timestamp()` (fold 0 matches Java in gaps and overlaps); the zone is a config key, empty for the host's (Giveaway's `times.py`) | |
+| `java.net.URI(value)` with an http(s) scheme and a host | `inputs.is_http_url`: RFC 2396's grammar with a server-based authority, `ipaddress` for IPv6 (Giveaway) | |
+| Kotlin `String.toIntOrNull()` | `re.fullmatch(r"[+-]?\d{1,9}", text)` then `int(text)`: Unicode digits, no `_` | |
+| User-facing texts hard-coded in Kotlin, chosen by a `zh` locale prefix | `lang/<locale>/text.yaml`, read with `Lang.text("text.<key>", locale)` and `%ga@...%` values in one pass; one locale for a message's texts and templates (Giveaway's `texts.language` and `Texts`) | B7 |
+| Moshi data classes with defaults, `JsonGuildFileManager` | frozen dataclasses with `parse_*` (v3's defaults, `DataError` for anything else) and `*_json` in Moshi's field order; each operation parses only the entries it needs (Giveaway's `model.py`) | B8, B11 |
+| camelCase keys in a v3 `config.yaml` | pydantic `Field(alias="camelCase")` on snake_case fields; validation errors name the alias (Giveaway's `Config`) | B6 |
 | Ktor Web-Dashboard | not ported | B13 |
 
 ## Intents kept from the v4 attempt (A3)
@@ -255,6 +266,19 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - Tests of message events feed discord.py's own parsers: `tests/support/payloads.py` builds the
   payloads, `plugin_fakes.add_guild` caches a guild, and `plugin_fakes.gateway` runs the listeners
   that the parsers dispatched (ChatLogger's `scene` fixture).
+- Texts that v3 wrote in its code go to a `text.yaml` per locale (no CJK in Python), with
+  `%ga@...%` placeholders rendered in one pass; a message's texts and its template come from one
+  locale: the plugin's files for the user's locale, else zh-TW for a Chinese locale and en-US for
+  another (Giveaway's `texts.language`).
+- State that a builder keeps between interactions (Giveaway's drafts) lives on the cog, keyed by
+  user and guild, with the ID of the message that shows it; every change answers through the
+  interaction that made it (`response.edit_message`), never through an older interaction's token.
+  A confirmation takes the state before its first await, so a second press finds none.
+- Data that must not lose a concurrent change and may also change nothing (joins, draws) runs a
+  pure transition under the guild's `store.lock`, reading, then writing only a changed document
+  (Giveaway's `Giveaways.change`); the automatic draw takes the same lock, so a draw happens once.
+- Values drawn at random come from `random.SystemRandom()` kept on the cog, which tests replace
+  with a seeded `random.Random`; the pure draw takes the generator as an argument.
 
 ## Pitfalls
 
@@ -467,11 +491,33 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - **Batched deletions.** SQLite's `DELETE` takes no `LIMIT` unless it was compiled with it: delete a
   batch through a subquery of IDs (ChatLogger's `PRUNE`).
 
+- **Re-imported plugin modules in tests.** A failed load (an invalid config) makes discord.py drop
+  the plugin's modules; later loads import new classes, and frozen dataclasses from the old and the
+  new module never compare equal (`Prize(...) != Prize(...)`). An autouse fixture that puts the
+  plugin's `sys.modules` entries back after each test keeps one set of classes (Giveaway's
+  `plugin_modules`).
+- **Modal submissions update their message.** discord.py's `response.edit_message` answers a
+  modal submission with type 7 when the modal came from a message's button: the builder message
+  changes without a hook.
+- **`strftime("%Y")`** does not pad years below 1000 everywhere; format the year with `:04d`. A
+  naive `datetime(1, 1, 1).timestamp()` (local time) raises `ValueError`.
+- **Embed totals.** Discord refuses an embed whose title, description, field names and values,
+  footer and author exceed 6000 characters; count UTF-16 code units and shorten the longest part
+  (Giveaway's `_fit` shortens the post's description).
+- **ruff's argument count** (PLR0913) includes keyword-only arguments: bundle values that travel
+  together in a frozen dataclass (Giveaway's `Drawer`, the tests' `Who`).
+- **Test modules cannot import `conftest`** at runtime (importlib mode): build its dataclasses
+  through a fixture's method (Giveaway's `scene.who(...)`).
+- **Gated xfail tests** that wait for a fake to start sending: `asyncio.wait({event_task, task},
+  return_when=FIRST_COMPLETED)` and `result()` on what finished, so a stub's `NotImplementedError`
+  surfaces at once instead of a timeout.
+
 v3 behaviors never to reproduce: loading plugins in reverse dependency order, non-atomic JSON
 writes that silently reset corrupt files, recursive placeholder expansion, shared mutable
 placeholder caches, `asTextChannel()` failures in threads, voice chat and announcement channels,
-allow-all mentions, naming the member of an event after the guild's newest audit log entry, and
-keeping message content forever.
+allow-all mentions, naming the member of an event after the guild's newest audit log entry,
+keeping message content forever, rendering a builder through an expired interaction token, and
+drawing a giveaway twice.
 
 ## Differences from v3
 
@@ -646,3 +692,15 @@ Every deliberate difference, added by the change that introduces it.
 | ChatLogger | a message over 1024 characters lost its log; `%...%` in messages was expanded, and `%cl_msg_after%` made the log throw | texts are cut with `...` and shown as written | port-chat-logger |
 | ChatLogger | a webhook's edit showed the placeholders themselves; a channel without a category showed an earlier category or the placeholder | the webhook's mention, and `-` | port-chat-logger |
 | ChatLogger | VoiceLogger's settings defects (the first use threw, the first selection switched to the block mode, "Delete" deleted the guild's file, the menu only in text channels, posts stopped at a missing listen channel, long lists broke the menu) | fixed as in VoiceLogger, by the same shared code | port-chat-logger |
+| Giveaway | v3's `plugins/Giveaway/data/<guildId>.json` | v3's document per guild in the store (namespace `Giveaway`), in Moshi's shape; v3's files are not read (migration deferred, B11) | port-giveaway |
+| Giveaway | two quick presses of Confirm Create posted two giveaways | the draft is taken before the post; the second press answers that the session expired | port-giveaway |
+| Giveaway | the builder rendered through the slash command's 15-minute hook, then silently stopped; long descriptions or prize lists froze it | each press or submission updates the builder; long fields end with `...` | port-giveaway |
+| Giveaway | any builder message of a user drove their newest draft | only the builder message that shows the draft; others answer that the session expired | port-giveaway |
+| Giveaway | a failed post replaced the builder with `create-failed` and left an orphaned draft; JDA's client-side errors said nothing | the builder and the draft stay, and `create-failed` with the error comes ephemerally | port-giveaway |
+| Giveaway | the automatic draw refreshed and announced in text channels only, saved after queuing the posts, and could draw a giveaway that a manual draw drew too | any channel kind through partial messageables; stored first, under the guild's lock | port-giveaway |
+| Giveaway | leaving a guild deleted its giveaways; giveaways of guilds left while offline were drawn silently | the giveaways stay; due ones wait until the bot is back in the guild | port-giveaway |
+| Giveaway | an invalid `defaultLocale` aborted the bot; an uppercase `HTTPS://` thumbnail was accepted but never shown | the plugin does not load, with the key named; the thumbnail shows | port-giveaway |
+| Giveaway | draft values were expanded as placeholders (a self-reference threw) and leaked into the global substitutor; the announcement pinged roles and everyone named in a title | values are inserted as written, per render; users only (B19) | port-giveaway |
+| Giveaway | texts and templates were chosen separately (en-GB: English texts, zh-TW buttons) | one language per message: the locale's files, else zh-TW for Chinese and en-US | port-giveaway |
+| Giveaway | the end time was read in the host's zone; `+12026-...` and `9999-12-31 24:00` were accepted | `timeZone` (empty for the host's); years up to 9999 | port-giveaway |
+| Giveaway | a modal with an unknown sub-action re-rendered the preview; a post button without an ID answered `Invalid giveaway id.` in English | no response; `Giveaway not found.` in the user's language | port-giveaway |

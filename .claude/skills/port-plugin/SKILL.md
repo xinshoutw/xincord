@@ -156,6 +156,10 @@ async def setup(bot: Bot) -> None:
   hold no CJK, and the bundled file can hold the zh-TW text (Feedbacker's `form_failure`).
 - Keys of a v3 feature that is not ported (Economy's Google Sheets keys, decision B12) are not
   fields: v3's files load and warn about each of them, as about `enabled`.
+- v3's camelCase keys (Giveaway's `defaultLocale`, `autoDrawIntervalSeconds`) are snake_case
+  fields with `Field(alias="camelCase")`; errors name the alias. A v3 `defaultLocale` is checked
+  against `discord.Locale` and passed to `context.lang(...)` after the config loads; a time zone
+  key is checked with `zoneinfo.ZoneInfo` (Giveaway's `timeZone`, empty for the host's).
 
 ### Storage
 
@@ -190,6 +194,12 @@ async def setup(bot: Bot) -> None:
   key (`retention_days`) and a background task that deletes the older rows at READY and every hour,
   in batches through a subquery, since the store's one thread serves every plugin (ChatLogger's
   `messages.py`). A snowflake gives its creation time (`discord.utils.time_snowflake`).
+- Records that concurrent presses and a background loop change, where a press may change nothing
+  (Giveaway's joins and draws), run a pure transition under the guild's `store.lock`: read the
+  document, parse only the entry needed, write only when the transition changed it
+  (`Giveaways.change`). Every writer of the namespace takes the same lock. v3's Moshi documents
+  parse into frozen dataclasses with v3's defaults (`parse_instance`) and write back in Moshi's
+  field order (`instance_json`); a broken entry raises `DataError` and stays as it is.
 
 ### Commands
 
@@ -340,6 +350,12 @@ async def setup(bot: Bot) -> None:
 - Outgoing HTTP uses aiohttp, which discord.py installs and `xincord-plugins` declares: one
   `ClientSession` per loop, opened after READY with v3's limits as `ClientTimeout` and closed with
   the loop (`async with`); `allow_redirects=False` matches Java's `HttpClient`.
+- v3's `scheduleAtFixedRate(task, delay, period)` is `wait_until_ready()`, `sleep(delay)`, then
+  passes with `sleep(period)` after each (Giveaway's `_auto_draw`); the cog keeps `sleep` and
+  `clock` (and `random` for draws: `random.SystemRandom()`) so tests drive them. A pass stores its
+  changes before it posts, and posts through `bot.get_partial_messageable(c, guild_id=g)`
+  (`get_partial_message(m).edit(...)` needs no fetch), cast to a Protocol that takes the view
+  union.
 - A Discord REST call that JDA made without a discord.py counterpart goes through
   `bot.http.request(discord.http.Route(method, path))` (IntervalPusher's `rest_ping`).
 
@@ -363,6 +379,12 @@ async def setup(bot: Bot) -> None:
   SimpleCommand, Economy's `no-permission`).
 - A template whose first embed's description is the template of rows (Economy's boards) is checked
   for every locale in `setup`, so that a broken one fails at load with the file named.
+- Texts that v3 hard-coded in Kotlin (Giveaway's field names, statuses, replies, errors) go in a
+  new `lang/<locale>/text.yaml` with `%ga@...%` placeholders, read with
+  `Lang.text("text.<key>", locale)` and rendered in one pass (`texts.Texts`). v3 chose them by a
+  `zh` prefix while templates fell back to the default locale; pick one locale for both
+  (`texts.language`: the locale's own files, else zh-TW for `zh*` and en-US). Check the copied
+  texts against the Kotlin sources with a script, fragment by fragment.
 
 ### Components
 
@@ -395,6 +417,17 @@ async def setup(bot: Bot) -> None:
   `message.edit(view=...)` (Feedbacker's `highlight`). A submission that posts elsewhere defers
   (`response.defer()`, a deferred message update) and reports a failure with
   `followup.send(..., ephemeral=True)`.
+- A button that changes its own message (Giveaway's Join / Leave and Draw Winners) answers with
+  `response.edit_message(...)` and the whole re-rendered message, then tells the user with
+  `followup.send(..., ephemeral=True)`: one interaction response per press, which no channel rate
+  limit delays (v3 edited through the REST API and replied).
+- State that a builder keeps between interactions (Giveaway's drafts) lives on the cog, keyed by
+  user and guild, with the ID of the message that shows it (the message that
+  `edit_original_response` returns); presses and modal submissions from another message answer
+  that the session expired. Each change answers through its own interaction (`edit_message` also
+  works for a modal opened from that message), never through the command's 15-minute token. A
+  confirmation removes the state before its first await, so a second press finds none, and gives
+  it back with `setdefault` when posting fails.
 
 ### Tests
 
@@ -491,3 +524,15 @@ async def setup(bot: Bot) -> None:
   test load the plugin with another `config.yaml` through `pytest.mark.parametrize("config", ...)`.
 - ruff, pyright, pytest and coverage already cover `packages/` and `tests/`; nothing to configure
   per plugin.
+- A plugin whose tests load invalid configs and compare its frozen dataclasses needs an autouse
+  fixture that puts its `sys.modules` entries back after each test (Giveaway's `plugin_modules`):
+  a failed load makes discord.py import new classes, which never equal the old ones.
+- Test modules cannot import `conftest` at runtime: a dataclass of the conftest (Giveaway's `Who`,
+  who presses, in which locale, on which message) is built through a fixture's method
+  (`scene.who(locale="zh-TW")`). `discord_fakes`: `FakeInteraction.original` is what
+  `edit_original_response` returns; `FakeChannel.send` returns a `FakeMessage` (with `jump_url`)
+  and `get_partial_message` gives its messages, whose edits raise `message_error`.
+- A loop with a first delay and a period runs on `Ticks` (Giveaway's `test_auto_draw.py`): each
+  sleep is recorded, waits for the test, and moves the injected clock. A press that must be caught
+  in the middle (a double confirmation) uses a fake whose `send` waits on a gate; wait with
+  `asyncio.wait({sending, task}, return_when=FIRST_COMPLETED)` so an xfail stub fails at once.
