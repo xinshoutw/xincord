@@ -1,6 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after `port-economy`, the ninth plugin port. Core is complete. Read
+Updated 2026-10-10 after `port-dynamic-voice-channel`, the tenth plugin port. Core is complete. Read
 this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and
 binding; do not re-open them unless you find a serious problem, and then ask the owner.
 
@@ -247,7 +247,25 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   templates, `numbers(embed)` in `tests/plugins/economy/test_change.py` to compare amounts without
   typing non-ASCII, and operator templates written under `tmp_path / "plugins"` before
   `load_plugin` (`tests/plugins/economy/test_board.py`).
-- **Still to build:** the plugins after Economy (section 5).
+- **DynamicVoiceChannel** (`xincord.plugins.dynamic_voice_channel`, `INTENTS =
+  discord.Intents(voice_states=True)`, en-US and zh-TW, no config): the first plugin with
+  subcommands, voice events and channels it creates and deletes. `store.py` keeps v3's binding list
+  per guild (namespace `DynamicVoiceChannel`) and the rooms per guild (`DynamicVoiceChannel.rooms`,
+  `{"<room ID>": <owner ID>}`), changed under the store's data lock with `get`/`put`/`delete` so
+  that no-op changes write nothing; `names.py` renders format 1 (`room_values`, `room_name` with
+  JDA's 100 UTF-16 limit); `rooms.py` creates a room (clone, track once the copy exists, JDA's raw
+  position PATCHes through `Route`, `set_permissions` for the member, each refusal logged and the
+  other steps still sent), deletes empty tracked rooms (a 404 forgets, other refusals keep) and
+  checks a guild at READY (`Room`, a runtime Protocol); `cog.py` builds the `app_commands.Group`
+  with bound-method subcommands and `VoiceChannelOption`, and has `on_voice_state_update` (reads
+  `voice_states` before awaiting, then `store.lock("DynamicVoiceChannel:voice:<id>")`),
+  `on_guild_remove` and `check_guilds` from `on_ready` and `cog_load` (left guilds forgotten,
+  unavailable ones skipped, unreadable ones skipped with an error). Reuse:
+  `discord_fakes.FakeVoiceChannel` (`clone`, `delete` and `set_permissions` recording or raising,
+  `cloning` and `gate` for interleavings), `voice_state(channel)`, `FakeGuild.voice_channels`,
+  `FakeRest` (REST requests recorded in the channels' `sent` list), the `cast` cog fixture and the
+  voice probe (skill step 7).
+- **Still to build:** the plugins after DynamicVoiceChannel (section 5).
 
 ## 5. Status and next steps
 
@@ -258,21 +276,21 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `core-command-tree`, `core-component-routing`, `core-interaction-values`, `core-startup`,
 `core-reload`, `core-console`, `core-status-log`, `container`, `port-example`,
 `port-basic-calculator`, `port-auto-role`, `port-bot-info`, `port-simple-command`,
-`port-welcome-bye-guild`, `port-interval-pusher`, `port-feedbacker`, `port-economy`. Each one's
-`design.md` in `openspec/changes/archive/` records its decisions and "v3 behaved differently"
-notes; `docs/porting-guide.md` has the differences table.
+`port-welcome-bye-guild`, `port-interval-pusher`, `port-feedbacker`, `port-economy`,
+`port-dynamic-voice-channel`. Each one's `design.md` in `openspec/changes/archive/` records its
+decisions and "v3 behaved differently" notes; `docs/porting-guide.md` has the differences table.
 
 ### Next: the plugins
 
 Core is complete; _Example (the template), BasicCalculator, AutoRole, BotInfo, SimpleCommand,
-WelcomeByeGuild, IntervalPusher, Feedbacker and Economy are ported. Next:
-**DynamicVoiceChannel** (`port-dynamic-voice-channel`).
+WelcomeByeGuild, IntervalPusher, Feedbacker, Economy and DynamicVoiceChannel are ported. Next:
+**VoiceLogger** (`port-voice-logger`).
 Port the plugins in C1 order with the `port-plugin` skill (`.claude/skills/port-plugin/SKILL.md`),
 one OpenSpec change each (`port-<plugin-kebab>`): _Example (done), BasicCalculator (done),
 AutoRole (done), BotInfo (done, with the configurable AGPL source link of C3), SimpleCommand
-(done), WelcomeByeGuild (done), IntervalPusher (done), Feedbacker (done), Economy (done), then
-DynamicVoiceChannel, VoiceLogger, ChatLogger, Giveaway, Ticket, TicketAddons, NtustManager,
-NtustCourse, MusicPlayer (with Lavalink in `compose.yaml`).
+(done), WelcomeByeGuild (done), IntervalPusher (done), Feedbacker (done), Economy (done),
+DynamicVoiceChannel (done), then VoiceLogger, ChatLogger, Giveaway, Ticket, TicketAddons,
+NtustManager, NtustCourse, MusicPlayer (with Lavalink in `compose.yaml`).
 Update `docs/porting-guide.md` after each one.
 
 ### Working tips from this session
@@ -374,6 +392,12 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - Python 3.14 accepts `except A, B:` without parentheses, and ruff formats it that way.
 - ruff's TRY400 wants `logger.exception` for `logger.error` inside `except` (`# noqa: TRY400`
   where a traceback is noise), and TRY401 refuses the exception object in `logger.exception`.
+- Removing a test module's last xfail marker can leave `pytest` used in annotations only: ruff's
+  TC002 then wants it under `TYPE_CHECKING` (`ruff check --fix --unsafe-fixes` moves it), and
+  TC004 wants it back at runtime when a marker returns.
+- `Store.update` writes its function's result even when nothing changed, and stores `null` for a
+  missing key when the function returns None: changes that may find nothing to do use
+  `store.lock` with `get`, `put` and `delete` (DynamicVoiceChannel's `store.py`).
 - aiohttp's `RawTestServer.close()` waits for the requests still in flight: answer them first, or
   the teardown waits for the client's timeout (`http_fakes.Monitor.close`). Autouse fixtures are
   torn down after the fixtures a test requests.
@@ -477,6 +501,24 @@ setup-uv v10.2.0, setup-node v7.1.0.
   `Store.update` function.
 - A probe can log in offline: point `discord.http.Route.BASE` at a local server and call
   `bot.http.static_login(token)` inside `async with bot`; set `bot._ready` for READY.
+- `on_voice_state_update` fires for mutes, deafens and streams too (JDA's `GuildVoiceUpdateEvent`
+  only for channel changes): compare the channels' IDs. `channel.voice_states` counts a voice
+  channel's members without the member cache; `VocalGuildChannel.members` needs it.
+- discord.py runs listeners as tasks: the gateway events parsed before one runs, or while it
+  awaits, are already in the cache it reads. Read what decides the handling before the first
+  await, and check again under a lock before acting (a probe parsed a join and a leave before the
+  listeners ran, and the join's listener saw the member gone).
+- `GuildChannel.edit(position=...)` renumbers every channel of the guild in the channel's sorting
+  bucket (voice and stage channels together), and `move(...)` those of its category, in one bulk
+  `PATCH /guilds/{id}/channels` from the cached positions; JDA's `setPosition` sent the raw
+  position in `PATCH /channels/{id}` (`Route` keeps it).
+- `VocalGuildChannel.clone()` copies the overwrites as they are, and the NSFW flag, the video
+  quality and the slowmode, which JDA's `createCopy` did not; it adds the copy to the guild's cache.
+  `Guild._create_channel` (behind `create_*_channel(overwrites=...)`) sends an `Object(type=Role)`
+  key as a member overwrite; `edit` gets it right.
+- A bare `app_commands.Group(...)` takes its `module` from the frame that creates it: build it in
+  the plugin's module, so that unloading the plugin removes it.
+- `AsyncWebhookAdapter.request` gets `session` as a keyword: a probe's replacement must accept it.
 - A scratch probe can drive real discord.py objects offline: set `bot._connection.user` to a
   `ClientUser`, build `discord.Interaction(data=..., state=bot._connection)` and call
   `command._invoke_with_namespace(...)` (patch `Interaction.edit_original_response`); set

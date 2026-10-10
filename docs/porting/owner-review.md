@@ -231,3 +231,40 @@ here; delete a section once it is empty.
 - Economy reads no v3 data: until the deferred migration (B11) exists, switching it over restarts every wallet at 0. The local production copy holds the legacy `plugins/Economy/data/data.json` (Economy 3.2.1), which v3.4 would have moved into the only guild's file; the migration must do the same.
 - At cutover, keep the existing `plugins/Economy/config.yaml` (it lists the administrators); its `enabled` and Google Sheets keys can be deleted to silence the warnings.
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `Economy` enabled, with the bundled, an operator's and v3's config); an image build with the plugin enabled is still open.
+
+## DynamicVoiceChannel (`port-dynamic-voice-channel`)
+
+### User-visible changes
+- `/dynamic-voice-channel bind` and `unbind` work: since 2026-01-13 (v3 commit `ea14fbf`) they never answered, so bindings could only be added by editing `plugins/DynamicVoiceChannel/data/*.json`.
+- The `channel` options list voice channels only (v3 offered every channel and gave no reply for the others).
+- Binding a lobby again replaces its formats (v3 added a duplicate that won until the next restart).
+- A lobby whose copy Discord refuses stays a lobby, and the log says why (v3 deleted the lobby once it emptied and dropped its binding at the next start).
+- A member who leaves a new room at once no longer leaves an orphan room; rooms that emptied while the bot was offline are deleted when it is ready.
+- A refused step no longer skips the others: without Manage Roles the room is still renamed and moved (with a warning), and a format that renders blank or over 100 characters keeps the room's old name but still moves it and gives the member their permissions.
+- The new lobby keeps the lobby's NSFW flag, video quality and slowmode (v3's copy lost them).
+- A room costs four requests instead of three: the member's permissions are a separate `PUT`.
+- Stage channels named like a lobby are ignored (v3 threw); a room that kept the lobby's name is never copied as a lobby.
+- Leaving a guild also deletes its rooms' records, and a guild unavailable at startup keeps its bindings (v3 deleted them).
+- The en-US `unbind-fail` title reads `Unbind fail, the channel was not found in settings` (v3: `is not be found`); existing `plugins/DynamicVoiceChannel/lang/` files keep v3's text.
+- No `plugins/DynamicVoiceChannel/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list; the plugin no longer needs SQLiteAPI.
+### Choices made without the owner
+- Where the rooms live: implemented one document per guild, `{"<room ID>": <owner ID>}` under `DynamicVoiceChannel.rooms`; alternative: one entry per room keyed by its ID, like v3's MongoDB documents (which hold no guild), or a plugin table.
+- When a room is tracked: implemented once the lobby's copy exists; alternative: only after every step succeeded (a failed rename would then leave a second lobby for good).
+- Positions: implemented JDA's raw `PATCH /channels/<id>` with positions 0 and 1 through discord.py's internal `HTTPClient.request`; alternative: discord.py's `edit(position=...)`, which renumbers every voice channel of the guild in one bulk request.
+- The member's permissions: implemented a separate `PUT` of their overwrite, which keeps the others; alternative: v3's single PATCH with the whole overwrite list and the name.
+- Unusable room names: implemented keeping the old name with a warning; alternative: cut the name to 100 characters.
+- `format-name-2`: kept required, stored and unused, as in v3; alternative: make it optional or drop it.
+- Stale bindings: kept v3's removal at startup (category gone, or no voice channel with the lobby's exact name), now also on a load into a ready bot; alternative: keep them until unbound.
+- A guild's voice changes: implemented one after another under a per-guild lock, so a room's creation that Discord rate-limits delays the guild's other joins and leaves; alternative: no lock, with v3's orphan rooms.
+- A join handled after the member already left the lobby creates no room; alternative: v3's room regardless, deleted right after.
+- Copy: implemented the grammar fix above; alternative: keep v3's text.
+- `VoiceChannelOption`: a third copy of the channel transformer (WelcomeByeGuild and Feedbacker have text ones); alternative: a core `ChannelOption(types)`.
+- Unreadable stored documents: implemented an error without overwriting them (the commands stay "thinking", READY skips the guild); alternative: read them as empty, which the next change would overwrite.
+### Manual checks
+- Smoke checklist in `openspec/changes/archive/2026-10-10-port-dynamic-voice-channel/design.md` (needs a token, a test guild and a second account).
+- The bot needs Manage Channels and Manage Roles (or Administrator) in the bound categories.
+- Check that positions 0 and 1 put the new lobby at the top of its category and the room right below, as in v3 (the raw PATCHes are v3's requests; Discord's ordering of equal positions was not observed).
+- At cutover, delete v3's leftover rooms by hand (only v3's MongoDB knows them) and bind the lobbies again in each guild listed in v3's `plugins/DynamicVoiceChannel/data/`, or build the deferred migration first.
+- Two members who join an empty lobby at the same instant may both stay in the lobby without a room (discord.py may parse both joins before the plugin sees the first); watch whether it happens.
+- After a discord.py upgrade, check the room requests: the positions use discord.py's undocumented `HTTPClient.request` and `Route`.
+- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `DynamicVoiceChannel` enabled); an image build with the plugin enabled is still open.
