@@ -116,7 +116,7 @@
 
 ## 21. Routes
 
-- [ ] 21.1 xfail tests for "v3's panels and tickets keep working" through `bot.on_interaction`
+- [x] 21.1 xfail tests for "v3's panels and tickets keep working" through `bot.on_interaction`
 - [ ] 21.2 Route `IDS` to `handle` in `setup`; remove the markers
 
 ## 22. Left guilds

@@ -200,20 +200,22 @@ class Ticket(ControlRow, commands.Cog):
         gets no response.
         """
         fields = parsed.fields
-        action = fields.get("action")
-        sub_action = fields.get("sub_action", "")
         data = cast("Mapping[str, object]", interaction.data or {})
-        if interaction.type is discord.InteractionType.component:
-            kind = data.get("component_type")
-            if kind == BUTTON:
-                await self._button(interaction, fields)
-            elif kind in ENTITY_SELECTS:
-                await self._entity_select(interaction, fields, _values(data))
-        elif interaction.type is discord.InteractionType.modal_submit:
-            if action == "create":
-                await self.submit(interaction, sub_action)
-            elif action == "submit":
-                await self.open_ticket(interaction, fields)
+        kind = data.get("component_type")  # None for a modal
+        if interaction.type is discord.InteractionType.modal_submit:
+            await self._modal(interaction, fields)
+        elif kind == BUTTON:
+            await self._button(interaction, fields)
+        elif kind in ENTITY_SELECTS:
+            await self._entity_select(interaction, fields, _values(data))
+
+    async def _modal(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
+        """Send a modal's submission to the handler of the ID's action; others get no response."""
+        action = fields.get("action")
+        if action == "create":
+            await self.submit(interaction, fields.get("sub_action", ""))
+        elif action == "submit":
+            await self.open_ticket(interaction, fields)
 
     async def _button(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
         """Send a button's press to the handler of the ID's action; others get no response."""
