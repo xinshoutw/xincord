@@ -239,17 +239,21 @@ files on disk: never two connections to one file, nothing left open); `inserting
 - `test_message_files.py`: `MessageFiles` in a temporary directory, with a size limit of 1 byte
   (every message stored in the newest file starts the next one, which makes the ranges exact) or
   64 KiB with 4,000-character texts (about a page each): no file before the first message, the
-  first file, routing, splits, late messages, reopening, other names, a corrupt file, a failing
-  split (before and after the rename, and a leftover temporary file), closing after the work under
-  way, work after closing, whole files expiring. Rows are read back through connections of the
-  test's own.
+  first file, routing, splits, late messages, reopening, other names, a corrupt file (named), a
+  failing split (before and after the rename, twice in a row, leftover temporary files), a commit
+  that fails on another connection's read lock (`BUSY_TIMEOUT` shortened), closing after the work
+  under way, work after closing, a cancelled open and close (the connections are made by the test,
+  closable from its thread, and checked one by one), whole files expiring, an expired file that
+  cannot be deleted. Rows are read back through connections of the test's own.
 - `test_storage.py`: the plugin's side (the first file through discord.py's parsers, the old table
   dropped, a split at `max_file_size_mb: 1` with edits and deletions in both files, unload,
   reload, failed load); `test_retention.py`: the 5-year default and expired files at READY.
 - `conftest.py`: the `load` fixture removes the cog of every plugin a test loaded, closing its files
   (Python 3.13+ warns about connections collected unclosed, and pytest turns the warning into an
   error); the autouse `plugin_modules` fixture lets a test reload the plugin; `Scene.rows` reads the
-  files; `write_file` writes a file as an earlier run left it.
+  files; `write_file` writes a file as an earlier run left it. `plugin_fakes.unclosed()` collects
+  the garbage and returns the warnings about unclosed connections, which a test asserts empty: left
+  to the collector, such a warning fails a later test, after the call that xfail watches.
 - The core: `test_plugins.py` (the context's directory) and `test_startup.py` (the program's
   `data/`).
 - Found while reviewing the implementation, fixed test-first (tasks 6.3 and 6.4): a corrupt
@@ -294,6 +298,10 @@ files on disk: never two connections to one file, nothing left open); `inserting
   taken during a write can miss that transaction.
 - Store work that comes after an unload fails (a listener task of the unloaded version, a moment
   long); discord.py logs it.
+- A commit that waits more than 5 seconds for another program's lock on a file (a database browser
+  holding a read transaction open) fails and is rolled back: that message's storing, edit or
+  deletion is lost, with an error in the log. Inspect copies of the files, or close the browser's
+  transaction.
 - Space that deleted rows (deletions, `forget`, the retention) leave inside a file is reused only by
   that file, which is deleted only when its range expires: at most about one file's worth.
 - The size check runs after messages stored in the newest file only, and rows stored in an older

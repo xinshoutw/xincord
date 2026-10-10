@@ -593,6 +593,19 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   file reuse, and the file never shrinks without `VACUUM`. With `autocommit=False`, Python opens a
   new (deferred, lock-free) transaction right after each commit: read such pragmas inside the
   work's transaction, before its commit.
+- **Failed commits.** A commit that cannot get its lock (another connection reading past the busy
+  timeout, 5 seconds by default) raises and leaves the write transaction open, and the next
+  commit on that connection applies it: commit inside the `try` that rolls back (`Store.run`,
+  ChatLogger's `transaction`, since `chat-logger-split-storage`).
+- **Cancelled executor jobs.** Cancelling the await of `loop.run_in_executor(...)` cancels the job
+  if it has not started: a job that must run, such as closing connections, is submitted with
+  `executor.submit` and awaited through `asyncio.shield(asyncio.wrap_future(...))`
+  (`MessageFiles.close`), and a cancelled `open` queues the closing job after its own.
+- **Leaks in tests.** A cancelled task keeps its exception, whose traceback keeps the frames and
+  their locals alive, and a `ResourceWarning` that the collector raises later surfaces as an
+  unraisable warning after the test's call (xfail does not see it) or in another test: drop such
+  references and assert `plugin_fakes.unclosed() == []`, or record the connections and check each
+  (`total_changes` raises `ProgrammingError` on a closed connection, from any thread).
 
 - **Re-imported plugin modules in tests.** A failed load (an invalid config) makes discord.py drop
   the plugin's modules; later loads import new classes, and frozen dataclasses from the old and the
