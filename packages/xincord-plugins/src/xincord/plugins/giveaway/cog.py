@@ -169,6 +169,11 @@ class Giveaway(commands.Cog):
             task.cancel()
         await asyncio.gather(*self.tasks, return_exceptions=True)
 
+    @commands.Cog.listener()
+    async def on_guild_remove(self, guild: discord.Guild) -> None:
+        """Drop the drafts of a guild that the bot left."""
+        raise NotImplementedError
+
     async def _auto_draw(self) -> None:
         """Pass five seconds after READY, then each ``autoDrawIntervalSeconds`` after a pass.
 

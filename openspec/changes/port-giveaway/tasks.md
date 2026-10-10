@@ -123,7 +123,7 @@
 
 ## 23. Left guilds
 
-- [ ] 23.1 xfail tests for "Leaving a guild drops its drafts" against a stub listener
+- [x] 23.1 xfail tests for "Leaving a guild drops its drafts" against a stub listener
 - [ ] 23.2 Implement `on_guild_remove`; remove the markers
 
 ## 24. Conventions and docs
