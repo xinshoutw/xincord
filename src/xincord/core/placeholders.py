@@ -473,7 +473,9 @@ def placeholder_values(interaction: EventLike) -> dict[str, str]:
     Before the bot has logged in, the client has no user, and only the interaction's keys are
     given.
     """
-    raise NotImplementedError
+    bot = interaction.client.user
+    actor = {} if bot is None else actor_values(interaction.user, bot)
+    return actor | interaction_values(interaction)
 
 
 def _command_values(data: Mapping[str, object]) -> dict[str, str]:

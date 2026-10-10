@@ -8,7 +8,6 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 import discord
-import pytest
 
 from xincord.core.placeholders import (
     MessageLike,
@@ -74,11 +73,6 @@ class Interaction:
 BOT = User(id=99, name="xincord", bot=True)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Event values follow v3's Placeholder.get(event)",
-)
 def test_member_runs_a_command() -> None:
     """Requirement: Event values follow v3's Placeholder.get(event)."""
     values = placeholder_values(Interaction(Member(), Client(BOT)))
@@ -91,11 +85,6 @@ def test_member_runs_a_command() -> None:
     assert values["channel_name"] == "general"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Event values follow v3's Placeholder.get(event)",
-)
 def test_bot_not_logged_in() -> None:
     """Requirement: Event values follow v3's Placeholder.get(event)."""
     interaction = Interaction(Member(), Client(None))

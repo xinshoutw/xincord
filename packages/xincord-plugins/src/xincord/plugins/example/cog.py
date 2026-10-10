@@ -11,7 +11,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from xincord.core.component_ids import ComponentIds
-from xincord.core.placeholders import actor_values, interaction_values
+from xincord.core.placeholders import placeholder_values
 from xincord.core.templates import render_message
 
 if TYPE_CHECKING:
@@ -92,7 +92,11 @@ class Example(commands.Cog):
         )
 
     def _values(self, interaction: discord.Interaction, count: int) -> dict[str, str]:
-        """Return the placeholder values that both templates can use."""
+        """Return the placeholder values that both templates can use.
+
+        ``placeholder_values`` is v3's ``Placeholder.get(event)``: the acting user's keys and the
+        interaction's.
+        """
         return placeholder_values(interaction) | {
             "_Example@example_key": self.config.example_key,
             "_Example@count": str(count),
@@ -104,10 +108,3 @@ class Example(commands.Cog):
         """Render the counter button; its ID carries the count."""
         message = self.templates.message("counter", locale)
         return render_message(message, values, build_id=IDS.build).view
-
-
-def placeholder_values(interaction: discord.Interaction) -> dict[str, str]:
-    """Return v3's ``Placeholder.get(event)``: the acting user's keys and the interaction's."""
-    bot = interaction.client.user  # set once the bot has logged in
-    actor = {} if bot is None else actor_values(interaction.user, bot)
-    return actor | interaction_values(interaction)
