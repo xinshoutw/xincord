@@ -9,8 +9,6 @@ Kotlin:
 
 from typing import TYPE_CHECKING
 
-import pytest
-
 from plugin_fakes import gateway, parsers
 from xincord.core.bot import Bot
 
@@ -23,11 +21,6 @@ STATUS = "VOICE_CHANNEL_STATUS_UPDATE"
 PAYLOAD: dict[str, object] = {"id": "30", "guild_id": "10", "status": "Gaming"}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Plugins receive gateway events that discord.py does not parse",
-)
 async def test_unparsed_event(store: Store, tmp_path: Path) -> None:
     """Requirement: Plugins receive gateway events that discord.py does not parse."""
     bot = Bot([], root=tmp_path, store=store)
@@ -45,11 +38,6 @@ async def test_unparsed_event(store: Store, tmp_path: Path) -> None:
     assert received == [PAYLOAD]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Plugins receive gateway events that discord.py does not parse",
-)
 async def test_parsed_event(store: Store, tmp_path: Path) -> None:
     """Requirement: Plugins receive gateway events that discord.py does not parse."""
     bot = Bot([], root=tmp_path, store=store)

@@ -85,6 +85,7 @@ class Bot(commands.Bot):
         self._reloading = asyncio.Lock()
         self._config = config or CoreConfig()
         self._status: asyncio.Task[None] | None = None
+        self._relayed: set[str] = set()
 
     @override
     async def setup_hook(self) -> None:
@@ -162,10 +163,29 @@ class Bot(commands.Bot):
     def relay_gateway_event(self, name: str) -> None:
         """Dispatch each gateway event ``name`` as ``gateway_<name in lower case>``.
 
-        Raises:
-            NotImplementedError: Not implemented yet.
+        For events that discord.py does not parse, such as ``VOICE_CHANNEL_STATUS_UPDATE``:
+        listeners (``on_gateway_voice_channel_status_update``) get Discord's payload as their only
+        argument. discord.py's own parser of the event, if it has one, runs first. Relaying an
+        event again changes nothing, and the relay lasts as long as the bot.
+
+        Args:
+            name: The gateway event, as Discord names it.
         """
-        raise NotImplementedError
+        # The table of parsers that discord.py's gateway looks every event up in, shared by all
+        # of the client's connections.
+        parsers = self._connection.parsers
+        if name in self._relayed:
+            return
+        self._relayed.add(name)
+        event = f"gateway_{name.lower()}"
+        parse = parsers.get(name)
+
+        def relay(payload: dict[str, object]) -> None:
+            if parse is not None:
+                parse(payload)
+            self.dispatch(event, payload)
+
+        parsers[name] = relay
 
     def route(self, module: str, ids: ComponentIds, handler: Handler) -> None:
         """Send the component and modal interactions whose IDs ``ids`` owns to ``handler``.
