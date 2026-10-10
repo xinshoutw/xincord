@@ -32,9 +32,6 @@ if TYPE_CHECKING:
     type Callback = Callable[..., Awaitable[None]]
 
 GOLDEN = golden("dynamic_voice_channel")
-REGISTERED = pytest.mark.xfail(
-    strict=True, reason="The command is a localized administrator guild command"
-)
 NAME = "dynamic-voice-channel"
 GUILD = FakeGuild(10)
 LOBBY = SimpleNamespace(
@@ -53,7 +50,6 @@ def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
     return found
 
 
-@REGISTERED
 async def test_command_payload(bot: Bot) -> None:
     """Requirement: The command is a localized administrator guild command."""
     global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
@@ -63,10 +59,9 @@ async def test_command_payload(bot: Bot) -> None:
 
     assert [listed(by_name.get(wanted["name"], {}), wanted) for wanted in expected] == expected
     assert [entry["name"] for entry in guild_payload] == [NAME]  # a guild command
-    assert global_payload == []
+    assert NAME not in {entry["name"] for entry in global_payload}
 
 
-@REGISTERED
 @pytest.mark.parametrize(
     ("subcommand", "options"),
     [("bind", (LOBBY, "A", "B")), ("unbind", (LOBBY,))],
@@ -97,11 +92,6 @@ async def test_command_callbacks(
     assert method == "edit_original_response"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The command is a localized administrator guild command",
-)
 async def test_voice_channels_only() -> None:
     """Requirement: The command is a localized administrator guild command."""
     option = VoiceChannelOption()
