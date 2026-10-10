@@ -10,7 +10,7 @@
 
 ## 3. Config
 
-- [ ] 3.1 xfail tests for "The config keeps v3's keys"
+- [x] 3.1 xfail tests for "The config keeps v3's keys"
 - [ ] 3.2 Implement `Config` (aliases, locale and zone checks, the clamped period); remove the
       markers
 
