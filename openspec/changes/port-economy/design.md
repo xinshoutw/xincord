@@ -249,6 +249,91 @@ guild; the row template with its trailing blank line; v3's en-US author names `P
 and `Pocket Reduce Balance` on `add-cost` and `remove-cost` (operators' copy, not a defect of the
 code); the wallets of guilds the bot left; no answer outside a guild.
 
+### Inventory audit
+
+Every section of `docs/porting/analysis/inventory/Economy.md` maps to this change:
+
+- Overview (1): the entry object, `info.yaml` and the name are "The plugin installs as Economy"
+  ("Discovered by name", without GoogleSheetAPI); `component_prefix: economy@` is `IDS`'s legacy
+  prefix ("v3 button"); `SheetImpl`, `Mode` and the GoogleSheetAPI build dependency are out of
+  scope (B12); `author`, `coreApi` and `version` have no counterpart.
+- Lifecycle (2): exporting the lang files and reading the config are "First load creates the
+  files" and the config scenarios; validation while disabled and the bot-wide abort are a "v3
+  behaved differently" entry; `enabled` is the core's `plugins` list; the legacy `data.json`
+  migration is out of scope (B11, see "Risks"); the eager load and re-save of every guild file and
+  the non-numeric file name are a "v3 behaved differently" entry (the store is read per command);
+  the hard-coded zh-TW `StringLocalizer` is `DEFAULT_LOCALE`; `init()` and the redundant sorts
+  have no counterpart (`rank` sorts per board); `reload()` is the core's reload; `unload()` and
+  background jobs: none; the in-memory maps and the shared `DataContainer` are replaced by reads
+  of the store.
+- Slash commands (3): the nine guild commands, their texts, options, localizations and default
+  permissions are "Command payloads"; the name filter and the `top-` dispatch are the tree and the
+  `kind` in `COMMANDS`; the silent `guild == null` return is "Outside a guild"; the two permission
+  layers are the payload's default permissions and "Only administrators change wallets and see
+  boards" (Discord's Administrator does not count); the ephemeral auto-defer is "Command
+  callbacks". `/balance`: the target rules are "Own wallet", "Administrator names a member" and
+  "Member names someone else" (a "v3 behaved differently" entry), the created record is "No
+  wallet yet", the placeholders and the template are the golden `balance`. Boards: the admin check
+  is "Member asks for a board", the template copy with a reset description and the appended rows
+  are "Money board" and the operator-template test, the stable sort and the tie order are "Order
+  and ties", the limit is "Limit", zeros are listed ("Order and ties" for the cost board), the
+  empty board without description and without a created file is "Empty board", the mutated
+  substitutor is per-render values. Changes: the admin check before the value is "Member changes a
+  wallet"; `asInt` beyond 32 bits and the `Int` wrap are "Past 32 bits"; `Bad Value` and 0 are
+  "Negative amount" and "Zero"; the target is "Change reply" and "User outside the guild"; the six
+  operations are "Each operation"; the before keys are "Change reply" (both keys, a "v3 behaved
+  differently" entry); the template named like the command is the golden `changes`; re-sorting
+  every guild has no counterpart.
+- Components (4): any `economy@` button is "v3 button" (decoded by the core, upgraded to
+  `economy:1:`) and "New button"; no answer outside a guild is "Outside a guild"; the
+  `deferReply(true)` and the edit are checked in every button test; the created record is "No
+  wallet yet" in the button tests; no expiry: kept; IDs that are not in v3's field format are a
+  "v3 behaved differently" entry; no selects or modals: "Outside a guild" covers a select and a
+  modal with an Economy ID.
+- Events (5): the command and button listeners are the tree and `bot.route`; no
+  `GuildLeaveEvent`: the wallets of left guilds are kept (Storage).
+- Configuration (6): `enabled` and the eight Sheets keys warn ("v3's file"); `port` and its check
+  are gone; `admin_id` must list someone ("Invalid values", "Bundled file"); the limit's range is
+  "Invalid values" and "Limit"; the shipped real IDs and the OAuth notes are gone (bundled file);
+  kaml's strict mode and the bot-wide abort are "v3 behaved differently" entries.
+- Localization and templates (7): en-US and zh-TW with the zh-TW default are `DEFAULT_LOCALE` and
+  the bundled files; the user's locale is tested in both locales for every reply; the missing-key
+  exception is the core's per-file fallback; the shared embed elements, the currency suffixes and
+  the copy-paste author names are the golden embeds ("Kept on purpose" for the names); the
+  plugin's placeholders and `user_name` are the golden embeds; the global per-user substitutor is
+  per-render values.
+- Persistence (8): one document per guild under `Economy` ("First change"), Moshi's compact form
+  and field order ("First change"), non-numeric keys kept and skipped ("Other entries kept"),
+  unknown fields ignored ("Other entries kept"); quoted numbers, null, missing fields and
+  fractions are "Unreadable entry" (the quoted numbers are discussed under Storage); values beyond
+  32 bits are accepted ("Past 32 bits"); the reset to `{}` and the in-place writes are a "v3
+  behaved differently" entry; records created by reads are "No wallet yet" and "Empty board"; no
+  deletion path: kept; the legacy migration and the Sheets layout are out of scope.
+- External dependencies (9): GoogleSheetAPI and its Google libraries are gone; no HTTP, no
+  credentials; the imgur author icon stays in the templates.
+- Discord requirements (10): no intents ("Discovered by name"); the user option from the payload,
+  a defer and an edit per command and per button (the probe).
+- Concurrency (11): the button callback pool and the non-atomic read-modify-write are "Changes are
+  atomic"; the placeholder cache is per-render values.
+- Bugs and quirks (12): 1 and 2 are "Past 32 bits"; 3 is "Unreadable entry"; 4 is "No wallet yet"
+  and "Empty board"; 5 is "Discovered by name"; 6 is a "v3 behaved differently" entry and the core's
+  config loading; 7 is kept with "v3 button" and "New button"; 8 is out of scope (B11); 9 is
+  "Member names someone else"; 10 is "Order and ties"; 11 and 12 are kept on purpose; 13 is
+  "Outside a guild"; 14 is "Concurrent changes"; 15 is out of scope (B12). The behavior to
+  preserve is listed under "Kept on purpose" and tested by the scenarios above.
+- Testability (13): `is_admin` and `resolve_target` are `_is_admin` and the balance tests;
+  `validate_value` is the negative tests; `apply_op` is `OPERATIONS`; `build_board` is `rank`;
+  `render_board_description` is `_board` with the board tests; the repository is `store.py`; the
+  JSON compatibility cases are `test_store.py`; `migrate_legacy` is out of scope; the Discord
+  doubles are the shared fakes.
+- Assessment (14): the commands are built from `COMMANDS` instead of decorators, with
+  `default_permissions(administrator=True)` on eight; guild registration makes them guild-only;
+  `member: discord.User` became `discord.Member | discord.User`; `value` stays a plain `int`
+  without `Range`, so that negative values get v3's `Bad Value`; the Translator, the auto-defer
+  and the edits are as suggested; the files became the store, with atomic updates instead of a
+  lock and atomic file writes; the migration is deferred; the button is routed by the core's
+  `ComponentIds`; `SheetImpl` and the dependency are dropped.
+
 ## Risks / Trade-offs
 
 - The local copy of the production data (`XsDiscordBotKt/Server/plugins/Economy/data/`) holds the

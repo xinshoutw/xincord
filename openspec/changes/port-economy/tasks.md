@@ -64,7 +64,7 @@
 - [x] 12.1 Check that the built wheel ships `config.yaml` and `lang/` and that `xincord --no-online`
       loads the plugin; drive it once through discord.py's own objects
 - [x] 12.2 Porting guide rows and pitfalls, and skill corrections
-- [ ] 12.3 Audit the inventory against the scenarios and the design
+- [x] 12.3 Audit the inventory against the scenarios and the design
 
 ## 13. Close
 
