@@ -16,8 +16,8 @@
 
 ## 4. Rooms
 
-- [ ] 4.1 xfail tests for "Rooms are tracked per guild" against stubs in `store.py`
-- [ ] 4.2 Implement `read_rooms`, `track`, `untrack`, `forget` and `guild_ids`; remove the markers
+- [x] 4.1 xfail tests for "Rooms are tracked per guild" against stubs in `store.py`
+- [ ] 4.2 Implement `read_rooms`, `track` and `untrack`; remove the markers
 
 ## 5. Room names
 
@@ -48,9 +48,9 @@
 
 ## 10. Left guilds
 
-- [ ] 10.1 xfail tests for "Data is forgotten with the guild" against stub listeners
-- [ ] 10.2 Implement `on_guild_remove`, `on_ready`, `cog_load` and the left-guild check; remove the
-      markers
+- [ ] 10.1 xfail tests for "Data is forgotten with the guild" against stubs
+- [ ] 10.2 Implement `forget`, `guild_ids`, `on_guild_remove`, `on_ready`, `cog_load` and the
+      left-guild check; remove the markers
 
 ## 11. Checks at READY
 

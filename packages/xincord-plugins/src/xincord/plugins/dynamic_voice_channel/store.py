@@ -16,6 +16,9 @@ if TYPE_CHECKING:
     from xincord.core.storage import JSON, Store
 
 NAMESPACE = "DynamicVoiceChannel"  # the bindings: the plugin's name, keys are guild IDs
+# The rooms the plugin created, by guild ID; v3 kept them in MongoDB's
+# DynamicVoiceChannel.generated_cache.
+ROOMS = f"{NAMESPACE}.rooms"
 
 type Key = tuple[int, str]  # a binding's category ID and lobby name, v3's DataContainer identity
 
@@ -106,6 +109,21 @@ async def _remove(store: Store, guild_id: int, keys: Collection[Key]) -> int:
             else:
                 await store.delete(NAMESPACE, str(guild_id))
         return len(entries) - len(kept)
+
+
+async def read_rooms(store: Store, guild_id: int) -> dict[int, int]:
+    """Return the guild's rooms, each with the member it was created for, and write nothing."""
+    raise NotImplementedError
+
+
+async def track(store: Store, guild_id: int, room_id: int, owner_id: int) -> None:
+    """Record ``room_id`` as a room of the guild, created for ``owner_id``."""
+    raise NotImplementedError
+
+
+async def untrack(store: Store, guild_id: int, room_id: int) -> None:
+    """Forget ``room_id``; nothing is written when it is not a room of the guild."""
+    raise NotImplementedError
 
 
 def _lock(store: Store, guild_id: int) -> asyncio.Lock:

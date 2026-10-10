@@ -66,8 +66,9 @@ overwritten.
 
 ### Requirement: Rooms are tracked per guild
 The plugin SHALL keep the rooms it created in the store under `DynamicVoiceChannel.rooms` and the
-guild's ID, as `{"<room ID>": <owner ID>}`. Forgetting the last room SHALL delete the document. A
-document that is not of that shape SHALL raise an error and never be overwritten.
+guild's ID, as `{"<room ID>": <owner ID>}`. Forgetting the last room SHALL delete the document,
+and concurrent changes SHALL never lose one another. A document that is not of that shape SHALL
+raise an error and never be overwritten.
 
 #### Scenario: Tracked room
 - **WHEN** room 30 of guild 10 is tracked for member 1, then room 31 for member 2
@@ -76,6 +77,10 @@ document that is not of that shape SHALL raise an error and never be overwritten
 #### Scenario: Forgotten rooms
 - **WHEN** room 30 and then room 31 are forgotten, and then room 32, which was never tracked
 - **THEN** the document holds room 31 only, then is deleted, and the last call writes nothing
+
+#### Scenario: Concurrent tracks
+- **WHEN** 20 rooms of one guild are tracked at the same time
+- **THEN** all 20 are tracked
 
 #### Scenario: Unreadable rooms
 - **WHEN** the document is a list, or maps a room to a text
