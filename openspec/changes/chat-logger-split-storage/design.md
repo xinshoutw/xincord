@@ -166,6 +166,19 @@ The planned import, with the bot stopped:
 v3's text was taken from the content or the embeds with its defects (inventory 12, item 14); the
 import copies it as it is, and later edits compare against it.
 
+### Checks (2026-10-11)
+
+- The built `xincord-plugins` wheel holds `files.py`, `messages.py`, `config.yaml` and the 16 lang
+  files.
+- `docker compose build` and `docker compose run --rm -T bot --no-online` with `plugins:
+  [ChatLogger]`: the plugin loads, `plugins/ChatLogger/config.yaml` holds `retention_days: 1826`
+  and `max_file_size_mb: 256`, and `data/` holds `xincord.db` only (no message, no file).
+- A probe in the image (user `xincord`, uid 1000) stored 61 messages of 4,000 characters, created
+  a second apart 1,830 days ago, through `MessageFiles` with a 64 KiB limit into
+  `/bot/data/ChatLogger/` in the named volume: five files, the full ones 64 KiB each, mode 644; an
+  edit found the first message; the retention at 1,826 days deleted the four full files and 8 rows
+  of the newest, which kept a message stored now. The test volume was removed afterwards.
+
 ### Tests
 
 - `tests/plugins/chat_logger/test_files.py`: the names, `route`, `next_start` and `expired`.

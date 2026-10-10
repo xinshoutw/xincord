@@ -48,7 +48,7 @@
 
 ## 7. Checks and docs
 
-- [ ] 7.1 The wheel ships the plugin's files; image check (`docker compose build`, `docker compose
+- [x] 7.1 The wheel ships the plugin's files; image check (`docker compose build`, `docker compose
       run --rm -T bot --no-online` with ChatLogger, a probe that stores messages into the volume)
 - [ ] 7.2 Porting guide rows and conventions, port-plugin skill notes; audit the scenarios against
       the tests and `design.md`

@@ -14,7 +14,7 @@ services:
     stop_grace_period: 30s
     volumes:
       - ./bot:/bot
-      - data:/bot/data  # the SQLite database stays in a named volume
+      - data:/bot/data  # the database and the plugins' data files stay in a named volume
     logging:
       driver: json-file
       options:
