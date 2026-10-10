@@ -17,7 +17,7 @@
 
 ## 4. Storage
 
-- [ ] 4.1 xfail tests for "Each guild's channels are stored" against stubs in `store.py`
+- [x] 4.1 xfail tests for "Each guild's channels are stored" against stubs in `store.py`
 - [ ] 4.2 Implement `read`, `set_channel`, `forget` and `guild_ids`; remove the markers
 
 ## 5. Placeholders
