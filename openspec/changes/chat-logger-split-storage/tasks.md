@@ -69,7 +69,7 @@
       named, leftover temporary files removed at open, a file that cannot be deleted
 - [x] 8.5 Close what a cancelled open opened, name the corrupt file, clear the leftovers, try each
       expired file on its own; remove the markers
-- [ ] 8.6 xfail tests for "A new message file starts when the newest is full": a split that keeps
+- [x] 8.6 xfail tests for "A new message file starts when the newest is full": a split that keeps
       failing is logged once until a file starts
 - [ ] 8.7 Log one error per failing episode; remove the markers
 

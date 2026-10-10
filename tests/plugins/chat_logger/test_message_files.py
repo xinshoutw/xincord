@@ -358,6 +358,7 @@ async def test_full_file(open_files: Opener, directory: Path) -> None:
     assert ids(directory) == {full: [*stored, at(last + 0.9)], new: [at(last + 1)]}
 
 
+@pytest.mark.xfail(strict=True, reason="A new message file starts when the newest is full")
 async def test_new_file_fails(
     open_files: Opener,
     directory: Path,
@@ -370,7 +371,7 @@ async def test_new_file_fails(
 
     def create_file(path: Path) -> sqlite3.Connection:
         created.append(path.name)
-        if len(created) == 2:
+        if len(created) in {2, 3}:  # the first file starts; its successor fails twice
             message = "database or disk is full"
             raise sqlite3.OperationalError(message)
         return real(path)
@@ -378,14 +379,17 @@ async def test_new_file_fails(
     monkeypatch.setattr(messages, "create_file", create_file)
     files = await open_files(1)
 
-    with caplog.at_level(logging.ERROR):
+    with caplog.at_level(logging.INFO):
         await files.add(at(5), 10, 30, 7, "a")  # the first file, then its successor fails
+        await files.add(at(10), 10, 30, 7, "b")  # still the newest file: it fails again
+        errors = [record.getMessage() for record in caplog.records if record.levelname == "ERROR"]
+        assert ids(directory) == {FIRST: [at(5), at(10)]}
+        assert errors == [f"ChatLogger cannot start the message file {name(6)}"]  # once
+        await files.add(at(20), 10, 30, 7, "c")  # this time the new file starts
 
-    assert ids(directory) == {FIRST: [at(5)]}
-    assert f"ChatLogger cannot start the message file {name(6)}" in caplog.text
-    await files.add(at(10), 10, 30, 7, "b")  # still the newest file: it tries again
-    assert ids(directory) == {FIRST: [at(5), at(10)], name(11): []}
-    assert created == [FIRST, name(6), name(11)]
+    assert ids(directory) == {FIRST: [at(5), at(10), at(20)], name(21): []}
+    assert created == [FIRST, name(6), name(11), name(21)]
+    assert f"ChatLogger started the message file {name(21)}" in caplog.text
 
 
 async def test_leftover_temporary_file(open_files: Opener, directory: Path) -> None:
