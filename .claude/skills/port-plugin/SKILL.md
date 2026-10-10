@@ -30,10 +30,13 @@ Names: `<Plugin>` is the v3 name (`AutoRole`, `_Example`), `<kebab>` its kebab c
    (`docs(plugin-<kebab>): propose port-<kebab>`).
 3. **Resources.** Copy v3's `config.yaml` and lang files into the package (fix missing final
    newlines and CRLF line endings), example values only: never real IDs, account numbers or
-   tokens.
+   tokens. A list whose v3 default held real IDs ships empty, with placeholder IDs in a comment
+   (AutoRole's `guilds`).
 4. **Per requirement, xfail-first.** Test (fails for the expected reason; check with
    `pytest --runxfail`) -> commit with `xfail(strict=True)` -> implement and remove the marker ->
-   commit. Tick `tasks.md` in the same commits.
+   commit. Tick `tasks.md` in the same commits. The project's Claude Code hooks (ruff on each edit,
+   the gate on stop) run only in a session started in this repository; from elsewhere, run
+   `uv run ruff format` and `uv run ruff check` on the changed files before the gate.
 5. **Wire it up.** Entry point, `setup`, command, routes: see the conventions.
 6. **Golden tests.** v3's text per locale in `golden.yaml`; v3 component IDs from the inventory
    decode and upgrade to the expected new IDs (a plugin with v3 components); every shipped template

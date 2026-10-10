@@ -1,6 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after `port-basic-calculator`, the second plugin port. Core is complete. Read
+Updated 2026-10-10 after `port-auto-role`, the third plugin port. Core is complete. Read
 this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and
 binding; do not re-open them unless you find a serious problem, and then ask the owner.
 
@@ -149,7 +149,14 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   `discord_fakes.FakeChannel`, `forbidden()` and `delete_original_response`; the golden pattern
   for recorded v3 answers with an independent evaluator (`tests/plugins/basic_calculator/
   test_golden.py`).
-- **Still to build:** the plugins after BasicCalculator (section 5).
+- **AutoRole** (`xincord.plugins.auto_role`, `INTENTS = discord.Intents(members=True)`, no lang):
+  an `on_member_join` cog listener adds each configured role with its own atomic `add_roles`
+  request (v3 replaced all roles), skipping and logging roles that are missing or not
+  `is_assignable()`; `check()` logs config problems from `on_ready` and from `cog_load` when the
+  bot is already ready. Reuse: `plugin_fakes.dispatch(bot, event, *args)` for listeners,
+  `load_plugin(..., config=...)`, `discord_fakes.FakeGuild` / `FakeRole` / `FakeMember`, and the
+  ready-check pattern for any plugin that needs guild data at startup.
+- **Still to build:** the plugins after AutoRole (section 5).
 
 ## 5. Status and next steps
 
@@ -159,15 +166,15 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `core-templates`, `core-components-v2`, `core-component-ids`, `core-plugin-loading`,
 `core-command-tree`, `core-component-routing`, `core-interaction-values`, `core-startup`,
 `core-reload`, `core-console`, `core-status-log`, `container`, `port-example`,
-`port-basic-calculator`. Each one's `design.md` in `openspec/changes/archive/` records its
+`port-basic-calculator`, `port-auto-role`. Each one's `design.md` in `openspec/changes/archive/` records its
 decisions and "v3 behaved differently" notes; `docs/porting-guide.md` has the differences table.
 
 ### Next: the plugins
 
-Core is complete; _Example (the template) and BasicCalculator are ported. Next: **AutoRole**
-(`port-auto-role`). Port the plugins in C1 order with the `port-plugin` skill
+Core is complete; _Example (the template), BasicCalculator and AutoRole are ported. Next:
+**BotInfo** (`port-bot-info`). Port the plugins in C1 order with the `port-plugin` skill
 (`.claude/skills/port-plugin/SKILL.md`), one OpenSpec change each (`port-<plugin-kebab>`):
-_Example (done), BasicCalculator (done), then AutoRole,
+_Example (done), BasicCalculator (done), AutoRole (done), then
 BotInfo (with the configurable AGPL source link, C3), SimpleCommand, WelcomeByeGuild,
 IntervalPusher, Feedbacker, Economy, DynamicVoiceChannel, VoiceLogger, ChatLogger, Giveaway,
 Ticket, TicketAddons, NtustManager, NtustCourse, MusicPlayer (with Lavalink in `compose.yaml`).
@@ -251,7 +258,13 @@ setup-uv v10.2.0, setup-node v7.1.0.
   `uv build --package xincord-plugins` and `xincord --no-online` from a scratch venv holding both
   wheels.
 - Tests must not unload or reload a real plugin: discord.py re-imports its modules and later tests'
-  `isinstance` checks fail.
+  `isinstance` checks fail. A `setup` that raises (an invalid config) also drops the plugin's
+  modules from `sys.modules`; tests that load bad files look the cog up with `cast`.
+- discord.py's `Bot.add_listener` (every cog listener) calls the deprecated
+  `asyncio.iscoroutinefunction`; `pyproject.toml` ignores that DeprecationWarning from `discord.`
+  modules in pytest, which otherwise turned it into a failed plugin load.
+- `bot.dispatch` needs a bot that logged in (`Client.loop` is a sentinel before), and so does
+  `bot.wait_until_ready()`; tests await listeners with `plugin_fakes.dispatch`.
 - `str.splitlines()` also splits at U+0085 and U+2028: split JSONL with `split("\n")`. Kotlin's
   `isWhitespace()` is `str.isspace()` without U+0085.
 - ruff S105 reports names like `token` compared with or assigned a string; rename them.
@@ -273,6 +286,14 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - `isinstance` rejects subscripted generics such as `discord.ui.Button[View]`; check the bare
   class and `cast`.
 - `on_member_remove` only fires for cached members; use `on_raw_member_remove`.
+  `on_member_join` builds the member from the event (no member cache needed), but discord.py drops
+  a join for an uncached guild or an already cached member.
+- `member.add_roles(role)` is atomic by default: one `PUT .../roles/{id}` per role, keeping the
+  other roles; `atomic=False` sends one PATCH computed from the cache. discord.py sends without
+  JDA's client-side checks; `Role.is_assignable()` makes them.
+- With the members intent, discord.py chunks every guild before `on_ready`
+  (`chunk_guilds_at_startup` follows the intent). An unavailable guild (outage) is cached without
+  roles or members, so `guild.me` is None there.
 - `create_text_channel(overwrites=...)` does not copy the category's overwrites as JDA does.
 - `tasks.loop` schedules from each start; there is no REST ping (time `GET /users/@me`).
 - `app_commands.Command(callback=cog.method)` unwraps the bound method and makes the cog the
