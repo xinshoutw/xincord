@@ -18,7 +18,10 @@ from xincord.core.storage import Store
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
+    import discord
     import pytest
+    from discord.state import ConnectionState
+    from discord.types.guild import Guild as GuildPayload
 
     from xincord.core.command_tree import CommandTree
 
@@ -113,7 +116,8 @@ def parsers(bot: Bot) -> dict[str, Callable[[Any], None]]:
 async def gateway(bot: Bot, event: str, payload: dict[str, object]) -> None:
     """Hand ``payload`` to the bot's parser of ``event``, as discord.py's gateway does.
 
-    The events that the parser dispatches through ``bot.dispatch`` are recorded instead of
+    The events that the parser dispatches, through ``bot.dispatch`` (relayed events) or through
+    the connection state's ``dispatch`` (discord.py's own parsers), are recorded instead of
     scheduled, then their listeners run one after the other, as :func:`dispatch` runs them.
     """
     dispatched: list[tuple[str, tuple[object, ...]]] = []
@@ -121,10 +125,25 @@ async def gateway(bot: Bot, event: str, payload: dict[str, object]) -> None:
     def record(name: str, *args: object) -> None:
         dispatched.append((name, args))
 
-    with patch.object(bot, "dispatch", record):
+    with patch.object(bot, "dispatch", record), patch.object(_state(bot), "dispatch", record):
         parsers(bot)[event](payload)
     for name, args in dispatched:
         await dispatch(bot, name, *args)
+
+
+def add_guild(bot: Bot, payload: dict[str, object]) -> discord.Guild:
+    """Cache the guild of ``payload`` (``payloads.guild``) as its ``GUILD_CREATE`` would.
+
+    Its channels and threads join discord.py's cache, so that the messages that
+    :func:`gateway` parses get them.
+    """
+    data = cast("GuildPayload", payload)
+    return _state(bot)._add_guild_from_data(data)  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
+
+
+def _state(bot: Bot) -> ConnectionState[Bot]:
+    """discord.py's connection state, which caches guilds and parses gateway events."""
+    return bot._connection  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
 
 
 WAIT = 5  # seconds before until() gives up

@@ -72,3 +72,8 @@ class ChatLogger(commands.Cog):
     async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
         """Change the settings from the menu's buttons and select menus; ``setup`` routes here."""
         await self.listen.handle(interaction, parsed)
+
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message) -> None:
+        """Store a guild message that the bot did not send."""
+        raise NotImplementedError

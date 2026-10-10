@@ -50,7 +50,7 @@
 
 ## 10. Storing messages
 
-- [ ] 10.1 xfail tests for "Guild messages are stored" against a stub listener
+- [x] 10.1 xfail tests for "Guild messages are stored" against a stub listener
 - [ ] 10.2 Implement `on_message`; remove the markers
 
 ## 11. Edits
