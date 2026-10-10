@@ -136,8 +136,10 @@
 ## 24. Review
 
 - [x] 24.1 Gate passes, push, CI green (before the review)
-- [ ] 24.2 Cross-review the change (other paths into the features, repeated or concurrent
-      presses, state left behind); fix each finding xfail-first
+- [x] 24.2 Cross-review the change (other paths into the features, repeated or concurrent
+      presses, state left behind); fix each finding xfail-first (24.3 to 24.6; the core's upgrade
+      race, `/add-ticket` on v3 panels before the import, openers that fail without Discord's
+      refusal and the archive's files in memory are recorded risks, 24.7)
 - [x] 24.3 xfail tests for "Unstored entry" (found during the review: when the store failed after
       `/add-ticket`'s button was added, the button stayed without its entry, and every later
       confirmation for that message gave a second button its ID, which Discord refuses)
@@ -147,6 +149,9 @@
       more than about 1960 characters made the invalid-ID reply exceed Discord's 2000 characters,
       and the command stayed "thinking")
 - [x] 24.6 Show at most 100 characters of the typed text; remove the marker
+- [x] 24.7 Record the core's fetch-then-edit upgrade of v3 panels, `/add-ticket` on v3 panels
+      before the v3 data import, openers that fail without Discord's refusal and the archive's
+      files held in memory as risks in the design
 
 ## 25. Close
 

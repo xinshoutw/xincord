@@ -443,6 +443,21 @@ listed here:
   the message and logs an error, as for Feedback.
 - `create_text_channel` with overwrites needs Manage Roles, as v3's did; copied overwrites that
   name a role discord.py has not cached are left out.
+- The core's upgrade of a v3 panel fetches the message after the handler and edits the components
+  of that copy: an `/add-ticket` confirmation whose edit lands between that fetch and that edit
+  loses its button again while its entry stays stored. It needs a v3 panel pressed during the
+  confirmation, and is the core's, as for Giveaway's posts.
+- Until the v3 data import, a v3 panel has no stored list: `/add-ticket` on it gives the new button
+  index 0, which the panel's v3 button (`ticket@a:press;f:0`) names too, so both open the new
+  entry, and Discord refuses the core's upgrade of the v3 button for the duplicate ID at each press
+  (logged). The import should run before administrators add buttons to v3 panels, and expect lists
+  that `/add-ticket` started meanwhile.
+- Only Discord's refusals are handled where the plugin creates something: a ticket whose opener
+  fails otherwise (a lost connection, an unload) keeps its channel without the control row, the
+  member's answer stays "thinking", and the core logs the error, as for the other plugins.
+- The archive downloads a message's files into memory before sending them (discord.py's
+  `Attachment.to_file`), where JDA streamed them: a message with ten files near a boosted guild's
+  upload limit (100 MB at level 3) holds about 1 GB at once.
 
 ## Checks
 
