@@ -20,13 +20,14 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Sequence
 
     from xincord.core.i18n import Lang
-    from xincord.core.templates import Templates
+    from xincord.core.templates import Message, Templates
 
     from .config import Config
 
 type Sleep = Callable[[float], Awaitable[object]]
 
 NOTICE = "not-online"  # v3's template
+MAX_EMBEDS = 10  # Discord's limit for a message, which discord.py checks before sending
 logger = logging.getLogger(__name__)
 
 
@@ -264,20 +265,34 @@ def check_notice(lang: Lang, templates: Templates) -> None:
     """Refuse a ``not-online`` template that the plugin can never post.
 
     The plugin gives no component IDs and no models, so a component with a ``uid`` or a
-    ``model_key`` fails, as do a missing ``file_path`` and too many rows; v3 failed at each
-    notice. The render has no placeholder values, and the files it opens are closed.
+    ``model_key`` fails, as do a missing ``file_path`` and too many rows; Discord refuses more
+    than ten embeds and an empty message. v3 failed at each notice. The render has no placeholder
+    values, and the files it opens are closed.
 
     Raises:
         ConfigError: The template cannot be posted; the error names its file.
     """
     locale = lang.default_locale
+    path = lang.template(f"message/{NOTICE}", locale)
     try:
         message = render_message(templates.message(NOTICE, locale), {})
     except (TemplateError, ValueError) as error:
-        msg = f"{lang.template(f'message/{NOTICE}', locale)}: cannot be posted: {error}"
+        msg = f"{path}: cannot be posted: {error}"
         raise ConfigError(msg) from error
     for file in message.files:
         file.close()
+    if (problem := _refused(message)) is not None:
+        msg = f"{path}: cannot be posted: {problem}"
+        raise ConfigError(msg)
+
+
+def _refused(message: Message) -> str | None:
+    """Why Discord would refuse ``message`` whatever its placeholders hold, or None."""
+    if len(message.embeds) > MAX_EMBEDS:
+        return f"{len(message.embeds)} embeds, more than the {MAX_EMBEDS} that Discord takes"
+    if message.content.strip() or message.embeds or message.view is not None or message.files:
+        return None
+    return "it renders an empty message"
 
 
 def _not_a_member(guild: discord.Guild, owner: int) -> None:

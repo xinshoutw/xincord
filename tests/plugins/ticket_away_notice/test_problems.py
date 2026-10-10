@@ -131,7 +131,6 @@ async def test_template_that_cannot_be_posted(
     assert f"zh-TW/message/not-online.yaml: cannot be posted: {reason}" in log
 
 
-@pytest.mark.xfail(strict=True, reason="Problems with notices are reported")
 @pytest.mark.parametrize(
     ("template", "reason"),
     [
