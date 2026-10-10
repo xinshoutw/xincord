@@ -67,7 +67,7 @@
 
 - [x] 12.1 xfail tests for "Settings are checked when the bot is ready" (no stub: the tests run
       `on_ready`, which the left-guild tests also run)
-- [ ] 12.2 Implement `prune` and the list check; remove the markers
+- [x] 12.2 Implement `prune` and the list check; remove the markers
 
 ## 13. Conventions and docs
 

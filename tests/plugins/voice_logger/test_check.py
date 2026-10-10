@@ -8,7 +8,6 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 from discord_fakes import FakeChannel, FakeGuild, FakeVoiceChannel
 from plugin_fakes import dispatch
@@ -16,10 +15,10 @@ from xincord.plugins.voice_logger.settings import Setting
 from xincord.plugins.voice_logger.store import NAMESPACE, add_channels, read_settings
 
 if TYPE_CHECKING:
+    import pytest
+
     from xincord.core.bot import Bot
     from xincord.core.storage import JSON, Store
-
-XFAIL = pytest.mark.xfail(strict=True, reason="Settings are checked when the bot is ready")
 
 
 def available(guild_id: int) -> FakeGuild:
@@ -40,7 +39,6 @@ async def listed(store: Store, guild_id: int) -> None:
     await add_channels(store, guild_id, 6, "allow", [20])
 
 
-@XFAIL
 async def test_deleted_channels(
     bot: Bot, store: Store, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -79,7 +77,6 @@ async def test_nothing_deleted(bot: Bot, store: Store, monkeypatch: pytest.Monke
     assert await store.get(NAMESPACE, "10") == edited
 
 
-@XFAIL
 async def test_unavailable_or_unreadable(
     bot: Bot, store: Store, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:

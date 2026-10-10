@@ -14,7 +14,7 @@ from .settings import Setting
 
 if TYPE_CHECKING:
     import asyncio
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Container, Iterable
 
     from xincord.core.storage import JSON, Store
 
@@ -117,6 +117,33 @@ async def forget(store: Store, guild_id: int) -> None:
 async def guild_ids(store: Store) -> list[int]:
     """Return the guilds with settings, in order."""
     return sorted(int(key) for key in await store.keys(NAMESPACE))
+
+
+async def prune(store: Store, guild_id: int, known: Container[int]) -> list[int]:
+    """Drop from every list the IDs that ``known`` lacks; return them, each once, in order.
+
+    v3 filtered the lists to the guild's channels when it loaded them. Nothing is written when
+    nothing is dropped; a changed entry is written in v3's shape, and the others stay as they were.
+
+    Raises:
+        DataError: The document or one of its entries is not v3's; nothing is written.
+    """
+    async with _lock(store, guild_id):
+        entries = await _read(store, guild_id)
+        dropped: dict[int, None] = {}
+        document: dict[str, JSON] = {}
+        for channel, (raw, setting) in entries.items():
+            listed = (*setting.allow, *setting.block)
+            dropped |= dict.fromkeys(item for item in listed if item not in known)
+            kept = replace(
+                setting,
+                allow=tuple(item for item in setting.allow if item in known),
+                block=tuple(item for item in setting.block if item in known),
+            )
+            document[str(channel)] = raw if kept == setting else _entry(kept)
+        if dropped:
+            await store.put(NAMESPACE, str(guild_id), document)
+        return list(dropped)
 
 
 async def _change(

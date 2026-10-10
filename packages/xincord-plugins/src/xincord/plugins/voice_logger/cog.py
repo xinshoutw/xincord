@@ -23,9 +23,11 @@ from .logs import UNKNOWN_MEMBER, Place, voice_change
 from .settings import list_text, targets
 from .status import ENTRIES, classify, find_actor, parse_update
 from .store import (
+    DataError,
     add_channels,
     forget,
     guild_ids,
+    prune,
     read_setting,
     read_settings,
     remove,
@@ -288,18 +290,43 @@ class VoiceLogger(commands.Cog):
         await forget(self.store, guild.id)
 
     async def check_guilds(self) -> None:
-        """Delete the settings of the guilds that the bot left.
+        """Delete the settings of the guilds that the bot left, and check the others' lists.
 
         By ``on_ready``, discord.py knows every guild of the session, unavailable ones included.
         v3's ``JsonManager`` deleted the files of the guilds it did not know at its first use,
-        inside a loop that then threw.
+        inside a loop that then threw. An unavailable guild (an outage) is left alone: discord.py
+        knows it without its channels.
         """
         for guild_id in await guild_ids(self.store):
-            if self.bot.get_guild(guild_id) is None:
+            guild = self.bot.get_guild(guild_id)
+            if guild is None:
                 await forget(self.store, guild_id)
                 logger.info(
                     "VoiceLogger deleted the settings of guild %s, which the bot left", guild_id
                 )
+            elif not guild.unavailable:
+                await self._check(guild)
+
+    async def _check(self, guild: discord.Guild) -> None:
+        """Drop the channels that ``guild`` no longer has from its lists, as v3's startup did.
+
+        Listen channels are not checked: a deleted one is forgotten when a log finds it gone,
+        and a thread is not cached while it is archived. A guild whose settings cannot be read is
+        skipped with an error, so that the others are still checked.
+        """
+        known = {channel.id for channel in guild.channels}
+        try:
+            dropped = await prune(self.store, guild.id, known)
+        except DataError:
+            logger.exception("VoiceLogger cannot check the settings of guild %s", guild.id)
+            return
+        if dropped:
+            logger.info(
+                "VoiceLogger dropped the deleted channels %s from the lists of %s (%s)",
+                ", ".join(map(str, dropped)),
+                guild.name,
+                guild.id,
+            )
 
     async def _post(
         self, guild: discord.Guild, listen: Sequence[int], name: str, values: Mapping[str, str]
