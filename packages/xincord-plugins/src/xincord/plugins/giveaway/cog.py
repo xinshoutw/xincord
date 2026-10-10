@@ -13,7 +13,7 @@ import sqlite3
 import time
 import uuid
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Any, Protocol, cast, override, runtime_checkable
+from typing import TYPE_CHECKING, Any, cast, override
 
 import discord
 from discord import app_commands
@@ -23,6 +23,7 @@ from xincord.core.component_ids import ComponentIds
 from xincord.core.placeholders import global_values, placeholder_values
 from xincord.core.templates import modal_values, render_message, render_modal
 
+from .channels import postable
 from .drafts import problem, remove_last_prize, submit, switch_policy
 from .model import DataError, Draft, Drawer, Instance, draw, join, new_id
 from .store import Giveaways
@@ -30,13 +31,14 @@ from .texts import Texts, language, post_buttons, post_embed, preview, result
 from .times import format_end_time
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable, Mapping, Sequence
+    from collections.abc import Awaitable, Callable, Mapping
 
     from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
     from xincord.core.templates import Message, Templates
 
+    from .channels import Channel, Posted
     from .config import Config
 
 logger = logging.getLogger(__name__)
@@ -44,7 +46,6 @@ logger = logging.getLogger(__name__)
 # v3's fields in v3's order, all text, and v3's prefix, so that v3's posts keep working.
 IDS = ComponentIds("giveaway", ("action", "sub_action", "giveaway_id"), legacy_prefix="giveaway@")
 BUTTON = 2  # the component type of a button, which v3's onButtonInteraction took
-# The builder's buttons that open the modal of the same name, and the modals that change a draft.
 FIRST_PASS = 5  # v3's initial delay of the automatic draw, in seconds after READY
 GUILD_ID = re.compile(r"[0-9]+")  # the store's keys, unless someone edited them
 
@@ -57,6 +58,7 @@ REFUSALS = {
     "too-early": "error.too-early",
     "not-drawn": "error.not-drawn",
 }
+# The builder's buttons that open the modal of the same name, and the modals that change a draft.
 MODALS = frozenset(
     ("set-title", "set-description", "set-end-time", "set-sponsor", "set-thumbnail", "add-prize")
 )
@@ -64,63 +66,6 @@ MODALS = frozenset(
 
 class PostError(Exception):
     """A giveaway cannot be posted; the message says why, for the user and the log."""
-
-
-class Posted(Protocol):
-    """A message that the bot sent, as the plugin uses it."""
-
-    @property
-    def id(self) -> int:
-        """The message's ID."""
-        ...
-
-    @property
-    def jump_url(self) -> str:
-        """The message's link."""
-        ...
-
-    async def delete(self) -> None:
-        """Delete the message."""
-        ...
-
-
-class Editable(Protocol):
-    """A message that the bot can edit without fetching it, as the plugin calls it."""
-
-    async def edit(
-        self,
-        *,
-        content: str | None = None,
-        embeds: Sequence[discord.Embed] = (),
-        view: discord.ui.View | discord.ui.LayoutView | None = None,
-        attachments: Sequence[discord.File] = (),
-    ) -> object:
-        """Replace the message."""
-        ...
-
-
-@runtime_checkable
-class Postable(Protocol):
-    """A channel that takes messages (forums and categories do not), as the plugin calls it."""
-
-    async def send(
-        self,
-        *,
-        content: str | None = None,
-        embeds: Sequence[discord.Embed] = (),
-        view: discord.ui.View | discord.ui.LayoutView | None = None,
-        files: Sequence[discord.File] = (),
-    ) -> Posted:
-        """Send a message to the channel."""
-        ...
-
-
-class Channel(Postable, Protocol):
-    """A partial messageable: messages can be sent there and edited by ID."""
-
-    def get_partial_message(self, message_id: int, /) -> Editable:
-        """The channel's message ``message_id``, without fetching it."""
-        ...
 
 
 @dataclass(frozen=True)
@@ -574,7 +519,7 @@ class Giveaway(commands.Cog):
         Raises:
             PostError: The channel takes no messages or refused the post, or the store failed.
         """
-        channel, channel_id = _postable(interaction.channel), interaction.channel_id
+        channel, channel_id = postable(interaction.channel), interaction.channel_id
         if channel is None or channel_id is None:
             msg = "the channel takes no messages"
             raise PostError(msg)
@@ -688,14 +633,6 @@ class Giveaway(commands.Cog):
 async def _tell(interaction: discord.Interaction, text: str) -> None:
     """Answer the interaction with ``text``, ephemerally, as v3's replies."""
     await interaction.response.send_message(text, ephemeral=True)
-
-
-def _postable(channel: object) -> Postable | None:
-    """``channel`` if it takes messages, typed by the call that the plugin makes.
-
-    discord.py's ``send`` overloads take a ``View`` or a ``LayoutView``, never their union.
-    """
-    return channel if isinstance(channel, Postable) else None
 
 
 async def _delete(posted: Posted) -> None:
