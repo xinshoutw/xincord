@@ -79,6 +79,11 @@ async def create(
     )
 
 
+async def delete(store: Store, channel: VocalGuildChannel) -> None:
+    """Delete ``channel`` if it is an empty room of the plugin, and forget it."""
+    raise NotImplementedError
+
+
 async def _patch(bot: commands.Bot, channel: VocalGuildChannel, **fields: object) -> None:
     """Send JDA's ``PATCH /channels/<id>`` with ``fields``.
 

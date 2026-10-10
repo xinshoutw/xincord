@@ -16,6 +16,7 @@ from xincord.core.placeholders import placeholder_values
 from xincord.core.templates import render_message
 
 from .rooms import create as create_room
+from .rooms import delete as delete_room
 from .store import NAMESPACE, Binding, bind, unbind
 
 if TYPE_CHECKING:
@@ -199,12 +200,17 @@ class DynamicVoiceChannel(commands.Cog):
         changes are then handled one after another.
         """
         joined, left = after.channel, before.channel
-        if joined is None or (left is not None and left.id == joined.id):
+        if joined is not None and left is not None and joined.id == left.id:
             return
-        if list(joined.voice_states) != [member.id]:
+        alone = joined is not None and list(joined.voice_states) == [member.id]
+        lobby = joined if alone else None
+        if lobby is None and left is None:
             return
         async with self._voice_lock(member.guild.id):
-            await create_room(self.bot, self.store, member, joined)
+            if lobby is not None:
+                await create_room(self.bot, self.store, member, lobby)
+            if left is not None:
+                await delete_room(self.store, left)
 
     def _voice_lock(self, guild_id: int) -> asyncio.Lock:
         """The lock of the guild's voice changes; the store keeps it across reloads."""

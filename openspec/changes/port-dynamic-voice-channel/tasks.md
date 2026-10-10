@@ -43,7 +43,7 @@
 
 ## 9. Room deletion
 
-- [ ] 9.1 xfail tests for "Empty rooms are deleted" against a stub deletion path
+- [x] 9.1 xfail tests for "Empty rooms are deleted" against a stub deletion path
 - [ ] 9.2 Implement the deletion path and the guild's voice lock; remove the markers
 
 ## 10. Left guilds
