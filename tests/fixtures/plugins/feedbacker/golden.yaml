@@ -20,3 +20,14 @@ fb_stars:
   3: "★ ★ ★ ☆ ☆ "
   4: "★ ★ ★ ★ ☆ "
   5: "★ ★ ★ ★ ★ "
+
+# The prompt that asks for a rating, per locale, as Embed.to_dict() without "type" and "flags",
+# above five gray buttons labeled with one to five stars.
+ask:
+  en-US:
+    title: "Please provide a rating and review"
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+  zh-TW:
+    title: "請給予星等與評價"
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+star_labels: ["★", "★★", "★★★", "★★★★", "★★★★★"]

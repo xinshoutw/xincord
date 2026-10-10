@@ -30,7 +30,7 @@
 
 ## 6. Creating a form
 
-- [ ] 6.1 xfail tests for "Administrators post a feedback form", "Only administrators post forms"
+- [x] 6.1 xfail tests for "Administrators post a feedback form", "Only administrators post forms"
       and "A form that cannot be posted is reported", against a stub `create_form`
 - [ ] 6.2 Implement `create_form`; remove the markers
 

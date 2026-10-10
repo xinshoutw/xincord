@@ -9,6 +9,9 @@ from typing import TYPE_CHECKING
 from discord.ext import commands
 
 if TYPE_CHECKING:
+    import discord
+    from discord import app_commands
+
     from xincord.core.i18n import Lang
     from xincord.core.templates import Templates
 
@@ -23,3 +26,12 @@ class Feedbacker(commands.Cog):
         self.config = config
         self.lang = lang
         self.templates = templates
+
+    async def create_form(
+        self,
+        interaction: discord.Interaction,
+        member: discord.Member | discord.User,
+        submit_channel: app_commands.AppCommandChannel,
+    ) -> None:
+        """Post the form that asks ``member`` to rate the service, for an administrator."""
+        raise NotImplementedError
