@@ -22,7 +22,15 @@ from xincord.core.templates import render_message
 from .logs import UNKNOWN_MEMBER, Place, voice_change
 from .settings import list_text, targets
 from .status import ENTRIES, classify, find_actor, parse_update
-from .store import add_channels, read_setting, read_settings, remove, toggle
+from .store import (
+    add_channels,
+    forget,
+    guild_ids,
+    read_setting,
+    read_settings,
+    remove,
+    toggle,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -274,18 +282,24 @@ class VoiceLogger(commands.Cog):
     async def on_guild_remove(self, guild: discord.Guild) -> None:
         """Delete the settings of a guild that the bot left or was removed from.
 
-        Raises:
-            NotImplementedError: Not implemented yet.
+        v3 handled no leave and deleted the guild's file at its next start. discord.py does not
+        fire this during an outage (``on_guild_unavailable``).
         """
-        raise NotImplementedError
+        await forget(self.store, guild.id)
 
     async def check_guilds(self) -> None:
         """Delete the settings of the guilds that the bot left.
 
-        Raises:
-            NotImplementedError: Not implemented yet.
+        By ``on_ready``, discord.py knows every guild of the session, unavailable ones included.
+        v3's ``JsonManager`` deleted the files of the guilds it did not know at its first use,
+        inside a loop that then threw.
         """
-        raise NotImplementedError
+        for guild_id in await guild_ids(self.store):
+            if self.bot.get_guild(guild_id) is None:
+                await forget(self.store, guild_id)
+                logger.info(
+                    "VoiceLogger deleted the settings of guild %s, which the bot left", guild_id
+                )
 
     async def _post(
         self, guild: discord.Guild, listen: Sequence[int], name: str, values: Mapping[str, str]

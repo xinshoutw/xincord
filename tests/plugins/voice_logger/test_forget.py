@@ -8,8 +8,6 @@ Kotlin:
 import logging
 from typing import TYPE_CHECKING
 
-import pytest
-
 from discord_fakes import FakeGuild
 from plugin_fakes import dispatch, load_plugin
 from xincord.core.bot import Bot
@@ -18,11 +16,9 @@ from xincord.plugins.voice_logger.store import NAMESPACE, forget, guild_ids, tog
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from xincord.core.storage import Store
+    import pytest
 
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Settings are forgotten with the guild"
-)
+    from xincord.core.storage import Store
 
 
 async def settle_three(store: Store) -> None:
@@ -31,7 +27,6 @@ async def settle_three(store: Store) -> None:
         await toggle(store, guild_id, 5)
 
 
-@XFAIL
 async def test_forget(store: Store) -> None:
     """Requirement: Settings are forgotten with the guild."""
     await settle_three(store)
@@ -43,7 +38,6 @@ async def test_forget(store: Store) -> None:
     assert await store.keys(NAMESPACE) == ["20", "30"]
 
 
-@XFAIL
 async def test_guild_ids(store: Store) -> None:
     """Requirement: Settings are forgotten with the guild."""
     for guild_id in (12, 9, 10):
@@ -52,7 +46,6 @@ async def test_guild_ids(store: Store) -> None:
     assert await guild_ids(store) == [9, 10, 12]
 
 
-@XFAIL
 async def test_the_bot_leaves(bot: Bot, store: Store) -> None:
     """Requirement: Settings are forgotten with the guild."""
     await settle_three(store)
@@ -63,7 +56,6 @@ async def test_the_bot_leaves(bot: Bot, store: Store) -> None:
     assert await store.keys(NAMESPACE) == ["20", "30"]
 
 
-@XFAIL
 async def test_left_while_offline(
     bot: Bot, store: Store, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -80,7 +72,6 @@ async def test_left_while_offline(
     assert "VoiceLogger deleted the settings of guild 20, which the bot left" in caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason="Settings are forgotten with the guild")
 async def test_loaded_into_a_ready_bot(
     store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

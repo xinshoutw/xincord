@@ -109,21 +109,14 @@ async def remove(store: Store, guild_id: int, channel_id: int) -> bool:
 
 
 async def forget(store: Store, guild_id: int) -> None:
-    """Delete the guild's settings.
-
-    Raises:
-        NotImplementedError: Not implemented yet.
-    """
-    raise NotImplementedError
+    """Delete the guild's settings."""
+    async with _lock(store, guild_id):
+        await store.delete(NAMESPACE, str(guild_id))
 
 
 async def guild_ids(store: Store) -> list[int]:
-    """Return the guilds with settings, in order.
-
-    Raises:
-        NotImplementedError: Not implemented yet.
-    """
-    raise NotImplementedError
+    """Return the guilds with settings, in order."""
+    return sorted(int(key) for key in await store.keys(NAMESPACE))
 
 
 async def _change(

@@ -60,7 +60,7 @@
 ## 11. Left guilds
 
 - [x] 11.1 xfail tests for "Settings are forgotten with the guild" against stubs
-- [ ] 11.2 Implement `forget`, `guild_ids`, `on_guild_remove`, `on_ready`, `cog_load` and the
+- [x] 11.2 Implement `forget`, `guild_ids`, `on_guild_remove`, `on_ready`, `cog_load` and the
       left-guild check; remove the markers
 
 ## 12. Checks at READY
