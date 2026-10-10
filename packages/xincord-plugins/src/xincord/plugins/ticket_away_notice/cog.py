@@ -137,7 +137,7 @@ class TicketAwayNotice(commands.Cog):
         channel (B2). The notice runs as a task, so the listener holds nothing up.
         """
         guild_id = channel.guild.id
-        if not self.config.watches(guild_id, channel.name):
+        if not self.config.watches(guild_id, channel.name) or self._started_by_bot(channel):
             return
         target = _postable(channel)
         if target is None:
@@ -150,6 +150,18 @@ class TicketAwayNotice(commands.Cog):
         )
         self.notices.add(task)
         task.add_done_callback(self.notices.discard)
+
+    def _started_by_bot(self, channel: discord.abc.GuildChannel | discord.Thread) -> bool:
+        """Whether ``channel`` is a thread that the bot started, such as Ticket's archive.
+
+        An archive thread takes the ticket channel's name, which may start with a prefix; v3 never
+        posted in threads (B2). Channels carry no creator, and Ticket's tickets are meant to get the
+        notice.
+        """
+        user = self.bot.user
+        return (
+            isinstance(channel, discord.Thread) and user is not None and channel.owner_id == user.id
+        )
 
     async def _notice(self, guild_id: int, channel: Postable) -> None:
         """Run a notice; a failure that the plugin does not handle is logged with its traceback.

@@ -88,7 +88,6 @@ async def test_channels_that_take_no_messages(
     assert caplog.records == []
 
 
-@pytest.mark.xfail(strict=True, reason="New channels whose names start with a prefix are watched")
 async def test_the_bots_own_thread(scene: Scene) -> None:
     """Requirement: New channels whose names start with a prefix are watched."""
     # Ticket's archive of a ticket channel named ticket-alice, in another channel.

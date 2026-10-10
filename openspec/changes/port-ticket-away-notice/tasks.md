@@ -49,7 +49,7 @@
       state left behind) and fix its findings xfail-first (8.3 to 8.10; design, "Cross-review")
 - [x] 8.3 xfail test for "The bot's own thread" (found in the review: Ticket's archive starts a
       thread named after the ticket channel, which got the notice once the channel's name matched)
-- [ ] 8.4 Skip the threads that the bot starts; remove the marker
+- [x] 8.4 Skip the threads that the bot starts; remove the marker
 - [ ] 8.5 xfail test for "Event after the unload" (found in the review: a listener that discord.py
       scheduled before an unload ran after `cog_unload` and started a notice nothing cancelled)
 - [ ] 8.6 Start no notice once the cog unloaded; remove the marker
