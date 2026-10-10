@@ -1,0 +1,96 @@
+## 1. Shared listen channels
+
+- [ ] 1.1 Move VoiceLogger's `settings.py` and `store.py` into `xincord.plugins.listen_channels`
+      (`ListenSettings`, bound to a plugin's namespace); VoiceLogger and its tests follow, green
+- [ ] 1.2 Move the menu, its components, the posts and the checks at READY into `ListenChannels`;
+      VoiceLogger's cog keeps its command, the voice and status code; its tests stay green
+
+## 2. Resources
+
+- [ ] 2.1 Bundle v3's en-US and zh-TW lang files with final newlines, and the config file
+
+## 3. Installation
+
+- [ ] 3.1 xfail tests for "The plugin installs as ChatLogger"
+- [ ] 3.2 Add the package, its `setup` and the `ChatLogger` entry point; remove the markers
+
+## 4. Config
+
+- [ ] 4.1 xfail tests for "The config keeps v3's key and bounds the stored messages"
+- [ ] 4.2 Implement `Config`; remove the markers
+
+## 5. Detection
+
+- [ ] 5.1 xfail tests for "Listen channels detect message channels" (threads and their parents)
+- [ ] 5.2 Let the shared `detects` and `targets` take the IDs that contain a channel; remove the
+      markers
+
+## 6. Settings menu and components
+
+- [ ] 6.1 xfail tests for "The settings menu shows the channel's settings" and "The settings
+      components change the settings"
+- [ ] 6.2 Show the menu and handle its components through `ListenChannels`; route `IDS`; remove the
+      markers
+
+## 7. Command
+
+- [ ] 7.1 xfail tests for "The command is a localized administrator guild command"
+- [ ] 7.2 Build the group and its subcommand and register it in `setup`; remove the markers
+
+## 8. Message texts
+
+- [ ] 8.1 xfail tests for "A message's text is its content and its rich embeds" and the cut of
+      "Logged texts are shown as written and fit an embed field" against stubs in `text.py`
+- [ ] 8.2 Implement `message_text` and `fit`; remove the markers
+
+## 9. Message log
+
+- [ ] 9.1 xfail tests for the stored messages against stubs in `messages.py`
+- [ ] 9.2 Implement `MessageLog`; remove the markers
+
+## 10. Storing messages
+
+- [ ] 10.1 xfail tests for "Guild messages are stored" against a stub listener
+- [ ] 10.2 Implement `on_message`; remove the markers
+
+## 11. Edits
+
+- [ ] 11.1 xfail tests for "Edits of stored messages are logged", "Logs reach every listen channel"
+      and "Typed placeholders" against a stub listener
+- [ ] 11.2 Implement `on_raw_message_edit` and the posts; remove the markers
+
+## 12. Deletions
+
+- [ ] 12.1 xfail tests for "Deletions of stored messages are logged" and "Long text" against stub
+      listeners
+- [ ] 12.2 Implement `on_raw_message_delete` and `on_raw_bulk_message_delete`; remove the markers
+
+## 13. Retention
+
+- [ ] 13.1 xfail tests for "Stored messages are kept for the retention period"
+- [ ] 13.2 Implement the retention loop; remove the markers
+
+## 14. Left guilds and checks at READY
+
+- [ ] 14.1 xfail tests for "Data is forgotten with the guild" and "Settings are checked when the bot
+      is ready"
+- [ ] 14.2 Implement `on_guild_remove`, `on_ready`, `cog_load` and the checks; remove the markers
+
+## 15. Conventions and docs
+
+- [ ] 15.1 Check that the built wheel ships `config.yaml` and `lang/` and that `xincord --no-online`
+      loads the plugin; drive it once through discord.py's own objects
+- [ ] 15.2 Porting guide rows and pitfalls, and skill corrections
+- [ ] 15.3 Audit the inventory against the scenarios and the design
+
+## 16. Review
+
+- [ ] 16.1 Gate passes, push, CI green (before the review)
+- [ ] 16.2 Cross-review the change (other paths into the features, repeated events, state left
+      behind); fix each finding xfail-first
+
+## 17. Close
+
+- [ ] 17.1 Gate passes, push, CI green
+- [ ] 17.2 Archive the change and run `openspec validate --all --strict`
+- [ ] 17.3 Update `HANDOFF.md` and `docs/porting/owner-review.md`; push; CI green
