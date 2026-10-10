@@ -72,7 +72,7 @@
       link button with a `uid`, the room left)
 - [x] 11.4 Follow Discord's scripts in `is_command_name`, check the configured name with it,
       render the templates at load and count the room left; remove the markers
-- [ ] 11.5 xfail tests for "A command can answer with a public or an ephemeral reply": refused
+- [x] 11.5 xfail tests for "A command can answer with a public or an ephemeral reply": refused
       responses
 - [ ] 11.6 Log and delete a refused response; remove the markers
 - [ ] 11.7 The bundled config's comment on `"no"`; porting guide and skill notes

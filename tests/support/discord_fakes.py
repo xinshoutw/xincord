@@ -104,6 +104,8 @@ class FakeInteraction:
     permissions: discord.Permissions = field(default_factory=discord.Permissions.none)
     # The message that the deferred response is, which edit_original_response returns.
     original: FakeMessage = field(default_factory=lambda: FakeMessage(id=43))
+    # What edit_original_response raises once it recorded the edit, as when Discord refuses it.
+    edit_error: Exception | None = None
 
     @property
     def guild_id(self) -> int | None:
@@ -128,6 +130,8 @@ class FakeInteraction:
     async def edit_original_response(self, **fields: object) -> FakeMessage:
         """Record an edit of the deferred response; return its message, as discord.py does."""
         self.sent.append(("edit_original_response", fields))
+        if self.edit_error is not None:
+            raise self.edit_error
         return self.original
 
     async def delete_original_response(self) -> None:
