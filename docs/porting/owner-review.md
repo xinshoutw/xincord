@@ -86,18 +86,41 @@ here; delete a section once it is empty.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-bot-info/design.md` (needs a token and a test guild).
 
-## CustomCommands (v3 SimpleCommand, `port-simple-command`)
+## CustomCommands (v3 SimpleCommand, `port-simple-command`, `custom-commands-from-config`)
 
 ### User-visible changes
 - When the bot cannot post in the channel (missing permissions, or a channel that takes no messages), the administrator gets the message as the ephemeral response and the log has a warning (v3: the "thinking" message vanished and nothing was posted).
 - The commands always answer (v3 needed the core's auto-defer switch).
-- No `plugins/CustomCommands/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list.
 - Placeholders that other plugins left in v3's shared global substitutor no longer expand in these templates; `%bot_id%` and `%bot_name%` still do.
+- `custom-commands-from-config`: the commands are defined in `plugins/CustomCommands/config.yaml`; the bundled file lists v3's five (names, `generate message`, zh-TW names and descriptions, Administrator), so a fresh install and a migrated v3 install behave as before. Its comments, which explain every key, are new copy.
+- `custom-commands-from-config`: per command, `localizations` (name and description per Discord locale), `template` (default: the command's name), `permissions` (discord.py's names; default `[administrator]`, `[]` for every member), `reply` (`channel`, v3's post; `public`; `ephemeral`) and `guilds` (default: every guild); `/xincord reload CustomCommands` applies an edit and uploads the commands.
+- `custom-commands-from-config`: ephemeral replies use the user's locale, else zh-TW; posts and public replies stay zh-TW for everyone.
+- `custom-commands-from-config`: templates may use the user's and the channel's placeholders (`%user_mention%`, `%user_name%`, `%channel_name%`, ...), not only `%bot_id%` and `%bot_name%`; a mention in a post pings that member.
+- `custom-commands-from-config`: `lang/zh-TW/register.yaml` is no longer bundled or read; a v3 copy is ignored (the local v3 copy's equals v3's bundled file, so nothing is lost).
+- `custom-commands-from-config`: a config mistake disables the plugin with the file and the key in the log: Discord's name rules, description lengths, locales, permissions, guild IDs, names unique in every locale, the room left of Discord's 100 commands, a template missing from zh-TW or one that cannot render (a `uid` button or select, a `model_key`, a missing file, six rows).
+- `custom-commands-from-config`: a response that Discord refuses is deleted with a warning, so that no public "thinking" message stays in the channel.
+- `custom-commands-from-config`: an en-US template for some commands only logs the core's warning at each load that en-US lacks the others; they fall back to zh-TW.
+- `custom-commands-from-config`: `python -m xincord.core.migrate_v3` renames v3's `plugins/CustomCommands/config.yaml` (moved from SimpleCommand; only `enabled`) to `config.v3.yaml`, with a report line, so that the bundled commands are written.
+- `custom-commands-from-config`: every plugin: a reload whose `config.yaml`, lang files or templates are broken keeps the previous version running, and the summary names the file and the key (before: the plugin vanished while still listed as loaded, and only a restart brought it back); when even the previous version fails, the plugin and the plugins that depend on it are unloaded, the commands are uploaded without theirs, and the summary says to run a full reload.
 ### Choices made without the owner
 - A channel that refuses the message: implemented the message in the deferred ephemeral response, as Calculator; alternative: an error text telling the administrator that the bot cannot post there.
 - What is posted: implemented the whole template, as v3 posted the built message (an operator's link buttons, Components V2 layouts and their uploaded files too); alternative: content and embeds only, as Calculator posts.
+- `custom-commands-from-config`: where the names' localizations live: implemented in each command's entry in `config.yaml` (`localizations: {zh-TW: {name, description}}`), `register.yaml` dropped; alternative: `register.yaml` keyed by command name, which v3's copy would keep feeding but which splits a command over two files.
+- `custom-commands-from-config`: a config without `commands` (v3's file): implemented an error that names the key, plus `migrate_v3` setting v3's file aside; alternative: a missing key meaning the bundled five commands.
+- `custom-commands-from-config`: template locale: implemented zh-TW for posts and public replies, the user's for ephemeral replies; alternative: a per-command choice (user, guild or a fixed locale).
+- `custom-commands-from-config`: permissions: implemented discord.py's flag names, `[]` for every member; alternative: Discord's integer bitfield or JDA's names.
+- `custom-commands-from-config`: guild lists: implemented a core filter of each guild's upload (`extras["guilds"]`), so that names stay unique across plugins; alternative: discord.py's per-guild commands, which would allow one name with different templates per guild, but where a name clash with another plugin would make Discord refuse that guild's whole upload.
+- `custom-commands-from-config`: placeholders: implemented the user's, the bot's and the channel's; alternative: v3's bot keys only.
+- `custom-commands-from-config`: templates: implemented a render of each command's templates at load, refusing what cannot be posted; alternative: refusing only `uid` and `model_key`, or checking nothing (v3 failed at each use).
+- `custom-commands-from-config`: names: implemented discord.py's rule and Discord's for the command name (no apostrophe), Discord's for localized names (apostrophe allowed); alternative: one rule for both.
+- `custom-commands-from-config`: a misspelled key inside an entry (`guild:`, `replay:`) only warns, as decision B6 says for every config file, and the entry keeps its default (every guild, a post in the channel); alternative: refuse unknown keys inside entries, an exception to B6.
+- `custom-commands-from-config`: limit: implemented the room left of Discord's 100 commands at load (`/xincord` and the plugins loaded before count); alternative: a fixed lower limit that leaves room for the plugins loaded after.
+- `custom-commands-from-config`: failed reloads (a core fix found here): implemented replaying the previous version's config, lang and templates; alternative: only unloading the plugin cleanly.
+- `custom-commands-from-config`: a command whose guild list or name changed stays registered where an upload failed, and runs there until the next upload; alternative: a guild check in the callback.
+- `custom-commands-from-config`: left out (the design's "Left out"): command options, per-role or per-user permissions (only an OAuth2 user token can set them), buttons that run actions, global commands, one name with different templates per guild, a configurable default locale, cooldowns.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-simple-command/design.md` (needs a token, a test guild and a member without Administrator).
+- Smoke checklist in `openspec/changes/archive/2026-10-11-custom-commands-from-config/design.md` (needs a token, a test guild and a second guild, a member without Administrator, and zh-TW, en-US and Japanese clients).
 
 ## WelcomeGoodbye (v3 WelcomeByeGuild, `port-welcome-bye-guild`)
 

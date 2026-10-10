@@ -244,6 +244,8 @@ those fall back to zh-TW.
   `admin_id`), exited 0 with every plugin loaded and wrote the bundled
   `bot/plugins/CustomCommands/config.yaml` and the five templates; `docker compose down -v` and
   removing `bot/` cleaned up.
+- After the cross-review's fixes (2026-10-11): the probe gave the same requests, `xincord
+  --no-online` from fresh wheels exited 0, and the image check again loaded all thirteen plugins.
 
 ### Tests (xfail-first)
 

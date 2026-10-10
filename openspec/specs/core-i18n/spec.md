@@ -39,7 +39,8 @@ load.
 ### Requirement: Lang files are validated at load
 Every lang YAML file SHALL be a mapping whose leaves are strings; otherwise the load SHALL fail
 naming the file and key. In `register.yaml`, every `name` SHALL follow Discord's command name
-rules and every `description` SHALL have 1 to 100 characters.
+rules and every `description` SHALL have 1 to 100 characters. The name check SHALL be public as
+`is_command_name(name)`, for names that plugins read from elsewhere.
 
 #### Scenario: Non-string leaf fails
 - **WHEN** a lang file has a list or number as a value
@@ -52,6 +53,12 @@ rules and every `description` SHALL have 1 to 100 characters.
 #### Scenario: Description length is checked
 - **WHEN** a register description is empty or longer than 100 characters
 - **THEN** the load fails naming the file and the key
+
+#### Scenario: Public name check
+- **WHEN** a plugin checks names with `is_command_name`
+- **THEN** it accepts the names that `register.yaml` accepts, such as `my-calc_2` and `o'clock`,
+  and refuses the others, such as `Calc`, `my calc`, 33 letters, a line break, and a combining
+  mark outside the Devanagari and Thai scripts, which Discord refuses
 
 ### Requirement: Key sets are compared with the default locale
 After loading, keys and template names that a locale lacks, or has only for itself, compared with
@@ -89,4 +96,18 @@ lacks it so that Discord shows the default name.
 
 #### Scenario: No fallback for commands
 - **WHEN** the requested locale does not define the key, or the string carries no lang
+- **THEN** the translator returns nothing
+
+### Requirement: Commands can be localized from a table
+A command string created with `localized(default, translations)`, where `translations` maps
+Discord locales to texts, SHALL be translated to the text of the requested locale, or to nothing
+when the table lacks that locale, so that Discord shows the default.
+
+#### Scenario: Translated from the table
+- **WHEN** a command name created with `localized("rules", {"zh-TW": "gui-ze"})` is translated to
+  zh-TW
+- **THEN** `gui-ze` is returned, and the string's message is `rules`
+
+#### Scenario: Locale missing from the table
+- **WHEN** that name is translated to Japanese
 - **THEN** the translator returns nothing

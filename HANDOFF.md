@@ -1,7 +1,8 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after `uptime-heartbeat-keep-pushing` (the owner's first follow-up change:
-UptimeHeartbeat never stops a listener and logs URLs as origins only), which followed
+Updated 2026-10-11 after `custom-commands-from-config` (the owner's second follow-up change:
+CustomCommands defines its commands in its config file; with it, a core fix that keeps a plugin's
+previous version when its files break a reload), which followed `uptime-heartbeat-keep-pushing`,
 `rename-plugins` (the owner's plugin renames) and `port-giveaway`, the thirteenth plugin port.
 Core is complete. Read this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The
 decisions are accepted and binding; do not re-open them unless you find a serious problem, and then
@@ -68,13 +69,17 @@ starting with Core. Motivation: easier maintenance and faster iteration.
     the core schema `CoreConfig` (`token`, `plugins`, `status.activities`, `interaction_log`) and
     the default `resources/config.yaml`. `xincord.core.migrate_v3` converts the v3 core config,
     lists the plugins whose v3 config had `enabled: true` (renamed ones under their new names,
-    `RENAMED`) and moves each renamed plugin's v3 directory to its new name (`python -m
-    xincord.core.migrate_v3 <dir>`).
+    `RENAMED`), moves each renamed plugin's v3 directory to its new name and, last, sets aside as
+    `config.v3.yaml` the v3 `config.yaml` of a `SET_ASIDE` plugin (CustomCommands) that held only
+    `enabled` (`python -m xincord.core.migrate_v3 <dir>`).
   - `xincord.core.storage`: `Store` over one SQLite connection on one worker thread; JSON values by
     namespace and key; `update` (atomic read-modify-write), `run` (plugin tables), `lock(key)`.
   - `xincord.core.i18n`: `export_lang`, `Lang.load` (locales, flattened YAML keys, Discord name
     rules, key-set warnings), `Lang.text` / `Lang.template` (fallback), `Lang.localization` (no
-    fallback), `Lang.command` and `Translator`.
+    fallback), `Lang.command` and `Translator`; `is_command_name` (Discord's name rules: letters,
+    numbers, `-`, `_`, `'`, the Devanagari and Thai scripts) and `localized(default,
+    translations)`, a command string that `Translator` resolves from its own table (no fallback),
+    since `custom-commands-from-config`. `Lang.parsed` keeps what is parsed from the files once.
   - `xincord.core.placeholders`: single-pass `render`, the v3 key families (`actor_values`,
     `user_values`, `member_values`, `guild_values`, `channel_values`, `event_values`,
     `interaction_values` with JDA's `command_string`), `placeholder_values(interaction)` (v3's
@@ -86,8 +91,8 @@ starting with Core. Motivation: easier maintenance and faster iteration.
     (discord.py's `Thread.category` raises there).
   - `xincord.core.templates` (package: `base`, `schema`, `schema_v2`, `render`, `render_v2`,
     `__init__`): v1 message templates, Components V2 and modal templates, validated at load
-    (`load_message`, `load_modal`, `Templates.load`) and rendered to
-    `Message(content, embeds, view, files)` and `discord.ui.Modal`. V2 mode renders a
+    (`load_message`, `load_modal`, `Templates.load`, which parses a `Lang`'s templates once) and
+    rendered to `Message(content, embeds, view, files)` and `discord.ui.Modal`. V2 mode renders a
     `discord.ui.LayoutView`; `files` carries the uploads that `file_path` media need. Embed fields
     are trimmed as JDA did (Java's `trim`) and an empty name or value becomes U+200E, which Discord
     would refuse otherwise; `modal_values(data)` reads a submitted modal's text inputs by custom ID
@@ -100,12 +105,18 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   - `xincord.core.plugins`: `discover(enabled)` reads entry points (group `xincord.plugins`, name =
     plugin name) and the module constants `DEPENDS`, `SOFT_DEPENDS`, `INTENTS`, drops broken
     plugins, missing dependencies and cycles, and orders the rest with `graphlib`;
-    `required_intents`; `PluginContext` (`directory`, `store`, `config(Model)`, `lang(locale)`).
+    `required_intents`; `PluginContext` (`directory`, `store`, `config(Model)`, `lang(locale)`;
+    `reads` keeps what those returned, which a `replaying()` copy hands back).
   - `xincord.core.bot.Bot(commands.Bot)`: created from the discovered plugins with their intents;
     `load_plugins()` (isolated failures, dependents skipped), `plugin_context(__name__)` for a
     plugin's `setup(bot)`, `load_plugin(info)` (hot load: refuses new intents or missing
-    dependencies), `reload_plugin(name)` (with dependents; discord.py keeps the old version on
-    failure), `route(__name__, ids, handler)` and `on_interaction`, which sends component and
+    dependencies), `reload_plugin(name)` (with dependents; on a failure discord.py sets the
+    previous version up again, and `plugin_context` gives it a replaying context while the
+    plugin's modules are out of `sys.modules`, so that the config, lang and templates that broke
+    the new version cannot break it; when it fails anyway, `_drop` unloads it with its modules and
+    dependents, the reload uploads the commands, and a full reload loads them again; a plugin whose
+    entry point moved fails its reload), `route(__name__, ids, handler)` and `on_interaction`,
+    which sends component and
     modal interactions to the owning plugin's handler with a `ParsedId` and, after a legacy ID,
     fetches the message, runs `upgrade_view` and edits it once. `setup_hook` sets the
     `Translator` and loads the plugins before the gateway connects; `on_ready` syncs the global
@@ -137,8 +148,10 @@ starting with Core. Motivation: easier maintenance and faster iteration.
     a console line, then the matching `interaction_log` targets via `get_partial_messageable`,
     never pinging.
   - `xincord.core.command_tree.CommandTree` (the bot's `tree_cls`): `interaction_check` defers
-    application commands ephemerally unless `extras["defer"]` is False; `payloads()` splits
-    guild commands from `extras["global"]` ones (translated when a translator is set);
+    application commands ephemerally unless `extras["defer"]` is False; `payloads(guild_id=None)`
+    splits guild commands from `extras["global"]` ones (translated when a translator is set) and,
+    for a guild, leaves out the guild commands whose `extras["guilds"]` lists other guilds (each
+    guild gets its own payload);
     `sync_global(store)` / `sync_guild(store, guild_id, force=)` upload only when the payload's
     SHA-256 changed (stored in the `core` namespace) and log failures.
     Component and modal IDs come from a `build_id(uid_map)` callable the plugin passes in. Views
@@ -183,17 +196,25 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   whose `client` is `SimpleNamespace(user=BOT_USER, guilds=[...])`, the global payload check in
   `tests/plugins/bot_info/test_command.py`, and a `cast`-based `cog` fixture for a plugin whose
   tests load invalid configs.
-- **CustomCommands** (v3 SimpleCommand; `xincord.plugins.custom_commands`, no intents, no config,
-  zh-TW only): five guild commands from the `COMMANDS` table (`command(name)` with
-  `app_commands.default_permissions(administrator=True)`) share the callback `post_message`, which
-  reads `interaction.command.name`, renders that template in `lang.default_locale` with v3's
-  `bot_id` and `bot_name`, posts the whole message (content, embeds, view and files) through
-  `_postable` (the channel as `object` against the `Postable` Protocol) and `_send`, then deletes
-  the deferred response; when the channel takes no messages or refuses it, it renders again and
-  edits the deferred response, with the files as `attachments`. The bundled templates hold the
-  example account number `000000000000`. Reuse: `FakeInteraction(command=SimpleNamespace(name=...))`
-  and `ClosingChannel` (`tests/plugins/custom_commands/test_post.py`) for discord.py's closed files.
-  Their v3 global keys now come from the core's `global_values` (moved there by Economy).
+- **CustomCommands** (v3 SimpleCommand; `xincord.plugins.custom_commands`, no intents, zh-TW
+  templates, config `commands` since `custom-commands-from-config`): `config.py` models each entry
+  (`CommandSpec`: `name`, checked by discord.py's `validate_name` and `is_command_name`;
+  `description`; `localizations` per Discord locale; `template`, by default the name;
+  `permissions` by discord.py's flag names, by default `administrator`, `[]` for everyone; `reply`:
+  `channel`, `public` or `ephemeral`; `guilds`), and `commands` is required: the bundled file holds
+  v3's five with their zh-TW names (`register.yaml` is gone). `checks.py` raises one `ConfigError`
+  for what needs several entries or the lang files: names unique in every locale, the room left of
+  Discord's 100 commands, and templates that exist in zh-TW and render once at load (no `uid`,
+  `model_key`, missing file or sixth row). `cog.py`: `command(spec)` (`localized` names,
+  `default_permissions`, `extras["guilds"]`, `extras["defer"] = False` for a public reply);
+  `post_message` posts in the channel (v3's way, with the fallback into the deferred response),
+  defers publicly and edits, or edits the ephemeral deferral in the user's locale, with
+  `placeholder_values`, and deletes a response that Discord refuses. The bundled templates hold
+  the example account number `000000000000`. Reuse: `Operator` (`tests/plugins/custom_commands/
+  conftest.py`: an operator's templates and config, then a load), the `plugin_modules` fixture for
+  tests that reload the real plugin (`test_reload.py`), `checks.check` for config checks across
+  entries, `FakeInteraction(edit_error=...)`, and `ClosingChannel` (`test_post.py`) for
+  discord.py's closed files.
 - **WelcomeGoodbye** (v3 WelcomeByeGuild; `xincord.plugins.welcome_goodbye`, `INTENTS =
   discord.Intents(members=True)`, no config, en-US and zh-TW): the first plugin with data.
   `store.py` keeps v3's per-guild document (`{"welcomeChannelId", "byeChannelId"}`, 0 = unbound) in
@@ -366,7 +387,8 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `port-basic-calculator`, `port-auto-role`, `port-bot-info`, `port-simple-command`,
 `port-welcome-bye-guild`, `port-interval-pusher`, `port-feedbacker`, `port-economy`,
 `port-dynamic-voice-channel`, `port-voice-logger`, `port-chat-logger`, `port-giveaway`,
-`rename-plugins`, `uptime-heartbeat-keep-pushing`. Each one's `design.md` in
+`rename-plugins`, `uptime-heartbeat-keep-pushing`, `custom-commands-from-config`. Each one's
+`design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
@@ -391,8 +413,9 @@ NtustCourse), MusicPlayer (with Lavalink in `compose.yaml`). Update `docs/portin
 each one.
 
 The owner also asked for follow-up changes (section 6). Done: UptimeHeartbeat logs URLs as origins
-only and never stops a listener (`uptime-heartbeat-keep-pushing`). Not started yet: CustomCommands
-defines its commands in the config file; ChatLogger keeps 5 years by default in its own files,
+only and never stops a listener (`uptime-heartbeat-keep-pushing`); CustomCommands defines its
+commands in its config file (`custom-commands-from-config`). Not started yet: ChatLogger keeps 5
+years by default in its own files,
 starting a new file when one grows too large; the v3 data import (`xincord migrate`) before
 cutover, which must read a renamed plugin's v3 data from `plugins/<new name>/` once `migrate_v3`
 moved it (or from both places) and write the new store namespaces (`WelcomeGoodbye`).
@@ -454,7 +477,8 @@ Answered on 2026-10-10 (afternoon), from the review queue (the answered items we
   exponents), and so is the golden-test approach.
 - **SimpleCommand:** the commands will be defined in the config file, with as much customization
   as practical (a follow-up change). The example account number is accepted, and so is copying
-  v3's `lang/` files (with the real account numbers) into the plugin's directory at cutover.
+  v3's `lang/` files (with the real account numbers) into the plugin's directory at cutover. Done
+  in `custom-commands-from-config` (2026-10-11); its choices are in the review queue.
 - **WelcomeByeGuild:** binding the welcome and bye channels again at cutover is accepted, and so
   are the two zh-TW typo fixes.
 - **Feedbacker:** `form_failure`, `form_submit_failure` and their copy are accepted.
@@ -769,6 +793,26 @@ setup-uv v10.2.0, setup-node v7.1.0.
   `# noqa: BLE001`.
 - PyYAML's syntax errors quote a snippet of the faulty line (about 30 characters after the error),
   and the core's `ConfigError` passes it on, so a URL on that line can show in the log.
+
+- discord.py's `reload_extension` sets the previous version up again when the new one fails, and
+  that setup reads the plugin's files again; it runs while the plugin's modules are out of
+  `sys.modules` (2.7.1), which the core uses to hand it a replaying context. When it fails too,
+  discord.py leaves nothing registered and the core must forget the plugin (`_drop`).
+- discord.py's `validate_name` refuses an apostrophe, which Discord takes, and its pattern ends in
+  `$`, so a final line break passes it; Discord then refuses the guild's whole upload. Discord's
+  names take letters, numbers, `-`, `_`, `'` and the Devanagari and Thai scripts
+  (`is_command_name`).
+- discord.py's command tree holds at most 100 commands in its global table, and the core keeps
+  every plugin's commands there (guild lists are a filter of each guild's upload): a 101st, or a
+  name that another plugin took first, fails the plugin that loads second.
+- A deferred response keeps the deferral's flags: after the command tree's ephemeral defer, no
+  reply can be public; a public reply opts out (`extras={"defer": False}`) and defers itself.
+- `default_member_permissions`: None lets every member use a command; `Permissions(0)` leaves it to
+  administrators.
+- A `WeakKeyDictionary` whose values reference their keys never drops an entry; keep data that is
+  derived from an object with the object (`Lang.parsed`).
+- A scratch pytest file outside the repository runs with the project's settings through `uv run
+  pytest -c pyproject.toml --rootdir=. <file>` from the repository root.
 
 **v3 behaviors never to reproduce:** loading plugins in reverse dependency order, non-atomic JSON
 writes that reset corrupt files, recursive placeholder expansion, shared mutable placeholder
