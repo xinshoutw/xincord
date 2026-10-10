@@ -21,7 +21,9 @@ if TYPE_CHECKING:
     from xincord.plugins.uptime_heartbeat.cog import UptimeHeartbeat
 
 # v3's shipped listener, with an example domain instead of the owner's status domain.
-PUSH_URL = "https://status.example.com/api/push/xxxxxxxxxx?status=up&msg=OK&ping=%ping%"
+TOKEN = "xxxxxxxxxx"  # the push token: in the URL's path, never in a log line
+PUSH_URL = f"https://status.example.com/api/push/{TOKEN}?status=up&msg=OK&ping=%ping%"
+ORIGIN_ONLY = "Logs show only the URL's origin"
 V3_CONFIG = f"""\
 enabled: true
 listeners:
@@ -130,3 +132,28 @@ async def test_accepted_urls(url: str, tmp_path: Path, store: Store) -> None:
     bot = await load_plugin("UptimeHeartbeat", tmp_path / "plugins", store, config=listener(url))
 
     assert [entry.url for entry in loaded_cog(bot).listeners] == [url]
+
+
+@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
+@pytest.mark.parametrize(
+    ("url", "secret"),
+    [
+        pytest.param(f"https://status.example.com/api/push/{TOKEN} x", TOKEN, id="space"),
+        # urlsplit reads "se" as the port, since the fragment starts at the unencoded "#".
+        pytest.param(
+            f"https://user:se#cret@status.example.com/api/push/{TOKEN}", "se#cret", id="port"
+        ),
+    ],
+)
+async def test_invalid_url_in_the_config(
+    url: str, secret: str, tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: Logs show only the URL's origin."""
+    bot = await load_plugin("UptimeHeartbeat", tmp_path / "plugins", store, config=listener(url))
+
+    assert bot.loaded == ()
+    assert "listeners.0.url: " in caplog.text
+    # caplog.text holds the tracebacks too, with pydantic's error chained to the core's.
+    assert secret not in caplog.text
+    assert TOKEN not in caplog.text
+    assert "/api/push" not in caplog.text

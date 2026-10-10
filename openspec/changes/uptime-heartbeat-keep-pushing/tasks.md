@@ -31,7 +31,7 @@
 
 - [x] 5.1 Push the work so far (CI green), then record the cross-review's findings and fixes in the
       delta and `design.md`
-- [ ] 5.2 xfail tests for "Logs show only the URL's origin": invalid URLs in the config
+- [x] 5.2 xfail tests for "Logs show only the URL's origin": invalid URLs in the config
 - [ ] 5.3 Hide the input in the models' validation errors and give an unreadable URL a fixed
       message; remove the markers
 - [ ] 5.4 xfail tests for "Logs show only the URL's origin": `private_parts` against a stub, and an
