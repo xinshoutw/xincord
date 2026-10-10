@@ -10,8 +10,6 @@ Kotlin:
 from importlib.resources import files
 from typing import TYPE_CHECKING
 
-import pytest
-
 from plugin_fakes import load_plugin
 from xincord.core.plugins import PluginInfo, discover
 
@@ -40,7 +38,6 @@ LANG_FILES = tuple(
 ADMINS = "admin_id: [1]\n"  # an operator's config.yaml that lists the administrator 1
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as Economy")
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as Economy."""
     # No dependencies: v3's GoogleSheetAPI served only the dead Sheets storage. No intents: Discord
@@ -48,7 +45,6 @@ def test_discovered_by_name() -> None:
     assert discover(["Economy"]) == [PluginInfo("Economy", "xincord.plugins.economy")]
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as Economy")
 async def test_first_load_creates_the_files(store: Store, tmp_path: Path) -> None:
     """Requirement: The plugin installs as Economy."""
     await load_plugin("Economy", tmp_path / "plugins", store)
