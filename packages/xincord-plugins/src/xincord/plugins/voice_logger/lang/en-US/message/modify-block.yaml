@@ -1,0 +1,11 @@
+components:
+  - !EntitySelectMenu
+    uid:
+      action: "modify_block_menu"
+    placeholder: "choose channels, categories or search here"
+    min: 1
+    max: 25
+    select_target_type: "CHANNEL"
+    channel_types:
+      - "VOICE"
+      - "CATEGORY"

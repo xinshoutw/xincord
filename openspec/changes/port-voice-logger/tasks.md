@@ -6,7 +6,7 @@
 
 ## 2. Resources
 
-- [ ] 2.1 Bundle v3's en-US and zh-TW lang files with final newlines
+- [x] 2.1 Bundle v3's en-US and zh-TW lang files with final newlines
 
 ## 3. Installation
 
