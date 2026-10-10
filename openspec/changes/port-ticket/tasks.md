@@ -68,7 +68,7 @@
 ## 13. Refused changes
 
 - [x] 13.1 xfail tests for "A change that Discord refuses keeps the draft"
-- [ ] 13.2 Keep the draft and answer the refused text when the builder's edit fails; remove the
+- [x] 13.2 Keep the draft and answer the refused text when the builder's edit fails; remove the
        markers
 
 ## 14. Confirming

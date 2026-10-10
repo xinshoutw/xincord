@@ -20,7 +20,7 @@ from xincord.core.templates import modal_values, render_message, render_modal
 
 from .drafts import defaults, select_roles, select_style, submit
 from .model import hex_color
-from .texts import Texts
+from .texts import Texts, readable_error
 from .views import preview_button, preview_embed
 
 if TYPE_CHECKING:
@@ -275,19 +275,27 @@ class Ticket(commands.Cog):
 
     async def _screen(
         self, interaction: discord.Interaction, session: Session, screen: str | None = None
-    ) -> None:
+    ) -> bool:
         """Show the builder's ``screen``, or its main screen, through the interaction.
 
         One type-7 response replaces the whole message, v3's ``deferEdit`` and the edit through
-        the command's hook, which stopped working after 15 minutes (B14).
+        the command's hook, which stopped working after 15 minutes (B14). When Discord refuses it
+        (an emoji or a URL it does not take), the interaction is still open: the user gets the
+        refused text with Discord's error, and False comes back.
         """
         message = self._builder(interaction, session, screen)
-        await interaction.response.edit_message(
-            content=message.content,
-            embeds=message.embeds,
-            view=message.view,
-            attachments=message.files,
-        )
+        try:
+            await interaction.response.edit_message(
+                content=message.content,
+                embeds=message.embeds,
+                view=message.view,
+                attachments=message.files,
+            )
+        except discord.HTTPException as error:
+            reason = {"tt@error": readable_error(error)}
+            await _tell(interaction, self.texts(interaction).get("error.refused", reason))
+            return False
+        return True
 
     async def _style(self, interaction: discord.Interaction, session: Session, index: str) -> None:
         """Set the panel button's style from a color button's index; show the main screen."""
@@ -340,11 +348,15 @@ class Ticket(commands.Cog):
     async def _update(
         self, interaction: discord.Interaction, session: Session, draft: Draft
     ) -> None:
-        """Show ``draft`` in the builder's main screen through the interaction, then keep it."""
+        """Show ``draft`` in the builder's main screen through the interaction, then keep it.
+
+        A draft that Discord refuses to show is not kept: v3 kept it, and every later render of
+        the builder failed silently.
+        """
         changed = replace(session, draft=draft)
-        await self._screen(interaction, changed)
-        # The session was found by the user and this interaction's guild.
-        self.drafts[interaction.user.id, cast("int", interaction.guild_id)] = changed
+        if await self._screen(interaction, changed):
+            # The session was found by the user and this interaction's guild.
+            self.drafts[interaction.user.id, cast("int", interaction.guild_id)] = changed
 
     async def _confirm(self, interaction: discord.Interaction, session: Session) -> None:
         """Post the panel, or add its button to the message, and store it."""

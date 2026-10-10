@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from xincord.core.placeholders import render
+from xincord.plugins.redaction import redact
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -16,6 +17,7 @@ if TYPE_CHECKING:
     from xincord.core.i18n import Lang
 
 TEXT = "text"  # the stem of the lang file that holds them
+ERROR_MAX = 200  # v3's take(200) of an error's text
 
 
 @dataclass(frozen=True)
@@ -34,4 +36,24 @@ def readable_error(error: BaseException) -> str:
     """An error as v3 showed it to users: its text on one line, at most 200 UTF-16 code units, or
     its class name; URLs are cut to their origin, since a webhook's URL holds its token.
     """
-    raise NotImplementedError
+    text = str(error).replace("\n", " ")
+    return clip(redact(text), ERROR_MAX) if text else type(error).__name__
+
+
+def units(text: str) -> int:
+    """The length of ``text`` in UTF-16 code units, as Java's ``String.length``."""
+    return len(text.encode("utf-16-le")) // 2
+
+
+def clip(text: str, limit: int) -> str:
+    """The longest start of ``text`` within ``limit`` UTF-16 code units, characters kept whole."""
+    if units(text) <= limit:
+        return text
+    taken: list[str] = []
+    used = 0
+    for char in text:
+        used += units(char)
+        if used > limit:
+            break
+        taken.append(char)
+    return "".join(taken)

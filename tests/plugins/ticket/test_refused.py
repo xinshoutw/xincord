@@ -20,7 +20,6 @@ DRAFT = Draft("Why?", button_text="Open", button_emoji="x")
 INVALID = "400 Bad Request (error code: 50035): Invalid Form Body In components: Invalid emoji"
 
 
-@pytest.mark.xfail(strict=True, reason="A change that Discord refuses keeps the draft")
 async def test_invalid_emoji(scene: Scene) -> None:
     """Requirement: A change that Discord refuses keeps the draft."""
     scene.keep(DRAFT)
@@ -34,7 +33,6 @@ async def test_invalid_emoji(scene: Scene) -> None:
     assert scene.session().draft == DRAFT
 
 
-@pytest.mark.xfail(strict=True, reason="A change that Discord refuses keeps the draft")
 async def test_refused_screen(scene: Scene) -> None:
     """Requirement: A change that Discord refuses keeps the draft."""
     scene.keep(DRAFT)
@@ -47,11 +45,6 @@ async def test_refused_screen(scene: Scene) -> None:
     assert scene.session().draft == DRAFT
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="A failed archive is reported and cleans up",
-)
 @pytest.mark.parametrize(
     ("error", "shown"),
     [
