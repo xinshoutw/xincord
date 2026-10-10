@@ -28,17 +28,6 @@ if TYPE_CHECKING:
 
 GOLDEN = golden("dynamic_voice_channel")
 LOCALES = ["en-US", "zh-TW"]
-BINDS = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Administrators bind lobbies"
-)
-UNBINDS = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Administrators unbind lobbies"
-)
-OUTSIDE = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The command is a localized administrator guild command",
-)
 GUILD = FakeGuild(10)
 ADMIN = FakeMember(GUILD, id=1, name="alice")
 
@@ -77,7 +66,6 @@ def replied(interaction: FakeInteraction) -> dict[str, Any]:
     return embed_dict(embed)
 
 
-@BINDS
 @pytest.mark.parametrize("locale", LOCALES)
 async def test_bind(cog: DynamicVoiceChannel, store: Store, locale: str) -> None:
     """Requirement: Administrators bind lobbies."""
@@ -89,7 +77,6 @@ async def test_bind(cog: DynamicVoiceChannel, store: Store, locale: str) -> None
     assert replied(interaction) == GOLDEN["replies"][locale]["bind-success"]  # the user's locale
 
 
-@BINDS
 async def test_bind_again(cog: DynamicVoiceChannel, store: Store) -> None:
     """Requirement: Administrators bind lobbies."""
     await bind(store, 10, Binding(20, "Lobby", "A", "B"))
@@ -105,7 +92,6 @@ async def test_bind_again(cog: DynamicVoiceChannel, store: Store) -> None:
     assert replied(interaction) == GOLDEN["replies"]["en-US"]["bind-success"]
 
 
-@BINDS
 @pytest.mark.parametrize("locale", LOCALES)
 async def test_bind_outside_a_category(cog: DynamicVoiceChannel, store: Store, locale: str) -> None:
     """Requirement: Administrators bind lobbies."""
@@ -117,7 +103,6 @@ async def test_bind_outside_a_category(cog: DynamicVoiceChannel, store: Store, l
     assert replied(interaction) == GOLDEN["replies"][locale]["must-under-category"]
 
 
-@BINDS
 async def test_replies_get_the_interactions_values(store: Store, tmp_path: Path) -> None:
     """Requirement: Administrators bind lobbies."""
     # An operator's template with v3's Placeholder.get(event) keys.
@@ -136,7 +121,6 @@ async def test_replies_get_the_interactions_values(store: Store, tmp_path: Path)
     assert replied(interaction)["title"] == "alice ran dynamic-voice-channel bind (xincord)"
 
 
-@UNBINDS
 @pytest.mark.parametrize("locale", LOCALES)
 async def test_unbind(cog: DynamicVoiceChannel, store: Store, locale: str) -> None:
     """Requirement: Administrators unbind lobbies."""
@@ -152,7 +136,6 @@ async def test_unbind(cog: DynamicVoiceChannel, store: Store, locale: str) -> No
     assert replied(second) == GOLDEN["replies"][locale]["unbind-fail"]
 
 
-@UNBINDS
 async def test_unbind_matches_the_current_name(cog: DynamicVoiceChannel, store: Store) -> None:
     """Requirement: Administrators unbind lobbies."""
     # As in v3, a lobby renamed since it was bound no longer names its binding.
@@ -165,7 +148,6 @@ async def test_unbind_matches_the_current_name(cog: DynamicVoiceChannel, store: 
     assert replied(interaction) == GOLDEN["replies"]["en-US"]["unbind-fail"]
 
 
-@UNBINDS
 @pytest.mark.parametrize("locale", LOCALES)
 async def test_unbind_outside_a_category(
     cog: DynamicVoiceChannel, store: Store, locale: str
@@ -180,7 +162,6 @@ async def test_unbind_outside_a_category(
     assert replied(interaction) == GOLDEN["replies"][locale]["must-under-category"]
 
 
-@OUTSIDE
 async def test_outside_a_guild(cog: DynamicVoiceChannel, store: Store) -> None:
     """Requirement: The command is a localized administrator guild command."""
     # Guild commands never run outside a guild; v3's handler assumed a guild too.

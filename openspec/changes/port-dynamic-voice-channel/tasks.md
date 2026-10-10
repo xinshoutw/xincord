@@ -28,7 +28,7 @@
 
 - [x] 6.1 xfail tests for "Administrators bind lobbies" and "Administrators unbind lobbies" against
       stub callbacks
-- [ ] 6.2 Implement `bind_lobby` and `unbind_lobby`; remove the markers
+- [x] 6.2 Implement `bind_lobby` and `unbind_lobby`; remove the markers
 
 ## 7. Command
 
