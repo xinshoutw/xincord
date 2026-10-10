@@ -102,7 +102,7 @@
 
 - [x] 19.1 xfail tests for "Administrators choose where to save the conversation" against stubs
        `save` and `select_target`
-- [ ] 19.2 Implement them and `save_select`; remove the markers
+- [x] 19.2 Implement them and `save_select`; remove the markers
 
 ## 20. Archive
 

@@ -12,11 +12,12 @@ from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 import discord
 
+from .channels import cached_channel
 from .ids import IDS
 from .model import Controls
 from .texts import Texts, readable_error, tell
 from .tickets import is_staff, viewing
-from .views import control_row
+from .views import control_row, save_select
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -31,6 +32,15 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 SNOWFLAKE = re.compile(r"[1-9][0-9]{0,19}")  # a user ID in decimal, as the parsed IDs give it
+# What the bot needs in the ticket channel, and in the chosen channel, to save the conversation.
+READ = discord.Permissions(view_channel=True, read_message_history=True)
+POST = discord.Permissions(
+    view_channel=True,
+    send_messages=True,
+    send_messages_in_threads=True,
+    create_public_threads=True,
+    manage_webhooks=True,
+)
 
 
 @runtime_checkable
@@ -81,6 +91,20 @@ class HasRoles(Protocol):
     @property
     def roles(self) -> Sequence[Snowflake]:
         """The member's roles."""
+        ...
+
+
+@runtime_checkable
+class CheckedChannel(Protocol):
+    """A guild channel that a save checks: its type and the bot's permissions in it."""
+
+    @property
+    def type(self) -> discord.ChannelType:
+        """The channel's type."""
+        ...
+
+    def permissions_for(self, obj: Any, /) -> discord.Permissions:  # noqa: ANN401 - discord.py's
+        """The permissions of ``obj`` in the channel."""
         ...
 
 
@@ -161,13 +185,54 @@ class ControlRow:
             await self._failed(interaction, "error.delete-failed", error)
 
     async def save(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
-        """Offer the ticket's staff a select of the text channel to save the conversation in."""
-        raise NotImplementedError
+        """Offer the ticket's staff, ephemerally, a select of the text channel to save it in.
+
+        In v3's order: a user who is no member gets an acknowledgement only, a row without its
+        entry the not-found text, and anyone but staff the admin-only text. The select's ID
+        carries the row's fields; a row whose member is no user ID gets no response (v3 threw).
+        """
+        found = await self._staff_entry(interaction, fields)
+        if found == "error.no-member":
+            await interaction.response.defer()  # v3's deferEdit
+            return
+        texts = self.texts(interaction)
+        if isinstance(found, str):
+            await tell(interaction, texts.get(found))
+            return
+        controls = _controls(fields)
+        if controls is None:
+            return
+        await interaction.response.send_message(
+            texts.get("reply.choose-channel"),
+            view=save_select(controls, texts, IDS.build),
+            ephemeral=True,
+        )
 
     async def select_target(
         self, interaction: discord.Interaction, fields: Mapping[str, str], values: Sequence[str]
     ) -> None:
-        """Check the chosen channel and the bot's permissions, then save the conversation there."""
+        """Check a save select's choice, then save the conversation into the chosen channel.
+
+        Another select gets v3's acknowledgement only. The checks run in v3's order, each refusal
+        answering its text: a member, the entry, staff, the ticket a text channel, a text channel
+        chosen, the bot's View Channel and Read Message History in the ticket, and its View
+        Channel, Send Messages, Send Messages in Threads, Create Public Threads and Manage
+        Webhooks in the chosen channel.
+        """
+        if fields.get("sub_action") != "select-channel":
+            await interaction.response.defer()  # v3's deferEdit
+            return
+        found = await self._staff_entry(interaction, fields)
+        checked = found if isinstance(found, str) else _save_channels(interaction, values)
+        if isinstance(checked, str):
+            await tell(interaction, self.texts(interaction).get(checked))
+            return
+        await self._save(interaction, *checked)
+
+    async def _save(
+        self, interaction: discord.Interaction, source: CheckedChannel, target: CheckedChannel
+    ) -> None:
+        """Archive ``source`` into a new thread of ``target`` and tell the user how it went."""
         raise NotImplementedError
 
     async def _staff_entry(
@@ -232,6 +297,44 @@ async def _permit(interaction: discord.Interaction, user_id: int, *, allowed: bo
     await channel.set_permissions(
         member, overwrite=viewing(channel.overwrites_for(member), allowed=allowed)
     )
+
+
+def _save_channels(
+    interaction: discord.Interaction, values: Sequence[str]
+) -> tuple[CheckedChannel, CheckedChannel] | str:
+    """The ticket channel and the chosen channel of a save, else the error key that refuses it.
+
+    In v3's order: the ticket a text channel, a text channel among the choice, the bot's View
+    Channel and Read Message History in the ticket, and what it needs to post in the other.
+    """
+    source = _text_channel(interaction.channel)
+    if source is None:
+        return "error.not-text-channel"
+    guild = cast("discord.Guild", interaction.guild)  # members act in guilds
+    target = _chosen(guild, values)
+    if target is None:
+        return "error.choose-text-channel"
+    if not source.permissions_for(guild.me).is_superset(READ):
+        return "error.no-history-permission"
+    if not target.permissions_for(guild.me).is_superset(POST):
+        return "error.no-target-permission"
+    return source, target
+
+
+def _chosen(guild: object, values: Sequence[str]) -> CheckedChannel | None:
+    """The first of a select's values that the guild's cache knows as a text channel."""
+    for value in values:
+        channel = _text_channel(cached_channel(guild, value))
+        if channel is not None:
+            return channel
+    return None
+
+
+def _text_channel(channel: object) -> CheckedChannel | None:
+    """``channel`` when it is a text channel (no thread, voice channel or forum), else None."""
+    if isinstance(channel, CheckedChannel) and channel.type is discord.ChannelType.text:
+        return channel
+    return None
 
 
 async def _remove(interaction: discord.Interaction) -> None:

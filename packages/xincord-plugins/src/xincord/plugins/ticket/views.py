@@ -93,3 +93,30 @@ def control_row(
     view.add_item(button("delete", discord.ButtonStyle.danger, WASTEBASKET))
     view.stop()  # the router handles its buttons, not discord.py
     return view
+
+
+def save_select(controls: Controls, texts: Texts, build_id: IdBuilder) -> discord.ui.View:
+    """The save button's select, v3's ``EntitySelectMenu``: one text channel to save the
+    conversation in, its ID carrying the row's fields; stopped for the router."""
+    choose = texts.get("reply.choose-channel")
+    custom_id = build_id(
+        {
+            "action": "save",
+            "sub_action": "select-channel",
+            "user_id": str(controls.user_id),
+            "msg_id": controls.message_id,
+            "btn_index": controls.index,
+        }
+    )
+    view = discord.ui.View(timeout=None)
+    view.add_item(
+        discord.ui.ChannelSelect[discord.ui.View](
+            custom_id=custom_id,
+            channel_types=[discord.ChannelType.text],
+            placeholder=choose,
+            min_values=1,
+            max_values=1,
+        )
+    )
+    view.stop()  # the router handles its choices, not discord.py
+    return view

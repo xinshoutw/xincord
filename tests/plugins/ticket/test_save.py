@@ -60,11 +60,6 @@ def told(interaction: FakeInteraction, text: str) -> bool:
     return interaction.sent == [("response.send_message", {"content": text, "ephemeral": True})]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Administrators choose where to save the conversation",
-)
 @pytest.mark.parametrize(
     ("locale", "text"),
     [("en-US", CHOOSE), ("zh-TW", GOLDEN["texts"]["zh-TW"]["choose-channel"])],
@@ -92,11 +87,6 @@ async def test_the_select(scene: Scene, locale: str, text: str) -> None:
     assert select.placeholder == text
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Administrators choose where to save the conversation",
-)
 @pytest.mark.parametrize(
     ("locale", "text"),
     [("en-US", ADMIN_ONLY), ("zh-TW", GOLDEN["texts"]["zh-TW"]["admin-only"])],
@@ -110,11 +100,6 @@ async def test_not_a_staff_member(scene: Scene, locale: str, text: str) -> None:
     assert told(await scene.click("save", member, **FIELDS), text)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Administrators choose where to save the conversation",
-)
 async def test_no_entry(scene: Scene) -> None:
     """Requirement: Administrators choose where to save the conversation."""
     await stored(scene)
@@ -124,11 +109,6 @@ async def test_no_entry(scene: Scene) -> None:
     assert told(interaction, GOLDEN["texts"]["en-US"]["not-found"])
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Administrators choose where to save the conversation",
-)
 async def test_not_a_member(scene: Scene) -> None:
     """Requirement: Administrators choose where to save the conversation."""
     await stored(scene)
@@ -141,11 +121,6 @@ async def test_not_a_member(scene: Scene) -> None:
     assert interaction.sent == [("response.defer", {"ephemeral": False, "thinking": False})]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Administrators choose where to save the conversation",
-)
 async def test_malformed_member(scene: Scene) -> None:
     """Requirement: Administrators choose where to save the conversation."""
     await stored(scene)
@@ -155,11 +130,6 @@ async def test_malformed_member(scene: Scene) -> None:
     assert interaction.sent == []  # v3's cast threw before any answer
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Administrators choose where to save the conversation",
-)
 async def test_other_select(scene: Scene) -> None:
     """Requirement: Administrators choose where to save the conversation."""
     await stored(scene)
@@ -171,11 +141,6 @@ async def test_other_select(scene: Scene) -> None:
     assert interaction.sent == [("response.defer", {"ephemeral": False, "thinking": False})]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Administrators choose where to save the conversation",
-)
 @pytest.mark.parametrize(
     ("who", "fields", "text"),
     [
@@ -197,11 +162,6 @@ async def test_refused_selections(
     assert target.sent == []  # nothing archived
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Administrators choose where to save the conversation",
-)
 async def test_no_member(scene: Scene) -> None:
     """Requirement: Administrators choose where to save the conversation."""
     await stored(scene)
@@ -211,11 +171,6 @@ async def test_no_member(scene: Scene) -> None:
     assert told(await scene.handle(selection), NO_MEMBER)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Administrators choose where to save the conversation",
-)
 async def test_not_a_text_channel(scene: Scene) -> None:
     """Requirement: Administrators choose where to save the conversation."""
     await stored(scene)
@@ -224,11 +179,6 @@ async def test_not_a_text_channel(scene: Scene) -> None:
     assert told(await scene.handle(scene.selection(select_id(), [str(TARGET)])), NOT_TEXT)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Administrators choose where to save the conversation",
-)
 @pytest.mark.parametrize(
     "values", [["7"], ["99"], ["abc"], []], ids=["voice", "unknown", "no-id", "none"]
 )
@@ -240,11 +190,6 @@ async def test_no_text_channel_chosen(scene: Scene, values: list[str]) -> None:
     assert told(await scene.handle(scene.selection(select_id(), values)), CHOOSE_TEXT)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Administrators choose where to save the conversation",
-)
 async def test_no_history_permission(scene: Scene) -> None:
     """Requirement: Administrators choose where to save the conversation."""
     await stored(scene)
@@ -253,11 +198,6 @@ async def test_no_history_permission(scene: Scene) -> None:
     assert told(await scene.handle(scene.selection(select_id(), [str(TARGET)])), NO_HISTORY)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Administrators choose where to save the conversation",
-)
 async def test_no_target_permission(scene: Scene) -> None:
     """Requirement: Administrators choose where to save the conversation."""
     target = await stored(scene)
