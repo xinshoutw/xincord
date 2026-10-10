@@ -224,7 +224,6 @@ async def test_post_gone(draws: Draws, caplog: pytest.LogCaptureFixture) -> None
     assert len(announced(draws, 6)) == 1  # the other giveaway is still handled
 
 
-@pytest.mark.xfail(strict=True, reason="Due giveaways are drawn automatically")
 async def test_broken_data(draws: Draws, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Due giveaways are drawn automatically."""
     scene = draws.scene

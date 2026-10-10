@@ -47,20 +47,21 @@ class Giveaways:
         """Draw the guild's due giveaways at ``now`` and store them; return them.
 
         One write for the guild, under its lock, before anything is posted: v3 saved after
-        queuing the posts, and a draw and the automatic draw could both draw. A broken entry is
-        skipped, and logged the first time.
-
-        Raises:
-            DataError: The guild's document is not v3's shape.
+        queuing the posts, and a draw and the automatic draw could both draw. A broken document
+        or entry is skipped, and logged the first time.
         """
         async with self.lock(guild_id):
-            document = await self._document(guild_id)
+            try:
+                document = await self._document(guild_id)
+            except DataError as error:
+                self._report(f"guild {guild_id}", error)
+                return []
             due: dict[str, Instance] = {}
             for key, entry in document.items():
                 try:
                     instance = parse_instance(entry, _where(guild_id, key))
                 except DataError as error:
-                    self._report(guild_id, key, error)
+                    self._report(_where(guild_id, key), error)
                     continue
                 if is_due(instance, now):
                     due[key] = drawn(instance, now, rng)
@@ -70,12 +71,11 @@ class Giveaways:
                 await self.store.put(NAMESPACE, str(guild_id), updated)
             return list(due.values())
 
-    def _report(self, guild_id: int, key: str, error: DataError) -> None:
-        """Log a broken entry the first time the automatic draw skips it."""
-        where = _where(guild_id, key)
+    def _report(self, where: str, error: DataError) -> None:
+        """Log a broken document or entry the first time the automatic draw skips it."""
         if where not in self.reported:
             self.reported.add(where)
-            logger.warning("Giveaway skips the giveaway %s of guild %s: %s", key, guild_id, error)
+            logger.warning("Giveaway skips %s in the automatic draw: %s", where, error)
 
     def lock(self, guild_id: int) -> asyncio.Lock:
         """The lock of the guild's document, the same across reloads."""

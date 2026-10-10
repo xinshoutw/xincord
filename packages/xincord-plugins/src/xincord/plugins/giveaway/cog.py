@@ -154,7 +154,7 @@ class Giveaway(commands.Cog):
                 continue
             try:
                 drawn = await self.giveaways.draw_due(guild.id, now, self.random)
-            except DataError, sqlite3.Error:
+            except sqlite3.Error:
                 logger.exception("Giveaway cannot draw the due giveaways of guild %s", key)
                 continue
             for instance in drawn:
