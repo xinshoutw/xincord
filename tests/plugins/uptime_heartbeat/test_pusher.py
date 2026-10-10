@@ -23,6 +23,7 @@ TOKEN = "xxxxxxxxxx"  # the push token: in the URL's path, never in a log line
 URL = f"https://status.example.com/api/push/{TOKEN}?status=up&msg=OK&ping=%ping%"
 PUSHED = URL.replace("%ping%", "42")
 ENDPOINT = "https://status.example.com"  # the URL's origin, all that the logs show of it
+PING_RULE = "The URL carries the REST ping"
 
 
 class Stop(Exception):  # noqa: N818 - it ends the loop, it reports no error
@@ -117,6 +118,25 @@ async def test_failed_ping(error: Exception, caplog: pytest.LogCaptureFixture) -
     assert record.getMessage().startswith(
         "UptimeHeartbeat listener 1 could not measure the REST ping, so %ping% is -1: "
     )
+
+
+@pytest.mark.xfail(strict=True, reason=PING_RULE)
+async def test_unexpected_ping_error(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: The URL carries the REST ping."""
+    fakes = Fakes(pings=(RuntimeError("Session is closed"),))
+
+    await fakes.pusher().push()
+
+    # Pushed with -1 all the same: v3 caught every error of the ping.
+    assert fakes.calls == ["ping", f"get {URL.replace('%ping%', '-1')}"]
+    [record] = [record for record in caplog.records if record.levelno > logging.INFO]
+    assert record.levelno == logging.WARNING
+    message = record.getMessage()
+    assert message.startswith(
+        "UptimeHeartbeat listener 1 could not measure the REST ping, so %ping% is -1\n"
+        "Traceback (most recent call last):\n"
+    )
+    assert message.endswith("\nRuntimeError: Session is closed")
 
 
 async def test_no_placeholder() -> None:
