@@ -160,6 +160,16 @@ class ControlRow:
             )
             await self._failed(interaction, "error.delete-failed", error)
 
+    async def save(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
+        """Offer the ticket's staff a select of the text channel to save the conversation in."""
+        raise NotImplementedError
+
+    async def select_target(
+        self, interaction: discord.Interaction, fields: Mapping[str, str], values: Sequence[str]
+    ) -> None:
+        """Check the chosen channel and the bot's permissions, then save the conversation there."""
+        raise NotImplementedError
+
     async def _staff_entry(
         self, interaction: discord.Interaction, fields: Mapping[str, str]
     ) -> Entry | str:

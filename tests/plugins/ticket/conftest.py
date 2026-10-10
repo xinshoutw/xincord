@@ -185,10 +185,18 @@ class Scene:
     ) -> FakeInteraction:
         """``who`` chooses ``values`` in the builder's select ``sub_action``."""
         custom_id = IDS.build({"action": "create", "sub_action": sub_action})
+        return await self.handle(self.selection(custom_id, values, who, component_type))
+
+    def selection(
+        self,
+        custom_id: str,
+        values: Sequence[str],
+        who: Who = ME,
+        component_type: int = CHANNEL_SELECT,
+    ) -> FakeInteraction:
+        """``who`` choosing ``values`` in the select ``custom_id``, not handled yet."""
         data = {"component_type": component_type, "custom_id": custom_id, "values": list(values)}
-        interaction = self.interaction(data, COMPONENT, who)
-        await self.cog.handle(interaction.as_interaction(), IDS.parse(custom_id))
-        return interaction
+        return self.interaction(data, COMPONENT, who)
 
     async def submit(
         self, sub_action: str, values: Mapping[str, str], who: Who = ME

@@ -204,8 +204,8 @@ class Ticket(ControlRow, commands.Cog):
             kind = data.get("component_type")
             if kind == BUTTON:
                 await self._button(interaction, fields)
-            elif kind in ENTITY_SELECTS and action == "create":
-                await self.choose(interaction, sub_action, _values(data))
+            elif kind in ENTITY_SELECTS:
+                await self._entity_select(interaction, fields, _values(data))
         elif interaction.type is discord.InteractionType.modal_submit:
             if action == "create":
                 await self.submit(interaction, sub_action)
@@ -223,6 +223,19 @@ class Ticket(ControlRow, commands.Cog):
             await self.lock(interaction, fields, locked=action == "lock")
         elif action == "delete":
             await self.delete(interaction, fields)
+        elif action == "save":
+            await self.save(interaction, fields)
+
+    async def _entity_select(
+        self, interaction: discord.Interaction, fields: Mapping[str, str], values: Sequence[str]
+    ) -> None:
+        """Send an entity select's choice to the handler of the ID's action; others get no
+        response."""
+        action = fields.get("action")
+        if action == "create":
+            await self.choose(interaction, fields.get("sub_action", ""), values)
+        elif action == "save":
+            await self.select_target(interaction, fields, values)
 
     async def ask(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
         """Answer a panel button with the reason modal of its stored entry.
