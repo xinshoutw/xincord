@@ -1,0 +1,22 @@
+# Golden data for the TicketAwayNotice tests, from
+# XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/resources/.
+
+# v3's config.yaml as an operator who enabled it kept it, with placeholder IDs instead of the
+# shop's: the IDs unquoted, as v3 shipped them, and quoted, as v3's String keys read them too.
+v3_config:
+  unquoted: |
+    enabled: true
+    guild_id: 111111111111111111
+    user_id: 222222222222222222
+    prefix:
+      - "客服單-"
+      - "ticket-"
+    delay_millis: 2000
+  quoted: |
+    enabled: true
+    guild_id: "111111111111111111"
+    user_id: "222222222222222222"
+    prefix:
+      - "客服單-"
+      - "ticket-"
+    delay_millis: 2000
