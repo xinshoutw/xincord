@@ -97,7 +97,7 @@
 
 ## 18. Cancel
 
-- [ ] 18.1 xfail tests for "Cancelling ends the draft" against a stub `_cancel`
+- [x] 18.1 xfail tests for "Cancelling ends the draft" against a stub `_cancel`
 - [ ] 18.2 Implement `_cancel`; remove the markers
 
 ## 19. Joins

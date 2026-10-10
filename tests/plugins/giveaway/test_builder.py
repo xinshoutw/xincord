@@ -6,7 +6,7 @@ newest draft.
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:16-79
     XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:209-225
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:313-363
+    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:297-363
     XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepData.kt:34-45
     XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:125-149
 """
@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from discord_fakes import FakeInteraction
 
 GOLDEN = golden("giveaway")
+CANCEL = "Cancelling ends the draft"
 
 
 def expired(locale: str = "en-US") -> list[tuple[str, dict[str, object]]]:
@@ -129,3 +130,20 @@ async def test_switch_policy(scene: Scene) -> None:
     assert scene.draft().policy is Policy.ALLOW_DUPLICATE
     assert preview_fields(first)[3]["value"] == unique
     assert preview_fields(second)[3]["value"] == allowed
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=CANCEL)
+@pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
+async def test_cancelled(scene: Scene, locale: str) -> None:
+    """Requirement: Cancelling ends the draft."""
+    scene.keep(Draft(title="Nitro"))
+    who = scene.who(locale=locale)
+
+    pressed = await scene.press("cancel", who)
+    later = await scene.press("set-title", who)
+
+    # v3's replace edit: the cancelled text alone, without the preview and the buttons.
+    edited = {"content": GOLDEN["cancelled"][locale], "embeds": (), "view": None, "attachments": ()}
+    assert sent(pressed) == [("response.edit_message", edited)]
+    assert scene.cog.drafts == {}
+    assert sent(later) == expired(locale)
