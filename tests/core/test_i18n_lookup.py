@@ -7,7 +7,7 @@ import discord
 import pytest
 from discord import app_commands
 
-from xincord.core.i18n import Lang, Translator
+from xincord.core.i18n import Lang, Translator, localized
 
 LANG = Lang(
     plugin="Calc",
@@ -74,3 +74,28 @@ async def test_plain_strings_are_not_translated() -> None:
     plain = app_commands.locale_str("calc")
 
     assert await translate(plain, discord.Locale.taiwan_chinese) is None
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Commands can be localized from a table"
+)
+async def test_translated_from_the_table() -> None:
+    """Requirement: Commands can be localized from a table."""
+
+    string = localized("rules", {"zh-TW": "gui-ze", "ja": "kisoku"})
+
+    assert string.message == "rules"
+    assert await translate(string, discord.Locale.taiwan_chinese) == "gui-ze"
+    assert await translate(string, discord.Locale.japanese) == "kisoku"
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Commands can be localized from a table"
+)
+async def test_locale_missing_from_the_table() -> None:
+    """Requirement: Commands can be localized from a table."""
+
+    string = localized("rules", {"zh-TW": "gui-ze"})
+
+    assert await translate(string, discord.Locale.japanese) is None
+    assert await translate(localized("rules", {}), discord.Locale.taiwan_chinese) is None

@@ -106,6 +106,18 @@ class Lang:
         raise LookupError(msg)
 
 
+def localized(default: str, translations: Mapping[str, str]) -> app_commands.locale_str:
+    """Return a command string that :class:`Translator` translates from ``translations``.
+
+    For command names and descriptions that come with their own texts, such as a config file's.
+
+    Args:
+        default: The text that Discord shows in the locales that ``translations`` lacks.
+        translations: The texts by Discord locale (``zh-TW``, ``ja``, ...).
+    """
+    raise NotImplementedError
+
+
 class Translator(app_commands.Translator):
     """Resolves command strings created by :meth:`Lang.command`."""
 
