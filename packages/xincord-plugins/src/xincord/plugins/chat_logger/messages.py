@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import sqlite3
     from collections.abc import Iterable
+    from pathlib import Path
 
     from xincord.core.storage import Store
 
@@ -174,3 +175,65 @@ class MessageLog:
             ).fetchall()
         )
         return [row[0] for row in rows]
+
+
+def create_file(path: Path) -> sqlite3.Connection:
+    """Create the message file ``path`` with its table and return a connection to it."""
+    raise NotImplementedError
+
+
+class MessageFiles:
+    """The stored messages in the plugin's own SQLite files, ``messages-<start>.db``.
+
+    Each file holds the messages created from its start up to the next file's (``files``); a new
+    file starts when the newest reaches ``max_bytes``. The files are open between :meth:`open`
+    and :meth:`close`, one connection each, on a thread of their own; each method is one job
+    there.
+    """
+
+    def __init__(self, directory: Path, max_bytes: int) -> None:
+        """Keep the directory of the files and the size from which a new file starts."""
+        self.directory = directory
+        self.max_bytes = max_bytes
+
+    @property
+    def is_open(self) -> bool:
+        """Whether the files are open."""
+        return False
+
+    async def open(self) -> None:
+        """Open the files in the directory, creating the table where it is missing."""
+        raise NotImplementedError
+
+    async def close(self) -> None:
+        """Close the files after the work under way; later work fails."""
+
+    async def add(
+        self, message_id: int, guild_id: int, channel_id: int, user_id: int, text: str
+    ) -> None:
+        """Store a new message in the file that holds its ID."""
+        raise NotImplementedError
+
+    async def edit(self, message_id: int, text: str) -> Edit | None:
+        """Store a message's new text and count the change; return what the log shows."""
+        raise NotImplementedError
+
+    async def pop(self, message_id: int) -> Stored | None:
+        """Take a deleted message out of its file and return it."""
+        raise NotImplementedError
+
+    async def pop_all(self, message_ids: Iterable[int]) -> list[tuple[int, Stored]]:
+        """Take the deleted messages of a bulk deletion out of their files, oldest first."""
+        raise NotImplementedError
+
+    async def prune(self, before: int, batch: int = BATCH) -> int:
+        """Delete the messages whose IDs are below ``before``; return how many."""
+        raise NotImplementedError
+
+    async def forget(self, guild_id: int) -> int:
+        """Delete a guild's messages from every file; return how many there were."""
+        raise NotImplementedError
+
+    async def guild_ids(self) -> list[int]:
+        """Return the guilds with stored messages, in order."""
+        raise NotImplementedError

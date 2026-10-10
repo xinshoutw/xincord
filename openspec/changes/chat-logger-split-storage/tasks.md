@@ -21,7 +21,7 @@
 
 ## 4. Message files
 
-- [ ] 4.1 xfail tests for "Stored messages live in the plugin's own files", "A new message file
+- [x] 4.1 xfail tests for "Stored messages live in the plugin's own files", "A new message file
       starts when the newest is full" and "The message files are open while the plugin is loaded"
       against a stub `MessageFiles` (first file, routing, splits, late messages, reopening, a
       failing split, closing)
