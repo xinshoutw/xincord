@@ -22,7 +22,7 @@ from xincord.plugins.chat_logger.cog import NAMESPACE
 from xincord.plugins.listen_channels.store import ListenSettings
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, Iterable, Iterator
+    from collections.abc import AsyncGenerator, Callable, Iterable, Iterator
     from pathlib import Path
 
     import discord
@@ -215,14 +215,8 @@ class Scene:
         )
 
     async def rows(self) -> list[Row]:
-        """The stored messages, by ID."""
-        found = await self.store.run(
-            lambda db: db.execute(
-                "SELECT message_id, guild_id, channel_id, user_id, message, update_count"
-                " FROM ChatLogger_messages ORDER BY message_id"
-            ).fetchall()
-        )
-        return [tuple(row) for row in found]
+        """The stored messages of every file, by ID."""
+        return stored_rows(self.directory)
 
     def files(self) -> dict[str, list[int]]:
         """The message IDs that each message file holds, by the file's name."""
@@ -254,6 +248,17 @@ def scene(
     monkeypatch.setattr(bot, "get_partial_messageable", partial)
     guild = add_guild(bot, payloads.guild(GUILD, channels=CHANNELS, threads=THREADS))
     return Scene(bot, store, rest, guild, created, tmp_path / "data" / "ChatLogger")
+
+
+@pytest.fixture
+def stored_ids(tmp_path: Path) -> Callable[[], list[int]]:
+    """The IDs of the messages stored in `tmp_path / "data" / "ChatLogger"`, in order."""
+    return lambda: [row[0] for row in stored_rows(tmp_path / "data" / "ChatLogger")]
+
+
+def stored_rows(directory: Path) -> list[Row]:
+    """The stored messages of every file in ``directory``, by ID."""
+    return sorted(row for found in file_rows(directory).values() for row in found)
 
 
 def file_rows(directory: Path) -> dict[str, list[Row]]:

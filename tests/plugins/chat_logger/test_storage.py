@@ -24,9 +24,6 @@ if TYPE_CHECKING:
     from conftest import Loader, Scene
     from xincord.core.storage import Store
 
-FILES = "Stored messages live in the plugin's own files"
-SPLIT = "A new message file starts when the newest is full"
-OPEN = "The message files are open while the plugin is loaded"
 # The scenes' messages have small IDs, created at Discord's epoch, the first second of 2015.
 EPOCH_FILE = "messages-20150101T000000Z.db"
 NOON = datetime(2026, 10, 11, 12, 0, 0, tzinfo=UTC)
@@ -38,7 +35,6 @@ def at(seconds: float) -> int:
     return time_snowflake(NOON + timedelta(seconds=seconds))
 
 
-@pytest.mark.xfail(strict=True, reason=FILES)
 async def test_first_file(scene: Scene) -> None:
     """Requirement: Stored messages live in the plugin's own files."""
     assert scene.files() == {}  # no message, no file
@@ -48,7 +44,6 @@ async def test_first_file(scene: Scene) -> None:
     assert scene.files() == {EPOCH_FILE: [100]}
 
 
-@pytest.mark.xfail(strict=True, reason=FILES)
 async def test_old_table(store: Store, load: Loader) -> None:
     """Requirement: Stored messages live in the plugin's own files."""
 
@@ -70,7 +65,6 @@ async def test_old_table(store: Store, load: Loader) -> None:
     assert [name for name in names if name.startswith("ChatLogger")] == []
 
 
-@pytest.mark.xfail(strict=True, reason=SPLIT)
 @pytest.mark.parametrize("config", ["max_file_size_mb: 1\n"])
 async def test_messages_of_older_files(scene: Scene) -> None:
     """Requirement: A new message file starts when the newest is full."""
@@ -95,7 +89,6 @@ async def test_messages_of_older_files(scene: Scene) -> None:
     assert list(scene.files().values()) == [old[1:], []]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=OPEN)
 async def test_unload(scene: Scene) -> None:
     """Requirement: The message files are open while the plugin is loaded."""
     cog = scene.cog
@@ -109,7 +102,6 @@ async def test_unload(scene: Scene) -> None:
     assert scene.files() == {EPOCH_FILE: [100]}
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=OPEN)
 async def test_reload(scene: Scene) -> None:
     """Requirement: The message files are open while the plugin is loaded."""
     await scene.listen(5, [30])
@@ -125,7 +117,6 @@ async def test_reload(scene: Scene) -> None:
     assert len(scene.posts(5)) == 1
 
 
-@pytest.mark.xfail(strict=True, reason=OPEN)
 async def test_failed_load(store: Store, load: Loader, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: The message files are open while the plugin is loaded."""
     opened: list[MessageFiles] = []

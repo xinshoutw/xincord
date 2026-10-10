@@ -32,7 +32,7 @@
 - [x] 5.1 xfail tests for the plugin's side of the three requirements of 4.1 (no file before the
       first message, messages of older files edited and deleted, the old table dropped, the size
       from the config, unload, reload, failed load)
-- [ ] 5.2 Open the files in `cog_load`, close them in `cog_unload`, drop the old table in `setup`,
+- [x] 5.2 Open the files in `cog_load`, close them in `cog_unload`, drop the old table in `setup`,
       remove the store-based `MessageLog`; remove the markers
 
 ## 6. Expired files

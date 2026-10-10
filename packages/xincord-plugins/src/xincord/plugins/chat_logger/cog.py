@@ -23,7 +23,7 @@ from xincord.plugins.listen_channels.store import ListenSettings
 
 from .created import parse_created
 from .logs import Place, author_values, message_url, unknown_author
-from .messages import MessageLog, Stored
+from .messages import MessageFiles, Stored
 from .text import fit, message_text
 
 if TYPE_CHECKING:
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
     from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
-    from xincord.core.storage import Store
+    from xincord.core.plugins import PluginContext
     from xincord.core.templates import Templates
 
     from .config import Config
@@ -44,6 +44,7 @@ IDS = ComponentIds("chat_logger", ("action",), legacy_prefix="chat-logger@")
 ROOT = "chat-logger"  # v3's command, and the root of its register.yaml keys
 MENU = "chat-logger@setting"  # the settings menu's template
 HOUR = 3600  # seconds between the deletions of the messages older than the retention
+MIB = 1024 * 1024  # the unit of max_file_size_mb
 
 type Sleep = Callable[[float], Awaitable[object]]
 
@@ -52,15 +53,24 @@ class ChatLogger(commands.Cog):
     """The plugin's state, handlers and listeners; ``setup`` registers them."""
 
     def __init__(
-        self, bot: commands.Bot, config: Config, store: Store, lang: Lang, templates: Templates
+        self,
+        bot: commands.Bot,
+        context: PluginContext,
+        config: Config,
+        lang: Lang,
+        templates: Templates,
     ) -> None:
-        """Keep the bot, the config, the store and what ``setup`` loaded."""
+        """Keep the bot, the config, the store and what ``setup`` loaded.
+
+        The stored messages are in files of the plugin's data directory, which :meth:`cog_load`
+        opens and :meth:`cog_unload` closes.
+        """
         self.bot = bot
         self.config = config
-        self.store = store
+        self.store = context.store
         self.lang = lang
-        self.settings = ListenSettings(store, NAMESPACE)
-        self.messages = MessageLog(store)
+        self.settings = ListenSettings(context.store, NAMESPACE)
+        self.messages = MessageFiles(context.data_directory, config.max_file_size_mb * MIB)
         # The menu, its components, the posts and the checks at READY, shared with VoiceLogger.
         self.listen = ListenChannels(bot, self.settings, Menu(lang, templates, IDS, "cl", MENU))
         self.tasks: tuple[asyncio.Task[None], ...] = ()  # the retention loop once loaded
@@ -70,23 +80,35 @@ class ChatLogger(commands.Cog):
 
     @override
     async def cog_load(self) -> None:
-        """Check a ready bot's guilds, then start the retention loop, which waits for READY.
+        """Open the message files, check a ready bot's guilds, then start the retention loop.
 
         ``setup`` runs before the gateway connects, and ``--no-online`` never connects, so nothing
         is deleted before READY; in a ready bot, as after a reload, the guilds are checked at
-        once, since no ``on_ready`` follows, and the loop deletes at once. The checks come first:
-        when they fail, the plugin does not load, and no loop is left behind.
+        once, since no ``on_ready`` follows, and the loop deletes at once. The checks come before
+        the loop: when they fail, the plugin does not load, its files close again, and no loop is
+        left behind.
         """
-        if self.bot.is_ready():
-            await self.check_guilds()
+        await self.messages.open()
+        try:
+            if self.bot.is_ready():
+                await self.check_guilds()
+        except BaseException:
+            await self.messages.close()
+            raise
         self.tasks = (asyncio.create_task(self._retain(), name="ChatLogger retention"),)
 
     @override
     async def cog_unload(self) -> None:
-        """Cancel the retention loop and wait for it, before the store closes."""
+        """Cancel the retention loop and wait for it, then close the message files.
+
+        discord.py runs this when the plugin unloads, before a reload's new version loads, and
+        when the bot closes. The files close after the store work under way; a listener of this
+        version that stores afterwards fails, as the plugin is gone.
+        """
         for task in self.tasks:
             task.cancel()
         await asyncio.gather(*self.tasks, return_exceptions=True)
+        await self.messages.close()
 
     async def _retain(self) -> None:
         """Delete the old messages when the bot is ready, then every hour.
@@ -108,7 +130,7 @@ class ChatLogger(commands.Cog):
         before = time_snowflake(utcnow() - timedelta(days=days))
         try:
             deleted = await self.messages.prune(before)
-        except sqlite3.Error:
+        except sqlite3.Error, OSError:
             logger.exception("ChatLogger cannot delete the messages older than %s days", days)
             return
         logger.debug("ChatLogger deleted %s messages older than %s days", deleted, days)

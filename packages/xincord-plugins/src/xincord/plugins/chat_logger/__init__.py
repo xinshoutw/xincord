@@ -13,6 +13,7 @@ from xincord.core.templates import Templates
 from .cog import IDS, ChatLogger
 from .config import Config
 from .created import EVENT
+from .messages import DROP_OLD_TABLE
 
 if TYPE_CHECKING:
     from xincord.core.bot import Bot
@@ -29,14 +30,15 @@ DEFAULT_LOCALE = "zh-TW"
 async def setup(bot: Bot) -> None:
     """Load the lang files, the templates and the config, then add the cog.
 
-    The settings and the messages are in the shared store.
+    The settings are in the shared store, the stored messages in the plugin's own files under
+    ``data/ChatLogger/``, which the cog opens when it is added and closes when it is removed.
     """
     context = bot.plugin_context(__name__)
     lang = context.lang(DEFAULT_LOCALE)
     templates = Templates.load(lang)
-    cog = ChatLogger(bot, context.config(Config), context.store, lang, templates)
-    # The stored messages' table in the shared store, before any listener runs.
-    await cog.messages.create()
+    cog = ChatLogger(bot, context, context.config(Config), lang, templates)
+    # Earlier builds' table of messages in the shared store goes, without its rows.
+    await context.store.run(lambda db: db.execute(DROP_OLD_TABLE))
     await bot.add_cog(cog)
     # A guild command, as in v3. discord.py removes it when the plugin unloads.
     bot.tree.add_command(cog.command())
