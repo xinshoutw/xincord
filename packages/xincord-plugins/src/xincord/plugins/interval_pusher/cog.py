@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 from discord.ext import commands
 
 if TYPE_CHECKING:
+    import asyncio
+
     from .config import Config
 
 
@@ -19,3 +21,8 @@ class IntervalPusher(commands.Cog):
         """Keep the bot and the configured listeners, in the config's order."""
         self.bot = bot
         self.listeners = config.listeners
+
+    @property
+    def tasks(self) -> tuple[asyncio.Task[None], ...]:
+        """One loop per listener, in the config's order."""
+        raise NotImplementedError

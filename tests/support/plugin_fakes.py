@@ -120,6 +120,49 @@ async def until(condition: Callable[[], bool]) -> None:
             await asyncio.sleep(0.01)
 
 
+class Ready:
+    """Stands for the gateway's READY in bots that never log in.
+
+    While it exists, ``Bot.wait_until_ready`` waits until :meth:`set` is called (discord.py's
+    raises before a login); :meth:`close` cancels the tasks that waited and still run, such as a
+    plugin's background loops.
+    """
+
+    def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        self._event = asyncio.Event()
+        self._waited = asyncio.Condition()
+        self.tasks: list[asyncio.Task[Any]] = []
+
+        async def wait_until_ready(_bot: Bot) -> None:
+            async with self._waited:
+                if (task := asyncio.current_task()) is not None:
+                    self.tasks.append(task)
+                self._waited.notify_all()
+            await self._event.wait()
+
+        monkeypatch.setattr(Bot, "wait_until_ready", wait_until_ready)
+
+    def set(self) -> None:
+        """The bot is ready: every waiter goes on, and later ones do not wait."""
+        self._event.set()
+
+    async def waiters(self, count: int) -> None:
+        """Wait until ``count`` tasks have waited for READY.
+
+        Raises:
+            TimeoutError: They did not within ``WAIT`` seconds.
+        """
+        async with asyncio.timeout(WAIT), self._waited:
+            await self._waited.wait_for(lambda: len(self.tasks) >= count)
+
+    async def close(self) -> None:
+        """Cancel the tasks that waited for READY and are still running, and wait for them."""
+        running = [task for task in self.tasks if not task.done()]
+        for task in running:
+            task.cancel()
+        await asyncio.gather(*running, return_exceptions=True)
+
+
 def watch_syncs(
     bot: Bot, store: Store, monkeypatch: pytest.MonkeyPatch
 ) -> list[tuple[str | int, bool]]:
