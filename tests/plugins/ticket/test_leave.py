@@ -9,8 +9,6 @@ Kotlin:
 import logging
 from typing import TYPE_CHECKING
 
-import pytest
-
 from discord_fakes import FakeGuild
 from plugin_fakes import dispatch, load_plugin
 from xincord.core.bot import Bot
@@ -21,15 +19,14 @@ from xincord.plugins.ticket.store import NAMESPACE
 if TYPE_CHECKING:
     from pathlib import Path
 
+    import pytest
+
     from conftest import Scene
     from xincord.core.storage import JSON, Store
 
 DOCUMENT: JSON = {"500": [{"reasonTitle": "Why?", "adminIds": [3], "categoryId": 0}]}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Leaving a guild forgets its panels"
-)
 async def test_leaving(scene: Scene) -> None:
     """Requirement: Leaving a guild forgets its panels."""
     await scene.store.put(NAMESPACE, "10", DOCUMENT)
@@ -46,9 +43,6 @@ async def test_leaving(scene: Scene) -> None:
     assert scene.cog.drafts == {(7, 11): Session(45, Draft("Elsewhere"))}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Leaving a guild forgets its panels"
-)
 async def test_left_while_offline(
     scene: Scene, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -67,7 +61,6 @@ async def test_left_while_offline(
     assert "Ticket ignores the panels stored under 'notes', which is no guild ID" in caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason="Leaving a guild forgets its panels")
 async def test_loaded_into_a_ready_bot(
     store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

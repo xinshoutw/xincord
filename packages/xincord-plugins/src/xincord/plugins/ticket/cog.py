@@ -67,6 +67,7 @@ SCREENS: dict[str, str | None] = {
 }
 LABEL_MAX = 45  # Discord's limit of a modal input's label
 MESSAGE_ID = re.compile(r"[0-9]{1,20}")  # a snowflake as /add-ticket's text option gives it
+GUILD_ID = re.compile(r"[1-9][0-9]{0,19}")  # a guild ID in decimal, as the store's keys hold it
 ROW_SIZE = 5  # the components an action row holds at most
 
 
@@ -131,12 +132,29 @@ class Ticket(ControlRow, commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: discord.Guild) -> None:
-        """Delete the panels and drop the drafts of a guild that the bot left."""
-        raise NotImplementedError
+        """Delete the panels of a guild that the bot left or was removed from, as v3 did, and
+        drop its drafts (v3 kept the user's step).
+
+        discord.py does not fire this during an outage (``on_guild_unavailable``).
+        """
+        await self.panels.forget(guild.id)
+        self.drafts = {key: session for key, session in self.drafts.items() if key[1] != guild.id}
 
     async def forget_left_guilds(self) -> None:
-        """Delete the panels of the guilds that the bot is no longer in."""
-        raise NotImplementedError
+        """Delete the panels of the guilds that the bot is no longer in.
+
+        v3 deleted them only when it saw the bot leave a guild while the plugin was enabled. By
+        ``on_ready``, discord.py knows every guild of the session, unavailable ones included. A
+        key that is no guild ID (a hand edit; the plugin never writes one) is left, with a warning.
+        """
+        for key in await self.panels.guild_ids():
+            if not GUILD_ID.fullmatch(key):
+                logger.warning(
+                    "Ticket ignores the panels stored under %r, which is no guild ID", key
+                )
+            elif self.bot.get_guild(int(key)) is None:
+                await self.panels.forget(int(key))
+                logger.info("Ticket deleted the panels of guild %s, which the bot left", key)
 
     def commands(self) -> tuple[app_commands.Command[Any, ..., None], ...]:
         """Build v3's ``/create-ticket`` and ``/add-ticket``, localized from ``register.yaml``.
