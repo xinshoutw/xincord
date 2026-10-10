@@ -23,3 +23,18 @@ reply:
       - {name: "伺服器總數", value: "2", inline: false}
       - {name: "成員總數", value: "7", inline: false}
       - {name: "原始碼", value: "https://github.com/xinshoutw/xincord", inline: false}
+
+# The translated payload of /bot-info; keys that are not listed here are not compared. The contexts
+# (guilds and the bot's DMs) and the integration types (guild installs) are JDA's defaults, which
+# v3 sent.
+command:
+  type: 1
+  name: "bot-info"
+  description: "show about the bot data"
+  nsfw: false
+  default_member_permissions: null
+  contexts: [0, 1]
+  integration_types: [0]
+  options: []
+  name_localizations: {en-US: "bot-info", zh-TW: "機器人資訊"}
+  description_localizations: {en-US: "show about this Bot", zh-TW: "顯示有關機器人的資訊"}
