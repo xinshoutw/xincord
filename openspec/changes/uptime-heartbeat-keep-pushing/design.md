@@ -160,8 +160,10 @@ its old comment.
   garbage, a closed port, a TLS handshake that never answered (connect limit 0.3 seconds) and an
   unexpected error that named the URL. Each failure was logged once at its level and repeated at
   debug level, and the log held neither the token nor the user info (`Connection timeout to host
-  https://127.0.0.1:<port>`, `url='http://127.0.0.1:<port>'`). It ran before the cross-review
-  changed the episodes, so its recoveries came at the first push that worked.
+  https://127.0.0.1:<port>`, `url='http://127.0.0.1:<port>'`). Rerun after the cross-review's
+  fixes: a 521 after one push that worked continued the episode (a warning for its new kind, then
+  a 302 error), no push episode ended, and `measures the REST ping again` came at the third ping
+  in a row that worked; still no token or user info.
 - Packaging, checked on 2026-10-10: the wheel from `uv build --package xincord-plugins` lists
   `logs.py` with the other modules and `config.yaml`, and `docker compose run --rm -T bot
   --no-online` on a fresh image, with `plugins: [UptimeHeartbeat]` and one listener in a temporary

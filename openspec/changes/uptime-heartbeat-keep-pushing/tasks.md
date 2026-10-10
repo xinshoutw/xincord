@@ -44,7 +44,7 @@
 - [x] 5.9 Implement the episodes and update the bundled `config.yaml` comment; remove the markers
 - [x] 5.10 Let `test_independent_listeners` wait for the 404 listener's next sleep (the cog's
       `sleep`)
-- [ ] 5.11 Porting guide: the differences rows and the pitfalls for the episodes and the redaction
+- [x] 5.11 Porting guide: the differences rows and the pitfalls for the episodes and the redaction
 
 ## 6. Close
 

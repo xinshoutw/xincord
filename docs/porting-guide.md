@@ -208,12 +208,13 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   plugin reloaded into a ready bot starts at once; `cog_unload` cancels the tasks and awaits them.
   The loop's effects (the request, the clock's `sleep`) are passed in, so that tests run it on a
   fake clock; one failed step is logged and the loop goes on (UptimeHeartbeat's `Pusher` and cog).
-  A step that keeps failing is logged when its failure starts or changes kind, at debug level
-  while it repeats, and once when it works again (UptimeHeartbeat's `Failures`).
+  A step that keeps failing logs each kind of failure once per episode, the rest at debug level,
+  and one info line once it has worked three times in a row (UptimeHeartbeat's `Failures`).
 - Outgoing HTTP goes through aiohttp, one `ClientSession` per loop opened after READY and closed
   with the loop (UptimeHeartbeat's `open_session`); tests send it to `http_fakes.Monitor`, a local
-  server. A URL that carries a secret, such as a push token, appears in logs as its origin only,
-  and so do the URLs in error texts and tracebacks (UptimeHeartbeat's `logs.origin` and `redact`).
+  server. A URL that carries a secret, such as a push token, appears in logs as its origin only;
+  error texts and tracebacks have their URLs cut and the secret URL's parts removed, and config
+  errors hide their input (UptimeHeartbeat's `logs.py` and `Config`).
 - A plugin with v3 components lists v3's fields in v3's order in `ComponentIds`, with v3's
   `component_prefix` as `legacy_prefix`, and routes them to one `handle` that dispatches on the
   interaction type and the `action` field; other actions get no response, as in v3. The core parses
@@ -350,9 +351,16 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   `CancellationException` and logged a spurious failure (UptimeHeartbeat).
 - **aiohttp error texts.** aiohttp 3.14's `ConnectionTimeoutError` reads `Connection timeout to
   host <the whole URL>`, a malformed answer's `ClientResponseError` ends with `url='<the whole
-  URL>'`, and `InvalidUrlClientError`'s text is the URL. Cut the URLs out of an error's text before
-  logging it when the URL carries a secret, and format the traceback yourself:
-  `logger.exception` prints the text as it is (UptimeHeartbeat's `redact`).
+  URL>'` and quotes the server's bad line (a server that sends the request line back shows the
+  path and the query), `ServerDisconnectedError` carries the partial answer, and
+  `InvalidUrlClientError`'s text is the URL. When the URL carries a secret, cut the URLs out of an
+  error's text and remove the URL's parts wherever they appear before logging it, and format the
+  traceback yourself: `logger.exception` prints the text as it is (UptimeHeartbeat's `redact`).
+- **pydantic input in errors.** A `ValidationError`'s text shows each invalid input
+  (`input_value=...`, up to about 50 characters), and the core chains it to its `ConfigError`,
+  whose traceback it logs. A model whose values hold secrets sets
+  `ConfigDict(hide_input_in_errors=True)` and gives its validators fixed messages: `urlsplit`'s
+  errors quote parts of the URL (UptimeHeartbeat's `Config`).
 - **aiohttp test servers.** `RawTestServer.close()` waits for the requests still in flight, so a
   request a test leaves unanswered holds the teardown until the client's timeout;
   `http_fakes.Monitor` answers its silent requests when it closes. Autouse fixtures are torn down
@@ -659,7 +667,7 @@ Every deliberate difference, added by the change that introduces it.
 | UptimeHeartbeat | log lines did not say which listener (`Status Monitor refused the connection! (Code: 404)!`) | English lines that number the listener and name the URL's origin; a new failure at v3's level | port-interval-pusher, uptime-heartbeat-keep-pushing |
 | UptimeHeartbeat | a 404, Uptime Kuma's answer for an unknown or paused push token, stopped the listener until a reload or restart | no failure stops a listener: it keeps pushing at its interval until the plugin unloads (the owner's decision) | uptime-heartbeat-keep-pushing |
 | UptimeHeartbeat | failure lines and the debug line showed the URL with its push token | only its origin (scheme, host, port); URLs in error texts and tracebacks are cut the same way | uptime-heartbeat-keep-pushing |
-| UptimeHeartbeat | every failed push and every failed ping logged a line, at every interval | a failure is logged when it starts or changes kind (status code, error type), repeats at debug level, and one info line when pushing or the ping works again | uptime-heartbeat-keep-pushing |
+| UptimeHeartbeat | every failed push and every failed ping logged a line, at every interval | each kind of failure (status code, error type) is logged once per episode, the rest at debug level; the episode ends after three successes in a row with one info line | uptime-heartbeat-keep-pushing |
 | Feedback | a missing submit channel was reported through the interaction hook before anything acknowledged the submission, so the member saw a failed modal | the submission is acknowledged; the member gets `form_submit_failure` and the form stays | port-feedbacker |
 | Feedback | the form was deleted while its review was posted, so a refused review lost the feedback | the form is deleted only after the review is posted; a refused review keeps it and tells the member | port-feedbacker |
 | Feedback | a `member` option naming a user outside the guild, or a channel refusing the form, left the administrator's response "thinking" | `form_failure` and a log warning | port-feedbacker |

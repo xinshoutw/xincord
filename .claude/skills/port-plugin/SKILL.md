@@ -353,13 +353,16 @@ async def setup(bot: Bot) -> None:
 - A failed step is logged and the loop goes on, whatever failed: catch the expected errors
   (`aiohttp.ClientError`, `OSError`, timeouts included) without a traceback and any other
   `Exception` with its traceback. `asyncio.CancelledError` is no `Exception`, so cancellation stays
-  quiet. A step that fails at every pass logs its failure when it starts or changes kind (status
-  code, error type), at debug level while it repeats, and once at info level when it works again
-  (UptimeHeartbeat's `Failures`, one per step on the loop's object).
+  quiet. A step that fails at every pass logs each kind of failure (status code, error type) once
+  per episode, the rest at debug level, and one info line once it has worked three times in a row
+  (UptimeHeartbeat's `Failures`, one per step on the loop's object): steady, alternating and
+  flapping failures stay quiet.
 - A URL that carries a secret (a push token in its path or query) appears in logs as its origin
-  (UptimeHeartbeat's `logs.origin`). Cut the URLs out of error texts too (`logs.redact`: aiohttp's
-  connect timeout names the whole URL), and log an unexpected error's traceback as redacted text
-  (`format_traceback`), since `logger.exception` prints it as it is.
+  (UptimeHeartbeat's `logs.origin`). Redact error texts too (`logs.redact(text, *urls)`: URLs cut
+  to their origin and the secret URL's parts removed, since aiohttp's connect timeout names the
+  whole URL and a malformed answer can quote the request line), log an unexpected error's
+  traceback as redacted text (`format_traceback`), since `logger.exception` prints it as it is,
+  and hide the input of the config's validation errors (`ConfigDict(hide_input_in_errors=True)`).
 - Outgoing HTTP uses aiohttp, which discord.py installs and `xincord-plugins` declares: one
   `ClientSession` per loop, opened after READY with v3's limits as `ClientTimeout` and closed with
   the loop (`async with`); `allow_redirects=False` matches Java's `HttpClient`.
