@@ -11,7 +11,7 @@
 ## 3. Config
 
 - [x] 3.1 xfail tests for "The config lists the URLs to push"
-- [ ] 3.2 Add the listener model with v3's keys, the interval range and the URL check; remove the
+- [x] 3.2 Add the listener model with v3's keys, the interval range and the URL check; remove the
       markers
 
 ## 4. REST ping

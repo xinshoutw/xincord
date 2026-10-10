@@ -20,7 +20,6 @@ if TYPE_CHECKING:
     from xincord.core.storage import Store
     from xincord.plugins.interval_pusher.cog import IntervalPusher
 
-REQUIREMENT = "The config lists the URLs to push"
 # v3's shipped listener, with an example domain instead of the owner's status domain.
 PUSH_URL = "https://status.example.com/api/push/xxxxxxxxxx?status=up&msg=OK&ping=%ping%"
 V3_CONFIG = f"""\
@@ -48,7 +47,6 @@ def listener(url: str = PUSH_URL, interval: str = "60") -> str:
     return f'listeners:\n  - url: "{url}"\n    interval: {interval}\n'
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REQUIREMENT)
 async def test_v3_config_file(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -62,7 +60,6 @@ async def test_v3_config_file(
     assert "unknown key listeners" not in caplog.text
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REQUIREMENT)
 async def test_default_config(tmp_path: Path, store: Store) -> None:
     """Requirement: The config lists the URLs to push."""
     bot = await load_plugin("IntervalPusher", tmp_path / "plugins", store)
@@ -70,7 +67,6 @@ async def test_default_config(tmp_path: Path, store: Store) -> None:
     assert loaded_cog(bot).listeners == ()
 
 
-@pytest.mark.xfail(strict=True, reason=REQUIREMENT)
 @pytest.mark.parametrize(
     ("config", "error"),
     [
@@ -120,7 +116,6 @@ async def test_invalid_entries(
     assert error in caplog.text
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REQUIREMENT)
 @pytest.mark.parametrize(
     "url",
     [
