@@ -56,7 +56,7 @@
 
 ## 11. Submissions
 
-- [ ] 11.1 xfail tests for "Submitted modals change the draft" against stubs `drafts.submit` and
+- [x] 11.1 xfail tests for "Submitted modals change the draft" against stubs `drafts.submit` and
       `parse_color`
 - [ ] 11.2 Implement them and `_update`; remove the markers
 

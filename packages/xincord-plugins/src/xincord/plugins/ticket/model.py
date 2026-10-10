@@ -60,6 +60,15 @@ def hex_color(color: int) -> str:
     return f"#{color & 0xFFFFFF:06X}"
 
 
+def parse_color(text: str) -> int | None:
+    """The color typed in the color modal: one to six hex digits after ``#``, ``0x`` or nothing.
+
+    v3 parsed the text after its first character, so its own placeholder ``0x00FFFF`` failed and
+    ``FFFFFF`` became ``0x0FFFFF`` (B5). None when the text is no such color.
+    """
+    raise NotImplementedError
+
+
 def parse_entry(value: JSON, where: str) -> Entry:
     """Read a stored entry as v3's Moshi did: every field required, integers exact.
 
