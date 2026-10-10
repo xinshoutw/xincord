@@ -265,10 +265,20 @@ class Ticket(commands.Cog):
         await interaction.response.send_modal(render_modal(template, values, build_id=IDS.build))
 
     async def _screen(
-        self, interaction: discord.Interaction, session: Session, screen: str | None
+        self, interaction: discord.Interaction, session: Session, screen: str | None = None
     ) -> None:
-        """Show the builder's ``screen``, or its main screen."""
-        raise NotImplementedError
+        """Show the builder's ``screen``, or its main screen, through the interaction.
+
+        One type-7 response replaces the whole message, v3's ``deferEdit`` and the edit through
+        the command's hook, which stopped working after 15 minutes (B14).
+        """
+        message = self._builder(interaction, session, screen)
+        await interaction.response.edit_message(
+            content=message.content,
+            embeds=message.embeds,
+            view=message.view,
+            attachments=message.files,
+        )
 
     async def _style(self, interaction: discord.Interaction, session: Session, index: str) -> None:
         """Set the panel button's style from a color button's index."""

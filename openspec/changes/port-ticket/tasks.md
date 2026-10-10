@@ -52,7 +52,7 @@
 ## 10. Screens
 
 - [x] 10.1 xfail tests for "Builder buttons switch screens" against a stub `_screen`
-- [ ] 10.2 Implement `_screen`; remove the markers
+- [x] 10.2 Implement `_screen`; remove the markers
 
 ## 11. Submissions
 

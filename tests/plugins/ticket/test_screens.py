@@ -13,7 +13,6 @@ Kotlin:
 from typing import TYPE_CHECKING, cast
 
 import discord
-import pytest
 
 from discord_fakes import button_rows, embed_dict
 from xincord.plugins.ticket.cog import IDS
@@ -45,7 +44,6 @@ def items(view: discord.ui.View) -> list[tuple[str, str | None, int | None]]:
     ]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Builder buttons switch screens")
 async def test_category_screen_and_back(scene: Scene) -> None:
     """Requirement: Builder buttons switch screens."""
     scene.keep(DRAFT)
@@ -72,7 +70,6 @@ async def test_category_screen_and_back(scene: Scene) -> None:
     assert scene.session().draft == DRAFT
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Builder buttons switch screens")
 async def test_role_screen(scene: Scene) -> None:
     """Requirement: Builder buttons switch screens."""
     scene.keep(DRAFT)
@@ -90,7 +87,6 @@ async def test_role_screen(scene: Scene) -> None:
     assert (select.min_values, select.max_values) == (1, 25)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Builder buttons switch screens")
 async def test_color_screen(scene: Scene) -> None:
     """Requirement: Builder buttons switch screens."""
     scene.keep(DRAFT)
