@@ -497,9 +497,6 @@ def started(*messages: Message, error: Exception | None = None) -> Thread:
     return Thread(STARTED, owner=BOB, messages=list(messages), error=error)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Threads started in the ticket are flattened"
-)
 async def test_a_started_thread(cog: Ticket) -> None:
     """Requirement: Threads started in the ticket are flattened."""
     thread = started(Message(FIRST, ALICE, "first"), Message(LAST, BOB, "second"))
@@ -517,9 +514,6 @@ async def test_a_started_thread(cog: Ticket) -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Threads started in the ticket are flattened"
-)
 async def test_flattened_once(cog: Ticket) -> None:
     """Requirement: Threads started in the ticket are flattened."""
     # The last message counts for the end marker, though it holds an embed only.
@@ -541,9 +535,6 @@ async def test_flattened_once(cog: Ticket) -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Threads started in the ticket are flattened"
-)
 async def test_threads_in_threads(cog: Ticket) -> None:
     """Requirement: Threads started in the ticket are flattened."""
     inner = started(Message(FIRST, ALICE, "deeper"))
@@ -562,9 +553,6 @@ async def test_threads_in_threads(cog: Ticket) -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Threads started in the ticket are flattened"
-)
 async def test_a_thread_without_messages(cog: Ticket) -> None:
     """Requirement: Threads started in the ticket are flattened."""
     source, target = channels([Message(1, BOB, "look", thread=started())])
@@ -577,9 +565,6 @@ async def test_a_thread_without_messages(cog: Ticket) -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Threads started in the ticket are flattened"
-)
 @pytest.mark.parametrize("read", [0, 1], ids=["at-once", "after-a-message"])
 async def test_a_thread_that_fails(cog: Ticket, read: int) -> None:
     """Requirement: Threads started in the ticket are flattened."""
@@ -600,9 +585,6 @@ async def test_a_thread_that_fails(cog: Ticket, read: int) -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Threads started in the ticket are flattened"
-)
 async def test_a_refused_start_marker(cog: Ticket) -> None:
     """Requirement: Threads started in the ticket are flattened."""
     thread = started(Message(FIRST, ALICE, "first"))
@@ -617,9 +599,6 @@ async def test_a_refused_start_marker(cog: Ticket) -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Threads started in the ticket are flattened"
-)
 async def test_a_refused_error_marker(cog: Ticket, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Threads started in the ticket are flattened."""
     thread = started(error=forbidden())

@@ -5,6 +5,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:854-878
 """
 
+import logging
 import string
 import time
 import unicodedata
@@ -15,10 +16,10 @@ from typing import TYPE_CHECKING
 import discord
 
 from .channels import InGuild
-from .texts import chunks, clip, units
+from .texts import chunks, clip, readable_error, units
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
     from datetime import tzinfo
 
     from .channels import (
@@ -32,10 +33,13 @@ if TYPE_CHECKING:
     )
     from .texts import Texts
 
+logger = logging.getLogger(__name__)
+
 MESSAGE_MAX = 2000  # Discord's limit of a message's text
 THREAD_NAME_MAX = 100  # Discord's limit of a thread's name, v3's threadNameMaxLength
 WEBHOOK_NAME_MAX = 80  # Discord's limit of a webhook's name
 NAME_TIME = "%Y-%m-%d_%H:%M:%S"  # v3's threadTimeFormatter
+MARKER_TIME = "%Y-%m-%d %H:%M:%S"  # v3's archiveMarkerTimeFormatter
 WEBHOOK_PREFIX = "ticket-save-content-"
 COUNTER_BITS = 0xFFFFF  # v3 kept the 20 low bits of System.nanoTime()
 DIGITS = string.digits + string.ascii_lowercase  # the digits of Java's Long.toString(n, 36)
@@ -99,8 +103,62 @@ class _Copy:
                 await self.flatten(started)
 
     async def flatten(self, started: StartedThread) -> None:
-        """Forward the messages of a thread that a message started, between markers."""
-        raise NotImplementedError
+        """Forward the messages of a thread that a message started, between v3's markers.
+
+        The markers name the thread's owner (their display name when discord.py has them, else
+        their ID) and the thread; the start marker says when it started, the end marker when its
+        last message came, or that it has none. Discord refusing the start marker or the thread's
+        messages sends the error marker and the end marker without a time, and the archive goes
+        on, as v3's; a refused error marker is logged. Threads in the thread stay as they are.
+
+        Raises:
+            discord.HTTPException: Discord refused the end marker, which stops the archive, as v3.
+        """
+        texts, zone = self.options.texts, self.options.zone
+        owner = started.owner
+        values = {
+            "tt@owner": str(started.owner_id) if owner is None else owner.display_name,
+            "tt@name": started.name,
+        }
+        last: int | None = None
+        try:
+            await self._mark(
+                texts.get("archive.start", values | {"tt@time": marker_time(started.id, zone)})
+            )
+            async for message in started.history(limit=None, oldest_first=True):
+                await self.forward(message)
+                last = message.id
+        except discord.HTTPException as error:
+            await self._mark_failure(started, values, error)
+            last = None
+        ended = texts.get("archive.no-message") if last is None else marker_time(last, zone)
+        await self._mark(texts.get("archive.end", values | {"tt@time": ended}))
+
+    async def _mark_failure(
+        self, started: StartedThread, values: Mapping[str, str], error: Exception
+    ) -> None:
+        """Send the error marker of a thread that could not be flattened; a refusal is logged."""
+        failed = self.options.texts.get(
+            "archive.error", {**values, "tt@error": readable_error(error)}
+        )
+        try:
+            await self._mark(failed)
+        except discord.HTTPException as refused:
+            logger.warning(
+                "Ticket cannot mark the failure of thread %s in thread %s: %s",
+                started.id,
+                self.thread.id,
+                refused,
+            )
+
+    async def _mark(self, text: str) -> None:
+        """Send a marker under the webhook's own name and avatar, as v3, pinging nobody."""
+        await self.webhook.send(
+            content=text,
+            allowed_mentions=discord.AllowedMentions.none(),
+            thread=self.thread,
+            wait=True,
+        )
 
     async def forward(self, message: ArchivedMessage) -> None:
         """Send a message with text or files under its author's name and avatar.
@@ -166,6 +224,12 @@ def _breaks(before: str, after: str) -> bool:
         or point in VARIATION_SELECTORS
         or point in EMOJI_MODIFIERS
     )
+
+
+def marker_time(snowflake: int, zone: tzinfo | None) -> str:
+    """When ``snowflake``'s message or thread was made (JDA's ``timeCreated``), as v3's markers
+    show it: ``yyyy-MM-dd HH:mm:ss`` in ``zone``, None for the host's."""
+    return discord.utils.snowflake_time(snowflake).astimezone(zone).strftime(MARKER_TIME)
 
 
 def webhook_name(milliseconds: int, counter: int) -> str:
