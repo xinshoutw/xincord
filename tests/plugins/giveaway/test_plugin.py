@@ -9,8 +9,6 @@ Kotlin:
 from importlib.resources import files
 from typing import TYPE_CHECKING
 
-import pytest
-
 from xincord.core.plugins import PluginInfo, discover
 
 if TYPE_CHECKING:
@@ -47,7 +45,6 @@ LANG_FILES = tuple(
 )
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as Giveaway")
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as Giveaway."""
     # No intents: guild leaves need only discord.py's default guilds intent, and the members come
@@ -55,7 +52,6 @@ def test_discovered_by_name() -> None:
     assert discover(["Giveaway"]) == [PluginInfo("Giveaway", "xincord.plugins.giveaway")]
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as Giveaway")
 async def test_first_load_creates_the_files(bot: Bot, tmp_path: Path) -> None:
     """Requirement: The plugin installs as Giveaway."""
     directory = tmp_path / "plugins" / "Giveaway"
