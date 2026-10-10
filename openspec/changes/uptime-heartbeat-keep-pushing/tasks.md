@@ -27,8 +27,27 @@
       skill notes
 - [x] 4.3 Audit: every scenario of the delta has a test
 
-## 5. Close
+## 5. Cross-review fixes
 
-- [ ] 5.1 Gate passes, push, CI green
-- [ ] 5.2 Archive the change and run `openspec validate --all --strict`
-- [ ] 5.3 Update `HANDOFF.md` and `docs/porting/owner-review.md`; push; CI green
+- [x] 5.1 Push the work so far (CI green), then record the cross-review's findings and fixes in the
+      delta and `design.md`
+- [ ] 5.2 xfail tests for "Logs show only the URL's origin": invalid URLs in the config
+- [ ] 5.3 Hide the input in the models' validation errors and give an unreadable URL a fixed
+      message; remove the markers
+- [ ] 5.4 xfail tests for "Logs show only the URL's origin": `private_parts` against a stub, and an
+      answer that quotes the request line
+- [ ] 5.5 Implement `private_parts` and pass the listener's URLs to `redact`; remove the markers
+- [ ] 5.6 xfail test for "The URL carries the REST ping": an unexpected ping error
+- [ ] 5.7 Put `-1` in the URL after any ping error; remove the marker
+- [ ] 5.8 xfail tests for "A failure is logged when it starts, changes or ends": episodes in
+      `Failures` against stubs, alternating kinds, flapping, three pushes and pings in a row
+- [ ] 5.9 Implement the episodes and update the bundled `config.yaml` comment; remove the markers
+- [ ] 5.10 Let `test_independent_listeners` wait for the 404 listener's next sleep (the cog's
+      `sleep`)
+- [ ] 5.11 Porting guide: the differences rows and the pitfalls for the episodes and the redaction
+
+## 6. Close
+
+- [ ] 6.1 Gate passes, push, CI green
+- [ ] 6.2 Archive the change and run `openspec validate --all --strict`
+- [ ] 6.3 Update `HANDOFF.md` and `docs/porting/owner-review.md`; push; CI green

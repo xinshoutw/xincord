@@ -3,8 +3,9 @@
 ### Requirement: The URL carries the REST ping
 Before each push to a URL that contains `%ping%`, the plugin SHALL measure the bot's REST ping, the
 round trip of a `GET /users/@me` request to Discord in whole milliseconds, and replace every
-`%ping%` with it, or with `-1` when the request fails, which logs a warning unless it repeats. A
-URL without `%ping%` SHALL be pushed as written, without the request.
+`%ping%` with it. When the measurement fails in any way, `%ping%` SHALL become `-1`, with a warning
+unless the failure repeats, and the URL SHALL still be pushed. A URL without `%ping%` SHALL be
+pushed as written, without the request.
 
 #### Scenario: Ping in the URL
 - **WHEN** the URL holds `%ping%` twice and the ping is 42 milliseconds
@@ -13,6 +14,10 @@ URL without `%ping%` SHALL be pushed as written, without the request.
 #### Scenario: Failed ping
 - **WHEN** the request to Discord fails or times out
 - **THEN** `%ping%` becomes `-1` and a warning is logged
+
+#### Scenario: Unexpected ping error
+- **WHEN** measuring the ping raises an unexpected error
+- **THEN** `%ping%` becomes `-1`, the URL is pushed, and a warning shows the traceback
 
 #### Scenario: No placeholder
 - **WHEN** the URL has no `%ping%`
@@ -24,13 +29,13 @@ URL without `%ping%` SHALL be pushed as written, without the request.
 
 ### Requirement: The status code decides what follows
 A 2xx status SHALL be logged at debug level. Any other outcome SHALL be a failed push, logged with
-the URL's origin unless it repeats: a 404, Uptime Kuma's answer for an unknown or paused push
-token, and a 521, Cloudflare's answer when the monitor is offline, as warnings; any other status, a
-network error or a timeout as an error; any other exception as an error with its traceback. No
-failure SHALL stop the listener: it keeps pushing until the plugin unloads.
+the URL's origin at its level unless it repeats: a 404, Uptime Kuma's answer for an unknown or
+paused push token, and a 521, Cloudflare's answer when the monitor is offline, at warning level;
+any other status, a network error or a timeout at error level; any other exception at error level
+with its traceback. No failure SHALL stop the listener: it keeps pushing until the plugin unloads.
 
 #### Scenario: Success
-- **WHEN** the monitor answers a push with 200
+- **WHEN** the monitor answers a push with 200, and no failure came before
 - **THEN** a debug line names the URL's origin and the status, nothing is logged above debug
   level, and the listener keeps pushing
 
@@ -83,8 +88,9 @@ SHALL not delay or stop the others.
 ### Requirement: Logs show only the URL's origin
 The plugin's log lines SHALL show a listener's URL only as its origin: its scheme, its host and its
 port if the URL gives one, without the user info, the path, the query or the fragment, which can
-carry the push token. An http or https URL in an error's text or traceback SHALL be cut to its
-origin in the same way.
+carry the push token. In an error's text or traceback, each http or https URL SHALL be cut to its
+origin, and the listener URL's user info, path, query and fragment SHALL be removed wherever they
+appear. A config error SHALL not show a listener's URL.
 
 #### Scenario: Pushes that fail or work
 - **WHEN** pushes to `https://status.example.com/api/push/<token>?status=up&ping=%ping%` fail in
@@ -103,12 +109,21 @@ origin in the same way.
 - **WHEN** an unexpected error's message holds the whole URL
 - **THEN** the logged traceback names only the URL's origin
 
+#### Scenario: Answer that quotes the request
+- **WHEN** a server's malformed answer quotes the request line, with the URL's path and query
+- **THEN** the logged error shows neither the path nor the query
+
+#### Scenario: Invalid URL in the config
+- **WHEN** a listener's url has a space, or user info that makes its port unreadable
+- **THEN** the plugin does not load, the error names `listeners.0.url`, and no log line holds the
+  URL's path, query or user info
+
 ### Requirement: A failure is logged when it starts, changes or ends
-A listener SHALL log a failed push or ping at its level only when it is that step's first failure
-since the listener started or the step last worked, or when its kind (the status code or the
-error's type) differs from the step's previous failure; a repeat SHALL be logged at debug level.
-The first push that works after failed ones SHALL log one info line with their number, and the
-first ping that works after failed ones one info line.
+A failed push or ping SHALL be logged at its level only when its kind (the status code or the
+error's type) is new in the step's failure episode, which starts with a failure and ends once the
+step has worked three times in a row; other failures SHALL be logged at debug level. The end of a
+push episode SHALL log one info line with its number of failed pushes, and the end of a ping
+episode one info line.
 
 #### Scenario: Repeated failure
 - **WHEN** a listener's pushes answer 500 three times
@@ -119,11 +134,19 @@ first ping that works after failed ones one info line.
 - **THEN** three failures are logged at their levels: the first 500, the connection error and the
   404
 
+#### Scenario: Alternating kinds
+- **WHEN** a listener's pushes answer 502, 504, 502 and 504
+- **THEN** two errors are logged: the first 502 and the first 504
+
 #### Scenario: Pushing works again
-- **WHEN** a listener's pushes answer 500 twice, then 200, then 500
-- **THEN** an info line says that pushing works again after 2 failed pushes, and the last 500 is
-  logged as an error again
+- **WHEN** a listener's pushes answer 500 twice, then 200 three times, then 500
+- **THEN** after the third 200 an info line says that pushing works again after 2 failed pushes,
+  and the last 500 is logged as an error again
+
+#### Scenario: Flapping
+- **WHEN** a listener's pushes answer 500 and 200 in turn, three times each
+- **THEN** one error is logged, and no info line
 
 #### Scenario: Ping fails repeatedly
-- **WHEN** the ping fails at three pushes in a row with the same error, then works
+- **WHEN** the ping fails at three pushes in a row with the same error, then works three times
 - **THEN** one warning is logged, and one info line when the ping works again
