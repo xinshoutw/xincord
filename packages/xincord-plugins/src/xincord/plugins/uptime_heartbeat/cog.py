@@ -44,8 +44,8 @@ class UptimeHeartbeat(commands.Cog):
     async def cog_unload(self) -> None:
         """Cancel the loops and wait for them, so that their HTTP sessions are closed.
 
-        A reload builds a new cog from the new config, as v3's ``reload()`` restarted every
-        pusher; a listener that a 404 stopped starts again.
+        No failure ends a loop, so this is where they end. A reload builds a new cog from the new
+        config, as v3's ``reload()`` restarted every pusher.
         """
         for task in self.tasks:
             task.cancel()

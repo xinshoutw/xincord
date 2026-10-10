@@ -11,7 +11,6 @@ import json
 import logging
 from typing import TYPE_CHECKING, cast
 
-import pytest
 from discord.http import HTTPClient
 
 from plugin_fakes import WAIT, load_plugin, until
@@ -19,15 +18,13 @@ from plugin_fakes import WAIT, load_plugin, until
 if TYPE_CHECKING:
     from pathlib import Path
 
+    import pytest
     from discord.http import Route
 
     from http_fakes import Monitor
     from plugin_fakes import Ready
     from xincord.core.storage import Store
     from xincord.plugins.uptime_heartbeat.cog import UptimeHeartbeat
-
-
-FIXED_DELAY = "Each listener pushes at once, then after a fixed delay"
 
 
 async def load(tmp_path: Path, store: Store, *urls: str) -> UptimeHeartbeat:
@@ -157,7 +154,6 @@ async def test_reload(tmp_path: Path, store: Store, monitor: Monitor, ready: Rea
     assert [url.path for _, url in monitor.requests] == ["/old", "/new"]
 
 
-@pytest.mark.xfail(strict=True, reason=FIXED_DELAY)
 async def test_independent_listeners(
     tmp_path: Path, store: Store, monitor: Monitor, ready: Ready, caplog: pytest.LogCaptureFixture
 ) -> None:

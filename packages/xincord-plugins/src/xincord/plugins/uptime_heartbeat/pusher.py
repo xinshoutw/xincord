@@ -1,4 +1,4 @@
-"""One listener's loop: the REST ping, the push and its status code (v3's IntervalPusher class).
+"""One listener's loop: the REST ping, the push and its outcome (v3's IntervalPusher class).
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/IntervalPusher.kt:15-136
@@ -36,8 +36,9 @@ TIMEOUT = aiohttp.ClientTimeout(total=30, connect=10)
 # A push that did not reach the monitor: aiohttp's errors and OSError, timeouts included.
 NETWORK_ERRORS = (aiohttp.ClientError, OSError)
 SUCCESS = range(200, 300)
-NOT_FOUND = 404  # Uptime Kuma's answer for an unknown or paused push token: stop, as v3
-ORIGIN_DOWN = 521  # Cloudflare's answer when the monitor behind it is offline
+# Failed pushes logged as warnings, with what the status means: Uptime Kuma's answer for an unknown
+# or paused push token (v3 stopped the listener), and Cloudflare's when the monitor is offline.
+WARNINGS = {404: "the status monitor refused the push", 521: "the status monitor is offline"}
 
 
 def build_url(template: str, ping: int) -> str:
@@ -86,17 +87,19 @@ class Pusher:
         return origin(self.listener.url)
 
     async def run(self) -> None:
-        """Push at once, then again ``interval`` seconds after each attempt, until a 404.
+        """Push at once, then again ``interval`` seconds after each attempt, until cancelled.
 
         The delay follows each attempt, as v3's ``delay`` did, so the period is the interval plus
-        the request time; ``discord.ext.tasks.loop`` would schedule from each start instead.
+        the request time; ``discord.ext.tasks.loop`` would schedule from each start instead. No
+        failure ends the loop (v3's ended after a 404): the plugin's unload cancels it.
         """
         logger.info(
             "UptimeHeartbeat listener %d started (every %d s)",
             self.number,
             self.listener.interval,
         )
-        while await self.push():
+        while True:
+            await self.push()
             await self.sleep(self.listener.interval)
 
     async def url(self) -> str:
@@ -119,8 +122,8 @@ class Pusher:
             ping = NO_PING
         return build_url(template, ping)
 
-    async def push(self) -> bool:
-        """Push once and log the outcome at v3's levels; return whether to keep pushing.
+    async def push(self) -> None:
+        """Push once and log the outcome at v3's levels; no failure stops the listener.
 
         A cancelled push raises ``CancelledError``, which is no ``Exception``, and logs nothing;
         v3 caught the cancellation while it waited for the ping and logged a spurious failure.
@@ -131,27 +134,13 @@ class Pusher:
         except NETWORK_ERRORS as error:
             # A network error needs no traceback. Its text can name the URL (aiohttp's connect
             # timeout does), so its URLs are cut to their origin too.
-            logger.error(  # noqa: TRY400
-                "UptimeHeartbeat listener %d: pushing to %s failed: %s",
-                self.number,
-                self.endpoint,
-                redact(describe(error)),
-            )
-            return True
+            self.failed(logging.ERROR, f": {redact(describe(error))}")
+            return
         except Exception as error:  # noqa: BLE001 - logged with its traceback below
             # Unexpected: the traceback shows where it failed. It is part of the message, with its
             # URLs cut to their origin: logger.exception would print the error's text as it is.
-            logger.error(  # noqa: TRY400
-                "UptimeHeartbeat listener %d: pushing to %s failed\n%s",
-                self.number,
-                self.endpoint,
-                redact(format_traceback(error)),
-            )
-            return True
-        return self.follow(status)
-
-    def follow(self, status: int) -> bool:
-        """Log a push's status code as v3 did; only a 404 stops the listener."""
+            self.failed(logging.ERROR, f"\n{redact(format_traceback(error))}")
+            return
         if status in SUCCESS:
             logger.debug(
                 "UptimeHeartbeat listener %d pushed to %s (code %d)",
@@ -159,25 +148,20 @@ class Pusher:
                 self.endpoint,
                 status,
             )
-        elif status == NOT_FOUND:
-            logger.warning(
-                "UptimeHeartbeat listener %d stopped: the status monitor refused the push "
-                "(code 404)",
-                self.number,
-            )
-            return False
-        elif status == ORIGIN_DOWN:
-            logger.warning(
-                "UptimeHeartbeat listener %d: the status monitor is offline (code 521)", self.number
-            )
+        elif status in WARNINGS:
+            self.failed(logging.WARNING, f" with code {status} ({WARNINGS[status]})")
         else:
-            logger.error(
-                "UptimeHeartbeat listener %d: pushing to %s failed with code %d",
-                self.number,
-                self.endpoint,
-                status,
-            )
-        return True
+            self.failed(logging.ERROR, f" with code {status}")
+
+    def failed(self, level: int, detail: str) -> None:
+        """Log a failed push at ``level``: the listener, the URL's origin, then ``detail``."""
+        logger.log(
+            level,
+            "UptimeHeartbeat listener %d: pushing to %s failed%s",
+            self.number,
+            self.endpoint,
+            detail,
+        )
 
 
 def describe(error: BaseException) -> str:

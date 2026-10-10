@@ -23,8 +23,6 @@ TOKEN = "xxxxxxxxxx"  # the push token: in the URL's path, never in a log line
 URL = f"https://status.example.com/api/push/{TOKEN}?status=up&msg=OK&ping=%ping%"
 PUSHED = URL.replace("%ping%", "42")
 ENDPOINT = "https://status.example.com"  # the URL's origin, all that the logs show of it
-STATUS = "The status code decides what follows"
-FIXED_DELAY = "Each listener pushes at once, then after a fixed delay"
 
 
 class Stop(Exception):  # noqa: N818 - it ends the loop, it reports no error
@@ -156,7 +154,6 @@ async def test_success(status: int, caplog: pytest.LogCaptureFixture) -> None:
     assert caplog.messages == [f"UptimeHeartbeat listener 1 pushed to {ENDPOINT} (code {status})"]
 
 
-@pytest.mark.xfail(strict=True, reason=STATUS)
 async def test_not_found(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
     await Fakes(answers=(404,)).pusher().push()
@@ -170,7 +167,6 @@ async def test_not_found(caplog: pytest.LogCaptureFixture) -> None:
     )
 
 
-@pytest.mark.xfail(strict=True, reason=STATUS)
 async def test_monitor_offline(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
     await Fakes(answers=(521,)).pusher().push()
@@ -327,7 +323,6 @@ async def test_every_attempt_is_followed_by_the_delay() -> None:
     assert [call for call in fakes.calls if call.startswith("sleep")] == ["sleep 5"] * 5
 
 
-@pytest.mark.xfail(strict=True, reason=FIXED_DELAY)
 async def test_pushing_goes_on_after_a_404() -> None:
     """Requirement: Each listener pushes at once, then after a fixed delay."""
     fakes = Fakes(answers=(200, 404, 404, 200), stop_after=4)

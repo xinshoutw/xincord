@@ -10,7 +10,7 @@
 - [x] 2.1 xfail tests for "The status code decides what follows" and "Each listener pushes at once,
       then after a fixed delay": a 404 and every other failure keep the loop going, the 404 and 521
       lines name the origin, independent listeners
-- [ ] 2.2 Let `Pusher.run` push until it is cancelled, log the 404 and 521 lines with the origin
+- [x] 2.2 Let `Pusher.run` push until it is cancelled, log the 404 and 521 lines with the origin
       and update the bundled `config.yaml` comment; remove the markers
 
 ## 3. Failures logged when they start, change or end
