@@ -141,3 +141,12 @@ async def test_long_texts(scene: Scene) -> None:
     parts += [part for field in embed.fields for part in (field.name, field.value)]
     assert sum(units(part or "") for part in parts) <= 6000
     assert (embed.description or "").endswith("...")
+
+
+async def test_no_thumbnail(scene: Scene) -> None:
+    """Requirement: The post shows the giveaway."""
+    instance = replace(RUNNING, config=replace(RUNNING.config, thumbnail_url="ftp://x/y.png"))
+
+    embed, _ = rendered(scene, instance)
+
+    assert "thumbnail" not in embed  # v3 showed only http and https URLs

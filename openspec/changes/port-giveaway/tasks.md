@@ -85,7 +85,7 @@
 
 ## 16. Confirmation checks
 
-- [ ] 16.1 xfail tests for "Confirming checks the draft and the administrator" against a stub
+- [x] 16.1 xfail tests for "Confirming checks the draft and the administrator" against a stub
       `_confirm`
 - [ ] 16.2 Implement `drafts.problem` and the checks; remove the markers
 
