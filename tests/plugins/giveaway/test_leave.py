@@ -8,8 +8,6 @@ Kotlin:
 
 from typing import TYPE_CHECKING
 
-import pytest
-
 from discord_fakes import FakeGuild
 from plugin_fakes import dispatch, golden
 from xincord.plugins.giveaway.cog import Session
@@ -19,10 +17,8 @@ if TYPE_CHECKING:
     from conftest import Scene
 
 GOLDEN = golden("giveaway")
-REASON = "Leaving a guild drops its drafts"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_left_guild(scene: Scene) -> None:
     """Requirement: Leaving a guild drops its drafts."""
     scene.keep(Draft(title="Nitro"))  # user 7 in guild 10

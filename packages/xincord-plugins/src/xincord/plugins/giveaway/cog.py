@@ -171,8 +171,12 @@ class Giveaway(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: discord.Guild) -> None:
-        """Drop the drafts of a guild that the bot left."""
-        raise NotImplementedError
+        """Drop the drafts of a guild that the bot left, and keep its giveaways.
+
+        v3 deleted the guild's file too (only while the plugin was enabled), so a guild that
+        invited the bot back could not reroll; the giveaways stay, as Economy's wallets do.
+        """
+        self.drafts = {key: session for key, session in self.drafts.items() if key[1] != guild.id}
 
     async def _auto_draw(self) -> None:
         """Pass five seconds after READY, then each ``autoDrawIntervalSeconds`` after a pass.
