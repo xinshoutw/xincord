@@ -27,7 +27,7 @@
 
 ## 6. Settings menu and components
 
-- [ ] 6.1 xfail tests for "The settings menu shows the channel's settings" and "The settings
+- [x] 6.1 xfail tests for "The settings menu shows the channel's settings" and "The settings
       components change the settings"
 - [ ] 6.2 Show the menu and handle its components through `ListenChannels`; route `IDS`; remove the
       markers

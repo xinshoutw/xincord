@@ -1,0 +1,61 @@
+# Golden data for the ChatLogger tests. The text is v3's, from
+# XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/resources/lang/.
+
+# The settings menu of channel chat-log (5) per locale, in the block mode with the allow list [30]
+# and an empty block list, as Embed.to_dict() without "type" and "flags", and its buttons as
+# (label, style, custom ID). The core trims the list's final newline, as JDA did.
+menu:
+  en-US:
+    embed:
+      author: {name: "Message Log"}
+      title: "☛ chat-log's Channel Setting"
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "Channel Mode", value: "<BLOCK>", inline: false}
+        - {name: "Allowlist Channels", value: "<#30> (`30`)", inline: false}
+        - {name: "Blocklist Channels", value: "Empty", inline: false}
+    buttons:
+      - ["Toggle Mode", 1, "chat_logger:1:a=toggle_btn"]
+      - ["Modify Allowlist", 3, "chat_logger:1:a=modify_allow_btn"]
+      - ["Modify Blocklist", 2, "chat_logger:1:a=modify_block_btn"]
+      - ["Delete", 4, "chat_logger:1:a=delete_btn"]
+  zh-TW:
+    embed:
+      author: {name: "訊息日誌"}
+      title: "☛ chat-log 的頻道設定"
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "頻道模式", value: "<BLOCK>", inline: false}
+        - {name: "白名單頻道", value: "<#30> (`30`)", inline: false}
+        - {name: "黑名單頻道", value: "無", inline: false}
+    buttons:
+      - ["切換模式", 1, "chat_logger:1:a=toggle_btn"]
+      - ["設定白名單", 3, "chat_logger:1:a=modify_allow_btn"]
+      - ["設定黑名單", 2, "chat_logger:1:a=modify_block_btn"]
+      - ["刪除", 4, "chat_logger:1:a=delete_btn"]
+
+# The select menu that replaces the menu when a list's button is pressed (the message keeps no
+# embed): its placeholder per locale, its limits and v3's channel types in v3's order (text, voice,
+# category, announcement, stage, forum, media, and the three thread types).
+select:
+  en-US: "choose channels, categories or search here"
+  zh-TW: "選擇頻道、類別或在此搜尋"
+select_limits:
+  min_values: 1
+  max_values: 25
+  channel_types: [0, 2, 4, 5, 13, 15, 16, 10, 11, 12]
+
+# The embed that replaces the menu of channel chat-log once its settings are deleted.
+delete:
+  en-US:
+    author: {name: "Message Log"}
+    title: "☛ chat-log's Channel Setting"
+    description: "Deleted Successfully"
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    color: 65535
+  zh-TW:
+    author: {name: "訊息日誌"}
+    title: "☛ chat-log 的頻道設定"
+    description: "刪除完成"
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    color: 65535

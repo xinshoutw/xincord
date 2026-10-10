@@ -8,12 +8,23 @@ from typing import TYPE_CHECKING
 
 from discord.ext import commands
 
+from xincord.core.component_ids import ComponentIds
+
 if TYPE_CHECKING:
+    import discord
+
+    from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
     from xincord.core.templates import Templates
 
     from .config import Config
+
+NAMESPACE = "ChatLogger"  # the plugin's name: its settings in the store
+# v3's only field, in v3's prefix, so that v3's menus keep working.
+IDS = ComponentIds("chat_logger", ("action",), legacy_prefix="chat-logger@")
+ROOT = "chat-logger"  # v3's command, and the root of its register.yaml keys
+MENU = "chat-logger@setting"  # the settings menu's template
 
 
 class ChatLogger(commands.Cog):
@@ -28,3 +39,11 @@ class ChatLogger(commands.Cog):
         self.store = store
         self.lang = lang
         self.templates = templates
+
+    async def show_settings(self, interaction: discord.Interaction) -> None:
+        """Edit the deferred response into the channel's settings menu (v3's ``setting``)."""
+        raise NotImplementedError
+
+    async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
+        """Change the settings from the menu's buttons and select menus; ``setup`` routes here."""
+        raise NotImplementedError
