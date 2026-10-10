@@ -1,7 +1,8 @@
 # xincord porting decisions
 
 Status: **accepted**. The owner submitted these through the Phase 1 decision page on 2026-10-10
-(Asia/Taipei). Two conflicts were resolved in chat the same day (see "Resolutions").
+(Asia/Taipei). Two conflicts were resolved in chat the same day (see "Resolutions"), and two
+decisions were amended that afternoon (see "Amendments").
 
 - Raw submission (labels and notes in Traditional Chinese): `submissions/s1791569618147.json`
 - Decision page: https://claude.ai/artifact/E6CCEYRv6XA7nKc5rYCwDv
@@ -25,9 +26,29 @@ deviation from it; **[fact]** a factual answer.
    disabling its safety checks, and third-party plugins register through the entry-point group
    under their own top-level package anyway.
 3. **Data migration is deferred** (derived from the F1 note, B11 note). The `xincord migrate` tool
-   is built only if needed, after parity. The config migration script (B6) is in scope.
+   is built only if needed, after parity. The config migration script (B6) is in scope. Reversed
+   on 2026-10-10 (afternoon): see Amendment 2.
 4. **Component IDs follow the B9 note**, not the literal option label: new format, permanent
    legacy decoder, lazy upgrade on interaction, never a mass re-send.
+
+## Amendments (2026-10-10, afternoon)
+
+The owner answered the review queue (`owner-review.md`) and changed two decisions:
+
+1. **B18, plugin names.** These plugins take new names for their entry point (the name in the
+   core config's `plugins` list), `plugins/<Name>/` directory, store namespace, new-format
+   component ID namespace, package and OpenSpec capability: _Example -> Example (package
+   `example`), BasicCalculator -> Calculator (`calculator`), SimpleCommand -> CustomCommands
+   (`custom_commands`), WelcomeByeGuild -> WelcomeGoodbye (`welcome_goodbye`), IntervalPusher ->
+   UptimeHeartbeat (`uptime_heartbeat`), Feedbacker -> Feedback (`feedback`), TicketAddons ->
+   TicketAwayNotice, NtustManager -> NtustAnnouncements, NtustCourse -> NtustCourseWatch. Legacy
+   component ID prefixes keep the v3 names, so that v3's messages keep working. The other plugins
+   keep their names.
+2. **B11 and Resolution 3, data import.** The data migration is no longer deferred: a v3 data
+   import, `xincord migrate` with a dry run and per-plugin counts, is built before cutover. It
+   covers Economy's wallets and the other data worth keeping, such as channel bindings. B11's test
+   plan stands: test against the local copy in `XsDiscordBotKt/Server/`; where it disagrees with
+   the GitHub source, the source wins.
 
 ## F. Facts
 
@@ -113,7 +134,8 @@ deviation from it; **[fact]** a factual answer.
   never parsed, a fresh substitution context per render.
 - **B11 Data compatibility** [rec + Resolution 3]: approach is a one-time `xincord migrate` tool
   with dry-run and per-plugin counts, **deferred**. When built, test against the local copy in
-  `XsDiscordBotKt/Server/`; where it disagrees with the GitHub source, the source wins.
+  `XsDiscordBotKt/Server/`; where it disagrees with the GitHub source, the source wins. Amended
+  on 2026-10-10 (afternoon): built before cutover (Amendment 2).
 - **B12 API plugins** [rec]: none survive. SQLiteAPI is replaced by the storage layer;
   GoogleSheetAPI is dropped (Economy's dead `SheetImpl` path and its hard dependency go too);
   AudioAPI folds into MusicPlayer's declared requirements.
@@ -134,6 +156,7 @@ deviation from it; **[fact]** a factual answer.
   mode); a manual smoke checklist per plugin for a test guild; golden fixtures for BasicCalculator.
 - **B18 Package naming** [rec]: `xincord.core`, `xincord.plugins.<snake_name>`. Display names,
   `plugins/<Name>/` directories and legacy component prefixes keep the original plugin names.
+  Amended on 2026-10-10 (afternoon): nine plugins are renamed (Amendment 1).
 - **B19 Allowed mentions** [rec]: default allows users (and the replied user) only; @everyone,
   @here and roles are off; opt in per message.
 

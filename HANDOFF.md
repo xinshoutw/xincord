@@ -48,7 +48,8 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   tags, releases, PyPI publishing, repository settings, and anything on the XsDiscordBotKt remote.
 - Do not create LICENSE (the owner adds it). Never commit real IDs, bank account numbers or tokens
   as defaults.
-- List user-visible changes (copy, commands, interaction flow) for the owner before pushing them.
+- List user-visible changes (copy, commands, interaction flow) for the owner in
+  `docs/porting/owner-review.md`; pushes do not wait for the owner's review (section 6).
 
 ## 4. Architecture as built so far
 
@@ -387,9 +388,9 @@ Update `docs/porting-guide.md` after each one.
   happy until the field exists.
 - Test commands with `app_commands.Command(name=..., callback=...)` in a typed factory: decorated
   module-level commands are partially unknown to pyright.
-- Docker: the CLI uses the OrbStack context; the engine is usually stopped. Ask before `orb start`,
-  and `orb stop` afterwards. `docker compose run --rm -T bot --no-online` checks an image without a
-  token; `docker compose down -v` removes the test volume.
+- Docker: the CLI uses the OrbStack context. The owner allows Claude to start OrbStack and use it
+  (2026-10-10); never `orb stop`. `docker compose run --rm -T bot --no-online` checks an image
+  without a token; `docker compose down -v` removes the test volume.
 - Run the gate and check its exit status directly. Piping it into `tail` before `&&` once hid a
   failure and let a bad commit through (it was amended before pushing).
 - OpenSpec is not installed globally: `OPENSPEC_TELEMETRY=0 npx --yes @fission-ai/openspec@1.14.1
@@ -412,22 +413,54 @@ From the plugin ports on, the owner asked for pushes without waiting for review:
 its user-visible changes, the choices made without the owner and the manual checks in
 `docs/porting/owner-review.md`, which the owner reviews afterwards.
 
+Answered on 2026-10-10 (afternoon), from the review queue (the answered items were deleted there):
+
+- **BotInfo:** `source_url` keeps its default, `https://github.com/xinshoutw/xincord`. The
+  repository stays private until the port is finished; then the owner makes it public.
+- **IntervalPusher:** failure logs will show only the host, and a failed push will never stop a
+  listener (it keeps pushing at its interval). Both come in a follow-up change.
+- **BasicCalculator:** the defect fixes and the answers they change are accepted (negation after
+  an operator, `^` grouping from the right, integer exponents, division by zero, negative
+  exponents), and so is the golden-test approach.
+- **SimpleCommand:** the commands will be defined in the config file, with as much customization
+  as practical (a follow-up change). The example account number is accepted, and so is copying
+  v3's `lang/` files (with the real account numbers) into the plugin's directory at cutover.
+- **WelcomeByeGuild:** binding the welcome and bye channels again at cutover is accepted, and so
+  are the two zh-TW typo fixes.
+- **Feedbacker:** `form_failure`, `form_submit_failure` and their copy are accepted.
+- **Server Members intent:** enabled in the developer portal.
+- **OrbStack:** Claude may start it and use it.
+- **ChatLogger:** the message log keeps 5 years by default and moves to its own files, starting a
+  new file automatically when the current one grows too large (a follow-up change). This replaces
+  the shared-table answer to B8 and the 30-day default.
+- **Data:** a v3 data import (`xincord migrate`, with a dry run and per-plugin counts) is built
+  before cutover, covering Economy's wallets and the other data worth keeping, such as channel
+  bindings. This reverses the deferral of Resolution 3 and B11 (`docs/porting/decisions.md`,
+  "Amendments").
+- **Plugin names:** _Example becomes Example, BasicCalculator Calculator, SimpleCommand
+  CustomCommands, WelcomeByeGuild WelcomeGoodbye, IntervalPusher UptimeHeartbeat, Feedbacker
+  Feedback, TicketAddons TicketAwayNotice, NtustManager NtustAnnouncements and NtustCourse
+  NtustCourseWatch. This reverses B18's "display names and `plugins/<Name>/` keep the original
+  names" for these plugins (`docs/porting/decisions.md`, "Amendments").
+- **Pushes** go on without prior review; everything the owner should see goes to the review queue.
+
 1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
    (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script
    fills that list; plugins that are not enabled no longer create files under `plugins/<Name>/`;
    the privileged members intent is requested only when an enabled plugin needs it.
-2. **Production version (F1)** is unknown; it matters only if a data migration is ever needed.
-   The local copy (`XsDiscordBotKt/Server/`) runs Economy 3.2.1, whose wallets are the legacy
-   single `plugins/Economy/data/data.json`; Economy reads no v3 file until that migration exists.
+2. **Production version (F1)** is unknown. The v3 data import must handle the local copy
+   (`XsDiscordBotKt/Server/`), which runs Economy 3.2.1: its wallets are the legacy single
+   `plugins/Economy/data/data.json`, which v3.4 would have moved into the only guild's file, and
+   the import must do the same. Economy reads no v3 file until the import exists.
 3. **ChatLogger** needs the Message Content intent turned on in the developer portal before the
-   operator enables it, or Discord refuses the bot's connection; B8 was settled as one table in
-   the shared store (see `docs/porting/owner-review.md`).
+   operator enables it, or Discord refuses the bot's connection.
 4. **Lavalink image** (arm64, compose details): verify when MusicPlayer starts. **VoiceLogger
    status events** were built in port-voice-logger (the core relays the gateway event; the audit
    log is read raw); what needs a real guild is in `docs/porting/owner-review.md`.
 5. **Giveaway's time zone:** before cutover, set `timeZone: "Asia/Taipei"` in
    `plugins/Giveaway/config.yaml` (or `TZ` in `compose.yaml`): the container's zone is UTC, so typed
-   end times would be read 8 hours off. v3's running giveaways are not migrated (B11).
+   end times would be read 8 hours off. Whether v3's running giveaways come along is up to the v3
+   data import.
 
 ## 7. Verified facts and pitfalls
 

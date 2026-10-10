@@ -35,10 +35,6 @@ here; delete a section once it is empty.
 ## BasicCalculator (`port-basic-calculator`)
 
 ### User-visible changes
-- A minus after an operator negates: `2*-3` is `-6`, `2--3` is `5`, `2^-1` is `0.5`, `1/-2` is `-0.5` (v3: `-3`, `-1`, `0`, no reply).
-- `^` groups from the right: `2^3^2` is `512` (v3: `64`).
-- Fractional exponents fail with `Exponent must be an integer` (v3 truncated them: `2^0.5` was `1`); huge ones fail with `Too many digits` (v3: `2^4294967297` was `2`, `10^999999999` stalled the bot).
-- Division by zero answers `Division by zero`, and negative exponents divide (v3: no reply, "thinking..." forever).
 - `formula` takes at most 1018 characters; values over 50,000 digits and results over 1018 characters fail with `Too many digits` (v3: no reply).
 - New error messages, English in every locale like v3's: `Division by zero`, `Exponent must be an integer`, `Too many digits`, `Formula too long`.
 - `%...%` in a failing formula is shown as typed (v3 expanded it, and `%bc_question%` gave no reply).
@@ -47,17 +43,12 @@ here; delete a section once it is empty.
 - The en-US `formula` description says the multiplication sign can be omitted (v3: "bracket is ignorable"); existing `plugins/BasicCalculator/lang/` files keep v3's text unless renewed with `--force-renew-lang-resources`.
 - No `plugins/BasicCalculator/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list.
 ### Choices made without the owner
-- Minus after an operator: implemented negation, tighter than `* /` and looser than `^`; alternative: keep v3's answers.
-- `^` grouping: implemented right to left, as in mathematics and Python; alternative: v3's left to right, as Excel does.
-- Negative exponents: implemented `1 / a^n` with a division's rounding; alternative: refuse them, as v3's `BigDecimal.pow` did (with no reply).
-- Fractional exponents: implemented an error; alternative: approximate roots.
 - Size limit: implemented 50,000 digits per value (admits `(1+1/1000)^1000`, refuses `(1+1/10000)^10000`) and a worker thread; alternative: a larger limit or a timeout.
 - Error messages: kept English in every locale, as v3's; alternative: localized texts in the lang files.
 - A channel that refuses the message: implemented the answer in the deferred ephemeral response; alternative: an error message, or a public interaction reply instead of a channel message.
 - `%bc_answer_round%`: implemented the part before the decimal point, which v3's `split('.')` meant; alternative: round half up, or drop the key.
 - `formula` length: implemented 1018 characters, which fit the code fence in a 1024-character embed field; alternative: Discord's 6000 with an error above 1018.
 - Non-ASCII digits (`３`, `١٢`): kept v3's `Unknown Token` error; alternative: read them as digits.
-- Golden tests: v3's 3155 recorded answers are copied unchanged to `tests/fixtures/plugins/basic_calculator/`, and the 541 that the fixes change are checked against an independent evaluator over Python's grammar; alternative: a reviewed list of new answers.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-basic-calculator/design.md` (needs a token and a test guild).
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `BasicCalculator` enabled); an image build with the plugin enabled is still open.
@@ -80,19 +71,16 @@ here; delete a section once it is empty.
 - Audit log: no reason on the role requests, as v3; alternative: a reason such as `AutoRole`.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-auto-role/design.md` (needs a token, a test guild and a second account).
-- The bot's application must allow the Server Members intent in the developer portal (v3 always requested it, so it is probably on); without it, startup stops with a privileged-intents error.
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `AutoRole` enabled); an image build with the plugin enabled is still open.
 
 ## BotInfo (`port-bot-info`)
 
 ### User-visible changes
 - `/bot-info` shows a third embed field, `Source Code`, with `source_url` from `plugins/BotInfo/config.yaml` (decision C3; zh-TW name in the plugin's `lang/zh-TW/message/bot-info.yaml`).
-- `source_url` defaults to `https://github.com/xinshoutw/xincord`, which is private today: the link gives a 404 until the repository is public or `source_url` points elsewhere.
 - An invalid `source_url` (not http or https, spaces, over 512 characters) disables BotInfo with an error that names the key; a v3 `config.yaml` (`enabled` only) loads with the default URL and warns `unknown key enabled`.
 - v3 lang files kept in `plugins/BotInfo/lang/` show v3's embed without the source field until renewed with `--force-renew-lang-resources` (which renews every enabled plugin's lang files) or edited.
 - The command always answers (v3 needed the core's auto-defer switch), and guilds that are unavailable during a Discord outage still count as guilds (JDA left them out).
 ### Choices made without the owner
-- Default source URL: implemented the xincord repository, as nothing in the decisions or the analysis names one; alternative: no default, so that the operator must set it.
 - Where the link shows: implemented a third embed field in both locales; alternative: a link button under the embed, or a link on the embed title.
 - URL check: implemented http or https without spaces and at most 512 characters (Discord's link-button limit), checked at load; alternative: any text, unchecked.
 - Current member counts: implemented the privileged members intent, so the counts follow joins and leaves as in v3; alternative: no privileged intent, with counts as of the last connection.
@@ -100,25 +88,20 @@ here; delete a section once it is empty.
 - Unavailable guilds: counted, with the members discord.py knew (none if unknown); alternative: left out of both counts, as JDA did.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-bot-info/design.md` (needs a token and a test guild).
-- The bot's application must allow the Server Members intent in the developer portal (v3 always requested it); without it, startup stops with a privileged-intents error.
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `BotInfo` enabled); an image build with the plugin enabled is still open.
 
 ## SimpleCommand (`port-simple-command`)
 
 ### User-visible changes
 - When the bot cannot post in the channel (missing permissions, or a channel that takes no messages), the administrator gets the message as the ephemeral response and the log has a warning (v3: the "thinking" message vanished and nothing was posted).
-- The bundled templates show the example account number `000000000000` under a comment (v3 shipped the real numbers); existing `plugins/SimpleCommand/lang/` files keep theirs, because only missing lang files are exported.
 - The commands always answer (v3 needed the core's auto-defer switch).
 - No `plugins/SimpleCommand/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list.
 - Placeholders that other plugins left in v3's shared global substitutor no longer expand in these templates; `%bot_id%` and `%bot_name%` still do.
 ### Choices made without the owner
-- Command set: kept v3's five fixed commands (one table in the code, one shared handler); alternative: commands defined in a config file (name to template), so operators add or remove them without a code change (inventory B3).
 - A channel that refuses the message: implemented the message in the deferred ephemeral response, as BasicCalculator; alternative: an error text telling the administrator that the bot cannot post there.
-- Example account number: implemented `000000000000`, which no real account has, under a comment in each template; alternative: a placeholder text such as `<account number>`.
 - What is posted: implemented the whole template, as v3 posted the built message (an operator's link buttons, Components V2 layouts and their uploaded files too); alternative: content and embeds only, as BasicCalculator posts.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-simple-command/design.md` (needs a token, a test guild and a member without Administrator).
-- At cutover, copy v3's `plugins/SimpleCommand/lang/` (with the real account numbers) into the bot's `plugins/SimpleCommand/lang/`; otherwise the commands post the example number.
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `SimpleCommand` enabled); an image build with the plugin enabled is still open.
 
 ## WelcomeByeGuild (`port-welcome-bye-guild`)
@@ -127,26 +110,21 @@ here; delete a section once it is empty.
 - The four commands answer in threads, voice channel chats, stage and announcement channels (v3: no reply, and a bind chosen with the `channel` option there was saved silently); without the option there, the reply is `invalid-channel`.
 - `%...%` in member, guild and channel names is shown as written in replies and in the welcome and bye messages (v3 expanded it, and a self-reference stopped the message).
 - The bye message can use the `wbg@member_*` keys and v3's unprefixed member keys when discord.py still knew the member (v3: never; they stayed as written).
-- v3's bindings in `plugins/WelcomeByeGuild/data/*.json` are not read: after moving from v3 the channels must be bound again (data migration is deferred, B11).
 - Bindings of guilds the bot left while it was offline or while the plugin was off are deleted when the bot is ready, with one log line per guild (v3 kept their files).
 - A welcome or bye message that Discord refuses logs a warning that names the guild and the channel (v3: JDA's exception log).
 - `invalid-channel`, `*-bind-already` and `*-unbind-empty` no longer create data; the commands always answer (v3 needed the core's auto-defer switch).
 - No `plugins/WelcomeByeGuild/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list.
-- zh-TW copy in the bundled files (existing `plugins/WelcomeByeGuild/lang/` files keep v3's text): `welcome`'s last line 也不坊到處看看喔！ becomes 也不妨到處看看喔！, and `bye`'s description 但願我們會能未來的道路相見... becomes 但願我們能在未來的道路上相見...
 ### Choices made without the owner
 - Where the bindings live: implemented v3's document per guild in the store's key-value table (namespace `WelcomeByeGuild`, key = guild ID), so that a later migration can copy v3's files; alternative: a plugin table with one column per channel.
 - Bye message keys: implemented the member keys when discord.py still knew the member; alternative: v3's user-only keys.
 - Bindings of guilds left while offline or disabled: implemented their deletion when the bot is ready; alternative: keep them until the bot leaves that guild again, as v3.
 - A channel where the bot cannot post: implemented v3's unchecked bind, with a log warning at each refused message; alternative: check View Channel, Send Messages and Embed Links when binding and tell the administrator (new copy).
-- zh-TW typos: implemented the two corrections above; alternative: keep v3's text.
 - `guild-only`: kept as a guard that guild commands never reach, rendered with the interaction's placeholders like `no-permission` (v3: global ones only); alternative: drop the check and its two templates.
 - Core API: implemented `placeholder_values(interaction)` (Protocols `EventLike`, `ClientLike`) in `xincord.core.placeholders`, moved from _Example, which now imports it; alternative: a copy per plugin.
 - Core fix: `interaction_values` gives no `channel_category_name` for a thread whose parent channel discord.py has not cached, where it raised and left the command unanswered (found by a probe through discord.py's own objects); alternative: none.
 - Core gap found in the audit, unchanged: v3's commons-text read `%key:-fallback%` as a fallback for a missing key, while the core's `render` leaves it as written (no shipped template uses it); alternative: support the syntax in `render`.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-welcome-bye-guild/design.md` (needs a token, a test guild and a second account).
-- The bot's application must allow the Server Members intent in the developer portal (v3 always requested it); without it, startup stops with a privileged-intents error.
-- At cutover, bind the welcome and bye channels again in each guild listed in v3's `plugins/WelcomeByeGuild/data/`, or build the deferred migration first.
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `WelcomeByeGuild` enabled); an image build with the plugin enabled is still open.
 
 ## IntervalPusher (`port-interval-pusher`)
@@ -164,7 +142,6 @@ here; delete a section once it is empty.
 - HTTP client: implemented aiohttp, already installed with discord.py and now declared by `xincord-plugins`; alternative: httpx, a new dependency.
 - Interval range: implemented 1 to 2147483647 seconds (v3's `Int` without zero and negatives); alternative: a larger minimum, such as 10 seconds.
 - URL check: implemented an http or https URL with a host and no spaces, checked at load; alternative: v3's unchecked URL, which fails at every push.
-- Failure logs: kept v3's full URL, push token included; alternative: only the host.
 - When pushing starts: implemented at READY (at once when the plugin loads into a ready bot), so that the monitor shows the bot as up only once it is connected; alternative: at load, before the gateway connects.
 - Redirects: kept v3's behavior of not following them (a 3xx logs an error); alternative: follow them, so that an `http://` URL redirected to `https://` works.
 ### Manual checks
@@ -175,8 +152,6 @@ here; delete a section once it is empty.
 ## Feedbacker (`port-feedbacker`)
 
 ### User-visible changes
-- New reply `form_failure` (bundled `建立失敗`): the administrator gets it when the form cannot be created (a `member` who is not in the server, a channel where the bot cannot post, a non-text submit channel), and the log says why (v3: "thinking" forever, or the hard-coded `SubmitChannel must be TextChannel`).
-- New reply `form_submit_failure` (bundled `送出失敗`): the member gets it, ephemerally, when the review cannot be posted (submit channel deleted or refusing the bot); the form stays for another try and the log says why (v3: a failed modal, or the feedback lost with the form deleted).
 - The form is deleted only after its review is posted.
 - The pressed star turns blue through an edit of the bot's own message after the modal opens (v3 queued it on the interaction hook before acknowledging the press).
 - Feedback text is shown as typed (v3 expanded `%...%` in it, and `%fb_content%` made the modal fail).
@@ -185,8 +160,6 @@ here; delete a section once it is empty.
 - The command always answers (v3 needed the core's auto-defer switch).
 - Core, every plugin: embed field names and values are trimmed and an empty one becomes U+200E, as v3 did through JDA (xincord sent them as rendered, and Discord refuses an empty field).
 ### Choices made without the owner
-- New failure replies: implemented two generic config keys per audience next to v3's three (the log names the cause); alternative: one specific text per cause, or localized message templates in `lang/`.
-- Their copy: implemented `建立失敗` and `送出失敗` in the bundled file (mirroring `建立成功`) and English defaults for v3 files; alternative: other wording, or zh-TW defaults through the migration script.
 - A `member` option naming a user outside the server: implemented `form_failure`; alternative: post the form anyway (only that user could press it, after joining).
 - A refused review: implemented keeping the form and telling the member; alternative: v3's deletion regardless.
 - Star counts: implemented whole numbers 0 to 5 (where v3 did not throw), checked at the press; alternative: clamp them, or allow any count.
@@ -228,7 +201,6 @@ here; delete a section once it is empty.
 - Core: `global_values(client)` in `xincord.core.placeholders`, now used by BotInfo, SimpleCommand and Economy's `no-permission` (v3 rendered it with its global keys only); alternative: render `no-permission` with the user's values, without a core change.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-economy/design.md` (needs a token, a test guild and a second account).
-- Economy reads no v3 data: until the deferred migration (B11) exists, switching it over restarts every wallet at 0. The local production copy holds the legacy `plugins/Economy/data/data.json` (Economy 3.2.1), which v3.4 would have moved into the only guild's file; the migration must do the same.
 - At cutover, keep the existing `plugins/Economy/config.yaml` (it lists the administrators); its `enabled` and Google Sheets keys can be deleted to silence the warnings.
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `Economy` enabled, with the bundled, an operator's and v3's config); an image build with the plugin enabled is still open.
 
@@ -264,7 +236,7 @@ here; delete a section once it is empty.
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-dynamic-voice-channel/design.md` (needs a token, a test guild and a second account).
 - The bot needs Manage Channels and Manage Roles (or Administrator) in the bound categories.
 - Check that positions 0 and 1 put the new lobby at the top of its category and the room right below, as in v3 (the raw PATCHes are v3's requests; Discord's ordering of equal positions was not observed).
-- At cutover, delete v3's leftover rooms by hand (only v3's MongoDB knows them) and bind the lobbies again in each guild listed in v3's `plugins/DynamicVoiceChannel/data/`, or build the deferred migration first.
+- At cutover, delete v3's leftover rooms by hand (only v3's MongoDB knows them).
 - Two members who join an empty lobby at the same instant may both stay in the lobby without a room (discord.py may parse both joins before the plugin sees the first); watch whether it happens.
 - After a discord.py upgrade, check the room requests: the positions use discord.py's undocumented `HTTPClient.request` and `Route`.
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `DynamicVoiceChannel` enabled); an image build with the plugin enabled is still open.
@@ -282,7 +254,7 @@ here; delete a section once it is empty.
 - A list longer than 1024 characters ends with `...` instead of breaking that channel's menu for good.
 - Channel names and statuses are shown as written (v3 expanded `%...%` in them).
 - Settings of a guild the bot leaves are deleted at once, and deleted channels are dropped from the lists when the bot is ready (v3 did both at its next start).
-- v3's `plugins/VoiceLogger/setting/*.json` are not read: listen channels must be set up again (the data migration is deferred, B11). No `plugins/VoiceLogger/config.yaml`.
+- No `plugins/VoiceLogger/config.yaml`.
 ### Choices made without the owner
 - Status events, which discord.py 2.7.1 drops: implemented a core method, `Bot.relay_gateway_event(name)`, that adds a parser to discord.py's internal parser table and dispatches `gateway_voice_channel_status_update`; alternative: `enable_debug_events=True` with discord.py's public `on_socket_raw_receive` (every gateway message parsed twice), or `on_audit_log_entry_create` with the moderation intent (discord.py drops the channel and the status of types 192 and 193).
 - Earlier statuses: implemented tracking them in memory from the events, unknown ones empty, forgotten at each READY and when a guild becomes unavailable or is left, as JDA's cache; alternative: Discord's Request Channel Info (gateway opcode 43) for each guild at READY.
@@ -300,13 +272,11 @@ here; delete a section once it is empty.
 - The bot needs View Audit Log for the members of status changes, and View Channel, Send Messages and Embed Links in the listen channels.
 - Unverified without a real guild: Discord's `VOICE_CHANNEL_STATUS_UPDATE` payload (null or empty for a cleared status), whether Discord sends it when it clears a status by itself, whether type-192 and 193 entries carry `options.channel_id` and `options.status` as documented (or the channel in `target_id`), whether `options.status` is exactly the gateway's text (if not, set statuses show `-`), and how soon after the gateway event the entries exist.
 - After a discord.py upgrade, check the relay (discord.py's internal `ConnectionState.parsers`) and the audit log request (`HTTPClient.request` and `Route`); if discord.py starts parsing the event, the relay still runs after its parser.
-- At cutover, set the listen channels up again in each guild listed in v3's `plugins/VoiceLogger/setting/`, or build the deferred migration first.
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `VoiceLogger` enabled); an image build with the plugin enabled is still open.
 
 ## ChatLogger (`port-chat-logger`)
 
 ### User-visible changes
-- New config key `retention_days` (30 by default, 1 to 3650): a message's text is kept that long, and edits and deletions of older messages are not logged (v3 kept every message forever).
 - A deleted message's text leaves the store once its deletion is handled (v3 kept it).
 - `log_all: false` stores the messages of the channels that a listen channel detects (v3: only the channels that had a table already, a set no setting changed); with it, a guild's stored messages are deleted when the bot leaves the guild.
 - Edits and deletions in threads are logged (v3: never); a thread is detected through its parent channel and that channel's category, or by its own ID, in both modes (v3's block mode never detected threads). Archived threads stay in the lists after a restart.
@@ -317,11 +287,8 @@ here; delete a section once it is empty.
 - Texts longer than 1024 characters are cut with `...` (v3 lost the log); texts are shown as written (v3 expanded `%...%`, and `%cl_msg_after%` in a message made its log fail).
 - A webhook's edit shows the webhook's mention (v3: the placeholders themselves); a channel without a category shows `-`.
 - As in VoiceLogger: the menu answers in every channel, and logs reach listen channels of every kind; a deleted listen channel is forgotten and a refusing one no longer stops the others; a first selection keeps the allow mode; "Delete" deletes only that channel's settings; long lists end with `...`; settings of a guild the bot leaves are deleted at once.
-- v3's `plugins/ChatLogger/setting/*.json` and `data/*.db` are not read: listen channels must be set up again (the data migration is deferred, B11).
 - The bundled `config.yaml` explains both keys and the Message Content intent (English comments).
 ### Choices made without the owner
-- Where the message log lives (B8): implemented a plugin table, `ChatLogger_messages`, in the shared `data/xincord.db` through `Store.run` (bounded volume, point operations by message ID, one volume and backup, no core change); alternative: an own file `data/ChatLogger.db` with its own connection and WAL, which keeps the log's writes away from the other plugins' store calls and can be purged alone, but needs a core API for the data path.
-- The bound: implemented `retention_days`, 30 days by default, applied at READY and every hour from the message IDs' time; alternative: a longer default (90 days), or a cap on the rows per guild.
 - Deleted messages: implemented removing their text once the deletion is handled; alternative: keeping it until the retention, as v3 kept it.
 - Threads: implemented detection through the parent channel and its category, or the thread's own ID; alternative: the thread's own ID only, as v3's allow mode.
 - Bulk deletions: implemented one embed per stored message; alternative: one summary embed per purge (a new template and new copy).
@@ -337,7 +304,6 @@ here; delete a section once it is empty.
 - Turn the Message Content intent on for the bot in the Discord developer portal (Bot, Privileged Gateway Intents) before enabling ChatLogger: without it, Discord refuses the bot's connection.
 - The bot needs View Channel and Read Message History in the logged channels, and View Channel, Send Messages and Embed Links in the listen channels.
 - Unverified without a real guild: whether Discord sends `MESSAGE_UPDATE` for pins and link previews and which previews it types `rich` (members' are never logged either way; a bot's rich preview would log an edit), and how long a large purge takes to post.
-- At cutover, set the listen channels up again in each guild listed in v3's `plugins/ChatLogger/setting/`; messages stored by v3 are not migrated (B11).
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `ChatLogger` and `VoiceLogger` enabled); an image build with the plugin enabled is still open.
 
 ## Giveaway (`port-giveaway`)
@@ -359,7 +325,6 @@ here; delete a section once it is empty.
 - New lang files `plugins/Giveaway/lang/<locale>/text.yaml` hold the texts that v3 wrote in code (field names, statuses, replies, errors); operators can edit them.
 - A post button without a giveaway ID answers `Giveaway not found.` in the user's language (v3: `Invalid giveaway id.` in English); a modal with an unknown sub-action gets no response.
 - End times after 9999 (`+12026-01-05 10:00`) and `9999-12-31 24:00` get the format error.
-- v3's `plugins/Giveaway/data/*.json` are not read: v3's giveaways answer `Giveaway not found.` after the switch until the deferred migration copies them (B11).
 ### Choices made without the owner
 - Builder updates: implemented answering each press and submission with `response.edit_message`; alternative: v3's edits through the command's hook (15-minute limit).
 - Joins and draws: implemented deferring at once, then editing the post through the press's webhook and replying with ephemeral follow-ups, the post re-rendered on every press; alternative: v3's REST edit of the post and an ephemeral reply, which a burst of joins queues behind the channel's rate limit.
@@ -379,6 +344,5 @@ here; delete a section once it is empty.
 - Before cutover, set `timeZone: "Asia/Taipei"` in `plugins/Giveaway/config.yaml` (or `TZ` in `compose.yaml`): the container's zone is UTC, so typed end times would be read 8 hours off.
 - The bot needs View Channel, Send Messages (in threads too) and Embed Links in giveaway channels; Read Message History only for the core's upgrade of v3 posts.
 - Unverified without Discord: that a type-7 response to a modal submission updates the ephemeral builder, and how a burst of joins looks (a response may show a count one behind until the next press).
-- At cutover, v3's running giveaways are not migrated (B11): finish them in v3 first, or build the migration.
 - Packaging was checked: the wheel's files, `xincord --no-online` from the built wheels, and the compose image (`docker compose run --rm -T bot --no-online` with `Giveaway` enabled), whose Python resolves `Asia/Taipei`.
 - After the deferred migration (B11), the core upgrades v3 posts' IDs with a fetch and an edit, which can briefly revert a concurrent edit of the post's buttons; the next press repairs it.
