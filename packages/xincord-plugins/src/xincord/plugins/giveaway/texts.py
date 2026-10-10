@@ -12,7 +12,7 @@ import discord
 
 from xincord.core.placeholders import render
 
-from .inputs import clip, thumbnail, trim
+from .inputs import MORE, clip, thumbnail, trim, units
 from .model import Policy
 from .times import format_end_time
 
@@ -30,10 +30,14 @@ ENGLISH = "en-US"  # v3's other texts
 TEXT = "text"  # the stem of the lang file that holds them
 
 PREVIEW_COLOR = 0x2ECC71  # v3's green
+RUNNING_COLOR = 0xF1C40F  # v3's gold, while a giveaway runs
+DRAWN_COLOR = 0x95A5A6  # v3's gray, once drawn
 # Discord's limits, which JDA's EmbedBuilder checked.
 TITLE_MAX = 256
 FIELD_NAME_MAX = 256
 FIELD_VALUE_MAX = 1024
+DESCRIPTION_MAX = 4096
+EMBED_MAX = 6000  # the total of an embed's texts
 # JDA's EmbedBuilder.ZERO_WIDTH_SPACE (a left-to-right mark) for an empty field, which Discord
 # refuses.
 EMPTY_FIELD = chr(0x200E)
@@ -134,12 +138,91 @@ def _or(value: str, default: str) -> str:
 
 
 def post_embed(instance: Instance, texts: Texts, now: int) -> discord.Embed:
-    """The giveaway's post, v3's ``ga@giveaway-embed``."""
-    raise NotImplementedError
+    """The giveaway's post, v3's ``ga@giveaway-embed``.
+
+    v3's embed, gold while running and gray once drawn: the title as written, the description or
+    v3's default, the status at ``now`` with the end time, the participants, the winner policy,
+    the prizes, the winners (or not drawn yet), the sponsor when set, the thumbnail and the ID.
+    Fields are clipped to 1024 characters as v3's, and the description so that the embed holds
+    at most 6000, which Discord refuses beyond (v3's refresh failed there).
+    """
+    config = instance.config
+    end = config.end_at
+    if instance.ended:
+        status = texts.get("post.drawn")
+    else:
+        status = texts.get("post.ready") if now >= end else texts.get("post.running")
+    unique = config.policy is Policy.UNIQUE_ACROSS_PRIZES
+    results = winner_lines(instance, texts) if instance.ended else texts.get("post.not-drawn")
+    embed = discord.Embed(
+        title=clip(texts.get("post.title", {"ga@title": config.title}), TITLE_MAX),
+        description=clip(_or(config.description, texts.get("post.description")), DESCRIPTION_MAX),
+        colour=DRAWN_COLOR if instance.ended else RUNNING_COLOR,
+    )
+    add_field(embed, texts.get("post.status"), f"{status}\n<t:{end}:R>", inline=True)
+    add_field(
+        embed, texts.get("post.participants"), str(len(instance.participant_ids)), inline=True
+    )
+    add_field(
+        embed,
+        texts.get("post.policy"),
+        texts.get("post.unique" if unique else "post.allow-duplicate"),
+    )
+    add_field(embed, texts.get("post.prizes"), prize_lines(config.prizes, texts))
+    add_field(embed, texts.get("post.results"), results)
+    if trim(config.sponsor):
+        add_field(embed, texts.get("post.sponsor"), config.sponsor, inline=True)
+    if (url := thumbnail(config.thumbnail_url)) is not None:
+        embed.set_thumbnail(url=url)
+    embed.set_footer(text=texts.get("post.footer", {"ga@id": instance.id}))
+    _fit(embed)
+    return embed
 
 
 def post_buttons(
     instance: Instance, texts: Texts, now: int, build_id: IdBuilder
 ) -> tuple[discord.ui.Button[discord.ui.View], ...]:
-    """The post's join, draw and reroll buttons, v3's three ``ga@*-button`` models."""
-    raise NotImplementedError
+    """The post's join, draw and reroll buttons, v3's three ``ga@*-button`` models.
+
+    Join / Leave is disabled once the giveaway is drawn or its end time has come, Draw Winners
+    once drawn, and Reroll until drawn.
+    """
+
+    def button(
+        style: discord.ButtonStyle, action: str, label: str, *, disabled: bool
+    ) -> discord.ui.Button[discord.ui.View]:
+        custom_id = build_id({"action": action, "giveaway_id": instance.id})
+        return discord.ui.Button(style=style, custom_id=custom_id, label=label, disabled=disabled)
+
+    closed = instance.ended or now >= instance.config.end_at
+    return (
+        button(discord.ButtonStyle.success, "participate", texts.get("post.join"), disabled=closed),
+        button(
+            discord.ButtonStyle.primary, "draw", texts.get("post.draw"), disabled=instance.ended
+        ),
+        button(
+            discord.ButtonStyle.secondary,
+            "reroll",
+            texts.get("post.reroll"),
+            disabled=not instance.ended,
+        ),
+    )
+
+
+def winner_lines(instance: Instance, texts: Texts) -> str:
+    """One ``prize: <@winner> ...`` line per prize, or v3's not enough text for none."""
+    return "\n".join(
+        f"{result.prize_name}: "
+        + (" ".join(f"<@{winner}>" for winner in result.winner_ids) or texts.get("not-enough"))
+        for result in instance.winner_results
+    )
+
+
+def _fit(embed: discord.Embed) -> None:
+    """Shorten the description until the embed's texts hold at most 6000 UTF-16 code units."""
+    parts = [embed.title, embed.description, embed.footer.text]
+    parts += [part for field in embed.fields for part in (field.name, field.value)]
+    excess = sum(units(part or "") for part in parts) - EMBED_MAX
+    description = embed.description or ""
+    if excess > 0:
+        embed.description = clip(description, max(units(description) - excess, units(MORE)))

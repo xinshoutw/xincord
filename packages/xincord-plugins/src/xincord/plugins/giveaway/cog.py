@@ -20,7 +20,7 @@ from xincord.core.templates import modal_values, render_message, render_modal
 
 from .drafts import remove_last_prize, submit, switch_policy
 from .model import Draft, Instance
-from .texts import Texts, language, preview
+from .texts import Texts, language, post_buttons, post_embed, preview
 from .times import format_end_time
 
 if TYPE_CHECKING:
@@ -247,8 +247,26 @@ class Giveaway(commands.Cog):
         return Texts(self.lang, language(self.lang, interaction.locale.value))
 
     def render_post(self, instance: Instance) -> Message:
-        """The giveaway's post, v3's ``giveaway-post`` in the creator's language."""
-        raise NotImplementedError
+        """The giveaway's post, v3's ``giveaway-post`` in the creator's language.
+
+        As v3's, without a substitutor: v3's global values, and the embed and buttons as models.
+        """
+        locale = language(self.lang, instance.locale_tag)
+        texts = Texts(self.lang, locale)
+        now = int(self.clock())
+        join, draw, reroll = post_buttons(instance, texts, now, IDS.build)
+        models = {
+            "ga@giveaway-embed": post_embed(instance, texts, now),
+            "ga@join-button": join,
+            "ga@draw-button": draw,
+            "ga@reroll-button": reroll,
+        }
+        return render_message(
+            self.templates.message("giveaway-post", locale),
+            global_values(self.bot),
+            build_id=IDS.build,
+            models=models,
+        )
 
     def _builder(self, interaction: discord.Interaction, draft: Draft) -> Message:
         """v3's ``create-giveaway`` with the preview of ``draft``, in the user's language.

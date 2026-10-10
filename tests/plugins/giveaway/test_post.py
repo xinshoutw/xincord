@@ -20,7 +20,6 @@ if TYPE_CHECKING:
     from conftest import Scene
 
 GOLDEN = golden("giveaway")
-REASON = "The post shows the giveaway"
 END = 1772330400
 RUNNING = Instance(
     id="3f2a9c1b7e4d4a60",
@@ -78,7 +77,6 @@ def expected_buttons(locale: str, disabled: tuple[bool, bool, bool]) -> list[tup
     ]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_running(scene: Scene, locale: str) -> None:
     """Requirement: The post shows the giveaway."""
@@ -88,7 +86,6 @@ async def test_running(scene: Scene, locale: str) -> None:
     assert buttons == expected_buttons(locale, (False, False, True))
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_drawn(scene: Scene, locale: str) -> None:
     """Requirement: The post shows the giveaway."""
@@ -98,7 +95,6 @@ async def test_drawn(scene: Scene, locale: str) -> None:
     assert buttons == expected_buttons(locale, (True, True, False))
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_ready_to_draw(scene: Scene, locale: str) -> None:
     """Requirement: The post shows the giveaway."""
@@ -111,7 +107,6 @@ async def test_ready_to_draw(scene: Scene, locale: str) -> None:
     assert buttons == expected_buttons(locale, (True, False, True))  # closed for joins
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_language_of_the_creator(scene: Scene) -> None:
     """Requirement: The post shows the giveaway."""
     for tag, shown in (("zh-CN", "zh-TW"), ("en-GB", "en-US"), ("unknown", "en-US")):
@@ -119,7 +114,6 @@ async def test_language_of_the_creator(scene: Scene) -> None:
         assert embed == GOLDEN["post"][shown]["running"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_typed_title(scene: Scene) -> None:
     """Requirement: The post shows the giveaway."""
     instance = replace(RUNNING, config=replace(RUNNING.config, title="%bot_name% %ga@id%"))
@@ -130,7 +124,6 @@ async def test_typed_title(scene: Scene) -> None:
     assert embed["title"] == title
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_long_texts(scene: Scene) -> None:
     """Requirement: The post shows the giveaway."""
     prizes = tuple(Prize(f"Prize number {index} " + "x" * 60, 1) for index in range(40))
