@@ -20,7 +20,7 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `ListenerAdapter` overrides | `@commands.Cog.listener()` | B3 |
 | `CommandData` / `SlashCommandData` | `app_commands.command` / `app_commands.Group` | B5 |
 | InteractionLogger's blanket `deferReply(true)` | `CommandTree.interaction_check` defers ephemerally; commands that open modals set `extras={"defer": False}` | B5 |
-| `guildCommands()` / `globalCommands()` | guild commands by default, global with `extras={"global": True}`; `CommandTree.sync_global` / `sync_guild` upload only changed payloads | B5 |
+| `guildCommands()` / `globalCommands()` | guild commands by default, global with `extras={"global": True}` and JDA's default contexts set explicitly; `CommandTree.sync_global` / `sync_guild` upload only changed payloads | B5 |
 | Command localization via `StringLocalizer` and Kotlin property paths | `app_commands.Translator` fed from `lang/<locale>/register.yaml` keys | B7 |
 | `MessageCreator` YAML templates | templates module: v1 YAML tags and Components V2 | B10 |
 | `Placeholder` / commons-text substitutor | single-level `%key%` substitution with a fresh context per render | B10 |
@@ -100,6 +100,12 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - Tests run listeners with `plugin_fakes.dispatch(bot, "<event>", *args)` and write an operator
   config with `plugin_fakes.load_plugin(..., config=...)`; `discord_fakes` has `FakeGuild`,
   `FakeRole` and `FakeMember` for member events.
+- A v3 global command (`globalCommands()`) sets `extras={"global": True}` and JDA's defaults, which
+  discord.py does not send: `allowed_contexts=AppCommandContext(guild=True, dm_channel=True,
+  private_channel=False)` and `allowed_installs=AppInstallationType(guild=True, user=False)`
+  (BotInfo).
+- A config value that Discord would refuse at send time (a URL, a length) is validated in the
+  model, so that the plugin fails at load with the key named (BotInfo's `source_url`).
 
 ## Pitfalls
 
@@ -123,6 +129,12 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   `on_ready` (`chunk_guilds_at_startup` follows the intent); v3 did not.
 - **Unavailable guilds.** During an outage discord.py keeps a guild without roles or members, so
   `guild.me` is None there; check `guild.unavailable` before using guild data.
+- **Member counts.** `Guild.member_count` stays current only with the members intent: discord.py
+  updates it from member join and leave events. It is None for a guild unavailable since the bot
+  connected. JDA's guild list left unavailable guilds out; `Client.guilds` keeps them.
+- **Global command contexts.** discord.py sends `contexts` and `integration_types` only when a
+  command sets them, and Discord's defaults then apply; JDA always sent guild and bot DM contexts
+  and guild installs. Set them on ported global commands.
 - **Events in tests.** `bot.dispatch` schedules listeners on the loop of a bot that logged in (a
   sentinel before that); tests await the listeners with `plugin_fakes.dispatch`.
 - **Channel overwrites.** `create_text_channel(overwrites=...)` does not inherit the category's
@@ -169,7 +181,9 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   modules, so classes imported by test modules no longer match; test reloads with fake plugins.
   A `setup` that raises (an invalid config, for example) also drops the plugin's modules from
   `sys.modules`: tests that load a plugin with a bad file look its cog up with `cast`, not an
-  `isinstance` check against a class imported at collection (AutoRole's `test_config.py`).
+  `isinstance` check against a class imported at collection (AutoRole's `test_config.py`). The
+  tests that run after them load the new modules too, so the plugin's `cog` fixture also uses
+  `cast` (BotInfo's `conftest.py`).
 - **Stopped views.** A discord.py view created outside a running event loop never reports
   `is_finished()`; tests that check rendered views must be `async`.
 - **Global `core.hooksPath`.** prek refuses to install while a global `core.hooksPath` is set; use
@@ -259,3 +273,7 @@ Every deliberate difference, added by the change that introduces it.
 | AutoRole | unknown role IDs were dropped without a log, and other problems showed only at a join | warnings when the bot is ready, when the plugin loads into a ready bot, and at each join | port-auto-role |
 | AutoRole | a reload replaced the guild set and the role map one after the other, so a join in between could fail | a reload replaces the whole cog | port-auto-role |
 | AutoRole | the bundled `config.yaml` held real guild and role IDs | it lists no guilds and shows placeholder IDs in a comment | port-auto-role |
+| BotInfo | `member_counts` and `guild_counts` were written into the shared global placeholders at each use, so every plugin's later renders saw them | the counts are values of one render | port-bot-info |
+| BotInfo | the reply needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers the command | port-bot-info |
+| BotInfo | guilds that became unavailable during an outage were left out of both counts | they count as guilds, with the members discord.py knew | port-bot-info |
+| BotInfo | no source link; the bundled `config.yaml` held only `enabled: false` | a Source Code field shows `source_url` (decision C3), by default the xincord repository, checked when the plugin loads | port-bot-info |

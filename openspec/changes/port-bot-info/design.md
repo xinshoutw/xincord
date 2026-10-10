@@ -119,6 +119,47 @@ templates (`ORDERLY BOT`, `ORDERLY SERVER`, the imgur icon), which operators cha
 `plugins/BotInfo/lang/`; the base description `show about the bot data`, which differs from the
 en-US localization `show about this Bot` and which only clients in other locales see.
 
+### Inventory audit
+
+Every section of `docs/porting/analysis/inventory/BotInfo.md` maps to this change:
+
+- Overview (1): the global command and its embed are the command and reply requirements; the
+  entry object, `info.yaml` and the plugin name are "The plugin installs as BotInfo".
+- Lifecycle (2): exporting the lang files and reading the config are "First load creates the
+  files" and the config requirement; the `enabled` warning is the core's `plugins` list; the
+  localizer is `lang.command`; the lazily built message creator is `Templates.load` in `setup`, so
+  a broken template fails the load; `reload()` is the core's reload, which replaces the whole cog;
+  the global substitutor keys are a "v3 behaved differently" entry. No background jobs.
+- Slash commands (3): the name, description, localizations, missing options and permissions,
+  contexts and install type are "Command payload"; the uploads at startup and after reloads are
+  the core's `sync_global` (core-command-tree, core-reload); the auto-defer is "Command callback"
+  and a "v3 behaved differently" entry; the `enabled` and command-name checks are the `plugins`
+  list and the tree's routing; the counts are "The counts sum the bot's guilds"; rendering in
+  the user's locale and editing the deferred response are the reply requirement; use in DMs is
+  the bot DM context in the payload. The core's interaction log covers v3's `[CMD]` line.
+- Components (4) and events (5): none besides the command, so no component IDs, listeners or
+  component golden data.
+- Configuration (6): `enabled` is replaced by the core's `plugins` list; `source_url` (C3) is
+  "The config sets the source link".
+- Localization and templates (7): both locales, the zh-TW default and the whole-locale fallback
+  (`en-GB` and `ja` get zh-TW) are "Locale and fallback"; the template text is the golden reply;
+  the placeholders are "Reply" and "Bot placeholders"; v3's http-only filter is the core's
+  (the icon URL passes it).
+- Persistence (8) and external dependencies (9): none; the imgur icon stays in the templates.
+- Discord requirements (10): the members intent for current counts is part of the install
+  requirement; no permissions are needed beyond answering the command.
+- Concurrency (11): a reload replaces the whole cog, and the counts are local values of one render
+  instead of entries in an unsynchronized shared map.
+- Bugs and quirks (12): the behaviors to preserve are scenarios (ephemeral reply: "Command
+  callback"; user locale with the zh-TW fallback: "Locale and fallback"; global command in guilds
+  and DMs without a permission restriction, and the zh-TW name: "Command payload"). Smells 1 and 2
+  are "v3 behaved differently" entries ("Counts at each use" tests the second); 3, 4 and 5 are
+  kept on purpose, as listed above.
+- Testability (13): `compute_stats` is `counts` (`test_counts.py`); rendering per locale with the
+  fallback is the golden reply; the command metadata snapshot is the golden payload.
+- Assessment (14): the contexts and install types, the translator, the defer with
+  `edit_original_response` and the local render values are the Command and Reply decisions.
+
 ## Risks / Trade-offs
 
 - The members intent is privileged: if the bot's application does not allow it, the bot cannot

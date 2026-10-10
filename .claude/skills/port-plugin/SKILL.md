@@ -108,6 +108,8 @@ async def setup(bot: Bot) -> None:
   needs a migration in `xincord.core.migrate_v3` (none so far).
 - A plugin whose only v3 key was `enabled` ships no `config.yaml` and never calls
   `context.config`.
+- Validate a value that Discord would refuse at send time (a URL, a length) in the model, so that
+  the plugin fails at load with the key named (BotInfo's `source_url`).
 
 ### Commands
 
@@ -123,9 +125,12 @@ async def setup(bot: Bot) -> None:
   `TYPE_CHECKING`; the plugin's tests do, because the plugin stops loading.
 - Base names and descriptions are v3's `Commands.slash(...)` defaults. Limits use
   `app_commands.Range`. Guild command by default; v3 `globalCommands()` get `extras={"global":
-  True}`; a command that opens a modal sets `extras={"defer": False}`. The tree defers the others
-  ephemerally before the callback runs: answer with `interaction.edit_original_response(...)` or
-  `interaction.followup.send(...)`.
+  True}` and JDA's defaults, which discord.py does not send unless set:
+  `allowed_contexts=app_commands.AppCommandContext(guild=True, dm_channel=True,
+  private_channel=False)` and `allowed_installs=app_commands.AppInstallationType(guild=True,
+  user=False)` (BotInfo). A command that opens a modal sets `extras={"defer": False}`. The tree
+  defers the others ephemerally before the callback runs: answer with
+  `interaction.edit_original_response(...)` or `interaction.followup.send(...)`.
 - A v3 reply posted with `event.channel.sendMessage(...)` after the defer: send it to
   `interaction.channel` when that has `send` (a `runtime_checkable` Protocol, so fakes need no
   discord base class; forums and categories have none), then `delete_original_response()`; on
@@ -138,7 +143,8 @@ async def setup(bot: Bot) -> None:
   needs cached: `on_member_join` builds the member from the event, `on_member_remove` fires only
   for cached members (use `on_raw_member_remove`).
 - `INTENTS` lists what the listeners need beyond discord.py's defaults:
-  `discord.Intents(members=True)` for member events. The members intent is privileged: the
+  `discord.Intents(members=True)` for member events, and for `Guild.member_count`, which
+  discord.py updates only from those events (BotInfo). The members intent is privileged: the
   design's smoke checklist says to allow it in the developer portal.
 - Problems the operator must fix (a missing role or permission) are `logger.warning` lines from
   `logging.getLogger(__name__)` that name the plugin; Discord errors on one item are logged and the
@@ -178,11 +184,12 @@ async def setup(bot: Bot) -> None:
   `config="..."` to `load_plugin`, which writes `<root>/<Plugin>/config.yaml` first. A `setup` that
   raises (an invalid config) makes discord.py drop the plugin's modules, so a later load imports new
   classes: tests that load bad files look the cog up with `cast`, not `isinstance` (AutoRole's
-  `test_config.py`).
+  `test_config.py`), and so does the `cog` fixture of such a plugin, because the tests that run
+  later get the new classes too (BotInfo's `conftest.py`).
 - `tests/support/discord_fakes.py`: `FakeInteraction` records what the plugin sends in `sent`;
   `FakeChannel` records `channel.send` into a shared `sent` list or raises its `error`
   (`forbidden()`); `FakeUser`, `buttons(view)` and `embed_dict(embed)`; `FakeGuild` (roles,
-  `get_role`, `me.guild_permissions`, `unavailable`), `FakeRole` (`is_assignable()`) and
+  `get_role`, `me.guild_permissions`, `unavailable`, `member_count`), `FakeRole` (`is_assignable()`) and
   `FakeMember` (`add_roles` records the role IDs and `atomic`, or raises from `errors`), cast with
   `as_member()`. Extend it instead of writing new fakes. pytest runs in importlib mode, so a test
   module cannot import another one: tests that share helpers stay in one module (BasicCalculator's
