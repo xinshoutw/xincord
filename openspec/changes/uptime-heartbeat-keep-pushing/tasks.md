@@ -34,7 +34,7 @@
 - [x] 5.2 xfail tests for "Logs show only the URL's origin": invalid URLs in the config
 - [x] 5.3 Hide the input in the models' validation errors and give an unreadable URL a fixed
       message; remove the markers
-- [ ] 5.4 xfail tests for "Logs show only the URL's origin": `private_parts` against a stub, and an
+- [x] 5.4 xfail tests for "Logs show only the URL's origin": `private_parts` against a stub, and an
       answer that quotes the request line
 - [ ] 5.5 Implement `private_parts` and pass the listener's URLs to `redact`; remove the markers
 - [ ] 5.6 xfail test for "The URL carries the REST ping": an unexpected ping error

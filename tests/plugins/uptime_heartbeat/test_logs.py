@@ -6,8 +6,9 @@ Kotlin:
 
 import pytest
 
-from xincord.plugins.uptime_heartbeat.logs import Failures, origin, redact
+from xincord.plugins.uptime_heartbeat.logs import Failures, origin, private_parts, redact
 
+ORIGIN_ONLY = "Logs show only the URL's origin"
 # A URL with a quote in its path: Python's repr, which aiohttp's texts use, then quotes it with ".
 QUOTED = "https://status.example.com/api/push/it's?ping=42"
 
@@ -77,6 +78,61 @@ def test_origin(url: str, expected: str) -> None:
 def test_redact(text: str, expected: str) -> None:
     """Requirement: Logs show only the URL's origin."""
     assert redact(text) == expected
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=ORIGIN_ONLY)
+@pytest.mark.parametrize(
+    ("url", "parts"),
+    [
+        pytest.param(
+            "https://user:pw@status.example.com:8443/api/push/x?status=up#top",
+            (
+                "/api/push/x?status=up#top",
+                "/api/push/x?status=up",
+                "/api/push/x",
+                "status=up",
+                "user:pw",
+                "top",
+            ),
+            id="every part",
+        ),
+        pytest.param("https://status.example.com", (), id="origin only"),
+        pytest.param(
+            # As written and as aiohttp sends it, encoded by yarl.
+            f"https://status.example.com/caf{chr(0xE9)}",
+            ("/caf%C3%A9", f"/caf{chr(0xE9)}"),
+            id="encoded",
+        ),
+    ],
+)
+def test_private_parts(url: str, parts: tuple[str, ...]) -> None:
+    """Requirement: Logs show only the URL's origin."""
+    assert private_parts(url) == parts
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=ORIGIN_ONLY)
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        pytest.param(
+            # aiohttp's parser quotes the bad status line, here the request line sent back.
+            "400, message=\"Bad status line: b'GET /api/push/xxxxxxxxxx?status=up HTTP/1.1'\", "
+            "url='http://127.0.0.1:3001/api/push/xxxxxxxxxx?status=up'",
+            "400, message=\"Bad status line: b'GET ... HTTP/1.1'\", url='http://127.0.0.1:3001'",
+            id="request line",
+        ),
+        pytest.param(
+            "Server disconnected: Location: /api/push/xxxxxxxxxx",
+            "Server disconnected: Location: ...",
+            id="path alone",
+        ),
+    ],
+)
+def test_redact_the_urls_private_parts(text: str, expected: str) -> None:
+    """Requirement: Logs show only the URL's origin."""
+    url = "http://127.0.0.1:3001/api/push/xxxxxxxxxx?status=up"
+
+    assert redact(text, url) == expected
 
 
 def test_repeated_failure_is_not_new() -> None:

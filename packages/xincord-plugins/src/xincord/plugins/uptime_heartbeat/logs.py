@@ -16,6 +16,7 @@ AUTHORITY_END = re.compile(r"[/?#]")  # where the path, the query or the fragmen
 # names the whole URL, and its error for a malformed answer ends with it in quotes.
 URL_IN_TEXT = re.compile(r"\bhttps?://\S+", re.IGNORECASE)
 QUOTES = "'\""
+HIDDEN = "..."  # what stands for a private part of a URL in an error's text
 
 
 def origin(url: str) -> str:
@@ -30,13 +31,23 @@ def origin(url: str) -> str:
     return f"{scheme.lower()}://{authority.rpartition('@')[2]}"
 
 
-def redact(text: str) -> str:
-    """``text`` with each http or https URL in it cut to its origin.
+def private_parts(url: str) -> tuple[str, ...]:
+    """What logs must not show of ``url``, longest first: user info, path, query and fragment."""
+    raise NotImplementedError
+
+
+def redact(text: str, *urls: str) -> str:
+    """``text`` with each http or https URL in it cut to its origin, and the private parts of
+    ``urls`` replaced wherever they appear.
 
     The whole run of non-space characters goes, so that a quote inside a path leaves nothing of it
     behind; the quotes that end the run stay, so that ``url='...'`` stays quoted.
     """
-    return URL_IN_TEXT.sub(_cut, text)
+    text = URL_IN_TEXT.sub(_cut, text)
+    parts = {part for url in urls for part in private_parts(url)}
+    for part in sorted(parts, key=lambda part: (-len(part), part)):
+        text = text.replace(part, HIDDEN)
+    return text
 
 
 def _cut(match: re.Match[str]) -> str:
