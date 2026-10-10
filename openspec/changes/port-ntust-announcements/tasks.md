@@ -10,7 +10,7 @@
 
 - [x] 2.1 xfail tests for "The plugin installs as NtustAnnouncements" and "The config names the
       boards, the Gemini keys and the prompt", loading the plugin through its entry point
-- [ ] 2.2 Add the package, its `setup`, the config models and the `NtustAnnouncements` entry
+- [x] 2.2 Add the package, its `setup`, the config models and the `NtustAnnouncements` entry
       point; remove the markers
 
 ## 3. Pages

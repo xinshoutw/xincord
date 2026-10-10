@@ -24,6 +24,7 @@ ChatLogger = "xincord.plugins.chat_logger"
 Giveaway = "xincord.plugins.giveaway"
 Ticket = "xincord.plugins.ticket"
 TicketAwayNotice = "xincord.plugins.ticket_away_notice"
+NtustAnnouncements = "xincord.plugins.ntust_announcements"
 
 [build-system]
 requires = ["uv_build>=0.12.24,<0.13"]

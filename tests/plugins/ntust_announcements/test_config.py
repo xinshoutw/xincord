@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from xincord.core.storage import Store
+    from xincord.plugins.ntust_announcements.cog import NtustAnnouncements
 
 GOLDEN = golden("ntust_announcements")
 EXAMPLE_KEY = "sk-thisisatestkey1234567890abcdef1234567890"  # v3's placeholder, refused as in v3
@@ -61,9 +62,6 @@ def v3_file() -> str:
     )
 
 
-@pytest.mark.xfail(
-    strict=True, reason="The config names the boards, the Gemini keys and the prompt"
-)
 async def test_v3_config_file(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -75,7 +73,7 @@ async def test_v3_config_file(
     assert "unknown key enabled" in caplog.text
     for key in ("fetch-interval", "api-keys", "prompt", "boards", "model"):
         assert f"unknown key {key}" not in caplog.text
-    config = cast("Any", bot.get_cog("NtustAnnouncements")).config
+    config = cast("NtustAnnouncements", bot.get_cog("NtustAnnouncements")).config
     assert config.fetch_interval == 3600
     assert config.api_keys == ("first-key", "second-key")
     assert config.prompt == bundled()["prompt"]
@@ -86,9 +84,6 @@ async def test_v3_config_file(
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, reason="The config names the boards, the Gemini keys and the prompt"
-)
 async def test_bundled_config(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -112,9 +107,6 @@ async def test_bundled_config(
     assert bundled()["model"] == "gemini-2.5-flash"
 
 
-@pytest.mark.xfail(
-    strict=True, reason="The config names the boards, the Gemini keys and the prompt"
-)
 @pytest.mark.parametrize(
     ("change", "error"),
     [
@@ -213,9 +205,6 @@ async def test_invalid_values(
     assert error in caplog.text
 
 
-@pytest.mark.xfail(
-    strict=True, reason="The config names the boards, the Gemini keys and the prompt"
-)
 @pytest.mark.parametrize(
     "keys",
     [
