@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from .config import Config
 
 # Button IDs: example:1:a=<action>;b=<count>. A ported plugin lists its v3 fields first, in v3
-# order, and passes legacy_prefix (and legacy_hex); _Example had no components in v3.
+# order, and passes legacy_prefix (and legacy_hex); v3's _Example had no components.
 IDS = ComponentIds("example", ("action", "count"))
 NONE = "none"  # the text of an omitted option2, as in v3
 OPTION1_MAX = 1024  # Discord's limit for an embed field's value

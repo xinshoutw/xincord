@@ -8,7 +8,7 @@
 ## 2. Example
 
 - [x] 2.1 xfail tests for "The plugin installs as Example"
-- [ ] 2.2 Rename the entry point and the plugin's texts; remove the markers
+- [x] 2.2 Rename the entry point and the plugin's texts; remove the markers
 
 ## 3. Calculator
 

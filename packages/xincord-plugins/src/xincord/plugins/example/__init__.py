@@ -1,4 +1,4 @@
-"""_Example, the template plugin: copy this package to start a new plugin.
+"""Example, the template plugin: copy this package to start a new plugin.
 
 ``/example-command`` answers with its two options and the config's ``example_key`` in an
 ephemeral embed, under a button that counts its presses.

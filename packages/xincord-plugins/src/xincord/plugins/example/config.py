@@ -8,7 +8,7 @@ from xincord.core.config import Model
 
 
 class Config(Model):
-    """``plugins/_Example/config.yaml``; the bundled ``config.yaml`` holds the same defaults.
+    """``plugins/Example/config.yaml``; the bundled ``config.yaml`` holds the same defaults.
 
     v3's ``enabled`` key is gone: the core config's ``plugins`` list enables the plugin.
     """

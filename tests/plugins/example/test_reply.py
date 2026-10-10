@@ -89,12 +89,12 @@ async def test_locale_and_fallback(cog: Example, locale: discord.Locale) -> None
 
 async def test_command_placeholders(store: Store, tmp_path: Path) -> None:
     """Requirement: The reply echoes the options."""
-    template = tmp_path / "plugins" / "_Example" / "lang" / "en-US" / "message" / "example.yaml"
+    template = tmp_path / "plugins" / "Example" / "lang" / "en-US" / "message" / "example.yaml"
     template.parent.mkdir(parents=True)
     template.write_text(
         'content: "%user_name% ran %command_string% as %bot_name%"\n', encoding="utf-8"
     )
-    bot = await load_plugin("_Example", tmp_path / "plugins", store)
+    bot = await load_plugin("Example", tmp_path / "plugins", store)
     cog = bot.get_cog("Example")
     assert isinstance(cog, Example)
 

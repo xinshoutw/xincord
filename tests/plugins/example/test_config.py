@@ -1,4 +1,4 @@
-"""The _Example config.
+"""The Example config.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/_Example/src/main/kotlin/_example/config/ConfigSerializer.kt:6-12
@@ -23,10 +23,10 @@ V3_CONFIG = 'enabled: false\nexample_key: "from-v3"\n'
 
 async def load_with(config: str, tmp_path: Path, store: Store) -> Example:
     """Write `config` as the plugin's config.yaml, then load the plugin."""
-    path = tmp_path / "plugins" / "_Example" / "config.yaml"
+    path = tmp_path / "plugins" / "Example" / "config.yaml"
     path.parent.mkdir(parents=True)
     path.write_text(config, encoding="utf-8")
-    bot = await load_plugin("_Example", tmp_path / "plugins", store)
+    bot = await load_plugin("Example", tmp_path / "plugins", store)
     cog = bot.get_cog("Example")
     assert isinstance(cog, Example)
     return cog

@@ -1,4 +1,4 @@
-"""Fixtures for the _Example tests: the plugin loads through its real entry point."""
+"""Fixtures for the Example tests: the plugin loads through its real entry point."""
 
 from typing import TYPE_CHECKING
 
@@ -16,8 +16,8 @@ if TYPE_CHECKING:
 
 @pytest.fixture
 async def bot(store: Store, tmp_path: Path) -> Bot:
-    """A bot that loaded _Example from `tmp_path / "plugins"` and never connects."""
-    return await load_plugin("_Example", tmp_path / "plugins", store)
+    """A bot that loaded Example from `tmp_path / "plugins"` and never connects."""
+    return await load_plugin("Example", tmp_path / "plugins", store)
 
 
 @pytest.fixture
