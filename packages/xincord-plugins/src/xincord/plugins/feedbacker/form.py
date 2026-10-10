@@ -5,11 +5,14 @@ Kotlin:
 """
 
 MAX_STARS = 5  # v3's five star buttons
+FULL, EMPTY = "★ ", "☆ "  # v3's stars, each followed by a space
+# The counts an ID may carry, as v3's templates write them: v3's repeat threw outside 0 to 5.
+COUNTS = {str(count): count for count in range(MAX_STARS + 1)}
 
 
 def stars(count: int) -> str:
-    """Return v3's ``%fb_stars%`` for ``count`` stars of five."""
-    raise NotImplementedError
+    """Return v3's ``%fb_stars%`` for ``count`` stars of five, trailing space included."""
+    return FULL * count + EMPTY * (MAX_STARS - count)
 
 
 def star_count(text: str) -> int:
@@ -18,4 +21,8 @@ def star_count(text: str) -> int:
     Raises:
         ValueError: ``text`` is not a whole number from 0 to 5.
     """
-    raise NotImplementedError
+    try:
+        return COUNTS[text]
+    except KeyError:
+        msg = f"star count {text!r} is not a whole number from 0 to {MAX_STARS}"
+        raise ValueError(msg) from None

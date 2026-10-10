@@ -11,24 +11,20 @@ from plugin_fakes import golden
 from xincord.plugins.feedbacker.form import star_count, stars
 
 GOLDEN = golden("feedbacker")
-XFAIL = pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Stars follow v3's text")
 
 
-@XFAIL
 @pytest.mark.parametrize("count", range(6))
 def test_star_counts(count: int) -> None:
     """Requirement: Stars follow v3's text."""
     assert stars(count) == GOLDEN["fb_stars"][count]
 
 
-@XFAIL
 @pytest.mark.parametrize("count", range(6))
 def test_star_count_of_an_id(count: int) -> None:
     """Requirement: Stars follow v3's text."""
     assert star_count(str(count)) == count
 
 
-@XFAIL
 @pytest.mark.parametrize("text", ["6", "-1", "x", "", "03", " 3", "3.0", "+3"])
 def test_invalid_star_count(text: str) -> None:
     """Requirement: Stars follow v3's text."""
