@@ -63,7 +63,7 @@
 ## 12. Selections
 
 - [x] 12.1 xfail tests for "Selections change the draft" against stubs in `drafts.py`
-- [ ] 12.2 Implement the selections; remove the markers
+- [x] 12.2 Implement the selections; remove the markers
 
 ## 13. Refused changes
 

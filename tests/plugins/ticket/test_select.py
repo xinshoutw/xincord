@@ -41,7 +41,6 @@ def categories(scene: Scene) -> None:
     )
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Selections change the draft")
 async def test_roles_category_and_style(scene: Scene) -> None:
     """Requirement: Selections change the draft."""
     categories(scene)
@@ -59,7 +58,6 @@ async def test_roles_category_and_style(scene: Scene) -> None:
     )
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Selections change the draft")
 @pytest.mark.parametrize("channel", ["31", "32", "x"])
 async def test_unknown_category(scene: Scene, channel: str) -> None:
     """Requirement: Selections change the draft."""
@@ -73,7 +71,6 @@ async def test_unknown_category(scene: Scene, channel: str) -> None:
     assert scene.session().draft == DRAFT
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Selections change the draft")
 @pytest.mark.parametrize("index", ["0", "5", "x", ""])
 async def test_other_styles_change_nothing(scene: Scene, index: str) -> None:
     """Requirement: Selections change the draft."""
@@ -86,7 +83,6 @@ async def test_other_styles_change_nothing(scene: Scene, index: str) -> None:
     assert scene.session().draft == DRAFT
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Selections change the draft")
 async def test_other_selects_change_nothing(scene: Scene) -> None:
     """Requirement: Selections change the draft."""
     scene.keep(DRAFT)

@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 
 from .model import Draft, parse_color
 
+STYLES = frozenset(("1", "2", "3", "4"))  # the color buttons' indexes: Discord's button styles
+
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
@@ -78,9 +80,12 @@ def _button(draft: Draft, text: str, emoji: str) -> Draft | str:
 
 def select_roles(draft: Draft, values: Sequence[str]) -> Draft:
     """The draft with the selected staff roles, which replace the earlier ones, as in v3."""
-    raise NotImplementedError
+    return replace(draft, admin_ids=tuple(int(value) for value in values if value.isdecimal()))
 
 
 def select_style(draft: Draft, index: str) -> Draft:
-    """The draft with the color button's style: 1 blue, 2 gray, 3 green, 4 red; else unchanged."""
-    raise NotImplementedError
+    """The draft with the color button's style: 1 blue, 2 gray, 3 green, 4 red; else unchanged.
+
+    v3's ``ButtonStyle.fromKey`` gave no usable style for other indexes, and the press failed.
+    """
+    return replace(draft, button_style=int(index)) if index in STYLES else draft

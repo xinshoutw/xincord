@@ -18,7 +18,7 @@ from xincord.core.component_ids import ComponentIds
 from xincord.core.placeholders import global_values, placeholder_values
 from xincord.core.templates import modal_values, render_message, render_modal
 
-from .drafts import defaults, submit
+from .drafts import defaults, select_roles, select_style, submit
 from .model import hex_color
 from .texts import Texts
 from .views import preview_button, preview_embed
@@ -57,6 +57,15 @@ SCREENS: dict[str, str | None] = {
 }
 MESSAGE_ID = re.compile(r"[0-9]{1,20}")  # a snowflake as /add-ticket's text option gives it
 ROW_SIZE = 5  # the components an action row holds at most
+
+
+@runtime_checkable
+class Guild(Protocol):
+    """A guild whose cached channels can be looked up."""
+
+    def get_channel(self, channel_id: int, /) -> object:
+        """The cached channel ``channel_id``, or None."""
+        ...
 
 
 @runtime_checkable
@@ -281,8 +290,8 @@ class Ticket(commands.Cog):
         )
 
     async def _style(self, interaction: discord.Interaction, session: Session, index: str) -> None:
-        """Set the panel button's style from a color button's index."""
-        raise NotImplementedError
+        """Set the panel button's style from a color button's index; show the main screen."""
+        await self._update(interaction, session, select_style(session.draft, index))
 
     async def _select(
         self,
@@ -291,8 +300,25 @@ class Ticket(commands.Cog):
         sub_action: str,
         values: Sequence[str],
     ) -> None:
-        """Change the draft with a selection in the builder's select ``sub_action``."""
-        raise NotImplementedError
+        """Change the draft with a selection in the builder's select ``sub_action``.
+
+        The role select replaces the staff roles; the category select sets the category when the
+        guild's cache knows it as a category, else answers v3's error. Others change nothing. Each
+        change shows the main screen, as v3.
+        """
+        draft = session.draft
+        if sub_action == "modify-admin":
+            draft = select_roles(draft, values)
+        elif sub_action == "modify-category":
+            chosen = values[0] if values else ""
+            if not _is_category(interaction.guild, chosen):
+                texts = self.texts(interaction)
+                await _tell(
+                    interaction, texts.get("error.category-not-found", {"tt@category-id": chosen})
+                )
+                return
+            draft = replace(draft, category_id=int(chosen))
+        await self._update(interaction, session, draft)
 
     async def _apply(
         self, interaction: discord.Interaction, session: Session, sub_action: str
@@ -392,6 +418,14 @@ def _values(data: Mapping[str, object]) -> list[str]:
     return (
         [str(value) for value in cast("list[object]", values)] if isinstance(values, list) else []
     )
+
+
+def _is_category(guild: object, text: str) -> bool:
+    """Whether the guild's cache knows ``text`` as a category's ID, v3's ``getCategoryById``."""
+    channel = (
+        guild.get_channel(int(text)) if text.isdecimal() and isinstance(guild, Guild) else None
+    )
+    return getattr(channel, "type", None) is discord.ChannelType.category
 
 
 async def _fetch(channel: object, message_id: int) -> discord.Message | None:
