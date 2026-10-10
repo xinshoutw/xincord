@@ -13,9 +13,13 @@ from discord.ext import commands
 from xincord.core.component_ids import ComponentIds
 
 if TYPE_CHECKING:
+    import discord
+
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
     from xincord.core.templates import Templates
+
+    from .texts import Texts
 
 logger = logging.getLogger(__name__)
 
@@ -38,3 +42,12 @@ class Ticket(commands.Cog):
         self.store = store
         self.lang = lang
         self.templates = templates
+
+    def texts(self, interaction: discord.Interaction) -> Texts:
+        """The texts of a reply to the user who acted: their locale, else zh-TW (v3's templates)."""
+        raise NotImplementedError
+
+    @property
+    def public(self) -> Texts:
+        """The texts of public messages (the control row, the archive's markers): zh-TW, as v3."""
+        raise NotImplementedError
