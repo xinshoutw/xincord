@@ -67,7 +67,6 @@ def row_ids(*actions: str) -> list[str]:
     return [IDS.build({"action": action, **fields}) for action in actions]
 
 
-@pytest.mark.xfail(strict=True, reason="v3's panels and tickets keep working")
 async def test_v3_panel_button(scene: Scene) -> None:
     """Requirement: v3's panels and tickets keep working."""
     await stored(scene)
@@ -87,7 +86,6 @@ async def test_v3_panel_button(scene: Scene) -> None:
     assert IDS.upgrade(V3_PANEL[0]) == "ticket:1:a=press;f=0"
 
 
-@pytest.mark.xfail(strict=True, reason="v3's panels and tickets keep working")
 async def test_v3_control_row(scene: Scene) -> None:
     """Requirement: v3's panels and tickets keep working."""
     scene.guild.members.append(FakeMember(scene.guild, id=CAROL, name="carol"))
@@ -111,7 +109,6 @@ async def test_v3_control_row(scene: Scene) -> None:
     assert button_ids(interaction.sent[2][1]["view"]) == row_ids("lock", "save", "delete")
 
 
-@pytest.mark.xfail(strict=True, reason="v3's panels and tickets keep working")
 async def test_v3_reason_modal(scene: Scene) -> None:
     """Requirement: v3's panels and tickets keep working."""
     await stored(scene)
@@ -131,7 +128,6 @@ async def test_v3_reason_modal(scene: Scene) -> None:
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="v3's panels and tickets keep working")
 async def test_v3_save_select(scene: Scene) -> None:
     """Requirement: v3's panels and tickets keep working."""
     await stored(scene)
@@ -147,7 +143,6 @@ async def test_v3_save_select(scene: Scene) -> None:
     assert interaction.sent == [("response.send_message", {"content": reply, "ephemeral": True})]
 
 
-@pytest.mark.xfail(strict=True, reason="v3's panels and tickets keep working")
 async def test_new_ids(scene: Scene) -> None:
     """Requirement: v3's panels and tickets keep working."""
     scene.guild.members.append(FakeMember(scene.guild, id=CAROL, name="carol"))
@@ -161,7 +156,6 @@ async def test_new_ids(scene: Scene) -> None:
     assert methods(interaction) == ["response.defer", "edit_original_response"]
 
 
-@pytest.mark.xfail(strict=True, reason="v3's panels and tickets keep working")
 @pytest.mark.parametrize(
     ("kind", "data"),
     [
@@ -187,7 +181,6 @@ async def test_other_components(
     assert methods(interaction) == ["message.edit"]
 
 
-@pytest.mark.xfail(strict=True, reason="v3's panels and tickets keep working")
 async def test_malformed_v3_id(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: v3's panels and tickets keep working."""
     custom_id = "ticket@a:lock;d:zz;e:500;f:0"  # zz is no hex

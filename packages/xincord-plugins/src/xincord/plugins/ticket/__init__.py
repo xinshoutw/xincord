@@ -11,6 +11,7 @@ import discord
 from xincord.core.templates import Templates
 
 from .cog import Ticket
+from .ids import IDS
 
 if TYPE_CHECKING:
     from xincord.core.bot import Bot
@@ -35,3 +36,6 @@ async def setup(bot: Bot) -> None:
     # Guild commands, as in v3. discord.py removes them when the plugin unloads.
     for command in cog.commands():
         bot.tree.add_command(command)
+    # The builder's, the panels' and the tickets' components and modals, v3's IDs too, go to
+    # cog.handle; the core drops the route when the plugin unloads.
+    bot.route(__name__, IDS, cog.handle)
