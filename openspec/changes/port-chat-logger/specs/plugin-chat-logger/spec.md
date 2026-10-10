@@ -126,9 +126,10 @@ by default. The tree SHALL defer it ephemerally.
 
 ### Requirement: Guild messages are stored
 The plugin SHALL store each guild message that the bot did not send, other bots' and webhooks'
-included, with its guild, channel, author, text and a change count of 0: from every channel when
-`log_all` is true, and only from detected channels when it is false. Direct messages SHALL not be
-stored.
+included, with its guild, channel, author, the text it was sent with and a change count of 0: from
+every channel when `log_all` is true, and only from detected channels when it is false. Direct
+messages SHALL not be stored. A message's edits and deletions SHALL reach the store after it, also
+when they arrive together with it.
 
 #### Scenario: Stored message
 - **WHEN** member 7 sends `hello` in channel 30 of guild 10
@@ -211,6 +212,11 @@ message that is not stored, SHALL change and post nothing.
 - **WHEN** a webhook's stored message is edited
 - **THEN** the embed shows the webhook's mention and no thumbnail
 
+#### Scenario: Edited at once
+- **WHEN** a message `Loading...` and its edit into `result` reach the plugin together, before it
+  handled the message
+- **THEN** the edit is logged with 1 change, `Loading...` before and `result` after
+
 ### Requirement: Deletions of stored messages are logged
 When a stored message is deleted, alone or in a bulk deletion, the plugin SHALL remove it from the
 store and post `on-msg-delete` to the detecting listen channels with the author's values,
@@ -235,6 +241,10 @@ store and post `on-msg-delete` to the detecting listen channels with the author'
 #### Scenario: Not detected
 - **WHEN** no listen channel detects the channel
 - **THEN** the message is no longer stored, nothing is posted and no member is fetched
+
+#### Scenario: Deleted at once
+- **WHEN** `log_all` is false and a message and its deletion reach the plugin together
+- **THEN** the deletion is logged and the message is not stored
 
 #### Scenario: Bulk deletion
 - **WHEN** three stored messages of one author and one message that is not stored are deleted at

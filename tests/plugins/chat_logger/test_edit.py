@@ -14,7 +14,7 @@ import pytest
 
 import payloads
 from discord_fakes import BOT_USER
-from plugin_fakes import golden
+from plugin_fakes import burst, golden
 
 if TYPE_CHECKING:
     from conftest import Scene
@@ -149,3 +149,25 @@ async def test_typed_placeholders(scene: Scene) -> None:
     # v3 expanded them, and a text naming cl_msg_after or cl_msg_before made the log throw.
     [post] = scene.posts(5)
     assert values(post)[4:] == ["%bot_id% %cl_msg_after%", "%user_mention%"]
+
+
+@pytest.mark.xfail(strict=True, reason="Edits of stored messages are logged")
+@pytest.mark.parametrize("config", ["log_all: true\n", "log_all: false\n"])
+async def test_edited_at_once(scene: Scene) -> None:
+    """Requirement: Edits of stored messages are logged."""
+    await scene.listen(5, [30])
+    author = payloads.user(7, "user7")
+
+    # discord.py parses the frames that arrived together before any listener runs; its cached
+    # message, which on_message gets, takes the edit in place.
+    await burst(
+        scene.bot,
+        [
+            ("MESSAGE_CREATE", payloads.message(100, 30, 10, author, "Loading...")),
+            ("MESSAGE_UPDATE", payloads.message(100, 30, 10, author, "result")),
+        ],
+    )
+
+    [post] = scene.posts(5)
+    assert values(post)[3:] == ["1", "Loading...", "result"]
+    assert await scene.rows() == [(100, 10, 30, 7, "result", 1)]

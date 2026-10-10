@@ -131,6 +131,30 @@ async def gateway(bot: Bot, event: str, payload: dict[str, object]) -> None:
         await dispatch(bot, name, *args)
 
 
+async def burst(bot: Bot, events: Sequence[tuple[str, dict[str, object]]]) -> None:
+    """Parse ``events`` before any listener runs, then run the listeners as concurrent tasks.
+
+    discord.py parses the gateway frames that arrived together one after the other without
+    yielding, and runs each listener it dispatched as a task, in dispatch order: a listener can
+    find its objects changed by later events, and its awaits interleave with the other tasks'.
+    """
+    dispatched: list[tuple[str, tuple[object, ...]]] = []
+
+    def record(name: str, *args: object) -> None:
+        dispatched.append((name, args))
+
+    with patch.object(bot, "dispatch", record), patch.object(_state(bot), "dispatch", record):
+        for event, payload in events:
+            parsers(bot)[event](payload)
+    await asyncio.gather(
+        *(
+            listener(*args)
+            for name, args in dispatched
+            for listener in bot.extra_events.get(f"on_{name}", [])
+        )
+    )
+
+
 def add_guild(bot: Bot, payload: dict[str, object]) -> discord.Guild:
     """Cache the guild of ``payload`` (``payloads.guild``) as its ``GUILD_CREATE`` would.
 

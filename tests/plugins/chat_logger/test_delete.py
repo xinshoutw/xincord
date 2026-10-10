@@ -15,7 +15,7 @@ import pytest
 
 import payloads
 from discord_fakes import not_found
-from plugin_fakes import golden
+from plugin_fakes import burst, golden
 
 if TYPE_CHECKING:
     from conftest import Scene
@@ -140,3 +140,34 @@ async def test_outside_a_guild(scene: Scene) -> None:
 
     assert scene.posts(5) == []
     assert [row[0] for row in await scene.rows()] == [100]
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        "log_all: true\n",
+        pytest.param(
+            "log_all: false\n",
+            marks=pytest.mark.xfail(strict=True, reason="Deletions of stored messages are logged"),
+        ),
+    ],
+)
+async def test_deleted_at_once(scene: Scene) -> None:
+    """Requirement: Deletions of stored messages are logged."""
+    await scene.listen(5, [30])
+    member_answers(scene)
+    author = payloads.user(7, "user7")
+
+    # A message deleted right after it was sent, as a ghost ping: with log_all false, its insert
+    # waits for the settings, and the deletion must not reach the store before it.
+    await burst(
+        scene.bot,
+        [
+            ("MESSAGE_CREATE", payloads.message(100, 30, 10, author, "@everyone")),
+            ("MESSAGE_DELETE", {"id": "100", "channel_id": "30", "guild_id": "10"}),
+        ],
+    )
+
+    [post] = scene.posts(5)
+    assert values(post)[4] == "@everyone"
+    assert await scene.rows() == []
