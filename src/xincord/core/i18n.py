@@ -213,6 +213,14 @@ def _check_register(path: Path, flat: Mapping[str, str]) -> None:
             raise LangError(msg)
 
 
+def is_command_name(name: str) -> bool:
+    """Return whether ``name`` follows Discord's command name rules, as ``register.yaml`` names.
+
+    For command names that plugins read from elsewhere, such as a config file.
+    """
+    raise NotImplementedError
+
+
 def _is_command_name(name: str) -> bool:
     return (
         0 < len(name) <= NAME_MAX

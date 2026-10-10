@@ -8,13 +8,15 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from xincord.core.i18n import Lang, LangError
+from xincord.core.i18n import Lang, LangError, is_command_name
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
 REGISTER = "calc:\n  name: calc\n  description: Calculate\n"
+VALID_NAMES = ["calc", "my-calc_2", "o'clock", chr(0x8A08) + chr(0x7B97)]
+INVALID_NAMES = ["Calc", "my calc", "x" * 33, ""]
 
 
 def lang_dir(tmp_path: Path, files: dict[str, str]) -> Path:
@@ -67,7 +69,7 @@ def test_broken_file_fails(tmp_path: Path, text: str) -> None:
         load(tmp_path, {"en-US/register.yaml": REGISTER, "en-US/placeholder.yaml": text})
 
 
-@pytest.mark.parametrize("name", ["Calc", "my calc", "x" * 33, ""])
+@pytest.mark.parametrize("name", INVALID_NAMES)
 def test_invalid_command_name_fails(tmp_path: Path, name: str) -> None:
     """Requirement: Lang files are validated at load."""
 
@@ -75,13 +77,33 @@ def test_invalid_command_name_fails(tmp_path: Path, name: str) -> None:
         load(tmp_path, {"en-US/register.yaml": f'calc:\n  name: "{name}"\n'})
 
 
-@pytest.mark.parametrize("name", ["calc", "my-calc_2", "o'clock", chr(0x8A08) + chr(0x7B97)])
+@pytest.mark.parametrize("name", VALID_NAMES)
 def test_valid_command_names_load(tmp_path: Path, name: str) -> None:
     """Requirement: Lang files are validated at load."""
 
     lang = load(tmp_path, {"en-US/register.yaml": f'calc:\n  name: "{name}"\n'})
 
     assert lang.registers["en-US"]["calc.name"] == name
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Lang files are validated at load"
+)
+@pytest.mark.parametrize("name", VALID_NAMES)
+def test_public_name_check_accepts(name: str) -> None:
+    """Requirement: Lang files are validated at load."""
+
+    assert is_command_name(name)
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Lang files are validated at load"
+)
+@pytest.mark.parametrize("name", INVALID_NAMES)
+def test_public_name_check_refuses(name: str) -> None:
+    """Requirement: Lang files are validated at load."""
+
+    assert not is_command_name(name)
 
 
 @pytest.mark.parametrize("description", ["", "x" * 101])
