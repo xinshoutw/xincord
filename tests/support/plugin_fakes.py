@@ -91,6 +91,16 @@ async def load_plugin(name: str, root: Path, store: Store, *, config: str | None
     return bot
 
 
+async def dispatch(bot: Bot, event: str, *args: object) -> None:
+    """Run the listeners that the loaded plugins added for ``event``, one after the other.
+
+    ``bot.dispatch`` schedules the same listeners as tasks, but it needs the event loop of a bot
+    that logged in.
+    """
+    for listener in bot.extra_events.get(f"on_{event}", []):
+        await listener(*args)
+
+
 WAIT = 5  # seconds before until() gives up
 
 

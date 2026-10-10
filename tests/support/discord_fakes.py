@@ -114,6 +114,71 @@ class FakeChannel:
         self.sent.append(("channel.send", fields))
 
 
+@dataclass(frozen=True)
+class FakeRole:
+    """A role; ``is_assignable()`` answers ``assignable``, as discord.py's checks would."""
+
+    id: int
+    name: str = "role"
+    assignable: bool = True
+
+    def is_assignable(self) -> bool:
+        """Whether the bot could give the role: not managed, not @everyone, below its top role."""
+        return self.assignable
+
+
+@dataclass
+class FakeGuild:
+    """A guild with its roles and the bot's permissions there."""
+
+    id: int = 10
+    name: str = "guild"
+    roles: list[FakeRole] = field(default_factory=list[FakeRole])
+    permissions: discord.Permissions = field(
+        default_factory=lambda: discord.Permissions(manage_roles=True)
+    )
+
+    @property
+    def me(self) -> SimpleNamespace:
+        """The bot's member in the guild, with its permissions only."""
+        return SimpleNamespace(guild_permissions=self.permissions)
+
+    def get_role(self, role_id: int, /) -> FakeRole | None:
+        """The guild's role with that ID, if any."""
+        return next((role for role in self.roles if role.id == role_id), None)
+
+
+type RoleRequest = tuple[tuple[int, ...], bool]  # the role IDs and the atomic flag of add_roles
+
+
+@dataclass
+class FakeMember:
+    """A member of ``guild`` that records each ``add_roles`` call in ``requests``.
+
+    discord.py sends one add-role request per role when ``atomic`` is true, and otherwise one
+    request that replaces the member's roles. A role ID in ``errors`` makes the call raise that
+    error instead.
+    """
+
+    guild: FakeGuild
+    id: int = 1
+    name: str = "alice"
+    bot: bool = False
+    requests: list[RoleRequest] = field(default_factory=list[RoleRequest])
+    errors: dict[int, Exception] = field(default_factory=dict[int, Exception])
+
+    async def add_roles(self, *roles: FakeRole, atomic: bool = True) -> None:
+        """Record the request, or raise the error set for one of the roles."""
+        for role in roles:
+            if (error := self.errors.get(role.id)) is not None:
+                raise error
+        self.requests.append((tuple(role.id for role in roles), atomic))
+
+    def as_member(self) -> discord.Member:
+        """This fake, typed as the discord.py member it stands for."""
+        return cast("discord.Member", self)
+
+
 def forbidden() -> discord.Forbidden:
     """The error discord.py raises when the bot lacks a permission."""
     response = cast("aiohttp.ClientResponse", SimpleNamespace(status=403, reason="Forbidden"))

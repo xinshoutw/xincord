@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 from discord.ext import commands
 
 if TYPE_CHECKING:
+    import discord
+
     from .config import Config
 
 
@@ -24,3 +26,8 @@ class AutoRole(commands.Cog):
         """
         self.bot = bot
         self.roles = config.roles_by_guild()
+
+    @commands.Cog.listener()
+    async def on_member_join(self, member: discord.Member) -> None:
+        """Stub until members who join get the guild's roles."""
+        raise NotImplementedError

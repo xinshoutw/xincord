@@ -17,7 +17,7 @@
 
 ## 4. Join
 
-- [ ] 4.1 xfail tests for "Members who join get the guild's roles", with the guild, role and
+- [x] 4.1 xfail tests for "Members who join get the guild's roles", with the guild, role and
       member fakes and `plugin_fakes.dispatch`
 - [ ] 4.2 Implement the join listener; remove the markers
 
