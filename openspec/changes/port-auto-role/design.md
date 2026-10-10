@@ -138,6 +138,37 @@ Kept on purpose: bots and returning members get the roles; members who have not 
 screening get them at the join; a guild listed twice uses its last entry; role IDs are any
 integers; `guilds` is required; no audit log reason.
 
+### Inventory audit
+
+Every section of `docs/porting/analysis/inventory/AutoRole.md` maps to this change:
+
+- Overview (1), localization (7), persistence (8) and Discord requirements (10): "The plugin
+  installs as AutoRole" (entry point, members intent, `config.yaml`, no lang files) and "The config
+  lists guilds and their roles" (v3's file shape and 64-bit IDs); the role cache, Manage Roles and
+  the hierarchy are "Roles that cannot be given are skipped"; rate limits are under Risks.
+- Lifecycle (2): config loading and validation are the config requirement; the lazy, global role
+  lookup and its last-entry-wins map are the join and config requirements and the "v3 behaved
+  differently" entries; `reload()` and unloading are the reload entry and the Join decision
+  (discord.py removes the listener with the cog); the `enabled` warning is the core's `plugins`
+  list.
+- Commands (3) and components (4): none, so no commands, IDs or golden data.
+- Events (5): the tracked-guild filter, bots and re-joins are "Members who join get the guild's
+  roles"; the replace semantics and JDA's client-side checks are fixed (per-role requests, skipped
+  roles); REST failures are logged ("Failed request"); JDA's no-op for an unchanged role set has no
+  counterpart, since adding a role the member has changes nothing; pending members are kept on
+  purpose.
+- Configuration (6): the config requirement, with `enabled` replaced by the core's `plugins` list.
+- Concurrency (11): the two-step reload race is a "v3 behaved differently" entry; the event loop
+  runs one handler step at a time.
+- Bugs and quirks (12): the behaviors to preserve are scenarios (configured guilds only, bots and
+  re-joins, unknown IDs skipped, v3's validation); defects 1 to 7 are the seven "v3 behaved
+  differently" entries above, with the ready check for defect 6.
+- Testability (13): config parsing, guild-scoped lookup, the per-role skip and the guild filter are
+  tested with `FakeGuild`, `FakeRole` and `FakeMember`; the join is dispatched through the bot's
+  listeners.
+- Assessment (14): add rather than replace, one request per role and logged HTTP errors are the
+  Join and Skipped roles decisions; Risks records the cost.
+
 ## Risks / Trade-offs
 
 - One request per role: a guild with six roles costs six requests per join instead of v3's one.

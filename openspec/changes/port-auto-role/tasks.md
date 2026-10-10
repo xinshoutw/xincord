@@ -37,9 +37,9 @@
 
 - [x] 7.1 Check that the built wheel ships `config.yaml` and that `xincord --no-online` loads the
       plugin
-- [ ] 7.2 Porting guide rows and pitfalls, and skill corrections (listeners, intents, plugins
+- [x] 7.2 Porting guide rows and pitfalls, and skill corrections (listeners, intents, plugins
       without lang files, the new test helpers)
-- [ ] 7.3 Audit the inventory against the scenarios and the design
+- [x] 7.3 Audit the inventory against the scenarios and the design
 
 ## 8. Close
 

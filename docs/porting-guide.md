@@ -90,16 +90,41 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - Recorded v3 answers (BasicCalculator's JSONL) are copied to `tests/fixtures/plugins/<package>/`
   unchanged. Records that a fixed v3 defect changes are checked against an independent
   implementation in the test, never edited.
+- Gateway events are `@commands.Cog.listener()` methods on the cog, which discord.py adds and
+  removes with it; `INTENTS` declares what they need (`discord.Intents(members=True)` for member
+  events, AutoRole). Work that needs guild data runs from an `on_ready` listener and from
+  `cog_load` when `bot.is_ready()`, because `on_ready` does not fire again for a plugin reloaded
+  into a running bot; it skips guilds that are `unavailable`.
+- A plugin without text ships no `lang/`, has no `DEFAULT_LOCALE` and never calls `context.lang`
+  (AutoRole). Operator problems are `logger.warning` lines that name the plugin.
+- Tests run listeners with `plugin_fakes.dispatch(bot, "<event>", *args)` and write an operator
+  config with `plugin_fakes.load_plugin(..., config=...)`; `discord_fakes` has `FakeGuild`,
+  `FakeRole` and `FakeMember` for member events.
 
 ## Pitfalls
 
 - **Annotations at import time.** discord.py evaluates app-command parameter annotations when the
   decorator runs (PEP 649/749 make annotations lazy, but discord.py resolves them eagerly). Keep
   those imports at runtime; see `runtime-evaluated-decorators` in `pyproject.toml`.
-- **Deprecation warnings.** pytest turns warnings into errors. discord.py 2.7.1 calls the
-  deprecated `asyncio.iscoroutinefunction`; filter that warning when discord.py is added.
+- **Deprecation warnings.** pytest turns warnings into errors. discord.py 2.7.1 checks cog
+  listeners (`Bot.add_listener`) and hooks with the deprecated `asyncio.iscoroutinefunction`;
+  `pyproject.toml` ignores that warning from discord.py modules only.
 - **Member removal.** `on_member_remove` fires only for cached members; use
   `on_raw_member_remove`.
+- **Member joins.** `on_member_join` builds the member from the event, so it needs no member
+  cache, but discord.py drops a join for a guild it has not cached or a member it already caches.
+- **Roles.** JDA's `modifyMemberRoles(member, roles)` replaced every role; discord.py's
+  `member.add_roles(role)` (atomic by default) sends one add-role request per role and keeps the
+  others, while `atomic=False` sends one request computed from the cache. discord.py sends without
+  JDA's client-side checks; `Role.is_assignable()` makes them (not `@everyone`, not managed, below
+  the bot's highest role unless the bot owns the guild).
+- **The members intent** is privileged: the bot's application must allow it in the developer
+  portal, or the connection fails. With it, discord.py also downloads every guild's members before
+  `on_ready` (`chunk_guilds_at_startup` follows the intent); v3 did not.
+- **Unavailable guilds.** During an outage discord.py keeps a guild without roles or members, so
+  `guild.me` is None there; check `guild.unavailable` before using guild data.
+- **Events in tests.** `bot.dispatch` schedules listeners on the loop of a bot that logged in (a
+  sentinel before that); tests await the listeners with `plugin_fakes.dispatch`.
 - **Channel overwrites.** `create_text_channel(overwrites=...)` does not inherit the category's
   overwrites the way JDA does; merge them explicitly (Ticket).
 - **IntervalPusher.** `tasks.loop` schedules from each start, not after each completion as Kotlin
@@ -142,6 +167,9 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   cog's bound method: discord.py unwraps it and makes the cog the binding.
 - **Real plugins in tests.** Unloading or reloading a real plugin makes discord.py re-import its
   modules, so classes imported by test modules no longer match; test reloads with fake plugins.
+  A `setup` that raises (an invalid config, for example) also drops the plugin's modules from
+  `sys.modules`: tests that load a plugin with a bad file look its cog up with `cast`, not an
+  `isinstance` check against a class imported at collection (AutoRole's `test_config.py`).
 - **Stopped views.** A discord.py view created outside a running event loop never reports
   `is_finished()`; tests that check rendered views must be `async`.
 - **Global `core.hooksPath`.** prek refuses to install while a global `core.hooksPath` is set; use
@@ -224,3 +252,10 @@ Every deliberate difference, added by the change that introduces it.
 | BasicCalculator | the en-US `formula` description said "bracket is ignorable" | it says that the multiplication sign can be omitted | port-basic-calculator |
 | BasicCalculator | the reply needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers the command | port-basic-calculator |
 | BasicCalculator | an unknown character outside the BMP was reported as half a surrogate pair | the whole character | port-basic-calculator |
+| AutoRole | `modifyMemberRoles` replaced the member's roles with the configured ones, so a role another bot gave at the join could be removed | each configured role is added with its own request; the member keeps every other role | port-auto-role |
+| AutoRole | roles were looked up in every guild, and another guild's role made JDA refuse every role | roles are looked up in the joined guild; another guild's role is skipped and logged | port-auto-role |
+| AutoRole | one role the bot could not give (managed, `@everyone`, too high) or a missing Manage Roles meant no role at all | such a role is skipped with a warning and the others are given; without Manage Roles one warning names the guild | port-auto-role |
+| AutoRole | roles were resolved once, at the first join, so later roles and guilds needed a reload | roles are looked up at each join | port-auto-role |
+| AutoRole | unknown role IDs were dropped without a log, and other problems showed only at a join | warnings when the bot is ready, when the plugin loads into a ready bot, and at each join | port-auto-role |
+| AutoRole | a reload replaced the guild set and the role map one after the other, so a join in between could fail | a reload replaces the whole cog | port-auto-role |
+| AutoRole | the bundled `config.yaml` held real guild and role IDs | it lists no guilds and shows placeholder IDs in a comment | port-auto-role |

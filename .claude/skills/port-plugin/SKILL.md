@@ -39,7 +39,8 @@ Names: `<Plugin>` is the v3 name (`AutoRole`, `_Example`), `<kebab>` its kebab c
    decode and upgrade to the expected new IDs (a plugin with v3 components); every shipped template
    renders in each locale. Recorded v3 answers (BasicCalculator's JSONL) are copied unchanged; a
    record that a fixed v3 defect changes must agree with an independent implementation in the test
-   (`tests/plugins/basic_calculator/test_golden.py`), never be edited.
+   (`tests/plugins/basic_calculator/test_golden.py`), never be edited. A plugin without text,
+   templates or components (AutoRole) has no golden data.
 7. **Check the package.** `uv build --package xincord-plugins -o <scratch dir>` lists `config.yaml`
    and `lang/` in the wheel. Stronger: install both wheels in a scratch venv and run
    `xincord --no-online` in an empty directory whose `config.yaml` enables the plugin.
@@ -56,11 +57,11 @@ Names: `<Plugin>` is the v3 name (`AutoRole`, `_Example`), `<kebab>` its kebab c
 
 ```
 packages/xincord-plugins/src/xincord/plugins/<package>/
-  __init__.py   DEPENDS, SOFT_DEPENDS, INTENTS, DEFAULT_LOCALE and setup(bot)
+  __init__.py   DEPENDS, SOFT_DEPENDS, INTENTS, DEFAULT_LOCALE (with lang files) and setup(bot)
   config.py     class Config(Model), if the plugin has settings
   cog.py        the Cog: command builders, handlers, listeners; IDS
   config.yaml   the bundled default config
-  lang/<locale>/register.yaml, message/*.yaml, modal/*.yaml
+  lang/<locale>/register.yaml, message/*.yaml, modal/*.yaml (if the plugin has text)
 ```
 
 - Import the plugin's own modules relatively (`from .cog import Example`). Split `cog.py` when it
@@ -86,11 +87,16 @@ async def setup(bot: Bot) -> None:
 ```
 
 - Discovery imports the module and `load_extension` runs it again: no work at import time.
-- `setup` runs before the gateway connects (without a login under `--no-online`): wait for
-  `bot.wait_until_ready()` or `on_ready` for guild data; stop loops in `cog_unload`.
+- `setup` runs before the gateway connects (without a login under `--no-online`), so the guild
+  cache is empty. Work that needs guild data runs from an `on_ready` listener and from `cog_load`
+  when `self.bot.is_ready()`, because a plugin reloaded into a running bot gets no `on_ready`
+  (AutoRole's `check`); it skips guilds that are `unavailable` (an outage: no roles, `guild.me` is
+  None). A task awaiting `bot.wait_until_ready()` raises in tests, where the bot never logs in.
+  Stop loops in `cog_unload`.
 - Unloading and reloading remove the cog, the tree commands whose callback lives in the package and
   the routes; release anything else in `cog_unload`.
-- `DEFAULT_LOCALE` is v3's default locale (zh-TW in every v3 plugin so far).
+- `DEFAULT_LOCALE` is v3's default locale (zh-TW in every v3 plugin so far). A plugin without text
+  (AutoRole) ships no `lang/`, has no `DEFAULT_LOCALE` and never calls `context.lang`.
 
 ### Config
 
@@ -122,6 +128,19 @@ async def setup(bot: Bot) -> None:
   discord base class; forums and categories have none), then `delete_original_response()`; on
   `discord.HTTPException`, edit the deferred response into it instead (BasicCalculator's `_post`).
 
+### Listeners and intents
+
+- Gateway events are `@commands.Cog.listener()` methods on the cog (`on_member_join`, `on_ready`);
+  discord.py adds them with the cog and removes them when the plugin unloads. Check what each event
+  needs cached: `on_member_join` builds the member from the event, `on_member_remove` fires only
+  for cached members (use `on_raw_member_remove`).
+- `INTENTS` lists what the listeners need beyond discord.py's defaults:
+  `discord.Intents(members=True)` for member events. The members intent is privileged: the
+  design's smoke checklist says to allow it in the developer portal.
+- Problems the operator must fix (a missing role or permission) are `logger.warning` lines from
+  `logging.getLogger(__name__)` that name the plugin; Discord errors on one item are logged and the
+  others still handled.
+
 ### Templates and placeholders
 
 - `Templates.load(lang)` in `setup`, so a broken template disables the plugin at load. Render with
@@ -152,23 +171,35 @@ async def setup(bot: Bot) -> None:
   test's docstring is `Requirement: <name>.`
 - `tests/plugins/<package>/conftest.py`: `bot` loads the real plugin with
   `plugin_fakes.load_plugin("<Plugin>", tmp_path / "plugins", store)` (entry point, translator and
-  `setup`, no network); `cog` is `bot.get_cog(...)`. To test operator edits and v3 files, write
-  them under `tmp_path / "plugins" / "<Plugin>"` first and call `load_plugin` in the test.
+  `setup`, no network); `cog` is `bot.get_cog(...)`. To test operator edits and v3 files, pass
+  `config="..."` to `load_plugin`, which writes `<root>/<Plugin>/config.yaml` first. A `setup` that
+  raises (an invalid config) makes discord.py drop the plugin's modules, so a later load imports new
+  classes: tests that load bad files look the cog up with `cast`, not `isinstance` (AutoRole's
+  `test_config.py`).
 - `tests/support/discord_fakes.py`: `FakeInteraction` records what the plugin sends in `sent`;
   `FakeChannel` records `channel.send` into a shared `sent` list or raises its `error`
-  (`forbidden()`); `FakeUser`, `buttons(view)` and `embed_dict(embed)`. Extend it instead of
-  writing new fakes. pytest runs in importlib mode, so a test module cannot import another one:
-  tests that share helpers stay in one module (BasicCalculator's `test_replies.py`).
+  (`forbidden()`); `FakeUser`, `buttons(view)` and `embed_dict(embed)`; `FakeGuild` (roles,
+  `get_role`, `me.guild_permissions`, `unavailable`), `FakeRole` (`is_assignable()`) and
+  `FakeMember` (`add_roles` records the role IDs and `atomic`, or raises from `errors`), cast with
+  `as_member()`. Extend it instead of writing new fakes. pytest runs in importlib mode, so a test
+  module cannot import another one: tests that share helpers stay in one module (BasicCalculator's
+  `test_replies.py`) or become fixtures in `conftest.py` (AutoRole's `guild`).
   Call cog methods directly (`cog.example_command(...)`), check a command's wiring through
-  `bot.tree.get_command(...)` (its `binding` is the cog), and send components through
-  `bot.on_interaction(...)`, which includes the routing.
+  `bot.tree.get_command(...)` (its `binding` is the cog), send components through
+  `bot.on_interaction(...)`, which includes the routing, and run listeners with
+  `plugin_fakes.dispatch(bot, "member_join", member.as_member())` (`bot.dispatch` needs a bot that
+  logged in). For guild data, `monkeypatch.setattr(bot, "get_guild", guilds.get)`; for a load into a
+  ready bot, patch `Bot.is_ready` and `Bot.get_guild` before `load_plugin` (AutoRole's
+  `test_check.py`).
 - `tests/fixtures/plugins/<package>/golden.yaml`, loaded with `plugin_fakes.golden("<package>")`:
   v3's text per locale. Compare rendered embeds and buttons, and the command payload from
   `CommandTree.payloads()`, with it; no CJK text is typed in Python.
 - A test that loads the plugin cannot reach a stub that raises without breaking the load: mark it
   `xfail(strict=True, reason=...)` without `raises`. Give handlers that tests call directly a stub
   and `raises=NotImplementedError`. A test that would already pass (such as "no response") must
-  call a stub. A stub whose annotations need `discord` keeps that import under `TYPE_CHECKING`
+  call a stub. To refine a handler that already works (AutoRole's skipped roles), route the new
+  cases to a stub in the xfail commit. A stub whose annotations need `discord` keeps that import
+  under `TYPE_CHECKING`
   and plain types (ruff's TC rules); the imports move to runtime with the code that uses them.
 - Pure functions get one requirement each when they can be stubbed separately (BasicCalculator:
   trimming, reading, results, powers, then `calculate` with the golden files), so that each xfail
