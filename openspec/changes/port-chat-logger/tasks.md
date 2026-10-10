@@ -46,7 +46,7 @@
 ## 9. Message log
 
 - [x] 9.1 xfail tests for the stored messages against stubs in `messages.py`
-- [ ] 9.2 Implement `MessageLog`; remove the markers
+- [x] 9.2 Implement `MessageLog`; remove the markers
 
 ## 10. Storing messages
 

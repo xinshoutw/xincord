@@ -7,7 +7,6 @@ Kotlin:
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
-import pytest
 from discord.utils import time_snowflake
 
 from xincord.plugins.chat_logger.messages import Edit, MessageLog, Stored
@@ -43,7 +42,6 @@ def at(days: float) -> int:
     return time_snowflake(NOW - timedelta(days=days))
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Guild messages are stored")
 async def test_table(store: Store) -> None:
     """Requirement: Guild messages are stored."""
     await log(store)
@@ -56,7 +54,6 @@ async def test_table(store: Store) -> None:
     assert columns == ["message_id", "guild_id", "channel_id", "user_id", "message", "update_count"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Guild messages are stored")
 async def test_add(store: Store) -> None:
     """Requirement: Guild messages are stored."""
     messages = await log(store)
@@ -68,9 +65,6 @@ async def test_add(store: Store) -> None:
     assert await rows(store) == [(100, 10, 30, 7, "hello", 0), (101, 10, 41, 8, "", 0)]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Edits of stored messages are logged"
-)
 async def test_edit(store: Store) -> None:
     """Requirement: Edits of stored messages are logged."""
     messages = await log(store)
@@ -83,9 +77,6 @@ async def test_edit(store: Store) -> None:
     assert await rows(store) == [(100, 10, 30, 7, "hey", 2)]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Deletions of stored messages are logged"
-)
 async def test_pop(store: Store) -> None:
     """Requirement: Deletions of stored messages are logged."""
     messages = await log(store)
@@ -97,9 +88,6 @@ async def test_pop(store: Store) -> None:
     assert await rows(store) == []
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Deletions of stored messages are logged"
-)
 async def test_pop_all(store: Store) -> None:
     """Requirement: Deletions of stored messages are logged."""
     messages = await log(store)
@@ -116,11 +104,6 @@ async def test_pop_all(store: Store) -> None:
     assert await rows(store) == [(103, 10, 30, 7, "d", 0)]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Stored messages are kept for the retention period",
-)
 async def test_prune(store: Store) -> None:
     """Requirement: Stored messages are kept for the retention period."""
     messages = await log(store)
@@ -135,9 +118,6 @@ async def test_prune(store: Store) -> None:
     assert await messages.prune(at(30), batch=2) == 0
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Data is forgotten with the guild"
-)
 async def test_forget(store: Store) -> None:
     """Requirement: Data is forgotten with the guild."""
     messages = await log(store)
