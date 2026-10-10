@@ -71,7 +71,6 @@ def test_same_status_first() -> None:
     assert match(log(unknown, other), SET, 30, "Gaming", AT) == 9  # else the newest one
 
 
-@pytest.mark.xfail(strict=True, reason="Status changes name their member from the audit log")
 def test_earlier_status_entry() -> None:
     """Requirement: Status changes name their member from the audit log."""
     # Member 8 set Gaming 10 seconds ago; the entry of the change to Chill is not there yet.
@@ -138,7 +137,6 @@ async def test_late_entry() -> None:
     assert (audit.kinds, audit.sleeps) == ([CLEARED, CLEARED], [2.0])  # a cleared status: 193
 
 
-@pytest.mark.xfail(strict=True, reason="Status changes name their member from the audit log")
 async def test_earlier_change_entry() -> None:
     """Requirement: Status changes name their member from the audit log."""
     gaming = entry(8, 30, status="Gaming", ago=timedelta(seconds=10))

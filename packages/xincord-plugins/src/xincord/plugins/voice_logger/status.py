@@ -67,8 +67,9 @@ def match(log: object, kind: int, channel_id: int, status: str, at: datetime) ->
 
     The entry must be of type ``kind`` (192 for a set status, 193 for a cleared one), name the
     channel in ``options.channel_id`` (Discord's documentation) or ``target_id`` (JDA's target),
-    and be made within 30 seconds of ``at``. Of those, the newest one with the new status wins
-    (Discord puts it in ``options.status`` for type 192), else the newest one. v3 took the
+    and be made within 30 seconds of ``at``. A type-192 entry names its status in
+    ``options.status``: one with another status belongs to an earlier change, and does not count.
+    Of the others, the newest one with the new status wins, else the newest one. v3 took the
     guild's newest type-192 entry, whatever its channel or age.
     """
     response = cast("dict[str, object]", log) if isinstance(log, dict) else {}
@@ -80,6 +81,7 @@ def match(log: object, kind: int, channel_id: int, status: str, at: datetime) ->
         and entry.kind == kind
         and entry.channel_id == channel_id
         and abs(entry.created - at) <= WINDOW
+        and (kind != SET or entry.status is None or entry.status == status)
     ]
     same = [entry for entry in found if entry.status == status]
     return (same or found)[0].user_id if found else None

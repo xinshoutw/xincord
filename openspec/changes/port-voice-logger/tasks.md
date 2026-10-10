@@ -81,7 +81,7 @@
 - [x] 14.1 Gate passes, push, CI green (before the review)
 - [x] 14.2 xfail test for "Earlier change's entry" (found in the review: an entry of an earlier
       status named the member and stopped the second read)
-- [ ] 14.3 Leave out type-192 entries with another status; remove the marker
+- [x] 14.3 Leave out type-192 entries with another status; remove the marker
 - [ ] 14.4 xfail tests for "Status changes are posted in order from the current session" (found in
       the review: a change waiting for its entry was posted after a later one, and tracked statuses
       outlived sessions, outages and left guilds)
