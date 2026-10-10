@@ -17,3 +17,57 @@ texts:
 # example with example IDs: a running giveaway and a drawn one, whose endedAtEpochSecond is set.
 # Snowflakes above 2^53 must stay exact.
 document: '{"3f2a9c1b7e4d4a60":{"id":"3f2a9c1b7e4d4a60","guildId":900000000000000010,"channelId":900000000000000005,"messageId":900000000000000042,"creatorId":900000000000000007,"localeTag":"zh-TW","createdAtEpochSecond":1767000000,"ended":false,"config":{"title":"Nitro","description":"desc","sponsor":"","thumbnailUrl":"https://x/y.png","endAtEpochSecond":1767225600,"winnerDuplicatePolicy":"UNIQUE_ACROSS_PRIZES","prizes":[{"name":"Nitro","winnerCount":2},{"name":"Sticker","winnerCount":1}]},"participantIds":[111,222,333],"winnerResults":[]},"0123456789ab4def":{"id":"0123456789ab4def","guildId":900000000000000010,"channelId":900000000000000005,"messageId":900000000000000043,"creatorId":900000000000000007,"localeTag":"en-US","createdAtEpochSecond":1767000000,"endedAtEpochSecond":1767225660,"ended":true,"config":{"title":"Nitro","description":"","sponsor":"Shop","thumbnailUrl":"","endAtEpochSecond":1767225600,"winnerDuplicatePolicy":"ALLOW_DUPLICATE","prizes":[{"name":"Nitro","winnerCount":2},{"name":"Sticker","winnerCount":1}]},"participantIds":[111,222,333],"winnerResults":[{"prizeName":"Nitro","winnerIds":[222,111]},{"prizeName":"Sticker","winnerIds":[333]}]}}'
+
+# The builder's preview (StepData.kt:61-128), as Embed.to_dict() without "type" and "flags":
+# an empty draft, and a draft titled Nitro with the description "desc", the end time 1772330400
+# (2026-03-01 10:00 in Asia/Taipei), the prizes Nitro (2) and Sticker (0), unique winners, the
+# sponsor "Shop" and the thumbnail HTTPS://EXAMPLE.COM/a.png (shown with a lowercase scheme: new).
+preview:
+  en-US:
+    empty:
+      title: "🎁 Giveaway Draft"
+      color: 3066993
+      fields:
+        - {name: "Description", value: "Not set", inline: false}
+        - {name: "End Time", value: "Not set", inline: false}
+        - {name: "Prizes", value: "No prize yet", inline: false}
+        - {name: "Winner Policy", value: "Duplicate winners allowed", inline: false}
+        - {name: "Total Winner Slots", value: "0", inline: true}
+        - {name: "Sponsor", value: "Not set", inline: true}
+      footer: {text: "Configure step by step, then click Confirm Create"}
+    full:
+      title: "🎁 Nitro"
+      color: 3066993
+      thumbnail: {url: "https://EXAMPLE.COM/a.png"}
+      fields:
+        - {name: "Description", value: "desc", inline: false}
+        - {name: "End Time", value: "<t:1772330400:F>\n2026-03-01 10:00", inline: false}
+        - {name: "Prizes", value: "1. Nitro (2 winner(s))\n2. Sticker (0 winner(s))", inline: false}
+        - {name: "Winner Policy", value: "Unique winners across prizes", inline: false}
+        - {name: "Total Winner Slots", value: "3", inline: true}
+        - {name: "Sponsor", value: "Shop", inline: true}
+      footer: {text: "Configure step by step, then click Confirm Create"}
+  zh-TW:
+    empty:
+      title: "🎁 抽獎建立預覽"
+      color: 3066993
+      fields:
+        - {name: "抽獎說明", value: "未設定", inline: false}
+        - {name: "結束時間", value: "未設定", inline: false}
+        - {name: "獎品清單", value: "尚未新增獎品", inline: false}
+        - {name: "中獎限制", value: "允許跨獎品重複中獎", inline: false}
+        - {name: "總中獎名額", value: "0", inline: true}
+        - {name: "主辦/贊助", value: "未設定", inline: true}
+      footer: {text: "使用下方按鈕逐步設定，最後按「確認建立」"}
+    full:
+      title: "🎁 Nitro"
+      color: 3066993
+      thumbnail: {url: "https://EXAMPLE.COM/a.png"}
+      fields:
+        - {name: "抽獎說明", value: "desc", inline: false}
+        - {name: "結束時間", value: "<t:1772330400:F>\n2026-03-01 10:00", inline: false}
+        - {name: "獎品清單", value: "1. Nitro (2 位)\n2. Sticker (0 位)", inline: false}
+        - {name: "中獎限制", value: "跨獎品不可重複中獎", inline: false}
+        - {name: "總中獎名額", value: "3", inline: true}
+        - {name: "主辦/贊助", value: "Shop", inline: true}
+      footer: {text: "使用下方按鈕逐步設定，最後按「確認建立」"}

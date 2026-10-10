@@ -12,8 +12,13 @@ from xincord.core.placeholders import render
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+    from datetime import tzinfo
+
+    import discord
 
     from xincord.core.i18n import Lang
+
+    from .model import Draft
 
 CHINESE = "zh-TW"  # v3's zh texts
 ENGLISH = "en-US"  # v3's other texts
@@ -42,3 +47,8 @@ class Texts:
     def get(self, key: str, values: Mapping[str, str] | None = None) -> str:
         """The text ``key`` of ``text.yaml`` with its ``%ga@...%`` values, inserted as written."""
         return render(self.lang.text(f"{TEXT}.{key}", self.locale), values or {})
+
+
+def preview(draft: Draft, texts: Texts, zone: tzinfo | None) -> discord.Embed:
+    """The builder's preview of ``draft``, v3's ``ga@preview-embed``."""
+    raise NotImplementedError
