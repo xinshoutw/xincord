@@ -75,7 +75,7 @@
 
 - [x] 14.1 xfail tests for "The builder removes prizes and switches the winner policy" against
       stubs `_remove_prize` and `_switch_policy`
-- [ ] 14.2 Implement them; remove the markers
+- [x] 14.2 Implement them; remove the markers
 
 ## 15. Post
 

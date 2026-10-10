@@ -18,7 +18,7 @@ from xincord.core.component_ids import ComponentIds
 from xincord.core.placeholders import global_values, placeholder_values
 from xincord.core.templates import modal_values, render_message, render_modal
 
-from .drafts import submit
+from .drafts import remove_last_prize, submit, switch_policy
 from .model import Draft
 from .texts import Texts, language, preview
 from .times import format_end_time
@@ -214,12 +214,16 @@ class Giveaway(commands.Cog):
         )
 
     async def _remove_prize(self, interaction: discord.Interaction, session: Session) -> None:
-        """Remove the draft's last prize."""
-        raise NotImplementedError
+        """Remove the draft's last prize and update the builder, or say there is none."""
+        changed = remove_last_prize(session.draft)
+        if changed is None:
+            await _tell(interaction, self._texts(interaction).get("error.no-prize"))
+            return
+        await self._update(interaction, session, changed)
 
     async def _switch_policy(self, interaction: discord.Interaction, session: Session) -> None:
-        """Switch the draft's winner policy."""
-        raise NotImplementedError
+        """Switch the draft's winner policy and update the builder."""
+        await self._update(interaction, session, switch_policy(session.draft))
 
     async def _confirm(self, interaction: discord.Interaction, session: Session) -> None:
         """Check the draft and post the giveaway."""

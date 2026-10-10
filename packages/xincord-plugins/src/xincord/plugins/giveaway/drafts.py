@@ -9,7 +9,7 @@ from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from .inputs import is_http_url, trim, winner_count
-from .model import Prize
+from .model import Policy, Prize
 from .times import parse_end_time
 
 if TYPE_CHECKING:
@@ -74,3 +74,14 @@ def _end_time(draft: Draft, text: str, now: int, zone: tzinfo | None) -> Draft |
     if end <= now:
         return "error.end-time-past"
     return replace(draft, end_at=end)
+
+
+def remove_last_prize(draft: Draft) -> Draft | None:
+    """The draft without its last prize, or None when it has none, as v3's ``removeLastPrize``."""
+    return replace(draft, prizes=draft.prizes[:-1]) if draft.prizes else None
+
+
+def switch_policy(draft: Draft) -> Draft:
+    """The draft with the other winner policy, as v3's ``toggleWinnerDuplicatePolicy``."""
+    unique = draft.policy is Policy.ALLOW_DUPLICATE
+    return replace(draft, policy=Policy.UNIQUE_ACROSS_PRIZES if unique else Policy.ALLOW_DUPLICATE)

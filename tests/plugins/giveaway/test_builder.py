@@ -25,7 +25,6 @@ if TYPE_CHECKING:
     from discord_fakes import FakeInteraction
 
 GOLDEN = golden("giveaway")
-PRIZES = "The builder removes prizes and switches the winner policy"
 
 
 def expired(locale: str = "en-US") -> list[tuple[str, dict[str, object]]]:
@@ -94,7 +93,6 @@ def preview_fields(interaction: FakeInteraction) -> list[dict[str, Any]]:
     return found
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=PRIZES)
 async def test_remove_prize(scene: Scene) -> None:
     """Requirement: The builder removes prizes and switches the winner policy."""
     scene.keep(Draft(prizes=(Prize("Nitro", 2), Prize("Sticker", 1))))
@@ -106,7 +104,6 @@ async def test_remove_prize(scene: Scene) -> None:
     assert preview_fields(pressed)[2]["value"] == expected
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=PRIZES)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_nothing_to_remove(scene: Scene, locale: str) -> None:
     """Requirement: The builder removes prizes and switches the winner policy."""
@@ -119,7 +116,6 @@ async def test_nothing_to_remove(scene: Scene, locale: str) -> None:
     assert scene.draft() == Draft(title="Nitro")
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=PRIZES)
 async def test_switch_policy(scene: Scene) -> None:
     """Requirement: The builder removes prizes and switches the winner policy."""
     scene.keep(Draft())
