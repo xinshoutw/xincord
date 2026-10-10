@@ -60,3 +60,28 @@ review:
     color: 6340800
     footer: {text: "❖ ORDERLY SERVER ❖"}
     fields: [{name: "評價內容", value: "great", inline: false}]
+
+# The guild command payload, with v3's description and the localizations of register.yaml; no
+# default member permissions, as v3 checked Administrator when the command ran.
+command:
+  type: 1
+  name: "feedbacker"
+  description: "Create a feedback form for a member"
+  nsfw: false
+  default_member_permissions: null
+  options:
+    - type: 6
+      name: "member"
+      description: "Specify the member"
+      required: true
+      name_localizations: {"en-US": "member", "zh-TW": "member"}
+      description_localizations: {"en-US": "who", "zh-TW": "誰"}
+    - type: 7
+      name: "submit-channel"
+      description: "Specify the submit channel"
+      required: true
+      channel_types: [0]
+      name_localizations: {"en-US": "submit-channel", "zh-TW": "submit-channel"}
+      description_localizations: {"en-US": "where to send the feedback result", "zh-TW": "回饋結果要送到哪個頻道"}
+  name_localizations: {"en-US": "feedbacker", "zh-TW": "評價表單"}
+  description_localizations: {"en-US": "create a channel for member feedback", "zh-TW": "為使用者建立一個評價選單"}

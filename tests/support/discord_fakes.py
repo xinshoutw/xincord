@@ -153,7 +153,8 @@ class FakeMessage:
     """A message with components that records its edits and its deletion into ``sent``.
 
     ``error``, when set, is raised by ``edit`` and ``delete`` instead. ``channel.fetch_message``
-    returns the message itself, as the core fetches a message again to upgrade its legacy IDs.
+    returns the message itself until it is deleted, as the core fetches a message again to upgrade
+    its legacy IDs.
     """
 
     components: list[discord.Component] = field(default_factory=list[discord.Component])
@@ -161,13 +162,16 @@ class FakeMessage:
     id: int = 42
     flags: discord.MessageFlags = field(default_factory=discord.MessageFlags)
     error: Exception | None = None
+    deleted: bool = False
 
     @property
     def channel(self) -> SimpleNamespace:
-        """The message's channel, which can fetch the message."""
+        """The message's channel, which can fetch the message until it is deleted."""
 
         async def fetch_message(message_id: int, /) -> FakeMessage:
             assert message_id == self.id
+            if self.deleted:
+                raise not_found()
             return self
 
         return SimpleNamespace(fetch_message=fetch_message)
@@ -182,6 +186,7 @@ class FakeMessage:
         """Record the deletion, or raise ``error``."""
         if self.error is not None:
             raise self.error
+        self.deleted = True
         self.sent.append(("message.delete", {}))
 
     def as_message(self) -> discord.Message:

@@ -5,9 +5,10 @@ Kotlin:
 """
 
 import logging
-from typing import TYPE_CHECKING, Protocol, cast, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, cast, override, runtime_checkable
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from xincord.core.component_ids import ComponentIds
@@ -19,8 +20,7 @@ from .form import highlight, star_count, stars
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
-    from discord import app_commands
-
+    from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
     from xincord.core.templates import Message, Templates
 
@@ -57,6 +57,15 @@ class Postable(Protocol):
         ...
 
 
+class TextChannelOption(app_commands.Transformer[discord.Client]):
+    """v3's ``submit-channel`` option: Discord offers text channels only."""
+
+    @override
+    async def transform(self, interaction: discord.Interaction, value: object, /) -> object:
+        """Stub until the command exists."""
+        raise NotImplementedError
+
+
 class Feedbacker(commands.Cog):
     """The plugin's state and handlers; ``setup`` registers them."""
 
@@ -65,6 +74,14 @@ class Feedbacker(commands.Cog):
         self.config = config
         self.lang = lang
         self.templates = templates
+
+    def command(self) -> app_commands.Command[Any, ..., None]:
+        """Build ``/feedbacker``, localized from ``register.yaml``."""
+        raise NotImplementedError
+
+    async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
+        """Send a star press or a submitted modal to its handler."""
+        raise NotImplementedError
 
     async def create_form(
         self,
