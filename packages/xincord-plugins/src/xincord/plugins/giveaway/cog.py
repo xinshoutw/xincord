@@ -377,8 +377,19 @@ class Giveaway(commands.Cog):
         )
 
     async def _cancel(self, interaction: discord.Interaction) -> None:
-        """Drop the user's draft."""
-        raise NotImplementedError
+        """Drop the user's draft and replace the builder with ``create-cancelled`` alone.
+
+        As v3's replace edit, the preview and the buttons go; v3 edited through the command's
+        hook, which expired after 15 minutes.
+        """
+        del self.drafts[interaction.user.id, cast("int", interaction.guild_id)]
+        message = self._render(interaction, "create-cancelled", {})
+        await interaction.response.edit_message(
+            content=message.content,
+            embeds=message.embeds,
+            view=message.view,
+            attachments=message.files,
+        )
 
     def _session(self, interaction: discord.Interaction) -> Session | None:
         """The user's draft in the guild, if the interaction comes from the builder showing it."""

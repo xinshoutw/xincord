@@ -25,7 +25,6 @@ if TYPE_CHECKING:
     from discord_fakes import FakeInteraction
 
 GOLDEN = golden("giveaway")
-CANCEL = "Cancelling ends the draft"
 
 
 def expired(locale: str = "en-US") -> list[tuple[str, dict[str, object]]]:
@@ -132,7 +131,6 @@ async def test_switch_policy(scene: Scene) -> None:
     assert preview_fields(second)[3]["value"] == allowed
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=CANCEL)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_cancelled(scene: Scene, locale: str) -> None:
     """Requirement: Cancelling ends the draft."""
