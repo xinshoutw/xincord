@@ -23,7 +23,6 @@ TOKEN = "xxxxxxxxxx"  # the push token: in the URL's path, never in a log line
 URL = f"https://status.example.com/api/push/{TOKEN}?status=up&msg=OK&ping=%ping%"
 PUSHED = URL.replace("%ping%", "42")
 ENDPOINT = "https://status.example.com"  # the URL's origin, all that the logs show of it
-PING_RULE = "The URL carries the REST ping"
 
 
 class Stop(Exception):  # noqa: N818 - it ends the loop, it reports no error
@@ -120,7 +119,6 @@ async def test_failed_ping(error: Exception, caplog: pytest.LogCaptureFixture) -
     )
 
 
-@pytest.mark.xfail(strict=True, reason=PING_RULE)
 async def test_unexpected_ping_error(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The URL carries the REST ping."""
     fakes = Fakes(pings=(RuntimeError("Session is closed"),))

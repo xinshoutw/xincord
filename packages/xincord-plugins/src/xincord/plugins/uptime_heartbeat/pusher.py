@@ -109,20 +109,23 @@ class Pusher:
     async def url(self) -> str:
         """The listener's URL with the REST ping in place of ``%ping%``, or ``-1`` if it fails.
 
-        Discord is asked only when the URL uses the ping; v3 asked at every push.
+        Discord is asked only when the URL uses the ping; v3 asked at every push. Whatever fails,
+        the push goes on with ``-1``, as v3's ``buildUrl`` caught every ``Exception``.
         """
         template = self.listener.url
         if PING not in template:
             return template
         try:
             ping = await self.ping()
-        except PING_ERRORS as error:
+        except Exception as error:  # noqa: BLE001 - any failure leaves -1 in the URL, as in v3
+            # Discord's, aiohttp's and the network's errors need no traceback; others show it.
+            expected = isinstance(error, PING_ERRORS)
+            detail = f": {describe(error)}" if expected else f"\n{format_traceback(error)}"
             logger.log(
                 logging.WARNING if self.pings.add(type(error)) else logging.DEBUG,
-                "UptimeHeartbeat listener %d could not measure the REST ping, "
-                "so %%ping%% is -1: %s",
+                "UptimeHeartbeat listener %d could not measure the REST ping, so %%ping%% is -1%s",
                 self.number,
-                describe(error),
+                detail,
             )
             ping = NO_PING
         else:
