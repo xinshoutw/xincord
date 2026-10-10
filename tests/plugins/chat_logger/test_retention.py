@@ -12,7 +12,6 @@ import sqlite3
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
-import pytest
 from discord.utils import time_snowflake, utcnow
 
 from plugin_fakes import WAIT, load_plugin
@@ -20,6 +19,8 @@ from xincord.core.bot import Bot
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import pytest
 
     from conftest import Scene
     from plugin_fakes import Ready
@@ -139,7 +140,6 @@ async def test_unload(scene: Scene, ready: Ready) -> None:
     assert loop.cancelled()
 
 
-@pytest.mark.xfail(strict=True, reason="Stored messages are kept for the retention period")
 async def test_failed_load(store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Stored messages are kept for the retention period."""
 

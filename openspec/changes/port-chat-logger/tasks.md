@@ -95,7 +95,7 @@
       deletions wait for the insert; remove the markers
 - [x] 16.5 xfail test for "Failed load" (found during the review: `cog_load` started the retention
       loop before the checks, so a failing check left it running for a plugin that never loaded)
-- [ ] 16.6 Check the guilds before the loop starts; remove the marker
+- [x] 16.6 Check the guilds before the loop starts; remove the marker
 
 ## 17. Close
 

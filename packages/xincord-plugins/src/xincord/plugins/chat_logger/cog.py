@@ -70,15 +70,16 @@ class ChatLogger(commands.Cog):
 
     @override
     async def cog_load(self) -> None:
-        """Start the retention loop, which waits until the bot is ready, and check a ready bot.
+        """Check a ready bot's guilds, then start the retention loop, which waits for READY.
 
         ``setup`` runs before the gateway connects, and ``--no-online`` never connects, so nothing
-        is deleted before READY; in a ready bot, as after a reload, the loop deletes at once and
-        the guilds are checked, since no ``on_ready`` follows.
+        is deleted before READY; in a ready bot, as after a reload, the guilds are checked at
+        once, since no ``on_ready`` follows, and the loop deletes at once. The checks come first:
+        when they fail, the plugin does not load, and no loop is left behind.
         """
-        self.tasks = (asyncio.create_task(self._retain(), name="ChatLogger retention"),)
         if self.bot.is_ready():
             await self.check_guilds()
+        self.tasks = (asyncio.create_task(self._retain(), name="ChatLogger retention"),)
 
     @override
     async def cog_unload(self) -> None:
