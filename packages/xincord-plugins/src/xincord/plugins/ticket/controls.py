@@ -8,9 +8,12 @@ Kotlin:
 
 import logging
 import re
+import traceback
 from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 import discord
+
+from xincord.plugins.redaction import redact
 
 from .archive import Options, archive
 from .channels import cached_channel
@@ -100,6 +103,11 @@ class HasRoles(Protocol):
 @runtime_checkable
 class CheckedChannel(Protocol):
     """A guild channel that a save checks: its type and the bot's permissions in it."""
+
+    @property
+    def id(self) -> int:
+        """The channel's ID."""
+        ...
 
     @property
     def type(self) -> discord.ChannelType:
@@ -240,16 +248,36 @@ class ControlRow:
         """Archive ``source`` into a new thread of ``target`` and tell the user how it went.
 
         A new ephemeral answer, v3's ``deferReply``, so that the select stays usable; it says that
-        the archive is under way, then where it went. The markers use the default locale, as v3's.
+        the archive is under way, then where it went, or v3's save-failed text with the error. The
+        markers use the default locale, as v3's. An answer that Discord refuses, after its 15
+        minutes, is logged.
         """
         await interaction.response.defer(ephemeral=True, thinking=True)
         texts = self.texts(interaction)
         await interaction.edit_original_response(content=texts.get("reply.saving"))
         guild = cast("discord.Guild", interaction.guild)  # members act in guilds
         options = Options(self.public, self.clock(), self.zone, guild.filesize_limit)
-        thread = await archive(cast("History", source), cast("ArchiveTarget", target), options)
-        saved = texts.get("reply.saved", {"tt@thread": thread.mention})
-        await interaction.edit_original_response(content=saved)
+        try:
+            thread = await archive(cast("History", source), cast("ArchiveTarget", target), options)
+        except Exception as error:  # noqa: BLE001 - every failure is told, as v3's onError
+            logger.warning(
+                "Ticket cannot save channel %s into channel %s: %s",
+                source.id,
+                target.id,
+                _logged(error),
+            )
+            answer = texts.get("error.save-failed", {"tt@error": readable_error(error)})
+        else:
+            answer = texts.get("reply.saved", {"tt@thread": thread.mention})
+        try:
+            await interaction.edit_original_response(content=answer)
+        except discord.HTTPException as error:
+            logger.warning(
+                "Ticket cannot tell member %s how saving channel %s went: %s",
+                interaction.user.id,
+                source.id,
+                error,
+            )
 
     async def _staff_entry(
         self, interaction: discord.Interaction, fields: Mapping[str, str]
@@ -351,6 +379,14 @@ def _text_channel(channel: object) -> CheckedChannel | None:
     if isinstance(channel, CheckedChannel) and channel.type is discord.ChannelType.text:
         return channel
     return None
+
+
+def _logged(error: Exception) -> str:
+    """A failed archive's error as logged: Discord's refusal as it reads, anything else with its
+    traceback; URLs cut to their origin, since a webhook's holds its token."""
+    if isinstance(error, discord.HTTPException):
+        return readable_error(error)
+    return redact("".join(traceback.format_exception(error)).rstrip("\n"))
 
 
 async def _remove(interaction: discord.Interaction) -> None:

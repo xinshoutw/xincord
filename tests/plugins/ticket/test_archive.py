@@ -622,7 +622,6 @@ def methods(sent: list[Sent]) -> list[str]:
     return [method for method, _ in sent]
 
 
-@pytest.mark.xfail(strict=True, reason="A failed archive is reported and cleans up")
 async def test_refused_send(cog: Ticket) -> None:
     """Requirement: A failed archive is reported and cleans up."""
     source, target = channels(
@@ -638,7 +637,6 @@ async def test_refused_send(cog: Ticket) -> None:
     assert target.sent[-1] == ("webhook.delete", {})
 
 
-@pytest.mark.xfail(strict=True, reason="A failed archive is reported and cleans up")
 @pytest.mark.parametrize("refused", [False, True], ids=["deleted", "refused"])
 async def test_no_webhook(cog: Ticket, refused: bool) -> None:  # noqa: FBT001
     """Requirement: A failed archive is reported and cleans up."""
@@ -654,7 +652,6 @@ async def test_no_webhook(cog: Ticket, refused: bool) -> None:  # noqa: FBT001
     assert methods(target.sent) == ["channel.create_thread", "thread.delete"]
 
 
-@pytest.mark.xfail(strict=True, reason="A failed archive is reported and cleans up")
 async def test_undeletable_webhook(cog: Ticket) -> None:
     """Requirement: A failed archive is reported and cleans up."""
     source, target = channels([Message(1, BOB, "kept")])
@@ -666,7 +663,6 @@ async def test_undeletable_webhook(cog: Ticket) -> None:
     assert methods(target.sent)[-1] == "webhook.delete"
 
 
-@pytest.mark.xfail(strict=True, reason="A failed archive is reported and cleans up")
 async def test_refused_end_marker(cog: Ticket) -> None:
     """Requirement: A failed archive is reported and cleans up."""
     thread = started(Message(LAST, BOB, "inside"))
@@ -684,7 +680,6 @@ async def test_refused_end_marker(cog: Ticket) -> None:
 REFUSED = "403 Forbidden (error code: 0): Missing Permissions"
 
 
-@pytest.mark.xfail(strict=True, reason="A failed archive is reported and cleans up")
 @pytest.mark.parametrize(
     ("step", "locale", "failed"),
     [
@@ -719,7 +714,6 @@ async def test_save_failed(
     assert f"Ticket cannot save channel 5 into channel 6: {REFUSED}" in caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason="A failed archive is reported and cleans up")
 async def test_readable_errors(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A failed archive is reported and cleans up."""
     target = await saving(scene, [Message(1, BOB, "help me")])
@@ -740,7 +734,6 @@ async def test_readable_errors(scene: Scene, caplog: pytest.LogCaptureFixture) -
     assert "SECRET" not in caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason="A failed archive is reported and cleans up")
 async def test_answer_after_fifteen_minutes(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A failed archive is reported and cleans up."""
     target = await saving(scene, [Message(1, BOB, "help me")])

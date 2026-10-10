@@ -5,6 +5,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:854-878
 """
 
+import contextlib
 import logging
 import string
 import time
@@ -69,17 +70,27 @@ async def archive(source: History, target: ArchiveTarget, options: Options) -> A
 
     v3's steps, one request at a time: the thread, named after the channel and the time, without a
     starter message; a webhook with a name of its own; every message with text or files, oldest
-    first; the webhook's deletion.
+    first; the webhook's deletion. Any failure stops the archive and reaches the caller (v3 lost
+    those thrown in its callbacks and hung, B12); the webhook goes all the same, and the empty
+    thread too when no webhook could be made (v3 left it); refused deletions are ignored, as v3's.
     """
     thread = await target.create_thread(
         name=thread_name(source.name, options.now, options.zone),
         type=discord.ChannelType.public_thread,
     )
-    webhook = await target.create_webhook(
-        name=webhook_name(int(options.now * 1000), time.perf_counter_ns())
-    )
-    await _Copy(webhook, thread, options).channel(source)
-    await webhook.delete()
+    try:
+        webhook = await target.create_webhook(
+            name=webhook_name(int(options.now * 1000), time.perf_counter_ns())
+        )
+    except BaseException:
+        with contextlib.suppress(discord.HTTPException):
+            await thread.delete()
+        raise
+    try:
+        await _Copy(webhook, thread, options).channel(source)
+    finally:
+        with contextlib.suppress(discord.HTTPException):
+            await webhook.delete()
     return thread
 
 
