@@ -12,3 +12,8 @@ texts:
     join: "參加 / 退出"
     draw: "手動開獎"
     title-placeholder: "🎉 %ga@id%"
+
+# A guild's document as v3's Moshi wrote it (compact, its field order), after the inventory's
+# example with example IDs: a running giveaway and a drawn one, whose endedAtEpochSecond is set.
+# Snowflakes above 2^53 must stay exact.
+document: '{"3f2a9c1b7e4d4a60":{"id":"3f2a9c1b7e4d4a60","guildId":900000000000000010,"channelId":900000000000000005,"messageId":900000000000000042,"creatorId":900000000000000007,"localeTag":"zh-TW","createdAtEpochSecond":1767000000,"ended":false,"config":{"title":"Nitro","description":"desc","sponsor":"","thumbnailUrl":"https://x/y.png","endAtEpochSecond":1767225600,"winnerDuplicatePolicy":"UNIQUE_ACROSS_PRIZES","prizes":[{"name":"Nitro","winnerCount":2},{"name":"Sticker","winnerCount":1}]},"participantIds":[111,222,333],"winnerResults":[]},"0123456789ab4def":{"id":"0123456789ab4def","guildId":900000000000000010,"channelId":900000000000000005,"messageId":900000000000000043,"creatorId":900000000000000007,"localeTag":"en-US","createdAtEpochSecond":1767000000,"endedAtEpochSecond":1767225660,"ended":true,"config":{"title":"Nitro","description":"","sponsor":"Shop","thumbnailUrl":"","endAtEpochSecond":1767225600,"winnerDuplicatePolicy":"ALLOW_DUPLICATE","prizes":[{"name":"Nitro","winnerCount":2},{"name":"Sticker","winnerCount":1}]},"participantIds":[111,222,333],"winnerResults":[{"prizeName":"Nitro","winnerIds":[222,111]},{"prizeName":"Sticker","winnerIds":[333]}]}}'

@@ -12,7 +12,13 @@ if TYPE_CHECKING:
     import random
     from collections.abc import Iterable, Sequence
 
+    from xincord.core.storage import JSON
+
 DEFAULT_LOCALE_TAG = "zh-TW"  # v3's localeTag default
+
+
+class DataError(Exception):
+    """A stored giveaway is not v3's shape; it is left as it is, and the message says where."""
 
 
 class Policy(StrEnum):
@@ -88,3 +94,17 @@ def draw_winners(
         results.append(Winners(prize.name, picked))
         left = tuple(participant for participant in left if participant not in picked)
     return tuple(results)
+
+
+def parse_instance(entry: JSON, where: str) -> Instance:
+    """Read v3's JSON of a giveaway, as Moshi did; ``where`` names it in errors.
+
+    Raises:
+        DataError: The entry is not v3's shape.
+    """
+    raise NotImplementedError
+
+
+def instance_json(instance: Instance) -> dict[str, JSON]:
+    """v3's JSON of ``instance``, in Moshi's field order."""
+    raise NotImplementedError

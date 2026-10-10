@@ -38,7 +38,7 @@
 
 ## 8. Stored giveaways
 
-- [ ] 8.1 xfail tests for "Giveaways are stored as v3's documents" against stubs in `model.py`
+- [x] 8.1 xfail tests for "Giveaways are stored as v3's documents" against stubs in `model.py`
       and `store.py`
 - [ ] 8.2 Implement `parse_instance`, `instance_json` and `Giveaways`; remove the markers
 
