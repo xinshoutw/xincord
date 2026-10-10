@@ -148,10 +148,11 @@ when they arrive together with it.
 - **THEN** nothing is stored
 
 ### Requirement: A message's text is its content and its rich embeds
-The stored text SHALL be the message's content, then each rich embed's author name and title on
-consecutive lines, its description and each field's name and value on two lines, the parts
-separated by blank lines and the missing ones left out. Embeds of other types, such as link
-previews, SHALL be left out.
+The stored text SHALL be the message's content, then, for a bot's or a webhook's message, each rich
+embed's author name and title on consecutive lines, its description and each field's name and value
+on two lines, the parts separated by blank lines and the missing ones left out. Other embeds, such
+as link previews, and every embed of a member's message, which can only be a preview, SHALL be left
+out.
 
 #### Scenario: Plain message
 - **WHEN** a message has the content `hello` and no embed
@@ -170,6 +171,10 @@ previews, SHALL be left out.
 #### Scenario: Link preview
 - **WHEN** a message has the content `https://example.com` and a link preview embed
 - **THEN** its text is `https://example.com`
+
+#### Scenario: Rich preview of a member's link
+- **WHEN** Discord adds a rich embed to a member's message `https://x.example/status/1`
+- **THEN** the text stays the link, and no edit is logged
 
 ### Requirement: Edits of stored messages are logged
 When a stored message's text changes, the plugin SHALL store the new text, count the change and

@@ -105,6 +105,9 @@
       review: a purge tried a gone or refusing listen channel once per message)
 - [x] 16.10 Skip the listen channels that are gone or refuse for the rest of a bulk deletion;
       remove the marker
+- [x] 16.11 xfail test for "Rich preview of a member's link" (found in the review: previews that
+      Discord types `rich`, as some sites' are, changed a member's text and were logged as edits)
+- [ ] 16.12 Leave a member's embeds out of the text; remove the marker
 
 ## 17. Close
 
