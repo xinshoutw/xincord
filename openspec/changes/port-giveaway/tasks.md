@@ -166,6 +166,6 @@
 
 ## 26. Close
 
-- [ ] 26.1 Gate passes, push, CI green
+- [x] 26.1 Gate passes, push, CI green
 - [ ] 26.2 Archive the change and run `openspec validate --all --strict`
 - [ ] 26.3 Update `HANDOFF.md`, `docs/porting/owner-review.md` and the skill; push; CI green

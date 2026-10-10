@@ -373,7 +373,10 @@ waits five seconds after READY (v3: after each load); winners who left the guild
 `uv build --package xincord-plugins` ships `giveaway/config.yaml` and the 30 lang files, and the
 entry point `Giveaway = xincord.plugins.giveaway`; `xincord --no-online` in an empty directory with
 `plugins: [Giveaway]`, from a scratch venv holding both wheels, wrote the 31 files, loaded the
-plugin and exited 0. A scratch probe (not committed) drove the plugin through discord.py's own
+plugin and exited 0. With OrbStack running, `docker compose build` built the image, `docker compose
+run --rm -T bot --no-online` with a temporary `bot/config.yaml` enabling Giveaway loaded it and wrote
+its files, and the image's Python resolves `zoneinfo.ZoneInfo("Asia/Taipei")` (its tzdata), so
+`timeZone` works there; the container's own zone is UTC. A scratch probe (not committed) drove the plugin through discord.py's own
 objects, recording HTTP: the command deferred ephemerally (type 5, flags 64) and edited
 `@original` into the builder; set-title answered with a type-9 modal whose input sits in a
 label (type 18); the modal submission, a `discord.Interaction` with the builder as its message,
