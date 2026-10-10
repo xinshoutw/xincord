@@ -55,6 +55,16 @@ class WelcomeByeGuild(commands.Cog):
         self.lang = lang
         self.templates = templates
 
+    @commands.Cog.listener()
+    async def on_member_join(self, member: discord.Member) -> None:
+        """Stub until the welcome message exists."""
+        raise NotImplementedError
+
+    @commands.Cog.listener()
+    async def on_raw_member_remove(self, payload: discord.RawMemberRemoveEvent) -> None:
+        """Stub until the bye message exists."""
+        raise NotImplementedError
+
     async def bind_channel(
         self,
         interaction: discord.Interaction,

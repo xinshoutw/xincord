@@ -28,3 +28,34 @@ replies:
     bye-bind-already: "離開訊息頻道已經是 <#5>，不需重複綁定。"
     bye-unbind-success: "已解除離開訊息頻道綁定（原頻道：<#5>）。"
     bye-unbind-empty: "目前尚未綁定離開訊息頻道。"
+
+# The welcome and bye embeds per locale for alice (global name Alice, ID 1, avatar alice.png)
+# in guild (icon.png, 42 members, rules channel 6), as Embed.to_dict() without "type" and "flags".
+# The zh-TW texts hold the two corrected typos: the welcome's last line and the bye's
+# description.
+welcome:
+  en-US:
+    author: {name: "guild", icon_url: "https://cdn.example/icon.png"}
+    title: "🎉 Welcome Alice joined us"
+    description: "Nice to meet you Alice!\nYou are the **#42** member of this server.\nPlease read the rules: <#6>\nDon't be shy!\n"
+    thumbnail: {url: "https://cdn.example/alice.png"}
+    color: 5763719
+  zh-TW:
+    author: {name: "guild", icon_url: "https://cdn.example/icon.png"}
+    title: "🎉 歡迎 Alice 加入伺服器！"
+    description: "很高興在這裡看到你 <@1>！\n你是我們的第 **42** 位成員！\n請先閱讀規則：<#6>\n也不妨到處看看喔！\n"
+    thumbnail: {url: "https://cdn.example/alice.png"}
+    color: 5763719
+bye:
+  en-US:
+    author: {name: "guild", icon_url: "https://cdn.example/icon.png"}
+    title: "😢 Alice left"
+    description: "Hope we can see each other again in the future...\n"
+    thumbnail: {url: "https://cdn.example/alice.png"}
+    color: 15548997
+  zh-TW:
+    author: {name: "guild", icon_url: "https://cdn.example/icon.png"}
+    title: "😢 Alice 離開了我們"
+    description: "但願我們能在未來的道路上相見...\n"
+    thumbnail: {url: "https://cdn.example/alice.png"}
+    color: 15548997
