@@ -52,9 +52,6 @@ def warned_keys(caplog: pytest.LogCaptureFixture) -> set[str]:
     return {message.split(marker)[-1] for message in caplog.messages if marker in message}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The config lists the administrators"
-)
 async def test_v3_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config lists the administrators."""
     with caplog.at_level(logging.WARNING):
@@ -66,7 +63,6 @@ async def test_v3_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFi
     assert warned_keys(caplog) == {"enabled", *SHEETS_KEYS}
 
 
-@pytest.mark.xfail(strict=True, reason="The config lists the administrators")
 async def test_bundled_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config lists the administrators."""
     bot = await load_plugin("Economy", tmp_path / "plugins", store)
@@ -75,9 +71,6 @@ async def test_bundled_file(tmp_path: Path, store: Store, caplog: pytest.LogCapt
     assert "admin_id: Tuple should have at least 1 item after validation, not 0" in caplog.text
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The config lists the administrators"
-)
 async def test_default_limit(tmp_path: Path, store: Store) -> None:
     """Requirement: The config lists the administrators."""
     bot = await load_plugin("Economy", tmp_path / "plugins", store, config="admin_id: [7]\n")
@@ -87,9 +80,6 @@ async def test_default_limit(tmp_path: Path, store: Store) -> None:
     assert config.board_user_show_limit == 10
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The config lists the administrators"
-)
 @pytest.mark.parametrize("limit", [1, 25])
 async def test_limit_range(limit: int, tmp_path: Path, store: Store) -> None:
     """Requirement: The config lists the administrators."""
@@ -100,7 +90,6 @@ async def test_limit_range(limit: int, tmp_path: Path, store: Store) -> None:
     assert loaded_config(bot).board_user_show_limit == limit
 
 
-@pytest.mark.xfail(strict=True, reason="The config lists the administrators")
 @pytest.mark.parametrize(
     ("text", "error"),
     [
