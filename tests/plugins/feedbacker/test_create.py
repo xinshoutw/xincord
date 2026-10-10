@@ -36,7 +36,6 @@ REPLIES = GOLDEN["config"]
 ADMINISTRATOR = discord.Permissions(administrator=True)
 EN = discord.Locale.american_english
 ZH = discord.Locale.taiwan_chinese
-XFAIL = pytest.mark.xfail(strict=True, raises=NotImplementedError)
 
 
 def command(
@@ -87,7 +86,6 @@ def response(text: str) -> tuple[str, dict[str, object]]:
     return ("edit_original_response", {"content": text})
 
 
-@XFAIL(reason="Administrators post a feedback form")
 @pytest.mark.parametrize("locale", [EN, ZH])
 async def test_form_posted(cog: Feedbacker, locale: discord.Locale) -> None:
     """Requirement: Administrators post a feedback form."""
@@ -115,7 +113,6 @@ async def test_form_posted(cog: Feedbacker, locale: discord.Locale) -> None:
     assert view.is_finished()  # the core routes its presses, not discord.py
 
 
-@XFAIL(reason="Only administrators post forms")
 async def test_member_without_administrator(cog: Feedbacker) -> None:
     """Requirement: Only administrators post forms."""
     guild = FakeGuild()
@@ -126,7 +123,6 @@ async def test_member_without_administrator(cog: Feedbacker) -> None:
     assert interaction.sent == [response(REPLIES["form_no_permission"])]
 
 
-@XFAIL(reason="A form that cannot be posted is reported")
 async def test_not_a_member(cog: Feedbacker, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A form that cannot be posted is reported."""
     interaction = command(FakeGuild())
@@ -138,7 +134,6 @@ async def test_not_a_member(cog: Feedbacker, caplog: pytest.LogCaptureFixture) -
     assert "stranger (8)" in caplog.text
 
 
-@XFAIL(reason="A form that cannot be posted is reported")
 async def test_not_a_text_channel(cog: Feedbacker, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A form that cannot be posted is reported."""
     guild = FakeGuild()
@@ -152,7 +147,6 @@ async def test_not_a_text_channel(cog: Feedbacker, caplog: pytest.LogCaptureFixt
     assert "reviews (6)" in caplog.text
 
 
-@XFAIL(reason="A form that cannot be posted is reported")
 async def test_channel_refuses_the_form(cog: Feedbacker, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A form that cannot be posted is reported."""
     guild = FakeGuild()
@@ -166,7 +160,6 @@ async def test_channel_refuses_the_form(cog: Feedbacker, caplog: pytest.LogCaptu
     assert "Missing Permissions" in caplog.text
 
 
-@XFAIL(reason="A form that cannot be posted is reported")
 async def test_channel_takes_no_messages(cog: Feedbacker, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A form that cannot be posted is reported."""
     guild = FakeGuild()
