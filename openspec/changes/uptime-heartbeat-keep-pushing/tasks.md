@@ -21,11 +21,11 @@
 
 ## 4. Checks and docs
 
-- [ ] 4.1 Run the plugin's pushes against real aiohttp errors (a malformed answer, a connect
+- [x] 4.1 Run the plugin's pushes against real aiohttp errors (a malformed answer, a connect
       timeout, a refused connection) in a scratch probe and check that no line holds the token
-- [ ] 4.2 Porting guide: differences rows, the aiohttp pitfall and the loop convention; port-plugin
+- [x] 4.2 Porting guide: differences rows, the aiohttp pitfall and the loop convention; port-plugin
       skill notes
-- [ ] 4.3 Audit: every scenario of the delta has a test
+- [x] 4.3 Audit: every scenario of the delta has a test
 
 ## 5. Close
 

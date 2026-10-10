@@ -127,6 +127,34 @@ An operator's existing `plugins/UptimeHeartbeat/config.yaml` keeps its old comme
 - `test_request.py`: a local TCP server answers garbage; aiohttp's real `ClientResponseError`
   reaches the log with the origin only.
 - `test_lifecycle.py`: of three listeners, the one answered 404 keeps its loop after the warning.
+- A scratch probe (not committed) ran pushers through aiohttp on 2026-10-10: a local monitor
+  answering 404, 404, 200, 521, 521, 302 and 200 while the ping failed twice, a server answering
+  garbage, a closed port, a TLS handshake that never answered (connect limit 0.3 seconds) and an
+  unexpected error that named the URL. Each failure was logged once at its level and repeated at
+  debug level; `works again after 2 failed pushes` and `after 3 failed pushes`, the ping's one
+  warning and `measures the REST ping again` came as designed; the log held neither the token nor
+  the user info (`Connection timeout to host https://127.0.0.1:<port>`,
+  `url='http://127.0.0.1:<port>'`).
+
+### Audit
+
+Every scenario of the delta has a test (`tests/plugins/uptime_heartbeat/`):
+
+- The URL carries the REST ping: `test_ping_in_the_url`, `test_failed_ping`,
+  `test_no_placeholder`, `test_measured_round_trip`.
+- The status code decides what follows: `test_success`, `test_not_found`, `test_monitor_offline`,
+  `test_other_status`, `test_network_error`, `test_unexpected_error`; that the listener keeps
+  pushing after each of them: `test_first_push_at_once`, `test_pushing_goes_on_after_a_404` and
+  `test_every_attempt_is_followed_by_the_delay`.
+- Each listener pushes at once, then after a fixed delay: `test_first_push_at_once`,
+  `test_fixed_delay`, `test_pushing_goes_on_after_a_404`,
+  `test_every_attempt_is_followed_by_the_delay`, `test_independent_listeners`.
+- Logs show only the URL's origin: `test_pushes_that_fail_or_work`, `test_port_and_user_info`,
+  `test_url_in_an_errors_text`, `test_malformed_answer` (real aiohttp), `test_url_in_a_traceback`,
+  and `test_origin` and `test_redact` for the functions.
+- A failure is logged when it starts, changes or ends: `test_repeated_failure`,
+  `test_another_kind_of_failure`, `test_pushing_works_again`, `test_ping_fails_repeatedly`, and
+  `test_repeated_failure_is_not_new`, `test_another_kind_is_new` and `test_clear` for `Failures`.
 
 ## v3 behaved differently
 

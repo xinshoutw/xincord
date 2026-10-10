@@ -350,9 +350,16 @@ async def setup(bot: Bot) -> None:
   sleep(seconds)`. `discord.ext.tasks.loop` schedules from each start (a fixed rate). Pass the
   loop's effects in (the request, the ping, `sleep`) so that tests drive it on a fake clock
   (UptimeHeartbeat's `Pusher`).
-- A failed step is logged and the loop goes on: catch the expected errors (`aiohttp.ClientError`,
-  `OSError`, timeouts included) without a traceback and any other `Exception` with
-  `logger.exception`. `asyncio.CancelledError` is no `Exception`, so cancellation stays quiet.
+- A failed step is logged and the loop goes on, whatever failed: catch the expected errors
+  (`aiohttp.ClientError`, `OSError`, timeouts included) without a traceback and any other
+  `Exception` with its traceback. `asyncio.CancelledError` is no `Exception`, so cancellation stays
+  quiet. A step that fails at every pass logs its failure when it starts or changes kind (status
+  code, error type), at debug level while it repeats, and once at info level when it works again
+  (UptimeHeartbeat's `Failures`, one per step on the loop's object).
+- A URL that carries a secret (a push token in its path or query) appears in logs as its origin
+  (UptimeHeartbeat's `logs.origin`). Cut the URLs out of error texts too (`logs.redact`: aiohttp's
+  connect timeout names the whole URL), and log an unexpected error's traceback as redacted text
+  (`format_traceback`), since `logger.exception` prints it as it is.
 - Outgoing HTTP uses aiohttp, which discord.py installs and `xincord-plugins` declares: one
   `ClientSession` per loop, opened after READY with v3's limits as `ClientTimeout` and closed with
   the loop (`async with`); `allow_redirects=False` matches Java's `HttpClient`.
@@ -486,7 +493,10 @@ async def setup(bot: Bot) -> None:
   calls; `http_fakes.running_monitor()` runs `Monitor`, a local HTTP server that answers each path
   with a status, can leave requests unanswered (answered when it closes, or its teardown waits for
   the client's timeout) and records them. Never sleep in real time: inject the clock, and wait on
-  events (`monitor.received(n)`, `ready.waiters(n)`) under a timeout. `bot.remove_cog(name)` runs
+  events (`monitor.received(n)`, `ready.waiters(n)`, `plugin_fakes.until(...)` for a log line) under
+  a timeout. `test_pusher.py`'s `Fakes` answer the pushes and the pings in turn (`answers`,
+  `pings`); a local `asyncio.start_server` that answers garbage gives aiohttp's real error for a
+  malformed answer (`test_request.py`). `bot.remove_cog(name)` runs
   `cog_unload` without unloading the plugin's modules.
 - `tests/fixtures/plugins/<package>/golden.yaml`, loaded with `plugin_fakes.golden("<package>")`:
   v3's text per locale. Compare rendered embeds and buttons, and the command payload from
