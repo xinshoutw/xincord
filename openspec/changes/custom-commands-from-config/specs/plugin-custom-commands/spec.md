@@ -107,10 +107,10 @@ the message, the plugin SHALL log a warning and edit the deferred response into 
 
 ### Requirement: A command can answer with a public or an ephemeral reply
 An entry's `reply` SHALL be `channel`, `public` or `ephemeral`. The command tree SHALL not defer a
-`public` command, which defers publicly itself and edits that response into its message, rendered
-in the default locale. An `ephemeral` command SHALL edit the tree's ephemeral deferred response
-into its message, rendered in the user's locale when the template exists there and in the default
-locale otherwise. Neither posts in the channel.
+`public` command, which defers publicly and edits that response into its message in the default
+locale. An `ephemeral` command SHALL edit the tree's ephemeral deferral into its message in the
+user's locale, else the default one. When Discord refuses an edited response, the plugin SHALL log
+a warning and delete it.
 
 #### Scenario: Public reply
 - **WHEN** a command with `reply: public` runs
@@ -126,20 +126,24 @@ locale otherwise. Neither posts in the channel.
 - **WHEN** a Japanese user runs that command and the template has no ja file
 - **THEN** the response is the zh-TW message
 
+#### Scenario: Refused response
+- **WHEN** Discord refuses the edit of a public reply's response, or of a post's fallback
+- **THEN** a warning names the command, and the response is deleted
+
 #### Scenario: Unknown answer
 - **WHEN** an entry sets `reply: dm`
 - **THEN** the plugin does not load and the log names `commands.0.reply`
 
 ### Requirement: The config is validated at load
 The plugin SHALL not load, and its error SHALL name the file and the key, when `commands` is
-missing, a name or localized name breaks Discord's command name rules, a description is empty or
-over 100 characters, a locale is not Discord's, a permission is unknown, a guild ID is not
-positive, two commands share a name in a locale, over 100 commands are listed, or a command's
-template is missing from the default locale or holds component IDs or models.
+missing, a name or localized name breaks Discord's name rules, a description is empty or over 100
+characters, a locale is not Discord's, a permission is unknown, a guild ID is not positive, two
+commands share a name in a locale, the commands exceed the room left of Discord's 100, or a
+command's template is missing from the default locale or fails to render.
 
 #### Scenario: Invalid names and descriptions
-- **WHEN** an entry's name is `Pay Now`, its zh-TW name holds a space, or its description is empty
-  or 101 characters long
+- **WHEN** an entry's name is `Pay Now` or ends with a line break, its zh-TW name holds a space,
+  or its description is empty or 101 characters long
 - **THEN** the plugin does not load and the log names `commands.0.name`,
   `commands.0.localizations.zh-TW.name` or `commands.0.description`
 
@@ -153,7 +157,7 @@ template is missing from the default locale or holds component IDs or models.
 - **THEN** the plugin does not load and the log names the second entry's key
 
 #### Scenario: Too many commands
-- **WHEN** 101 entries are listed
+- **WHEN** 100 entries are listed, while the core's `/xincord` takes one of the 100 places
 - **THEN** the plugin does not load and the log names `commands`
 
 #### Scenario: Missing template
@@ -161,8 +165,13 @@ template is missing from the default locale or holds component IDs or models.
 - **THEN** the plugin does not load and the log names `commands.0.template`
 
 #### Scenario: Template that cannot be posted
-- **WHEN** a command's template, in any locale, has a button with a `uid` or a `model_key`
-- **THEN** the plugin does not load and the log names the template's file and the key
+- **WHEN** a command's template, in any locale, has a button with a `uid`, a `model_key`, a file
+  that does not exist, or six rows of buttons
+- **THEN** the plugin does not load and the log names the template's file and the problem
+
+#### Scenario: Link button with a uid
+- **WHEN** a command's template has a link button that also has a `uid`, which is not used
+- **THEN** the plugin loads
 
 #### Scenario: Missing commands
 - **WHEN** `config.yaml` holds only v3's `enabled: true`

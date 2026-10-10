@@ -1,11 +1,11 @@
 ## MODIFIED Requirements
 
 ### Requirement: Hot reload follows dependencies and intents
-Reloading a plugin SHALL reload it and then every loaded plugin that depends on it, in load order;
-a failed reload SHALL keep the previous version and stop, and the previous version SHALL get the
-config and lang that it loaded before, not the files that broke the new one. When the previous
-version fails too, the plugin SHALL be unloaded and the error SHALL say so. Loading a plugin after
-startup SHALL be refused when it needs intents the bot lacks, or a dependency that is not loaded.
+Reloading a plugin SHALL reload it and then every loaded plugin that depends on it, in load order.
+A failed reload SHALL keep the previous version and stop; the previous version SHALL get the
+config, lang and templates it loaded, not the files that broke the new one. When it fails too, the
+plugin and the plugins that depend on it SHALL be unloaded, and the error SHALL say so. A hot load
+SHALL be refused when the plugin needs intents the bot lacks or a dependency that is not loaded.
 
 #### Scenario: Reload with dependents
 - **WHEN** Alpha is reloaded and Beta depends on Alpha
@@ -16,15 +16,22 @@ startup SHALL be refused when it needs intents the bot lacks, or a dependency th
 - **THEN** the reload fails naming Alpha and Alpha's previous version stays loaded
 
 #### Scenario: Broken files keep the previous version
-- **WHEN** Alpha's `config.yaml` or lang files no longer validate and Alpha is reloaded
+- **WHEN** Alpha's `config.yaml`, lang files or templates no longer validate and Alpha is reloaded
 - **THEN** the reload fails naming the file, and Alpha's previous version runs its setup again
-  with the config and lang it had
+  with the config, lang and templates it had
 
 #### Scenario: Previous version fails too
 - **WHEN** a reload fails and Alpha's previous version fails again, as when a file that Alpha
-  reads itself is gone
-- **THEN** Alpha is unloaded, with nothing of it left in the bot, the error says so, and loading
-  Alpha again works once the file is back
+  reads itself is gone, and Beta depends on Alpha
+- **THEN** Alpha and Beta are unloaded, with nothing of them left in the bot and its modules, the
+  error names both and says that a full reload loads them, and a full reload loads both again once
+  the file is back
+
+#### Scenario: Moved plugin
+- **WHEN** Alpha's entry point names another module than the one Alpha loaded from, and the bot
+  reloads
+- **THEN** Alpha's reload fails with an error, and its previous version keeps running with its
+  routes
 
 #### Scenario: Hot load needs the intents
 - **WHEN** a plugin that needs the members intent, or one whose dependency is not loaded, is loaded

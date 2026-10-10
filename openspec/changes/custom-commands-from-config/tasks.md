@@ -57,11 +57,29 @@
 - [x] 10.2 Image check: `docker compose build` and `docker compose run --rm -T bot --no-online`
 - [x] 10.3 Porting guide rows and conventions, port-plugin skill notes; audit the scenarios and the
       inventory against the tests and `design.md`
-- [ ] 10.4 Cross-review (a subagent) and its fixes
+- [x] 10.4 Push the work so far (CI green); cross-review (a subagent); record its findings in the
+      deltas and `design.md`
 
-## 11. Close
+## 11. Cross-review fixes
 
-- [ ] 11.1 Gate passes, push, CI green
-- [ ] 11.2 Archive the change and run `openspec validate --all --strict`
-- [ ] 11.3 Update `HANDOFF.md`, `docs/porting/owner-review.md` and the port-plugin skill; push; CI
+- [ ] 11.1 xfail tests for "Hot reload follows dependencies and intents" and "Reloads upload the
+      commands and never overlap": broken templates, dependents, modules, the upload, a moved
+      entry point
+- [ ] 11.2 Replay the templates, unload dependents and modules, upload after an unloading reload,
+      guard a moved entry point; remove the markers
+- [ ] 11.3 xfail tests for "Lang files are validated at load" (combining marks, line breaks) and
+      "The config is validated at load" (a trailing line break, templates that fail to render, a
+      link button with a `uid`, the room left)
+- [ ] 11.4 Follow Discord's scripts in `is_command_name`, check the configured name with it,
+      render the templates at load and count the room left; remove the markers
+- [ ] 11.5 xfail tests for "A command can answer with a public or an ephemeral reply": refused
+      responses
+- [ ] 11.6 Log and delete a refused response; remove the markers
+- [ ] 11.7 The bundled config's comment on `"no"`; porting guide and skill notes
+
+## 12. Close
+
+- [ ] 12.1 Gate passes, push, CI green
+- [ ] 12.2 Archive the change and run `openspec validate --all --strict`
+- [ ] 12.3 Update `HANDOFF.md`, `docs/porting/owner-review.md` and the port-plugin skill; push; CI
       green

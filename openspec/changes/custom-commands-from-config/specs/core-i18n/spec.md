@@ -21,7 +21,8 @@ rules and every `description` SHALL have 1 to 100 characters. The name check SHA
 #### Scenario: Public name check
 - **WHEN** a plugin checks names with `is_command_name`
 - **THEN** it accepts the names that `register.yaml` accepts, such as `my-calc_2` and `o'clock`,
-  and refuses the others, such as `Calc`, `my calc` and 33 letters
+  and refuses the others, such as `Calc`, `my calc`, 33 letters, a line break, and a combining
+  mark outside the Devanagari and Thai scripts, which Discord refuses
 
 ## ADDED Requirements
 

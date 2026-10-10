@@ -88,17 +88,23 @@ logs the error and disables the plugin.
   entry localizes, the name that clients of that locale see (the localized name, else the base
   name). Discord refuses a guild's whole upload when two commands share a name, and two commands
   that look the same would confuse members anyway.
-- At most 100 commands. Discord takes 100 slash commands per guild, and discord.py's tree refuses
-  the 101st command because the core keeps every plugin's commands in it (guild lists are a filter
-  of the upload, below). The other plugins' commands and `/xincord` share that limit; the plugin
-  cannot count them, because it may load first, and discord.py's `CommandLimitReached` then names
-  no key.
+- No more commands than the room left: Discord takes 100 slash commands per guild, and
+  discord.py's tree refuses the 101st, because the core keeps every plugin's commands in it (guild
+  lists are a filter of the upload, below). The check counts the commands that the tree already
+  holds when the plugin loads (`/xincord` and the plugins loaded before), so the error names
+  `commands` instead of discord.py's `CommandLimitReached`; a plugin that loads later and finds no
+  room fails with discord.py's error.
 - Templates: the template of each command exists in the default locale (the fallback of every
-  other locale); in every locale where it exists, it holds no `uid` (a component that needs an ID
-  builder and a handler) and no `model_key` (a model the plugin cannot supply), found by walking
-  the parsed template's fields. v3 had no ID manager in this plugin either, and such a template
-  failed at each use. Link buttons, V2 buttons with a fixed `custom_id`, files and placeholders
-  pass. `Templates.load` already refuses malformed templates with the file named.
+  other locale), and in every locale where it exists it renders once at load, with no placeholder
+  values, no ID builder and no models: a component with a `uid` (it needs an ID builder and a
+  handler), a `model_key`, a `file_path` that does not exist and too many rows or components all
+  fail there, with the file and discord.py's or the core's reason named, instead of at each use.
+  v3 had no ID manager in this plugin either. Link buttons (a stray `uid` on one is not used), V2
+  buttons with a fixed `custom_id`, files that exist and placeholders pass; the rendered files are
+  closed at once. `Templates.load` already refuses malformed templates with the file named.
+- Unknown keys inside an entry (a misspelled `guild:` or `replay:`) warn, as decision B6 says for
+  every config file (`unknown key commands.0.guild`), and the entry keeps its default: every guild,
+  a post in the channel. Refusing them would make an exception to B6; the review queue asks.
 
 ### Commands
 
@@ -128,6 +134,9 @@ entries by name for the callback, which reads `interaction.command.name`.
 
 Posts and public replies use the default locale for every user, as v3 did for its posts, since
 everyone reads them; only an ephemeral reply, which only the user sees, follows the user's locale.
+When Discord refuses the edited response (a public or ephemeral reply, or a post's fallback), the
+plugin logs a warning that names the command and deletes the response, so that no "thinking"
+message stays, which a public reply would leave in the channel for everyone.
 
 ### Placeholders
 
@@ -165,6 +174,10 @@ makes config reloads the operator's way to change CustomCommands.
 
 - `PluginContext` records what `config(model)` (by the model's qualified name) and `lang(locale)`
   returned; `replaying()` gives a context that hands those back instead of reading the files.
+  `Templates.load(lang)` parses a `Lang`'s templates once (a weak table by `Lang` object): every
+  load reads a new `Lang`, and the replayed one gets the templates that the previous version had,
+  so that a broken template, the likeliest mistake in CustomCommands' files, keeps the previous
+  version too.
 - `Bot._reload` gives the new version a fresh context and keeps the previous one, which
   `plugin_context(module)` returns, replaying, while discord.py runs the previous setup. discord.py
   removes the extension's modules from `sys.modules` before that call and restores them only after
@@ -174,14 +187,17 @@ makes config reloads the operator's way to change CustomCommands.
   and the core test "Broken files keep the previous version" fails.
 - When discord.py restored the previous version, the core keeps its context, with its recorded
   reads, and reports `plugin X failed to reload: ...` (the new version's error, which names the
-  file and the key). When the previous version fails too, the core removes what that setup added
-  (discord.py's `_remove_module_references`), forgets the plugin and reports `plugin X failed to
-  reload and is unloaded: ...`; a full reload, or `load_plugin`, loads it again.
-- Templates are not replayed: `Templates.load(lang)` parses again the files that the previous lang
-  lists, so a broken template that the previous version used unloads the plugin. Replaying them
-  would need plugins to load templates through their context.
-- Plugins that depend on one that a failed reload unloaded stay loaded, as the reload stops at the
-  failure; their own reload or a full reload sorts them out.
+  file and the key). When the previous version fails too (a file that the plugin reads itself, or
+  code that fails), the core removes what that setup added (discord.py's
+  `_remove_module_references`) and the plugin's modules from `sys.modules`, forgets the plugin,
+  unloads the loaded plugins that depend on it (last loaded first), and reports `plugin X failed to
+  reload and is unloaded, with Y, until a full reload: ...`; a full reload loads them again (the
+  autocomplete of `/xincord reload` lists loaded plugins only, and a named reload refuses one that
+  is not loaded). A reload that unloaded plugins uploads the commands when the bot is ready, as
+  every reload does, so that Discord stops listing theirs.
+- A plugin whose entry point names another module than the one it loaded from (an upgrade in place
+  followed by a reload) fails its reload with a `PluginError` before its routes are dropped; a
+  restart loads the new module.
 
 ### Migration
 
@@ -243,6 +259,38 @@ those fall back to zh-TW.
   make discord.py import the plugin's modules again; the reload tests look the new cog up by name.
 - Golden data (`golden.yaml`) is unchanged: the bundled config must give v3's payloads and embeds.
 
+### Cross-review (a subagent, 2026-10-11)
+
+A review of the pushed work, aimed at other paths into the features, retries and residual state,
+found ten problems; this change fixes nine and lists the tenth for the owner:
+
+1. A named reload that unloaded a plugin did not upload the commands, and only a full reload, which
+   the error did not mention, could load it again; a template typo, the likeliest mistake, led
+   there: templates are replayed now, a reload that unloads uploads, and the error says to run a
+   full reload.
+2. Plugins that depend on one that a failed reload unloaded stayed loaded and a full reload
+   reloaded them without it: they are unloaded with it and named (no bundled plugin declares
+   `DEPENDS` yet).
+3. A misspelled key inside an entry only warns and the entry gets the broadest default: kept, as
+   decision B6 says; listed for the owner.
+4. "Can be posted" meant no `uid` and no `model_key`: missing files and six rows passed, and a link
+   button with an unused `uid` was refused; each template now renders once at load.
+5. A refused edit left a public "thinking" message in the channel: logged and deleted.
+6. A plugin whose entry point moved between start and reload raised `KeyError` out of `Bot.reload`
+   (a regression of this change): a `PluginError` before the routes are dropped.
+7. A dropped plugin left new submodules in `sys.modules`, which the next load reused: removed.
+8. YAML reads an unquoted `no:` (Norwegian) as false: the bundled comment says to quote it.
+9. The limit ignored the commands already in the tree: it counts them.
+10. A name ending in a line break passed discord.py's check (its pattern ends in `$`), and a
+    localized name with a combining mark outside Devanagari and Thai passed the core's: both
+    refused (`is_command_name` follows Discord's scripts, and checks the configured name too).
+
+The review also found sound: the replay's detection in the other paths (a first load, two
+`plugin_context` calls in one setup, new code failing at import, dependents reloaded after their
+dependency), the restored context, `_drop`'s cleanup of cogs, commands, listeners, routes and
+contexts, the reload lock across SIGHUP, the console and `/xincord`, the per-guild hashes, the
+duplicate-name logic, permission aliases, `commands: []` and reruns of the migration.
+
 ## Left out
 
 - Command options (arguments) and placeholders for their values: a schema for option types,
@@ -280,15 +328,18 @@ those fall back to zh-TW.
 4. Templates may use the user's and the channel's placeholders (`%user_mention%`, `%user_name%`,
    `%channel_name%`, ...).
 5. `lang/zh-TW/register.yaml` is no longer bundled or read.
-6. A config error, or a template with a `uid` or a `model_key`, disables the plugin with the file
-   and the key in the log; a broken edit followed by a reload keeps the commands that were loaded.
+6. A config error, or a template that cannot be rendered (a `uid`, a `model_key`, a missing file,
+   too many rows), disables the plugin with the file and the key or the reason in the log; a
+   broken edit followed by a reload keeps the commands that were loaded; a refused response is
+   deleted, with a warning.
 7. `python -m xincord.core.migrate_v3` renames v3's `plugins/CustomCommands/config.yaml` (only
    `enabled`) to `config.v3.yaml`, with a report line.
-8. Every plugin: a reload whose `config.yaml` or lang files are broken keeps the previous version
-   running with its old config and lang, and its summary names the file and the key; when the
-   previous version fails too, the summary says `... failed to reload and is unloaded: ...` and a
-   later reload loads it again (before: the plugin vanished, still listed as loaded, until a
-   restart).
+8. Every plugin: a reload whose `config.yaml`, lang files or templates are broken keeps the
+   previous version running with its old config, lang and templates, and its summary names the
+   file and the key; when the previous version fails too, the summary says `... failed to reload
+   and is unloaded ... until a full reload: ...`, the plugins that depend on it go too, the
+   commands are uploaded without theirs, and a full reload loads them again (before: the plugin
+   vanished, still listed as loaded, and nothing but a restart brought it back).
 
 ## Risks / Trade-offs
 
@@ -299,8 +350,9 @@ those fall back to zh-TW.
   (discord.py's `CommandAlreadyRegistered`), in the order of the core config's `plugins` list.
 - A copied v3 `register.yaml` edited after the cutover changes nothing; the bundled config's
   comment says where the names live.
-- A broken template that the loaded commands use, followed by a reload, unloads the plugin until a
-  reload with the template fixed (templates are not replayed; see "Failed reloads").
+- A failed reload whose previous version fails too unloads the plugin until a full reload (see
+  "Failed reloads"); with the config, the lang and the templates replayed, that takes a file that
+  the plugin reads itself or broken code.
 
 ## Manual smoke checklist
 
