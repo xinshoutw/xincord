@@ -33,6 +33,10 @@ what is stored or logged.
 
 ### Core API: a data directory per plugin
 
+`Store.run` (and the plugin's `transaction`) roll back when the commit itself fails, as when
+another program holds a lock on the file past the 5-second wait (found in the cross-review): the
+write transaction stayed open, and the next call's commit applied the failed call's writes.
+
 `PluginContext.data_directory: Path` is `<data>/<Name>/`, where `<data>` is the bot's new
 keyword-only argument `Bot(..., data=...)`. The program passes `data/` (`cli.DATA`), the directory
 that already holds `xincord.db` and that the container keeps in the `data` volume; `DATABASE` is
@@ -89,9 +93,13 @@ file can take that file a little beyond the limit.
 
 The new file is created as `messages-<start>.db.tmp`, given its table and closed, then renamed to
 its name and opened: a name in the directory is always a complete file, and SQLite's journal, which
-follows the path a connection opened, never meets a renamed file. When creating it fails (a full
-disk), the stored message stays, the failure is logged with its traceback, and the next message
-stored in the full file tries again.
+follows the path a connection opened, never meets a renamed file. A temporary file that a failed or
+interrupted attempt left is removed when the files open and before its name is built again; a file
+that cannot be opened after its rename is removed, so that a restart never reads a range away from
+the messages that the full file takes meanwhile. When creating it fails (a full disk), the stored
+message stays and the next message stored in the full file tries again; the first failure is logged
+with its traceback, the later ones of the same episode at debug level, and the file that finally
+starts at info level. An attempt costs about a millisecond, so there is no back-off.
 
 The default, 256 MiB, keeps a file easy to copy or open in a database browser and leaves a small
 guild in one file for years; it bounds the space that deleted rows leave in a file until the whole
@@ -113,7 +121,9 @@ the table where it is missing; a corrupt file fails the load and stays as it is)
 READY checks of a ready bot (closing the files again if they fail), then starts the retention loop.
 `cog_unload` cancels the loop and closes the files: `close` refuses new work at once and closes the
 connections in a job queued after the work already submitted, so a message being stored when the
-plugin unloads is stored. Work that comes later (a listener task of the unloaded version) raises
+plugin unloads is stored. The job runs even when the caller is cancelled (a shutdown during a
+reload), and a cancelled `open` queues the same job after its own, so that what it opened closes.
+A file that is not a database stops the load with an error that names it. Work that comes later (a listener task of the unloaded version) raises
 `RuntimeError` without touching the files, and discord.py logs it; the core loses events between an
 unload and the next load anyway. discord.py calls `cog_unload` when a plugin unloads, when a reload
 replaces it (before the new version's `cog_load`) and when setup fails after the cog was added; a
@@ -124,7 +134,9 @@ opening anything.
 
 `MessageFiles.prune(before)` first deletes each file whose range ends at or before `before` (the
 next file's start), never the newest: it closes the connection, takes the file out of the list,
-then deletes the file and a journal left beside it, with an info line per file. Then it deletes
+then deletes the file and a journal left beside it, with an info line per file; a file that cannot
+be deleted is logged with its name and stays on disk for the next start, and the others are still
+deleted. Then it deletes
 the expired rows of every file in batches of 1,000, each its own job, so inserts go on between
 them. The cog's loop is unchanged (READY, then hourly) and logs `sqlite3.Error` and `OSError` and
 tries again the next hour. Deleted rows leave free pages that SQLite reuses for new rows in that
@@ -148,23 +160,32 @@ wrote; there is no deployment to update.
 
 v3 kept `plugins/ChatLogger/data/<guildId>.db`, one table per channel named by the channel's ID,
 columns `message_id INT PRIMARY KEY, user_id INT, message TEXT, update_count INT` (inventory 8.1).
-The planned import, with the bot stopped:
+The planned import runs with the bot stopped, before ChatLogger ever ran on the volume:
 
-1. For each file whose stem is a guild ID, open it read-only and read every table whose name is a
-   channel ID (quoted: the names are numbers); skip other files and tables with a line in the
-   report.
-2. Keep the rows younger than the configured `retention_days`, by their IDs; count the others.
-3. Sort the kept rows of every guild together by message ID and store them with `MessageFiles`
-   through a bulk insert that routes each row as `add` does and starts files at the size limit as
-   `add` does, each row `(message_id, guild_id from the file name, channel_id from the table,
-   user_id, message, update_count)`; `INSERT OR IGNORE` makes a second run add nothing. Into an
-   empty `data/ChatLogger/`, as before the cutover, this writes the same files that live operation
-   would have, the first named after the oldest kept message; rows older than an existing file go
-   to the oldest file, as late messages do.
-4. The dry run prints, per guild, the rows to import, the rows expired and the files to write.
+1. It refuses (and the dry run reports) a `data/ChatLogger/` that holds message files: rows older
+   than an existing file would all go to the oldest one, which then holds years of history, cannot
+   expire as a whole for years and never shrinks (found in the cross-review). The operator moves
+   such files aside, which before the cutover only hold a test guild's messages.
+2. For each file whose stem is a guild ID, it copies the file with its journal to a scratch
+   directory and opens the copy read-write: v3 never closed its connections, so a hot journal can
+   sit beside a file, and SQLite cannot roll it back through a read-only connection. It reads
+   every table whose name is a channel ID (quoted: the names are numbers), each with `ORDER BY
+   message_id`; other files and tables get a line in the report.
+3. It keeps the rows younger than the configured `retention_days`, by their IDs, and counts the
+   others.
+4. It merges the tables' sorted rows of every guild into one stream ordered by message ID
+   (`heapq.merge`; v3's files were never pruned, so nothing is loaded whole) and appends them with
+   `MessageFiles` as `add` does, each row `(message_id, guild_id from the file name, channel_id
+   from the table, user_id, message, update_count)`, in transactions of a few thousand rows:
+   files start at the size limit exactly as in live operation, the first named after the oldest
+   kept message, and `INSERT OR IGNORE` makes a second run add nothing.
+5. The dry run prints the rows to import and the rows expired per guild, and the number of files
+   that all guilds' rows will fill together.
 
-v3's text was taken from the content or the embeds with its defects (inventory 12, item 14); the
-import copies it as it is, and later edits compare against it.
+v3 kept the text of deleted messages (its deletion only read the row), so the import brings them
+back, and they stay until the retention removes them; their deletion was handled by v3 and no
+later event removes them. v3's text was taken from the content or the embeds with its defects
+(inventory 12, item 14); the import copies it as it is, and later edits compare against it.
 
 ### Checks (2026-10-11)
 
@@ -178,6 +199,39 @@ import copies it as it is, and later edits compare against it.
   `/bot/data/ChatLogger/` in the named volume: five files, the full ones 64 KiB each, mode 644; an
   edit found the first message; the retention at 1,826 days deleted the four full files and 8 rows
   of the newest, which kept a message stored now. The test volume was removed afterwards.
+
+### Cross-review (a subagent, 2026-10-11)
+
+A review of the pushed work, aimed at other paths into the features, retries and residual state,
+found two problems of weight and five small ones; this change fixes them (tasks 8.1 to 8.7):
+
+1. A commit that failed (another program holding a read lock past the 5-second wait, such as a
+   database browser) left the write transaction open, and the next job's commit applied it: a
+   deletion was applied without its log. The plugin's `transaction` and the core's `Store.run`,
+   which had the same defect, roll back when the commit fails.
+2. The import plan put v3's whole history into the oldest file when `data/ChatLogger/` already held
+   files: the import refuses such a directory, opens copies of v3's files (a hot journal defeats a
+   read-only open), merges sorted cursors instead of sorting in memory, and says that v3's rows of
+   deleted messages come back until the retention ("Migration").
+3. A cancelled `open` or `close` left connections open: the closing job is queued whatever happens
+   to the caller.
+4. A corrupt file stopped the load without its name: the error names the file.
+5. A split that keeps failing logged a traceback at every message, which would rotate the other
+   logs away under compose's 30 MB: one error per episode.
+6. Temporary files left by a crash stayed until the same name came up: opening removes them. An
+   expired file that could not be deleted stopped the deletion of the others: each is tried.
+7. The failed load and the reload were tested without files on disk: they now have files and a
+   collection that fails on a leaked connection; a setup that fails after the cog was added and
+   `Bot.close` got tests; `decisions.md` records the owner's answer to B8 (Amendment 3).
+
+The review also found sound: routing, splitting and expiry in a randomized model check (200 seeds
+of 600 operations with late, out-of-order, old and replayed IDs, splits failing before and after
+the rename, batch sizes of 1, 3 and 1,000, and restarts: no message lost, duplicated, misrouted or
+unfindable, every row inside its file's range); `next_start` and the names over the whole 41-bit
+time range; every load and unload path (a hot reload, a failed reload with the previous version
+set up again, the core's `_drop`, `Bot.close`, `--no-online`, a failed load into a ready bot with
+files on disk: never two connections to one file, nothing left open); `inserting`; and a
+`--no-online` run beside a running bot, which neither changes the files nor waits.
 
 ### Tests
 
@@ -223,9 +277,13 @@ import copies it as it is, and later edits compare against it.
    reaches the size, and a file whose messages all expired is deleted. Backups must copy
    `data/ChatLogger/` too; a file is best copied while the bot is stopped.
 4. Log lines: `ChatLogger started the message file ...` and `ChatLogger deleted the message file
-   ..., whose messages all expired` (info), and an error when a new file cannot be created.
+   ..., whose messages all expired` (info); errors when a new file cannot be created (once per
+   episode) and when an expired file cannot be deleted; a corrupt file's error names it.
 5. The `ChatLogger_messages` table of earlier xincord builds is dropped from `data/xincord.db` at
    load; messages stored there are not kept.
+6. Every plugin: a store write whose commit fails (another program holding a lock on
+   `data/xincord.db` for more than 5 seconds) is rolled back and raises, instead of being committed
+   later by another write.
 
 ## Risks / Trade-offs
 

@@ -36,6 +36,9 @@ the other plugins, and a file whose messages have all expired is deleted as a wh
   (xincord has no deployed data).
 - `design.md` describes how the planned `xincord migrate` imports v3's
   `plugins/ChatLogger/data/<guildId>.db` files into the new layout.
+- **Core fix (found in the cross-review):** `Store.run` rolls back when its commit fails (another
+  process holding a lock past the wait), as the plugin's files do; before, the next call's commit
+  applied the failed call's writes.
 
 v3's message store, which this change replaces a second time:
 - `XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/DbManager.kt:22-67`
@@ -62,6 +65,7 @@ None.
   files (two modified requirements); the message files, the new file when one is full, and their
   lifecycle (three new ones).
 - `core-plugins`: a data directory for each plugin (one new requirement).
+- `core-storage`: a failed commit rolls back (one modified requirement).
 
 ## Impact
 

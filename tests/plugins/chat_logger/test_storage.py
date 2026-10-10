@@ -9,6 +9,7 @@ Kotlin:
 """
 
 import asyncio
+import gc
 import sqlite3
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
@@ -21,8 +22,12 @@ from xincord.core.bot import Bot
 from xincord.plugins.chat_logger.messages import MessageFiles
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
+
     from conftest import Loader, Scene
     from xincord.core.storage import Store
+
+    type WriteFile = Callable[[datetime, Sequence[int]], str]
 
 # The scenes' messages have small IDs, created at Discord's epoch, the first second of 2015.
 EPOCH_FILE = "messages-20150101T000000Z.db"
@@ -33,6 +38,25 @@ LONG = "x" * 4000  # about a page of a file
 def at(seconds: float) -> int:
     """The ID of a message created ``seconds`` after noon."""
     return time_snowflake(NOON + timedelta(seconds=seconds))
+
+
+def record_opens(monkeypatch: pytest.MonkeyPatch) -> list[MessageFiles]:
+    """The message files that the plugin opens from now on, in order."""
+    opened: list[MessageFiles] = []
+    real_open = MessageFiles.open
+
+    async def open_files(files: MessageFiles) -> None:
+        opened.append(files)
+        await real_open(files)
+
+    monkeypatch.setattr(MessageFiles, "open", open_files)
+    return opened
+
+
+def no_leak(opened: list[MessageFiles]) -> None:
+    """Let the files go: a connection left open would warn now, and the warning fails the test."""
+    opened.clear()
+    gc.collect()
 
 
 async def test_first_file(scene: Scene) -> None:
@@ -115,16 +139,16 @@ async def test_reload(scene: Scene) -> None:
     assert scene.cog.messages.is_open
     await scene.edit(100, 30, "hi")  # the new version finds the message stored before
     assert len(scene.posts(5)) == 1
+    del previous
+    gc.collect()  # the previous version's connections would warn here if left open
 
 
-async def test_failed_load(store: Store, load: Loader, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_failed_load(
+    store: Store, load: Loader, write_file: WriteFile, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Requirement: The message files are open while the plugin is loaded."""
-    opened: list[MessageFiles] = []
-    real_open = MessageFiles.open
-
-    async def open_files(files: MessageFiles) -> None:
-        opened.append(files)
-        await real_open(files)
+    write_file(NOON, [at(0)])  # a file for the load to open
+    opened = record_opens(monkeypatch)
 
     def is_ready(_bot: Bot) -> bool:
         return True
@@ -133,12 +157,45 @@ async def test_failed_load(store: Store, load: Loader, monkeypatch: pytest.Monke
         message = f"cannot read {namespace}"
         raise sqlite3.OperationalError(message)
 
-    monkeypatch.setattr(MessageFiles, "open", open_files)
     monkeypatch.setattr(Bot, "is_ready", is_ready)  # a reload: the guilds are checked at once
     monkeypatch.setattr(store, "keys", failing)
 
     bot = await load()
 
     assert bot.loaded == ()
-    assert len(opened) == 1
-    assert not opened[0].is_open
+    assert [files.is_open for files in opened] == [False]
+    no_leak(opened)
+
+
+async def test_setup_fails_after_the_cog(
+    load: Loader, write_file: WriteFile, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Requirement: The message files are open while the plugin is loaded."""
+    write_file(NOON, [at(0)])
+    opened = record_opens(monkeypatch)
+
+    def refuse(_bot: Bot, name: str) -> None:
+        message = f"cannot relay {name}"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr(Bot, "relay_gateway_event", refuse)  # the last step of setup
+
+    bot = await load()
+
+    assert bot.loaded == ()
+    assert [files.is_open for files in opened] == [False]  # discord.py removed the cog
+    no_leak(opened)
+
+
+async def test_bot_close(
+    load: Loader, write_file: WriteFile, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Requirement: The message files are open while the plugin is loaded."""
+    write_file(NOON, [at(0)])
+    opened = record_opens(monkeypatch)
+    bot = await load()
+
+    await bot.close()  # a stop, and the end of --no-online's check
+
+    assert [files.is_open for files in opened] == [False]
+    no_leak(opened)

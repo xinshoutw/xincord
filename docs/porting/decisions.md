@@ -1,7 +1,7 @@
 # xincord porting decisions
 
 Status: **accepted**. The owner submitted these through the Phase 1 decision page on 2026-10-10
-(Asia/Taipei). Two conflicts were resolved in chat the same day (see "Resolutions"), and two
+(Asia/Taipei). Two conflicts were resolved in chat the same day (see "Resolutions"), and three
 decisions were amended that afternoon (see "Amendments").
 
 - Raw submission (labels and notes in Traditional Chinese): `submissions/s1791569618147.json`
@@ -33,7 +33,7 @@ deviation from it; **[fact]** a factual answer.
 
 ## Amendments (2026-10-10, afternoon)
 
-The owner answered the review queue (`owner-review.md`) and changed two decisions:
+The owner answered the review queue (`owner-review.md`) and changed three decisions:
 
 1. **B18, plugin names.** These plugins take new names for their entry point (the name in the
    core config's `plugins` list), `plugins/<Name>/` directory, store namespace, new-format
@@ -49,6 +49,11 @@ The owner answered the review queue (`owner-review.md`) and changed two decision
    covers Economy's wallets and the other data worth keeping, such as channel bindings. B11's test
    plan stands: test against the local copy in `XsDiscordBotKt/Server/`; where it disagrees with
    the GitHub source, the source wins.
+3. **B8, ChatLogger's message log.** The log keeps messages for 5 years by default and lives in the
+   plugin's own SQLite files under its data directory inside the `data/` volume, a new file
+   starting automatically when the current one grows too large. This replaces `port-chat-logger`'s
+   answer to B8's open question (one table in the shared store, 30 days by default); built in
+   `chat-logger-split-storage` (2026-10-11).
 
 ## F. Facts
 
@@ -122,7 +127,8 @@ The owner answered the review queue (`owner-review.md`) and changed two decision
 - **B8 Storage** [rec]: SQLite (stdlib `sqlite3` + `asyncio.to_thread`) as the single store: a
   key-value document table plus per-plugin tables where queries need them; every write awaited;
   per-guild locks. Whether ChatLogger's large message log gets its own file is decided when that
-  plugin is ported.
+  plugin is ported. Amended on 2026-10-10 (afternoon): it gets its own files, kept 5 years by
+  default (Amendment 3).
 - **B9 Component IDs** [owner, see Resolution 4]: a new versioned format (<= 100 characters). The
   v3 decoder (`{prefix}{a..z}:{value};...`, short keys in each plugin's field declaration order,
   longs in lowercase hex) stays in the code permanently. When an interaction arrives with a legacy

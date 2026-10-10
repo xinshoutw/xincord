@@ -52,11 +52,29 @@
       run --rm -T bot --no-online` with ChatLogger, a probe that stores messages into the volume)
 - [x] 7.2 Porting guide rows and conventions, port-plugin skill notes; audit the scenarios against
       the tests and `design.md`
-- [ ] 7.3 Push the work so far (CI green); cross-review (a subagent); record its findings in the
+- [x] 7.3 Push the work so far (CI green); cross-review (a subagent); record its findings in the
       deltas and `design.md`
 
-## 8. Close
+## 8. Cross-review fixes
 
-- [ ] 8.1 Gate passes, push, CI green
-- [ ] 8.2 Archive the change and run `openspec validate --all --strict`
-- [ ] 8.3 Update `HANDOFF.md` and `docs/porting/owner-review.md`; push; CI green
+- [x] 8.1 Record the cross-review's findings in the deltas and `design.md` (with the corrected
+      import plan); `decisions.md` records the owner's answer to B8; tests for the paths that the
+      review found sound (a failed load and a reload with files on disk, a setup that fails after
+      the cog was added, `Bot.close`)
+- [ ] 8.2 xfail tests for "Stored messages live in the plugin's own files" and the core's "Plugins
+      can use their own tables": a commit that fails while another connection holds a lock
+- [ ] 8.3 Roll back a failed commit in `transaction` and in `Store.run`; remove the markers
+- [ ] 8.4 xfail tests for "The message files are open while the plugin is loaded" and "Stored
+      messages are kept for the retention period": a cancelled open or close, a corrupt file
+      named, leftover temporary files removed at open, a file that cannot be deleted
+- [ ] 8.5 Close what a cancelled open opened, name the corrupt file, clear the leftovers, try each
+      expired file on its own; remove the markers
+- [ ] 8.6 xfail tests for "A new message file starts when the newest is full": a split that keeps
+      failing is logged once until a file starts
+- [ ] 8.7 Log one error per failing episode; remove the markers
+
+## 9. Close
+
+- [ ] 9.1 Gate passes, push, CI green
+- [ ] 9.2 Archive the change and run `openspec validate --all --strict`
+- [ ] 9.3 Update `HANDOFF.md` and `docs/porting/owner-review.md`; push; CI green

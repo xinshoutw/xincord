@@ -32,11 +32,17 @@ plugin SHALL drop the table that held them in `data/xincord.db`.
 - **WHEN** `data/xincord.db` holds the `ChatLogger_messages` table of an earlier version
 - **THEN** loading the plugin drops it without copying its rows
 
+#### Scenario: Failed work
+- **WHEN** a change to a file cannot commit, as when another program holds a lock on the file past
+  the wait, and later work commits
+- **THEN** the error propagates and nothing of the failed change is kept
+
 ### Requirement: A new message file starts when the newest is full
 After a message is stored in the newest file, the plugin SHALL check that file's size, and once it
 holds `max_file_size_mb` or more, start a new file named after the second that follows the newest
-stored message's creation, so that no stored message moves. A new file that cannot be created
-SHALL be logged, the message SHALL stay stored, and the next message stored there SHALL try again.
+stored message's creation, so that no stored message moves. When the new file cannot be created,
+the message SHALL stay stored, the next message stored there SHALL try again, and one error SHALL
+be logged until a new file starts. Temporary files that failed attempts left SHALL be removed.
 
 #### Scenario: Full file
 - **WHEN** a message created at 12:00:05.250 brings the newest file to the size limit
@@ -48,15 +54,20 @@ SHALL be logged, the message SHALL stay stored, and the next message stored ther
 - **THEN** a second file starts
 
 #### Scenario: New file fails
-- **WHEN** the new file cannot be created
-- **THEN** an error is logged, the message stays stored in the full file, and the next message
+- **WHEN** the new file cannot be created, for two messages in a row
+- **THEN** one error is logged, both messages stay stored in the full file, and the next message
   stored there starts the new file
+
+#### Scenario: Leftover temporary files
+- **WHEN** the directory holds a temporary file that a failed or interrupted attempt left
+- **THEN** opening the files removes it, and so does building a new file of that name
 
 ### Requirement: The message files are open while the plugin is loaded
 The plugin SHALL open its message files when it loads, one connection per file on one thread of its
-own, and close them when it unloads, after the store work under way. A reload SHALL close the files
-before the new version opens them, and a load that fails SHALL leave none open. Store work that
-comes once they are closed SHALL fail and leave the files unchanged.
+own, and close them when it unloads, after the store work under way, even when opening or closing
+is cancelled. A reload SHALL close the files before the new version opens them, and a load that
+fails, such as on a file that is not a database, which the error names, SHALL leave none open.
+Store work that comes once they are closed SHALL fail and leave the files unchanged.
 
 #### Scenario: Unload
 - **WHEN** the plugin unloads while a message is being stored
@@ -74,6 +85,15 @@ comes once they are closed SHALL fail and leave the files unchanged.
 #### Scenario: After closing
 - **WHEN** a message comes once the files are closed
 - **THEN** storing it fails and the files are unchanged
+
+#### Scenario: Corrupt file
+- **WHEN** a message file is not a database
+- **THEN** the plugin does not load, the error names the file, no file stays open, and the file is
+  unchanged
+
+#### Scenario: Cancelled
+- **WHEN** opening or closing the files is cancelled
+- **THEN** every file that was opened is closed all the same
 
 ## MODIFIED Requirements
 
@@ -99,8 +119,9 @@ which a new message file starts, 256 by default and from 1 to 65536. v3's files 
 ### Requirement: Stored messages are kept for the retention period
 When the bot is ready, and every hour after, the plugin SHALL delete the stored messages created
 more than `retention_days` days ago, as their IDs tell, and delete each message file whose range
-ends before then. A failure SHALL be logged and the next hour SHALL try again; unloading the plugin
-SHALL stop this, and a load that fails SHALL not start it.
+ends before then; a file that cannot be deleted SHALL be logged, and the next start deletes it. A
+failure SHALL be logged and the next hour SHALL try again; unloading the plugin SHALL stop this,
+and a load that fails SHALL not start it.
 
 #### Scenario: Old messages
 - **WHEN** with the default 1826 days, messages created 1827 and 1825 days ago are stored and the
@@ -112,6 +133,10 @@ SHALL stop this, and a load that fails SHALL not start it.
   becomes ready
 - **THEN** the first file is deleted, the second keeps only its messages younger than 1826 days,
   and the third stays
+
+#### Scenario: Undeletable file
+- **WHEN** one of two expired files cannot be deleted
+- **THEN** an error names it, the other is deleted, and the next start deletes it
 
 #### Scenario: Every hour
 - **WHEN** an hour passes after READY
