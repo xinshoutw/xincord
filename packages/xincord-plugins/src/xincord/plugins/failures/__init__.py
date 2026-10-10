@@ -1,12 +1,8 @@
-"""What the plugin logs: failures when they start, change or end.
+"""Failure episodes: a step that keeps failing logs each kind of failure once, not at every pass.
 
 The owner decided on 2026-10-10 that a listener failing at every push must not log at every push
-(v3 did), and that logs show only a listener's scheme, host and port, since the path or the query
-of a push URL carries the monitor's push token (v3 logged whole URLs): ``xincord.plugins.redaction``
-cuts URLs to their origins.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/IntervalPusher.kt:99-123
+(UptimeHeartbeat); NtustAnnouncements' boards and Gemini attempts follow the same rule. This
+package is no plugin: it has no entry point, and the plugins that use it import it.
 """
 
 from dataclasses import dataclass, field
@@ -16,12 +12,12 @@ STEADY = 3  # successes in a row that end a failure episode
 
 @dataclass
 class Failures:
-    """One step of a listener (its pushes, or its pings) and its failure episode, if one is open.
+    """One repeated step (a listener's pushes, a board's page) and its failure episode, if open.
 
     An episode starts with a failure and ends once the step has worked ``STEADY`` times in a row.
     Only a failure whose kind (a status code or an error type) is new in the episode is logged at
-    its level, so that a listener that fails at every push, alternates two kinds of failure or
-    fails at every other push does not log at every push; the others go to the debug level.
+    its level, so that a step that fails at every pass, alternates two kinds of failure or fails
+    at every other pass does not log at every pass; the others go to the debug level.
     """
 
     kinds: set[object] = field(default_factory=set[object])  # the kinds logged in the episode

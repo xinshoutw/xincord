@@ -6,8 +6,8 @@ Kotlin:
 
 import pytest
 
+from xincord.plugins.failures import Failures
 from xincord.plugins.redaction import origin, private_parts, redact
-from xincord.plugins.uptime_heartbeat.logs import Failures
 
 # A URL with a quote in its path: Python's repr, which aiohttp's texts use, then quotes it with ".
 QUOTED = "https://status.example.com/api/push/it's?ping=42"
