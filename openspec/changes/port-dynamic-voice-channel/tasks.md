@@ -26,7 +26,7 @@
 
 ## 6. Bind and unbind
 
-- [ ] 6.1 xfail tests for "Administrators bind lobbies" and "Administrators unbind lobbies" against
+- [x] 6.1 xfail tests for "Administrators bind lobbies" and "Administrators unbind lobbies" against
       stub callbacks
 - [ ] 6.2 Implement `bind_lobby` and `unbind_lobby`; remove the markers
 

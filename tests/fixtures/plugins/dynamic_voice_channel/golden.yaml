@@ -1,0 +1,16 @@
+# Golden data for the DynamicVoiceChannel tests. The text is v3's, from
+# XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/resources/lang/, except the en-US
+# unbind-fail title, whose grammar is corrected ("was not found" instead of "is not be found").
+
+# The embed of each reply per locale, as Embed.to_dict() without "type" and "flags".
+replies:
+  en-US:
+    bind-success: {title: "Bind success", color: 65280}
+    must-under-category: {title: "The channel must be under the category", color: 16711680}
+    unbind-fail: {title: "Unbind fail, the channel was not found in settings", color: 16711680}
+    unbind-success: {title: "Unbind success", color: 65280}
+  zh-TW:
+    bind-success: {title: "綁定成功", color: 65280}
+    must-under-category: {title: "語音頻道必須在類別(Category)下", color: 16711680}
+    unbind-fail: {title: "取消綁定失敗，找不到設定記錄", color: 16711680}
+    unbind-success: {title: "取消綁定成功", color: 65280}
