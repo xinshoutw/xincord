@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from discord_fakes import FakeInteraction
 
 GOLDEN = golden("giveaway")
-CHECKS = "Confirming checks the draft and the administrator"
 NOW = 1772244000  # the tests' clock
 COMPLETE = Draft(title="Nitro", end_at=NOW + 3600, prizes=(Prize("Nitro", 1),))
 
@@ -30,7 +29,6 @@ def replied(interaction: FakeInteraction) -> object:
     return fields["content"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=CHECKS)
 @pytest.mark.parametrize(
     ("draft", "problem"),
     [
@@ -54,7 +52,6 @@ async def test_incomplete_draft(scene: Scene, draft: Draft, problem: str, locale
     assert scene.draft() == draft
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=CHECKS)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_not_an_administrator(scene: Scene, locale: str) -> None:
     """Requirement: Confirming checks the draft and the administrator."""

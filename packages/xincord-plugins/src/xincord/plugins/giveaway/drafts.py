@@ -85,3 +85,15 @@ def switch_policy(draft: Draft) -> Draft:
     """The draft with the other winner policy, as v3's ``toggleWinnerDuplicatePolicy``."""
     unique = draft.policy is Policy.ALLOW_DUPLICATE
     return replace(draft, policy=Policy.UNIQUE_ACROSS_PRIZES if unique else Policy.ALLOW_DUPLICATE)
+
+
+def problem(draft: Draft, now: int) -> str | None:
+    """The key of v3's text for what the draft lacks to be posted at ``now``, in v3's order.
+
+    A title, then an end time later than ``now``, then a prize; None when it has them all.
+    """
+    if not trim(draft.title):
+        return "error.no-title"
+    if draft.end_at <= now:
+        return "error.no-end-time"
+    return None if draft.prizes else "error.no-prizes"

@@ -18,7 +18,7 @@ from xincord.core.component_ids import ComponentIds
 from xincord.core.placeholders import global_values, placeholder_values
 from xincord.core.templates import modal_values, render_message, render_modal
 
-from .drafts import remove_last_prize, submit, switch_policy
+from .drafts import problem, remove_last_prize, submit, switch_policy
 from .model import Draft, Instance
 from .texts import Texts, language, post_buttons, post_embed, preview
 from .times import format_end_time
@@ -226,7 +226,21 @@ class Giveaway(commands.Cog):
         await self._update(interaction, session, switch_policy(session.draft))
 
     async def _confirm(self, interaction: discord.Interaction, session: Session) -> None:
-        """Check the draft and post the giveaway."""
+        """Check the draft and the user's Administrator permission, then post the giveaway.
+
+        As v3: the draft's first problem, else a user without Administrator (even when the guild
+        let others run the command), gets v3's text ephemerally, and the draft stays.
+        """
+        missing = problem(session.draft, int(self.clock()))
+        if missing is None and not interaction.permissions.administrator:
+            missing = "error.not-admin"
+        if missing is not None:
+            await _tell(interaction, self._texts(interaction).get(missing))
+            return
+        await self._post(interaction, session)
+
+    async def _post(self, interaction: discord.Interaction, session: Session) -> None:
+        """Post the confirmed draft as a giveaway in the builder's channel."""
         raise NotImplementedError
 
     async def _cancel(self, interaction: discord.Interaction) -> None:
