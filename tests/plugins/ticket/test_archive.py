@@ -25,6 +25,7 @@ from discord_fakes import (
     FakeRole,
     FakeUser,
     forbidden,
+    not_found,
     server_error,
 )
 from plugin_fakes import golden
@@ -120,7 +121,7 @@ class Thread:
 
 @dataclass
 class Created:
-    """The archive thread, which records its deletion into ``sent``."""
+    """The archive thread, which records each deletion asked into ``sent``."""
 
     id: int
     sent: list[Sent]
@@ -132,15 +133,15 @@ class Created:
         return f"<#{self.id}>"
 
     async def delete(self) -> None:
-        """Record the deletion, or raise ``delete_error``."""
+        """Record the deletion, then raise ``delete_error`` if set."""
+        self.sent.append(("thread.delete", {"id": self.id}))
         if self.delete_error is not None:
             raise self.delete_error
-        self.sent.append(("thread.delete", {"id": self.id}))
 
 
 @dataclass
 class Webhook:
-    """The archive webhook, which records its sends and its deletion into ``sent``.
+    """The archive webhook, which records its sends and each deletion asked into ``sent``.
 
     A send whose text holds a key of ``refused`` raises that key's error.
     """
@@ -178,10 +179,10 @@ class Webhook:
         self.sent.append(("webhook.send", fields))
 
     async def delete(self) -> None:
-        """Record the deletion, or raise ``delete_error``."""
+        """Record the deletion, then raise ``delete_error`` if set."""
+        self.sent.append(("webhook.delete", {}))
         if self.delete_error is not None:
             raise self.delete_error
-        self.sent.append(("webhook.delete", {}))
 
 
 @dataclass
@@ -614,3 +615,140 @@ async def test_a_refused_error_marker(cog: Ticket, caplog: pytest.LogCaptureFixt
         marker(MARKERS["end-without-messages"]),
     ]
     assert f"Ticket cannot mark the failure of thread {STARTED} in thread {ARCHIVE}" in caplog.text
+
+
+def methods(sent: list[Sent]) -> list[str]:
+    """What the archive asked of Discord, in order."""
+    return [method for method, _ in sent]
+
+
+@pytest.mark.xfail(strict=True, reason="A failed archive is reported and cleans up")
+async def test_refused_send(cog: Ticket) -> None:
+    """Requirement: A failed archive is reported and cleans up."""
+    source, target = channels(
+        [Message(1, BOB, "kept"), Message(2, BOB, "refused"), Message(3, BOB, "never")]
+    )
+    target.refused = {"refused": forbidden()}
+
+    with pytest.raises(discord.Forbidden):
+        await archive(source, target, options(cog))
+
+    # The thread keeps what was sent; the webhook goes (v3 leaked it on some failures, B12).
+    assert sends(target.sent) == [forwarded("kept", "Bobby", BOB_AVATAR)]
+    assert target.sent[-1] == ("webhook.delete", {})
+
+
+@pytest.mark.xfail(strict=True, reason="A failed archive is reported and cleans up")
+@pytest.mark.parametrize("refused", [False, True], ids=["deleted", "refused"])
+async def test_no_webhook(cog: Ticket, refused: bool) -> None:  # noqa: FBT001
+    """Requirement: A failed archive is reported and cleans up."""
+    source, target = channels([Message(1, BOB, "lost")])
+    target.webhook_error = forbidden()
+    target.thread_delete_error = server_error() if refused else None
+
+    # The webhook's error, not the deletion's.
+    with pytest.raises(discord.Forbidden):
+        await archive(source, target, options(cog))
+
+    # The empty thread goes (v3 left it); a refused deletion changes nothing more.
+    assert methods(target.sent) == ["channel.create_thread", "thread.delete"]
+
+
+@pytest.mark.xfail(strict=True, reason="A failed archive is reported and cleans up")
+async def test_undeletable_webhook(cog: Ticket) -> None:
+    """Requirement: A failed archive is reported and cleans up."""
+    source, target = channels([Message(1, BOB, "kept")])
+    target.webhook_delete_error = server_error()
+
+    thread = await archive(source, target, options(cog))
+
+    assert thread.id == ARCHIVE  # the archive is whole: the error is ignored, as v3's
+    assert methods(target.sent)[-1] == "webhook.delete"
+
+
+@pytest.mark.xfail(strict=True, reason="A failed archive is reported and cleans up")
+async def test_refused_end_marker(cog: Ticket) -> None:
+    """Requirement: A failed archive is reported and cleans up."""
+    thread = started(Message(LAST, BOB, "inside"))
+    source, target = channels([Message(1, BOB, "look", thread=thread), Message(2, BOB, "never")])
+    target.refused = {MARKERS["end"]: forbidden()}
+
+    with pytest.raises(discord.Forbidden):
+        await archive(source, target, options(cog))
+
+    # It stops the archive, as in v3.
+    assert sends(target.sent)[-1] == forwarded("inside", "Bobby", BOB_AVATAR)
+    assert target.sent[-1] == ("webhook.delete", {})
+
+
+REFUSED = "403 Forbidden (error code: 0): Missing Permissions"
+
+
+@pytest.mark.xfail(strict=True, reason="A failed archive is reported and cleans up")
+@pytest.mark.parametrize(
+    ("step", "locale", "failed"),
+    [
+        ("send", "en-US", "Saving failed: %tt@error%"),
+        ("webhook", "en-US", "Saving failed: %tt@error%"),
+        ("thread", "en-US", "Saving failed: %tt@error%"),
+        ("send", "zh-TW", GOLDEN["texts"]["zh-TW"]["save-failed"]),
+    ],
+    ids=["send", "webhook", "thread", "send-zh-TW"],
+)
+async def test_save_failed(
+    scene: Scene, caplog: pytest.LogCaptureFixture, step: str, locale: str, failed: str
+) -> None:
+    """Requirement: A failed archive is reported and cleans up."""
+    target = await saving(scene, [Message(1, BOB, "help me")])
+    if step == "send":
+        target.refused = {"help": forbidden()}
+    elif step == "webhook":
+        target.webhook_error = forbidden()
+    else:
+        target.thread_error = forbidden()
+    selection = scene.selection(SELECT, [str(TARGET)], scene.who(locale=locale))
+
+    with caplog.at_level(logging.WARNING):
+        interaction = await scene.handle(selection)
+
+    assert interaction.sent[-1] == (
+        "edit_original_response",
+        {"content": failed.replace("%tt@error%", REFUSED)},
+    )
+    assert len(interaction.sent) == 3  # deferred, saving, failed
+    assert f"Ticket cannot save channel 5 into channel 6: {REFUSED}" in caplog.text
+
+
+@pytest.mark.xfail(strict=True, reason="A failed archive is reported and cleans up")
+async def test_readable_errors(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: A failed archive is reported and cleans up."""
+    target = await saving(scene, [Message(1, BOB, "help me")])
+    url = "https://discord.com/api/v10/webhooks/1/SECRET?wait=true"
+    target.refused = {"help": OSError(f"Cannot write to {url}\n" + "x" * 300)}
+
+    with caplog.at_level(logging.WARNING):
+        interaction = await scene.handle(scene.selection(SELECT, [str(TARGET)]))
+
+    # One line, the URL cut to its origin (its path holds the webhook's token), 200 at most.
+    shown = ("Cannot write to https://discord.com " + "x" * 300)[:200]
+    assert interaction.sent[-1] == (
+        "edit_original_response",
+        {"content": f"Saving failed: {shown}"},
+    )
+    # Not Discord's refusal: the traceback is logged, redacted too.
+    assert "Traceback" in caplog.text
+    assert "SECRET" not in caplog.text
+
+
+@pytest.mark.xfail(strict=True, reason="A failed archive is reported and cleans up")
+async def test_answer_after_fifteen_minutes(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: A failed archive is reported and cleans up."""
+    target = await saving(scene, [Message(1, BOB, "help me")])
+    selection = scene.selection(SELECT, [str(TARGET)])
+    selection.edit_errors = [None, not_found("Unknown Webhook")]  # the token has expired
+
+    with caplog.at_level(logging.WARNING):
+        await scene.handle(selection)
+
+    assert target.sent[-1] == ("webhook.delete", {})
+    assert "Ticket cannot tell member 7 how saving channel 5 went" in caplog.text

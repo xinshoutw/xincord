@@ -123,6 +123,9 @@ class FakeInteraction:
     original: FakeMessage = field(default_factory=lambda: FakeMessage(id=43))
     # What edit_original_response raises once it recorded the edit, as when Discord refuses it.
     edit_error: Exception | None = None
+    # What the next edits of the response raise in turn, once recorded (None: nothing), before
+    # edit_error applies: a refusal after Discord's 15 minutes, say.
+    edit_errors: list[Exception | None] = field(default_factory=list[Exception | None])
     # What response.edit_message raises, as when Discord refuses the edited message.
     refuse_edit: Exception | None = None
 
@@ -149,8 +152,9 @@ class FakeInteraction:
     async def edit_original_response(self, **fields: object) -> FakeMessage:
         """Record an edit of the deferred response; return its message, as discord.py does."""
         self.sent.append(("edit_original_response", fields))
-        if self.edit_error is not None:
-            raise self.edit_error
+        error = self.edit_errors.pop(0) if self.edit_errors else self.edit_error
+        if error is not None:
+            raise error
         return self.original
 
     async def delete_original_response(self) -> None:

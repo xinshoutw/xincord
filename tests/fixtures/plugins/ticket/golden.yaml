@@ -19,6 +19,7 @@ texts:
     choose-channel: "請選擇要儲存對話的文字頻道"
     admin-only: "僅管理員可使用此功能"
     saving: "存檔中..."
+    save-failed: "存檔失敗：%tt@error%"
     saved: "存檔完成，已建立 Thread：%tt@thread%"
 
 # A guild's document as v3's Moshi wrote it (compact, its field order), after the inventory's
