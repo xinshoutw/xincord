@@ -215,9 +215,11 @@ async def setup(bot: Bot) -> None:
   (`data/<Name>/`, in the data volume; the core does not create it). Follow ChatLogger's
   `messages.MessageFiles`: one `ThreadPoolExecutor(max_workers=1)` made in `open` and shut down in
   `close`, one connection per file made and used on that thread only, each method one job and each
-  job's work in a file one transaction (`transaction`); `cog_load` opens the files (and closes them
-  again when its checks fail), `cog_unload` closes them after cancelling the loops, and work that
-  comes after `close` raises. Files cover ranges of snowflakes named by their start (`files.py`);
+  job's work in a file one transaction (`transaction`, which commits inside the `try` that rolls
+  back: a commit that fails on another program's lock would otherwise stay open for the next one);
+  `cog_load` opens the files (and closes them again when its checks fail), `cog_unload` closes them
+  after cancelling the loops, `close` submits its job directly and awaits it shielded (a cancelled
+  `run_in_executor` await cancels a queued job), and work that comes after `close` raises. Files cover ranges of snowflakes named by their start (`files.py`);
   a new file starts once the newest file's page count reaches the limit, above every stored ID, so
   that no row moves, built under a temporary name and renamed closed. Bound it: a config key
   (`retention_days`) and a background task that deletes whole expired files, then older rows in
@@ -588,7 +590,9 @@ async def setup(bot: Bot) -> None:
   fixture removes the cog at the end (its `cog_unload` closes the files), because Python warns
   about a `sqlite3` connection collected unclosed and pytest fails whichever test is running then.
   `Scene.rows` reads the message files through connections of the test's own, and `write_file`
-  writes one as an earlier run left it.
+  writes one as an earlier run left it. Assert `plugin_fakes.unclosed() == []` where a leak would
+  show (a warning left to the collector fails a later test), after dropping the references that a
+  cancelled task's traceback keeps.
 - ruff, pyright, pytest and coverage already cover `packages/` and `tests/`; nothing to configure
   per plugin.
 - A plugin whose tests load invalid configs and compare its frozen dataclasses needs an autouse
