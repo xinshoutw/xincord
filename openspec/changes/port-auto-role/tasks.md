@@ -31,7 +31,7 @@
 ## 6. Ready check
 
 - [x] 6.1 xfail tests for "Problems are logged when the bot is ready"
-- [ ] 6.2 Implement the check on ready and on a load into a ready bot; remove the markers
+- [x] 6.2 Implement the check on ready and on a load into a ready bot; remove the markers
 
 ## 7. Conventions and docs
 

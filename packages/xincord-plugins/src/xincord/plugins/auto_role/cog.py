@@ -43,8 +43,19 @@ class AutoRole(commands.Cog):
         self.check()
 
     def check(self) -> None:
-        """Stub until problems are logged when the bot is ready."""
-        raise NotImplementedError
+        """Log what keeps each configured guild's roles from being given.
+
+        v3 found these problems only when a member joined, and logged none for unknown role IDs.
+        """
+        for guild_id, role_ids in self.roles.items():
+            guild = self.bot.get_guild(guild_id)
+            if guild is None:
+                logger.warning(
+                    "AutoRole gives no roles in guild %s: the bot is not in it", guild_id
+                )
+                continue
+            _can_manage_roles(guild)
+            _givable(guild, role_ids)
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:

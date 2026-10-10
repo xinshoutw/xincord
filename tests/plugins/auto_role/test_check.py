@@ -9,7 +9,6 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 from discord_fakes import FakeGuild, FakeRole
 from plugin_fakes import dispatch, load_plugin
@@ -18,9 +17,10 @@ from xincord.core.bot import Bot
 if TYPE_CHECKING:
     from pathlib import Path
 
+    import pytest
+
     from xincord.core.storage import Store
 
-REQUIREMENT = "Problems are logged when the bot is ready"
 # Guild 10 lacks role 12 and has role 13 above the bot's; the bot lacks Manage Roles in guild 20
 # and is not in guild 30. It can give the roles 11 and 21.
 CONFIG = """\
@@ -61,7 +61,6 @@ def assert_warned(caplog: pytest.LogCaptureFixture) -> None:
     assert "(21)" not in caplog.text
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REQUIREMENT)
 async def test_ready(
     store: Store,
     tmp_path: Path,
@@ -80,8 +79,6 @@ async def test_ready(
     assert_warned(caplog)
 
 
-# The stub raises inside setup, so the plugin does not load: no NotImplementedError to expect.
-@pytest.mark.xfail(strict=True, reason=REQUIREMENT)
 async def test_loaded_into_a_ready_bot(
     store: Store,
     tmp_path: Path,
