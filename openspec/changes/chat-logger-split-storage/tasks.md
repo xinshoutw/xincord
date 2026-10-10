@@ -1,6 +1,6 @@
 ## 1. Core: a data directory per plugin
 
-- [ ] 1.1 xfail tests for "Plugins get a data directory" against a stub (`Bot(..., data=...)`
+- [x] 1.1 xfail tests for "Plugins get a data directory" against a stub (`Bot(..., data=...)`
       accepted and kept, `PluginContext.data_directory` raising); every `Bot(...)` call names its
       data directory
 - [ ] 1.2 Give each context `data/<Name>/` and let the program pass `data/`; remove the markers

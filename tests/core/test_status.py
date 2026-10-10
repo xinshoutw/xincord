@@ -100,7 +100,9 @@ async def test_bot_rotation(
         plugins=("Alpha",),
         status=Status(activities=(entry("playing", "A"), entry("playing", "B"))),
     )
-    bot = Bot(discover(["Alpha"]), root=Path("plugins"), store=store, config=config)
+    bot = Bot(
+        discover(["Alpha"]), root=Path("plugins"), data=Path("data"), store=store, config=config
+    )
     assert await bot.load_plugins() == []
     presence = Presence()
 

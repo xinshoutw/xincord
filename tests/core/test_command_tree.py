@@ -101,7 +101,9 @@ async def test_bot_uses_the_tree(tmp_path: Path) -> None:
     """Requirement: Application commands are deferred ephemerally."""
     store = await Store.open(":memory:")
     try:
-        assert isinstance(Bot([], root=tmp_path, store=store).tree, CommandTree)
+        assert isinstance(
+            Bot([], root=tmp_path, data=tmp_path / "data", store=store).tree, CommandTree
+        )
     finally:
         await store.close()
 

@@ -99,7 +99,7 @@ async def test_console_lines(
 ) -> None:
     """Requirement: Interaction console lines."""
     caplog.set_level(logging.INFO)
-    bot = Bot([], root=tmp_path, store=store)
+    bot = Bot([], root=tmp_path, data=tmp_path / "data", store=store)
 
     await bot.on_interaction(interaction(COMMAND, PING))
     await bot.on_interaction(interaction(COMPONENT, BUTTON))
@@ -144,7 +144,7 @@ async def test_matching_targets(
 ) -> None:
     """Requirement: Interaction log channels."""
     config = CoreConfig(interaction_log=(target(10, "command", "modal"), target(20, "button")))
-    bot = Bot([], root=tmp_path, store=store, config=config)
+    bot = Bot([], root=tmp_path, data=tmp_path / "data", store=store, config=config)
     channels = Channels(monkeypatch)
 
     await bot.on_interaction(interaction(COMMAND, PING))
@@ -165,7 +165,7 @@ async def test_no_pings_failures_and_reload(
     """Requirement: Interaction log channels."""
     mention = "%user_mention% used %cl_interaction_string% as %cl_type%"
     config = CoreConfig(interaction_log=(target(10, "button"), target(20, "button", text=mention)))
-    bot = Bot([], root=Path("plugins"), store=store, config=config)
+    bot = Bot([], root=Path("plugins"), data=Path("data"), store=store, config=config)
     channels = Channels(monkeypatch, 10)
 
     await bot.on_interaction(interaction(COMPONENT, BUTTON))

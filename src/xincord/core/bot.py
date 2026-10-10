@@ -50,11 +50,12 @@ ALLOWED_MENTIONS = discord.AllowedMentions(
 class Bot(commands.Bot):
     """Loads plugins as discord.py extensions, isolating each one's failures."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913 - keyword-only: two directories, the store and two options
         self,
         plugins: Sequence[PluginInfo],
         *,
         root: Path,
+        data: Path,
         store: Store,
         force_lang: bool = False,
         config: CoreConfig | None = None,
@@ -64,6 +65,7 @@ class Bot(commands.Bot):
         Args:
             plugins: The plugins to load, dependencies first.
             root: The directory that holds ``<Name>/`` for each plugin.
+            data: The directory that holds ``<Name>/`` for the files each plugin keeps itself.
             store: The store shared by all plugins.
             force_lang: Replace exported lang files with the bundled ones.
             config: The core config, for the status rotation and the interaction log.
@@ -78,6 +80,7 @@ class Bot(commands.Bot):
         )
         self._plugins = tuple(plugins)
         self._root = root
+        self._data = data
         self._store = store
         self._force_lang = force_lang
         self._contexts: dict[str, PluginContext] = {}

@@ -39,7 +39,9 @@ logger = logging.getLogger(__name__)
 
 LEVELS = logging.getLevelNamesMapping()
 PLUGINS = Path("plugins")
-DATABASE = Path("data/xincord.db")  # alone in data/, so a container can keep it in a volume
+# The store's database and the plugins' own data files, which a container keeps in a volume.
+DATA = Path("data")
+DATABASE = DATA / "xincord.db"
 STOP_SIGNALS = (signal.SIGINT, signal.SIGTERM)
 
 
@@ -104,7 +106,14 @@ async def run(options: Options, *, console: bool = False) -> int:
     store = await Store.open(DATABASE)
     try:
         plugins = discover(config.plugins)
-        bot = Bot(plugins, root=PLUGINS, store=store, force_lang=options.force_lang, config=config)
+        bot = Bot(
+            plugins,
+            root=PLUGINS,
+            data=DATA,
+            store=store,
+            force_lang=options.force_lang,
+            config=config,
+        )
         if options.no_online:
             return await _check(bot, config.plugins)
         return await _serve(bot, token, console=console)

@@ -23,7 +23,7 @@ PAYLOAD: dict[str, object] = {"id": "30", "guild_id": "10", "status": "Gaming"}
 
 async def test_unparsed_event(store: Store, tmp_path: Path) -> None:
     """Requirement: Plugins receive gateway events that discord.py does not parse."""
-    bot = Bot([], root=tmp_path, store=store)
+    bot = Bot([], root=tmp_path, data=tmp_path / "data", store=store)
     received: list[object] = []
 
     async def listener(payload: dict[str, object]) -> None:
@@ -40,7 +40,7 @@ async def test_unparsed_event(store: Store, tmp_path: Path) -> None:
 
 async def test_parsed_event(store: Store, tmp_path: Path) -> None:
     """Requirement: Plugins receive gateway events that discord.py does not parse."""
-    bot = Bot([], root=tmp_path, store=store)
+    bot = Bot([], root=tmp_path, data=tmp_path / "data", store=store)
     calls: list[tuple[str, object]] = []
     # Stands for a parser of discord.py's, as a later version may add one for the event.
     parsers(bot)["XINCORD_TEST"] = lambda payload: calls.append(("discord.py", payload))

@@ -251,10 +251,23 @@ async def test_broken_config_disables_the_plugin(
 
 async def test_unknown_context(store: Store, tmp_path: Path) -> None:
     """Requirement: Plugin files live under plugins/<Name>/."""
-    bot = Bot([], root=tmp_path, store=store)
+    bot = Bot([], root=tmp_path, data=tmp_path / "data", store=store)
 
     with pytest.raises(PluginError, match="nowhere"):
         bot.plugin_context("nowhere")
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Plugins get a data directory")
+async def test_data_directory(fake_plugins: FakePlugins, store: Store, tmp_path: Path) -> None:
+    """Requirement: Plugins get a data directory."""
+    module = fake_plugins.add("Alpha", RECORD)
+    bot = fake_plugins.bot(["Alpha"], tmp_path / "plugins", store, data=tmp_path / "data")
+
+    assert await bot.load_plugins() == []
+
+    directory = bot.plugin_context(module).data_directory
+    assert directory == tmp_path / "data" / "Alpha"
+    assert not directory.exists()  # the plugin creates it when it needs it
 
 
 PROBE = """

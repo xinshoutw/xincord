@@ -62,11 +62,22 @@ class FakePlugins:
         return record
 
     def bot(
-        self, enabled: Sequence[str], root: Path, store: Store, *, force_lang: bool = False
+        self,
+        enabled: Sequence[str],
+        root: Path,
+        store: Store,
+        *,
+        force_lang: bool = False,
+        data: Path | None = None,
     ) -> Bot:
-        """Create a bot for the enabled plugins."""
+        """Create a bot for the enabled plugins.
+
+        Their data directories are under ``data``, by default ``data`` beside the packages' root,
+        inside the test's temporary directory.
+        """
         plugins = discover(enabled, self.entry_points)
-        return Bot(plugins, root=root, store=store, force_lang=force_lang)
+        data = self.root.parent / "data" if data is None else data
+        return Bot(plugins, root=root, data=data, store=store, force_lang=force_lang)
 
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
@@ -83,14 +94,14 @@ async def load_plugin(name: str, root: Path, store: Store, *, config: str | None
     """Load the installed plugin ``name`` through its entry point, as startup does, offline.
 
     ``setup_hook`` sets the command translator and runs the plugin's ``setup``; ``root`` takes
-    the place of ``plugins/``. ``config``, when given, is written to ``<root>/<name>/config.yaml``
-    first, as an operator's file.
+    the place of ``plugins/``, and ``data`` beside it the place of ``data/``. ``config``, when
+    given, is written to ``<root>/<name>/config.yaml`` first, as an operator's file.
     """
     if config is not None:
         path = root / name / "config.yaml"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(config, encoding="utf-8")
-    bot = Bot(discover([name]), root=root, store=store)
+    bot = Bot(discover([name]), root=root, data=root.parent / "data", store=store)
     await bot.setup_hook()
     return bot
 

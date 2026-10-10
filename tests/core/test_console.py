@@ -76,7 +76,7 @@ async def test_reload_commands(
 ) -> None:
     """Requirement: Console commands."""
     caplog.set_level(logging.INFO)
-    bot = Bot([], root=tmp_path, store=store)
+    bot = Bot([], root=tmp_path, data=tmp_path / "data", store=store)
 
     stops = await typed(bot, "reload\nRELOAD Alpha\n\n  \nfrobnicate now\nstop\n")
 
@@ -88,7 +88,7 @@ async def test_reload_commands(
 @pytest.mark.parametrize("keys", ["stop\n", "EXIT\n", "shutdown\n", CTRL_D])
 async def test_stopping(store: Store, tmp_path: Path, reloads: list[str | None], keys: str) -> None:
     """Requirement: Console commands."""
-    bot = Bot([], root=tmp_path, store=store)
+    bot = Bot([], root=tmp_path, data=tmp_path / "data", store=store)
 
     stops = await typed(bot, keys + "reload\n")
 
@@ -101,7 +101,7 @@ async def test_interrupt(
 ) -> None:
     """Requirement: Console commands."""
     caplog.set_level(logging.INFO)
-    bot = Bot([], root=tmp_path, store=store)
+    bot = Bot([], root=tmp_path, data=tmp_path / "data", store=store)
 
     stops = await typed(bot, CTRL_C + "reload\nstop\n")
 

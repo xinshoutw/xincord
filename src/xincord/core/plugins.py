@@ -65,6 +65,11 @@ class PluginContext:
     reads: dict[str, object] = field(default_factory=dict[str, object], compare=False, repr=False)
     replay: bool = False
 
+    @property
+    def data_directory(self) -> Path:
+        """The directory for the files that the plugin keeps itself."""
+        raise NotImplementedError
+
     def config[M: Model](self, model: type[M]) -> M:
         """Load ``config.yaml`` as ``model``, created from the plugin's bundled default.
 

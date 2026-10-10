@@ -56,7 +56,7 @@ def interaction(bot: Bot, user_id: int) -> tuple[discord.Interaction, FakeFollow
 
 async def test_command_payload(store: Store, tmp_path: Path) -> None:
     """Requirement: Owner-only reload command."""
-    bot = Bot([], root=tmp_path, store=store)
+    bot = Bot([], root=tmp_path, data=tmp_path / "data", store=store)
     await bot.setup_hook()
 
     global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
@@ -75,7 +75,7 @@ async def test_owner_and_others(
     store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, user_id: int, reply: str
 ) -> None:
     """Requirement: Owner-only reload command."""
-    bot = Bot([], root=tmp_path, store=store)
+    bot = Bot([], root=tmp_path, data=tmp_path / "data", store=store)
     bot.owner_id = OWNER
     reloads: list[str | None] = []
 

@@ -49,6 +49,13 @@ BROKEN = """
 async def setup(bot):
     raise RuntimeError("boom")
 """
+DATA_DIRECTORY = """
+from .. import calls
+
+
+async def setup(bot):
+    calls.append(bot.plugin_context(__name__).data_directory)
+"""
 
 
 @pytest.mark.usefixtures("installed")
@@ -143,6 +150,22 @@ async def test_all_plugins_load(installed: FakePlugins, monkeypatch: pytest.Monk
     assert installed.calls() == ["setup", "teardown"]
 
 
+@pytest.mark.xfail(strict=True, reason="Plugins get a data directory")
+async def test_data_directory_at_startup(
+    installed: FakePlugins, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Requirement: Plugins get a data directory."""
+    installed.add("Alpha", DATA_DIRECTORY)
+    write_config("plugins: [Alpha]\n")
+    monkeypatch.setattr(Bot, "start", never_connect)
+
+    assert await run(Options(no_online=True)) == 0
+    # data/ in the working directory, beside the store's database; the plugin creates its own.
+    assert installed.calls() == [Path("data/Alpha")]
+    assert Path("data/xincord.db").is_file()
+    assert not Path("data/Alpha").exists()
+
+
 @pytest.mark.parametrize("plugins", ["[Alpha, Ghost]", "[Alpha, Broken]"])
 async def test_a_plugin_does_not_load(
     installed: FakePlugins, monkeypatch: pytest.MonkeyPatch, plugins: str
@@ -179,7 +202,7 @@ async def test_stop_signal(
 
 async def test_ready(store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Commands are uploaded when ready."""
-    bot = Bot([], root=tmp_path, store=store)
+    bot = Bot([], root=tmp_path, data=tmp_path / "data", store=store)
     syncs = watch_syncs(bot, store, monkeypatch)
     guilds = [SimpleNamespace(id=1, name="One"), SimpleNamespace(id=2, name="Two")]
     monkeypatch.setattr(Bot, "guilds", property(lambda _: guilds))
@@ -191,7 +214,7 @@ async def test_ready(store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
 async def test_joined_guild(store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Commands are uploaded when ready."""
-    bot = Bot([], root=tmp_path, store=store)
+    bot = Bot([], root=tmp_path, data=tmp_path / "data", store=store)
     syncs = watch_syncs(bot, store, monkeypatch)
 
     await bot.on_guild_join(cast("discord.Guild", SimpleNamespace(id=3, name="Three")))
@@ -201,7 +224,7 @@ async def test_joined_guild(store: Store, tmp_path: Path, monkeypatch: pytest.Mo
 
 async def test_default_allowed_mentions(store: Store, tmp_path: Path) -> None:
     """Requirement: Mentions allow users only."""
-    mentions = Bot([], root=tmp_path, store=store).allowed_mentions
+    mentions = Bot([], root=tmp_path, data=tmp_path / "data", store=store).allowed_mentions
 
     assert mentions is not None
     assert mentions.to_dict() == {"parse": ["users"], "replied_user": True}
