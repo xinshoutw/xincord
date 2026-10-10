@@ -140,6 +140,10 @@ keep the plugin from loading, with an error that names the file.
 - **WHEN** the operator's `not-online.yaml` holds a button with a `uid`
 - **THEN** the plugin does not load, and the error names the file
 
+#### Scenario: Template with a file
+- **WHEN** the operator's `not-online.yaml` attaches a file that exists
+- **THEN** the plugin loads, the notice uploads the file, and no file stays open
+
 ### Requirement: Pending notices end with the plugin
 Unloading or reloading the plugin SHALL cancel the notices that wait for their delay, so that none
 is posted afterwards, without logging an error.

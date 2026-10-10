@@ -11,7 +11,7 @@ import discord
 
 from xincord.core.templates import Templates
 
-from .cog import TicketAwayNotice
+from .cog import TicketAwayNotice, check_notice
 from .config import Config
 
 if TYPE_CHECKING:
@@ -27,7 +27,7 @@ DEFAULT_LOCALE = "zh-TW"  # v3's only locale, in which the notice is posted for 
 
 
 async def setup(bot: Bot) -> None:
-    """Load the lang files and the templates, then the config, and add the cog.
+    """Load the lang files and the templates, check the notice, then the config, and add the cog.
 
     The lang files load first, so that they are written even while the bundled config waits for
     the IDs. The plugin keeps no data.
@@ -35,4 +35,5 @@ async def setup(bot: Bot) -> None:
     context = bot.plugin_context(__name__)
     lang = context.lang(DEFAULT_LOCALE)
     templates = Templates.load(lang)
+    check_notice(lang, templates)
     await bot.add_cog(TicketAwayNotice(bot, context.config(Config), lang, templates))

@@ -5,22 +5,29 @@ Kotlin:
 """
 
 import logging
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 
 from discord_fakes import forbidden, not_found, server_error
-from plugin_fakes import load_plugin
+from plugin_fakes import load_plugin, unclosed
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from conftest import Scene
     from xincord.core.storage import Store
 
 LOOKUP = "GET /guilds/10/members/20"  # Discord's member request for the owner
 POST = "POST /channels/31/messages"  # the notice in ticket-alice
 CONFIG = "guild_id: 10\nuser_id: 20\nprefix: [ticket-]\ndelay_millis: 2000\n"
+# An operator's notice in Components V2 that attaches a file of the fixtures.
+HOURS = Path(__file__).parents[2] / "fixtures" / "plugins" / "ticket_away_notice" / "hours.txt"
+WITH_FILE = (
+    "is_components_v2: true\n"
+    "components_v2:\n"
+    "  - {type: text_display, content: The owner is away.}\n"
+    f"  - {{type: file_display, file_path: '{HOURS}'}}\n"
+)
 
 
 def plugin_logs(caplog: pytest.LogCaptureFixture) -> list[tuple[int, str]]:
@@ -33,7 +40,6 @@ def plugin_logs(caplog: pytest.LogCaptureFixture) -> list[tuple[int, str]]:
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="Problems with notices are reported")
 async def test_owner_not_a_member(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems with notices are reported."""
     await scene.uncache_owner()
@@ -50,7 +56,6 @@ async def test_owner_not_a_member(scene: Scene, caplog: pytest.LogCaptureFixture
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="Problems with notices are reported")
 async def test_refused_lookup(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems with notices are reported."""
     await scene.uncache_owner()
@@ -67,7 +72,6 @@ async def test_refused_lookup(scene: Scene, caplog: pytest.LogCaptureFixture) ->
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="Problems with notices are reported")
 async def test_refused_notice(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems with notices are reported."""
     error = forbidden()  # the bot lacks Send Messages there
@@ -85,7 +89,6 @@ async def test_refused_notice(scene: Scene, caplog: pytest.LogCaptureFixture) ->
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="Problems with notices are reported")
 async def test_unexpected_failure(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems with notices are reported."""
     scene.rest.errors[POST] = ConnectionResetError("Connection reset by peer")
@@ -102,7 +105,6 @@ async def test_unexpected_failure(scene: Scene, caplog: pytest.LogCaptureFixture
     assert isinstance(record.exc_info[1], ConnectionResetError)
 
 
-@pytest.mark.xfail(strict=True, reason="Problems with notices are reported")
 @pytest.mark.parametrize(
     ("template", "reason"),
     [
@@ -132,3 +134,15 @@ async def test_template_that_cannot_be_posted(
 
     assert bot.loaded == ()
     assert f"zh-TW/message/not-online.yaml: cannot be posted: {reason}" in caplog.text
+
+
+@pytest.mark.parametrize("notice", [WITH_FILE], ids=["file"])
+async def test_template_with_a_file(scene: Scene) -> None:
+    """Requirement: Problems with notices are reported."""
+    await scene.create(31, "ticket-alice")
+    await scene.settle()
+
+    [request] = [request for key, request in scene.rest.sent if key == POST]
+    parts = cast("list[dict[str, Any]]", request["form"])
+    assert [part.get("filename") for part in parts[1:]] == ["hours.txt"]
+    assert unclosed() == []  # the load's check and the notice closed their files

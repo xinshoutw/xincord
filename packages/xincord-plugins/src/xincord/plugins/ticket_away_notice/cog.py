@@ -12,8 +12,9 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 import discord
 from discord.ext import commands
 
+from xincord.core.config import ConfigError
 from xincord.core.placeholders import global_values
-from xincord.core.templates import render_message
+from xincord.core.templates import TemplateError, render_message
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Sequence
@@ -111,45 +112,124 @@ class TicketAwayNotice(commands.Cog):
         task.add_done_callback(self.notices.discard)
 
     async def _notice(self, guild_id: int, channel: Postable) -> None:
+        """Run a notice; a failure that the plugin does not handle is logged with its traceback.
+
+        Nothing awaits the task, so an exception left in it would be lost. Cancellation is no
+        ``Exception`` and ends the task quietly.
+        """
+        try:
+            await self._wait_and_post(guild_id, channel)
+        except Exception:
+            logger.exception(
+                "TicketAwayNotice failed to post a notice in %s (%s)", channel.name, channel.id
+            )
+
+    async def _wait_and_post(self, guild_id: int, channel: Postable) -> None:
         """Post the notice in ``channel`` after the delay, if it is due before and after it.
 
         v3 checked the owner once and queued the message with ``queueAfter``, which nothing could
         cancel: it was posted into a channel deleted meanwhile, or after the owner came online.
         """
-        if not await self._due(guild_id, channel.id):
+        if await self._due(guild_id, channel.id) is None:
             return
         await self.sleep(self.config.delay_millis / 1000)
-        if await self._due(guild_id, channel.id):
-            await self._post(channel)
+        if (guild := await self._due(guild_id, channel.id)) is not None:
+            await self._post(guild, channel)
 
-    async def _due(self, guild_id: int, channel_id: int) -> bool:
-        """Whether the channel and its guild are still there and the owner is offline.
+    async def _due(self, guild_id: int, channel_id: int) -> discord.Guild | None:
+        """The guild if the channel and the guild are still there and the owner is offline.
 
         discord.py drops a deleted channel, an archived thread and a left guild from its cache.
-        The owner comes from the cache, which the members and presences intents keep current,
-        else from Discord, as v3's ``retrieveMemberById``: such a member has no presence, and
-        discord.py says it is offline, as JDA did. Online, idle and do not disturb are not.
+        Online, idle and do not disturb are not offline; invisible owners look offline to bots.
         """
         guild = self.bot.get_guild(guild_id)
         if guild is None or guild.get_channel_or_thread(channel_id) is None:
-            return False
-        owner = self.config.user_id
-        member = guild.get_member(owner) or await guild.fetch_member(owner)
-        return member.status is discord.Status.offline
+            return None
+        member = await self._owner(guild)
+        offline = member is not None and member.status is discord.Status.offline
+        return guild if offline else None
 
-    async def _post(self, channel: Postable) -> None:
+    async def _owner(self, guild: discord.Guild) -> discord.Member | None:
+        """The owner's member in ``guild``, or None with a warning when Discord has none.
+
+        It comes from discord.py's cache, which the members and presences intents keep current,
+        else from Discord, as v3's ``retrieveMemberById``: such a member has no presence, and
+        discord.py says it is offline, as JDA did.
+        """
+        owner = self.config.user_id
+        member = guild.get_member(owner)
+        if member is not None:
+            return member
+        try:
+            member = await guild.fetch_member(owner)
+        except discord.NotFound:
+            _not_a_member(guild, owner)
+            return None
+        except discord.HTTPException as error:
+            logger.warning(
+                "TicketAwayNotice cannot look up user %s in %s (%s): %s",
+                owner,
+                guild.name,
+                guild.id,
+                error,
+            )
+            return None
+        return member
+
+    async def _post(self, guild: discord.Guild, channel: Postable) -> None:
         """Post the ``not-online`` template in v3's zh-TW, with v3's global placeholders.
 
-        v3 rendered it without a substitutor, which left the bot's ``bot_id`` and ``bot_name``.
+        v3 rendered it without a substitutor, which left the bot's ``bot_id`` and ``bot_name``. A
+        notice that Discord refuses is a warning that names the channel and the guild.
         """
         template = self.templates.message(NOTICE, self.lang.default_locale)
         message = render_message(template, global_values(self.bot))
-        await channel.send(
-            content=message.content or None,
-            embeds=message.embeds,
-            view=message.view,
-            files=message.files,
-        )
+        try:
+            await channel.send(
+                content=message.content or None,
+                embeds=message.embeds,
+                view=message.view,
+                files=message.files,
+            )
+        except discord.HTTPException as error:
+            logger.warning(
+                "TicketAwayNotice cannot post the notice in %s (%s) of %s (%s): %s",
+                channel.name,
+                channel.id,
+                guild.name,
+                guild.id,
+                error,
+            )
+
+
+def check_notice(lang: Lang, templates: Templates) -> None:
+    """Refuse a ``not-online`` template that the plugin can never post.
+
+    The plugin gives no component IDs and no models, so a component with a ``uid`` or a
+    ``model_key`` fails, as do a missing ``file_path`` and too many rows; v3 failed at each
+    notice. The render has no placeholder values, and the files it opens are closed.
+
+    Raises:
+        ConfigError: The template cannot be posted; the error names its file.
+    """
+    locale = lang.default_locale
+    try:
+        message = render_message(templates.message(NOTICE, locale), {})
+    except (TemplateError, ValueError) as error:
+        msg = f"{lang.template(f'message/{NOTICE}', locale)}: cannot be posted: {error}"
+        raise ConfigError(msg) from error
+    for file in message.files:
+        file.close()
+
+
+def _not_a_member(guild: discord.Guild, owner: int) -> None:
+    """Warn that the owner is not a member of the watched guild, so no notice is posted there."""
+    logger.warning(
+        "TicketAwayNotice posts no notice in %s (%s): user %s is not a member",
+        guild.name,
+        guild.id,
+        owner,
+    )
 
 
 def _postable(channel: object) -> Postable | None:

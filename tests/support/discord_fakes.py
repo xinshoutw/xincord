@@ -385,7 +385,8 @@ class FakeRest:
     """The REST requests of discord.py's HTTP client, recorded instead of sent.
 
     Each is recorded in ``sent`` as ``("<method> <path>", {"json": <body>})``, with ``"params"``
-    too when the request has query parameters, and answers at once: with the next of the answers
+    too when the request has query parameters and ``"form"`` when it uploads files (discord.py's
+    multipart parts, the JSON payload first), and answers at once: with the next of the answers
     that ``answers`` holds for its ``"<method> <path>"``, else ``{}``. One whose
     ``"<method> <path>"`` is in ``errors`` raises that error instead. Pass ``sent`` to the fake
     channels to see their calls in order with the requests.
@@ -406,6 +407,8 @@ class FakeRest:
             request: dict[str, object] = {"json": fields.get("json")}
             if "params" in fields:
                 request["params"] = fields["params"]
+            if "form" in fields:  # a message with files: the payload's JSON, then each file
+                request["form"] = fields["form"]
             recorded.sent.append((key, request))
             answers = recorded.answers.get(key)
             return answers.pop(0) if answers else {}
