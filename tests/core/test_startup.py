@@ -150,7 +150,6 @@ async def test_all_plugins_load(installed: FakePlugins, monkeypatch: pytest.Monk
     assert installed.calls() == ["setup", "teardown"]
 
 
-@pytest.mark.xfail(strict=True, reason="Plugins get a data directory")
 async def test_data_directory_at_startup(
     installed: FakePlugins, monkeypatch: pytest.MonkeyPatch
 ) -> None:

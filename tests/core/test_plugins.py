@@ -257,7 +257,6 @@ async def test_unknown_context(store: Store, tmp_path: Path) -> None:
         bot.plugin_context("nowhere")
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Plugins get a data directory")
 async def test_data_directory(fake_plugins: FakePlugins, store: Store, tmp_path: Path) -> None:
     """Requirement: Plugins get a data directory."""
     module = fake_plugins.add("Alpha", RECORD)

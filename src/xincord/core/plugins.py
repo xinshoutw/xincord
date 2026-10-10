@@ -51,24 +51,21 @@ class PluginInfo:
 
 @dataclass(frozen=True)
 class PluginContext:
-    """What the core gives one plugin: its directory, its files and the shared store.
+    """What the core gives one plugin: its directory, its files, the shared store and its data.
 
     An extension's ``setup(bot)`` gets it with ``bot.plugin_context(__name__)``. It keeps what
     :meth:`config` and :meth:`lang` returned in ``reads``, which a :meth:`replaying` copy hands
-    back instead of reading the files again.
+    back instead of reading the files again. ``data_directory`` (``data/<Name>/``) is for the
+    files that the plugin keeps itself; the core does not create it.
     """
 
     info: PluginInfo
     directory: Path
     store: Store
+    data_directory: Path
     force_lang: bool = False
     reads: dict[str, object] = field(default_factory=dict[str, object], compare=False, repr=False)
     replay: bool = False
-
-    @property
-    def data_directory(self) -> Path:
-        """The directory for the files that the plugin keeps itself."""
-        raise NotImplementedError
 
     def config[M: Model](self, model: type[M]) -> M:
         """Load ``config.yaml`` as ``model``, created from the plugin's bundled default.

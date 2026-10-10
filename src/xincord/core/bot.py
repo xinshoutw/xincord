@@ -345,9 +345,7 @@ class Bot(commands.Bot):
             raise PluginError(msg)
         # Whichever setup runs next registers the routes again.
         self._routes.pop(info.name, None)
-        self._contexts[info.module] = PluginContext(
-            info, self._root / info.name, self._store, self._force_lang
-        )
+        self._contexts[info.module] = self._context(info)
         # When the new version fails, discord.py sets up the previous one again; it gets the config
         # and lang it loaded before, not the files that broke the new one.
         self._previous[info.module] = previous.replaying()
@@ -412,8 +410,18 @@ class Bot(commands.Bot):
         for guild in self.guilds:
             await tree.sync_guild(self._store, guild.id, force=force)
 
+    def _context(self, info: PluginInfo) -> PluginContext:
+        """A new context for ``info``: ``<root>/<Name>/``, the store and ``<data>/<Name>/``."""
+        return PluginContext(
+            info,
+            directory=self._root / info.name,
+            store=self._store,
+            data_directory=self._data / info.name,
+            force_lang=self._force_lang,
+        )
+
     async def _load(self, info: PluginInfo) -> None:
-        context = PluginContext(info, self._root / info.name, self._store, self._force_lang)
+        context = self._context(info)
         self._contexts[info.module] = context
         try:
             await self.load_extension(info.module)
