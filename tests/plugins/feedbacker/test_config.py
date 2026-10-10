@@ -27,10 +27,6 @@ DEFAULTS = {
     "form_failure": "Failed to create the form",
     "form_submit_failure": "Failed to submit the feedback",
 }
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The config holds the replies"
-)
-REFUSED = pytest.mark.xfail(strict=True, reason="The config holds the replies")
 
 
 def loaded_config(bot: Bot) -> Config:
@@ -63,7 +59,6 @@ def operator_file(**changes: str | None) -> str:
     return yaml.safe_dump({key: value for key, value in values.items() if value is not None})
 
 
-@XFAIL
 async def test_bundled_file(tmp_path: Path, store: Store) -> None:
     """Requirement: The config holds the replies."""
     bot = await load_plugin("Feedbacker", tmp_path / "plugins", store)
@@ -71,7 +66,6 @@ async def test_bundled_file(tmp_path: Path, store: Store) -> None:
     assert replies(loaded_config(bot)) == GOLDEN["config"]
 
 
-@XFAIL
 async def test_v3_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config holds the replies."""
     v3_file: str = GOLDEN["v3_config"]
@@ -84,7 +78,6 @@ async def test_v3_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFi
     assert replies(loaded_config(bot)) == v3_replies | DEFAULTS
 
 
-@XFAIL
 @pytest.mark.parametrize(
     "text", ["x", "y" * 2000, " %user_name% "], ids=["short", "longest", "placeholder"]
 )
@@ -98,7 +91,6 @@ async def test_reply_as_written(text: str, tmp_path: Path, store: Store) -> None
     assert loaded_config(bot).form_failure == text
 
 
-@REFUSED
 @pytest.mark.parametrize("name", REPLIES)
 async def test_missing_reply(
     name: str, tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
@@ -112,7 +104,6 @@ async def test_missing_reply(
     assert f"{name}: Field required" in caplog.text
 
 
-@REFUSED
 @pytest.mark.parametrize(
     "case",
     [
