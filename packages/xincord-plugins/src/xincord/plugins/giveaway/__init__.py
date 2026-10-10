@@ -21,16 +21,14 @@ SOFT_DEPENDS: tuple[str, ...] = ()
 # Guild leaves need only discord.py's default guilds intent, and the members come with the
 # interactions, as in v3.
 INTENTS = discord.Intents.none()
-# v3's default locale, the bundled config's defaultLocale.
-DEFAULT_LOCALE = "zh-TW"
 
 
 async def setup(bot: Bot) -> None:
-    """Load the config, the lang files and the templates, then add the cog.
+    """Load the config, then the lang files with its default locale and the templates; add the cog.
 
     The giveaways are in the shared store.
     """
     context = bot.plugin_context(__name__)
     config = context.config(Config)
-    lang = context.lang(DEFAULT_LOCALE)
+    lang = context.lang(config.default_locale)
     await bot.add_cog(Giveaway(bot, config, context.store, lang, Templates.load(lang)))

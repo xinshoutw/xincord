@@ -57,7 +57,6 @@ def warned_keys(caplog: pytest.LogCaptureFixture) -> set[str]:
     return {message.split(marker)[-1] for message in caplog.messages if marker in message}
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The config keeps v3's keys")
 async def test_v3_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config keeps v3's keys."""
     with caplog.at_level(logging.WARNING):
@@ -70,7 +69,6 @@ async def test_v3_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFi
     assert warned_keys(caplog) == {"enabled"}
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The config keeps v3's keys")
 async def test_bundled_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config keeps v3's keys."""
     with caplog.at_level(logging.WARNING):
@@ -83,7 +81,6 @@ async def test_bundled_file(tmp_path: Path, store: Store, caplog: pytest.LogCapt
     assert warned_keys(caplog) == set()
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The config keeps v3's keys")
 @pytest.mark.parametrize(
     ("seconds", "period"),
     [(1, 5), (0, 5), (-5, 5), (5, 5), (300, 300), (3600, 3600), (99999, 3600)],
@@ -97,7 +94,6 @@ async def test_clamped_interval(seconds: int, period: int, tmp_path: Path, store
     assert loaded_config(bot).period == period  # v3's coerceIn(5, 3600)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The config keeps v3's keys")
 async def test_time_zone(tmp_path: Path, store: Store) -> None:
     """Requirement: The config keeps v3's keys."""
     text = 'timeZone: "Asia/Taipei"\n'
@@ -107,7 +103,6 @@ async def test_time_zone(tmp_path: Path, store: Store) -> None:
     assert loaded_config(bot).zone == ZoneInfo("Asia/Taipei")
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The config keeps v3's keys")
 async def test_other_default_locale(tmp_path: Path, store: Store) -> None:
     """Requirement: The config keeps v3's keys."""
     text = 'defaultLocale: "en-US"\n'
@@ -118,7 +113,6 @@ async def test_other_default_locale(tmp_path: Path, store: Store) -> None:
     assert loaded(bot).lang.default_locale == "en-US"
 
 
-@pytest.mark.xfail(strict=True, reason="The config keeps v3's keys")
 @pytest.mark.parametrize(
     ("text", "error"),
     [
@@ -141,7 +135,6 @@ async def test_invalid_values(
     assert error in caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason="The config keeps v3's keys")
 async def test_locale_without_lang_files(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
