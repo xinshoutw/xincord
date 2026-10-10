@@ -144,6 +144,10 @@ keep the plugin from loading, with an error that names the file.
 - **WHEN** the operator's `not-online.yaml` holds a button with a `uid`
 - **THEN** the plugin does not load, and the error names the file
 
+#### Scenario: Template that Discord refuses
+- **WHEN** the operator's `not-online.yaml` holds eleven embeds, or renders an empty message
+- **THEN** the plugin does not load, and the error names the file
+
 #### Scenario: Template with a file
 - **WHEN** the operator's `not-online.yaml` attaches a file that exists
 - **THEN** the plugin loads, the notice uploads the file, and no file stays open

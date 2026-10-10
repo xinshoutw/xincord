@@ -20,6 +20,8 @@ if TYPE_CHECKING:
 LOOKUP = "GET /guilds/10/members/20"  # Discord's member request for the owner
 POST = "POST /channels/31/messages"  # the notice in ticket-alice
 CONFIG = "guild_id: 10\nuser_id: 20\nprefix: [ticket-]\ndelay_millis: 2000\n"
+# Discord takes at most ten embeds in a message; discord.py refuses more before sending.
+ELEVEN_EMBEDS = "embeds:\n" + "".join(f"  - {{description: n{index}}}\n" for index in range(11))
 # An operator's notice in Components V2 that attaches a file of the fixtures.
 HOURS = Path(__file__).parents[2] / "fixtures" / "plugins" / "ticket_away_notice" / "hours.txt"
 WITH_FILE = (
@@ -124,6 +126,34 @@ async def test_template_that_cannot_be_posted(
     template: str, reason: str, store: Store, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: Problems with notices are reported."""
+    log = await refused(template, store, tmp_path, caplog)
+
+    assert f"zh-TW/message/not-online.yaml: cannot be posted: {reason}" in log
+
+
+@pytest.mark.xfail(strict=True, reason="Problems with notices are reported")
+@pytest.mark.parametrize(
+    ("template", "reason"),
+    [
+        (ELEVEN_EMBEDS, "11 embeds, more than the 10 that Discord takes"),
+        ('content: ""\n', "it renders an empty message"),
+    ],
+    ids=["eleven-embeds", "empty"],
+)
+async def test_template_that_discord_refuses(
+    template: str, reason: str, store: Store, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: Problems with notices are reported."""
+    log = await refused(template, store, tmp_path, caplog)
+
+    assert f"zh-TW/message/not-online.yaml: cannot be posted: {reason}" in log
+
+
+async def refused(
+    template: str, store: Store, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> str:
+    """Load the plugin with the operator's notice ``template``; check that it did not load and
+    return the log."""
     root = tmp_path / "plugins"
     path = root / "TicketAwayNotice" / "lang" / "zh-TW" / "message" / "not-online.yaml"
     path.parent.mkdir(parents=True)
@@ -133,7 +163,7 @@ async def test_template_that_cannot_be_posted(
         bot = await load_plugin("TicketAwayNotice", root, store, config=CONFIG)
 
     assert bot.loaded == ()
-    assert f"zh-TW/message/not-online.yaml: cannot be posted: {reason}" in caplog.text
+    return caplog.text
 
 
 @pytest.mark.parametrize("notice", [WITH_FILE], ids=["file"])

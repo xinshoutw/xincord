@@ -53,7 +53,7 @@
 - [x] 8.5 xfail test for "Event after the unload" (found in the review: a listener that discord.py
       scheduled before an unload ran after `cog_unload` and started a notice nothing cancelled)
 - [x] 8.6 Start no notice once the cog unloaded; remove the marker
-- [ ] 8.7 xfail tests for templates that Discord refuses (found in the review: eleven embeds and an
+- [x] 8.7 xfail tests for templates that Discord refuses (found in the review: eleven embeds and an
       empty message loaded, then failed at every notice)
 - [ ] 8.8 Refuse them at load; remove the markers
 - [ ] 8.9 xfail test for a v3 prefix that YAML reads as a number (found in the review: kaml read
