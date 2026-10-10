@@ -42,7 +42,6 @@ def warned_keys(caplog: pytest.LogCaptureFixture) -> set[str]:
     return {message.split(marker)[-1] for message in caplog.messages if marker in message}
 
 
-@pytest.mark.xfail(strict=True, reason="The config keeps v3's key and bounds the stored messages")
 async def test_v3_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config keeps v3's key and bounds the stored messages."""
     with caplog.at_level(logging.WARNING):
@@ -55,7 +54,6 @@ async def test_v3_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFi
     assert config.max_file_size_mb == 256
 
 
-@pytest.mark.xfail(strict=True, reason="The config keeps v3's key and bounds the stored messages")
 async def test_bundled_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config keeps v3's key and bounds the stored messages."""
     with caplog.at_level(logging.WARNING):
@@ -97,11 +95,6 @@ async def test_invalid_retention(
     assert error in caplog.text
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The config keeps v3's key and bounds the stored messages",
-)
 @pytest.mark.parametrize("size", [1, 65536])
 async def test_file_size_range(size: int, tmp_path: Path, store: Store) -> None:
     """Requirement: The config keeps v3's key and bounds the stored messages."""
@@ -112,7 +105,6 @@ async def test_file_size_range(size: int, tmp_path: Path, store: Store) -> None:
     assert loaded_config(bot).max_file_size_mb == size
 
 
-@pytest.mark.xfail(strict=True, reason="The config keeps v3's key and bounds the stored messages")
 @pytest.mark.parametrize(
     ("text", "error"),
     [

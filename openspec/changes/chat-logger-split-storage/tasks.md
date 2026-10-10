@@ -9,7 +9,7 @@
 
 - [x] 2.1 xfail tests for "The config keeps v3's key and bounds the stored messages" (the 5-year
       default, `max_file_size_mb`) and the default of "Old messages"
-- [ ] 2.2 Add `max_file_size_mb`, set `retention_days` to 1826 in `Config` and the bundled
+- [x] 2.2 Add `max_file_size_mb`, set `retention_days` to 1826 in `Config` and the bundled
       `config.yaml`; remove the markers
 
 ## 3. File names and ranges

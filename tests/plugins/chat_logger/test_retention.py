@@ -12,7 +12,6 @@ import sqlite3
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
-import pytest
 from discord.utils import time_snowflake, utcnow
 
 from plugin_fakes import WAIT, load_plugin
@@ -20,6 +19,8 @@ from xincord.core.bot import Bot
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import pytest
 
     from conftest import Scene
     from plugin_fakes import Ready
@@ -68,7 +69,6 @@ async def stored(scene: Scene) -> list[int]:
     return [row[0] for row in await scene.rows()]
 
 
-@pytest.mark.xfail(strict=True, reason="Stored messages are kept for the retention period")
 async def test_old_messages(scene: Scene) -> None:
     """Requirement: Stored messages are kept for the retention period."""
     old, recent = ago(1827), ago(1825)
