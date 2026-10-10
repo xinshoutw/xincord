@@ -112,6 +112,11 @@ class MessageLog:
         """Keep the store whose database holds the table."""
         self.store = store
 
+    @property
+    def is_open(self) -> bool:
+        """Whether the files are open."""
+        raise NotImplementedError
+
     async def create(self) -> None:
         """Create the table and its index, unless they exist."""
 

@@ -14,15 +14,13 @@ from typing import TYPE_CHECKING
 
 from discord.utils import time_snowflake, utcnow
 
-from plugin_fakes import WAIT, load_plugin
+from plugin_fakes import WAIT
 from xincord.core.bot import Bot
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     import pytest
 
-    from conftest import Scene
+    from conftest import Loader, Scene
     from plugin_fakes import Ready
     from xincord.core.storage import Store
 
@@ -141,7 +139,7 @@ async def test_unload(scene: Scene, ready: Ready) -> None:
     assert loop.cancelled()
 
 
-async def test_failed_load(store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_failed_load(store: Store, load: Loader, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Stored messages are kept for the retention period."""
 
     def is_ready(_bot: Bot) -> bool:
@@ -154,7 +152,7 @@ async def test_failed_load(store: Store, tmp_path: Path, monkeypatch: pytest.Mon
     monkeypatch.setattr(Bot, "is_ready", is_ready)  # a reload: the guilds are checked at once
     monkeypatch.setattr(store, "keys", failing)
 
-    bot = await load_plugin("ChatLogger", tmp_path / "plugins", store)
+    bot = await load()
 
     assert bot.loaded == ()
     assert [task for task in asyncio.all_tasks() if task.get_name() == "ChatLogger retention"] == []

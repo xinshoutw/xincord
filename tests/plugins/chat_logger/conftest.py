@@ -2,9 +2,13 @@
 
 Discord's REST requests are recorded instead of sent, the bot has its user, as after a login, and
 READY waits for the tests, as the plugin's retention loop waits for it. ``scene`` caches guild 10
-in discord.py and feeds its gateway events through discord.py's own parsers.
+in discord.py and feeds its gateway events through discord.py's own parsers. Every plugin that a
+test loads is unloaded at its end, which closes its message files.
 """
 
+import sqlite3
+import sys
+from contextlib import closing
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
@@ -18,7 +22,7 @@ from xincord.plugins.chat_logger.cog import NAMESPACE
 from xincord.plugins.listen_channels.store import ListenSettings
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, Iterable
+    from collections.abc import AsyncGenerator, Iterable, Iterator
     from pathlib import Path
 
     import discord
@@ -27,6 +31,8 @@ if TYPE_CHECKING:
     from xincord.plugins.chat_logger.cog import ChatLogger
 
 type Row = tuple[int, int, int, int, str, int]  # a stored message: v3's columns and the places
+
+PACKAGE = "xincord.plugins.chat_logger"
 
 GUILD = 10
 MEMBER = 7  # the member who writes the messages, unless a test says otherwise
@@ -64,6 +70,52 @@ async def ready(monkeypatch: pytest.MonkeyPatch) -> AsyncGenerator[Ready]:
     await readiness.close()
 
 
+@pytest.fixture(autouse=True)
+def plugin_modules() -> Iterator[None]:
+    """The plugin's modules, the same before and after each test.
+
+    discord.py imports a plugin's modules again when it reloads the plugin or when a load fails
+    (an invalid config), and the classes of the new modules differ from those that the test
+    modules imported.
+    """
+    kept = {
+        name: module
+        for name, module in sys.modules.items()
+        if name == PACKAGE or name.startswith(f"{PACKAGE}.")
+    }
+    yield
+    sys.modules.update(kept)
+
+
+class Loader:
+    """Loads ChatLogger as startup does, offline, and keeps the bots to unload it at the end."""
+
+    def __init__(self, store: Store, root: Path) -> None:
+        self.store = store
+        self.root = root
+        self.bots: list[Bot] = []
+
+    async def __call__(self, config: str | None = None) -> Bot:
+        """A bot that loaded ChatLogger from ``root``, with the operator's ``config.yaml``."""
+        bot = await load_plugin("ChatLogger", self.root, self.store, config=config)
+        self.bots.append(bot)
+        return bot
+
+
+@pytest.fixture
+async def load(store: Store, tmp_path: Path) -> AsyncGenerator[Loader]:
+    """Load ChatLogger from `tmp_path / "plugins"`; its data directory is `tmp_path / "data"`.
+
+    At the end, the plugin's cog leaves each bot, which closes the message files: a connection
+    left open makes Python warn, and the warning fails a later test.
+    """
+    loader = Loader(store, tmp_path / "plugins")
+    yield loader
+    for bot in loader.bots:
+        if bot.get_cog("ChatLogger") is not None:
+            await bot.remove_cog("ChatLogger")
+
+
 @pytest.fixture
 def config() -> str | None:
     """The operator's ``config.yaml``, or None for the bundled one; tests parametrize it."""
@@ -71,12 +123,13 @@ def config() -> str | None:
 
 
 @pytest.fixture
-async def bot(store: Store, tmp_path: Path, config: str | None) -> Bot:
+async def bot(load: Loader, config: str | None) -> Bot:
     """A bot that loaded ChatLogger from `tmp_path / "plugins"` and never connects.
 
-    The plugin's settings and messages are in ``store``, the same store as the tests'.
+    The plugin's settings are in ``store``, the same store as the tests', and its messages in
+    `tmp_path / "data" / "ChatLogger"`.
     """
-    return await load_plugin("ChatLogger", tmp_path / "plugins", store, config=config)
+    return await load(config)
 
 
 @pytest.fixture
@@ -105,6 +158,7 @@ class Scene:
     rest: FakeRest
     guild: discord.Guild
     channels: dict[int, FakeChannel]
+    directory: Path  # the plugin's data directory
 
     @property
     def cog(self) -> ChatLogger:
@@ -170,6 +224,12 @@ class Scene:
         )
         return [tuple(row) for row in found]
 
+    def files(self) -> dict[str, list[int]]:
+        """The message IDs that each message file holds, by the file's name."""
+        return {
+            name: [row[0] for row in found] for name, found in file_rows(self.directory).items()
+        }
+
     def posts(self, channel_id: int) -> list[dict[str, Any]]:
         """The embeds that listen channel ``channel_id`` got, one per post, as dicts."""
         channel = self.channels.get(channel_id)
@@ -181,7 +241,9 @@ class Scene:
 
 
 @pytest.fixture
-def scene(bot: Bot, store: Store, rest: FakeRest, monkeypatch: pytest.MonkeyPatch) -> Scene:
+def scene(
+    bot: Bot, store: Store, rest: FakeRest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Scene:
     """Guild 10 cached in the loaded bot, its posts recorded per listen channel."""
     created: dict[int, FakeChannel] = {}
 
@@ -191,4 +253,19 @@ def scene(bot: Bot, store: Store, rest: FakeRest, monkeypatch: pytest.MonkeyPatc
 
     monkeypatch.setattr(bot, "get_partial_messageable", partial)
     guild = add_guild(bot, payloads.guild(GUILD, channels=CHANNELS, threads=THREADS))
-    return Scene(bot, store, rest, guild, created)
+    return Scene(bot, store, rest, guild, created, tmp_path / "data" / "ChatLogger")
+
+
+def file_rows(directory: Path) -> dict[str, list[Row]]:
+    """Each message file's rows by the file's name, read through a connection of the test's own."""
+    found: dict[str, list[Row]] = {}
+    for path in sorted(directory.glob("messages-*.db")):
+        with closing(sqlite3.connect(path)) as db:
+            found[path.name] = [
+                tuple(row)
+                for row in db.execute(
+                    "SELECT message_id, guild_id, channel_id, user_id, message, update_count"
+                    " FROM messages ORDER BY message_id"
+                )
+            ]
+    return found

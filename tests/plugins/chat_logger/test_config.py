@@ -10,13 +10,9 @@ from typing import TYPE_CHECKING, cast
 
 import pytest
 
-from plugin_fakes import load_plugin
-
 if TYPE_CHECKING:
-    from pathlib import Path
-
+    from conftest import Loader
     from xincord.core.bot import Bot
-    from xincord.core.storage import Store
     from xincord.plugins.chat_logger.cog import ChatLogger
     from xincord.plugins.chat_logger.config import Config
 
@@ -42,10 +38,10 @@ def warned_keys(caplog: pytest.LogCaptureFixture) -> set[str]:
     return {message.split(marker)[-1] for message in caplog.messages if marker in message}
 
 
-async def test_v3_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture) -> None:
+async def test_v3_file(load: Loader, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config keeps v3's key and bounds the stored messages."""
     with caplog.at_level(logging.WARNING):
-        bot = await load_plugin("ChatLogger", tmp_path / "plugins", store, config=V3_CONFIG)
+        bot = await load(V3_CONFIG)
 
     assert warned_keys(caplog) == {"enabled"}
     config = loaded_config(bot)
@@ -54,10 +50,10 @@ async def test_v3_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFi
     assert config.max_file_size_mb == 256
 
 
-async def test_bundled_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture) -> None:
+async def test_bundled_file(load: Loader, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config keeps v3's key and bounds the stored messages."""
     with caplog.at_level(logging.WARNING):
-        bot = await load_plugin("ChatLogger", tmp_path / "plugins", store)
+        bot = await load()
 
     config = loaded_config(bot)
     assert config.log_all is True
@@ -67,11 +63,11 @@ async def test_bundled_file(tmp_path: Path, store: Store, caplog: pytest.LogCapt
 
 
 @pytest.mark.parametrize("days", [1, 3650])
-async def test_retention_range(days: int, tmp_path: Path, store: Store) -> None:
+async def test_retention_range(days: int, load: Loader) -> None:
     """Requirement: The config keeps v3's key and bounds the stored messages."""
     config = f"retention_days: {days}\n"
 
-    bot = await load_plugin("ChatLogger", tmp_path / "plugins", store, config=config)
+    bot = await load(config)
 
     assert loaded_config(bot).retention_days == days
 
@@ -86,21 +82,21 @@ async def test_retention_range(days: int, tmp_path: Path, store: Store) -> None:
     ids=["zero", "too-long", "text"],
 )
 async def test_invalid_retention(
-    text: str, error: str, tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
+    text: str, error: str, load: Loader, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: The config keeps v3's key and bounds the stored messages."""
-    bot = await load_plugin("ChatLogger", tmp_path / "plugins", store, config=text)
+    bot = await load(text)
 
     assert bot.loaded == ()
     assert error in caplog.text
 
 
 @pytest.mark.parametrize("size", [1, 65536])
-async def test_file_size_range(size: int, tmp_path: Path, store: Store) -> None:
+async def test_file_size_range(size: int, load: Loader) -> None:
     """Requirement: The config keeps v3's key and bounds the stored messages."""
     config = f"max_file_size_mb: {size}\n"
 
-    bot = await load_plugin("ChatLogger", tmp_path / "plugins", store, config=config)
+    bot = await load(config)
 
     assert loaded_config(bot).max_file_size_mb == size
 
@@ -118,20 +114,18 @@ async def test_file_size_range(size: int, tmp_path: Path, store: Store) -> None:
     ids=["zero", "too-large", "text"],
 )
 async def test_invalid_file_size(
-    text: str, error: str, tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
+    text: str, error: str, load: Loader, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: The config keeps v3's key and bounds the stored messages."""
-    bot = await load_plugin("ChatLogger", tmp_path / "plugins", store, config=text)
+    bot = await load(text)
 
     assert bot.loaded == ()
     assert error in caplog.text
 
 
-async def test_invalid_log_all(
-    tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
-) -> None:
+async def test_invalid_log_all(load: Loader, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config keeps v3's key and bounds the stored messages."""
-    bot = await load_plugin("ChatLogger", tmp_path / "plugins", store, config="log_all: maybe\n")
+    bot = await load("log_all: maybe\n")
 
     assert bot.loaded == ()
     assert "log_all: Input should be a valid boolean" in caplog.text

@@ -14,16 +14,14 @@ from typing import TYPE_CHECKING
 import pytest
 
 from discord_fakes import FakeGuild
-from plugin_fakes import dispatch, load_plugin
+from plugin_fakes import dispatch
 from xincord.core.bot import Bot
 from xincord.plugins.chat_logger.cog import NAMESPACE
 from xincord.plugins.chat_logger.messages import MessageLog
 from xincord.plugins.listen_channels.store import ListenSettings
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
-    from conftest import Scene
+    from conftest import Loader, Scene
     from xincord.core.storage import Store
 
 # log_all true keeps the messages of a left guild until the retention, as v3 kept them; false
@@ -94,7 +92,7 @@ async def test_messages_of_a_left_guild(scene: Scene, caplog: pytest.LogCaptureF
 
 
 async def test_loaded_into_a_ready_bot(
-    store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    store: Store, load: Loader, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Requirement: Data is forgotten with the guild."""
     await two_guilds(store)
@@ -109,7 +107,7 @@ async def test_loaded_into_a_ready_bot(
     monkeypatch.setattr(Bot, "is_ready", is_ready)
     monkeypatch.setattr(Bot, "get_guild", get_guild)
 
-    bot = await load_plugin("ChatLogger", tmp_path / "plugins", store, config="log_all: false\n")
+    bot = await load("log_all: false\n")
 
     assert bot.loaded == ("ChatLogger",)
     assert await store.keys(NAMESPACE) == ["10"]

@@ -29,7 +29,7 @@
 
 ## 5. The plugin on its files
 
-- [ ] 5.1 xfail tests for the plugin's side of the three requirements of 4.1 (no file before the
+- [x] 5.1 xfail tests for the plugin's side of the three requirements of 4.1 (no file before the
       first message, messages of older files edited and deleted, the old table dropped, the size
       from the config, unload, reload, failed load)
 - [ ] 5.2 Open the files in `cog_load`, close them in `cog_unload`, drop the old table in `setup`,
