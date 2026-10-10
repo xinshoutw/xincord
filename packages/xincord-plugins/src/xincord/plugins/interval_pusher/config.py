@@ -7,6 +7,13 @@ Kotlin:
 from xincord.core.config import Model
 
 
+class Listener(Model):
+    """A URL to push and the delay between pushes."""
+
+    url: str
+    interval: int
+
+
 class Config(Model):
     """``plugins/IntervalPusher/config.yaml``; the bundled ``config.yaml`` lists no listeners.
 
