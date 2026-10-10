@@ -70,12 +70,16 @@ class FakeInteraction:
     data: Mapping[str, object]
     type: discord.InteractionType = discord.InteractionType.application_command
     locale: discord.Locale = discord.Locale.american_english
-    user: FakeUser = field(default_factory=FakeUser)
+    user: FakeUser | FakeMember = field(default_factory=FakeUser)
     client: object = field(default_factory=lambda: SimpleNamespace(user=BOT_USER))
     channel: object = None
     message: object = None
     command: object = None
     sent: list[Sent] = field(default_factory=list[Sent])
+    guild: object = None  # None outside a guild
+    guild_locale: discord.Locale | None = None  # the guild's preferred locale, in a guild
+    # The permissions Discord resolved for the member in the channel.
+    permissions: discord.Permissions = field(default_factory=discord.Permissions.none)
 
     @property
     def response(self) -> FakeResponse:
@@ -106,6 +110,12 @@ class FakeChannel:
     error: Exception | None = None
     id: int = 5
     name: str = "general"
+    type: discord.ChannelType = discord.ChannelType.text
+
+    @property
+    def mention(self) -> str:
+        """The mention markup."""
+        return f"<#{self.id}>"
 
     async def send(self, **fields: object) -> None:
         """Record a message sent to the channel."""
@@ -121,15 +131,29 @@ class FakeRole:
     id: int
     name: str = "role"
     assignable: bool = True
+    position: int = 1
+    default: bool = False  # the @everyone role
+
+    @property
+    def mention(self) -> str:
+        """The mention markup."""
+        return f"<@&{self.id}>"
 
     def is_assignable(self) -> bool:
         """Whether the bot could give the role: not managed, not @everyone, below its top role."""
         return self.assignable
 
+    def is_default(self) -> bool:
+        """Whether this is the @everyone role."""
+        return self.default
+
 
 @dataclass
 class FakeGuild:
-    """A guild with its roles, its member count and the bot's permissions there."""
+    """A guild with its roles, channels, member count and the bot's permissions there.
+
+    It has the attributes that ``xincord.core.placeholders`` reads from guilds.
+    """
 
     id: int = 10
     name: str = "guild"
@@ -139,6 +163,16 @@ class FakeGuild:
     )
     unavailable: bool = False  # during a Discord outage
     member_count: int | None = None  # None when Discord has not sent it (unavailable since startup)
+    preferred_locale: discord.Locale = discord.Locale.american_english
+    channels: list[FakeChannel] = field(default_factory=list[FakeChannel])  # the cached channels
+    icon: FakeAsset | None = None
+    rules_channel: FakeChannel | None = None
+    system_channel: FakeChannel | None = None
+    premium_subscription_count: int = 0
+    banner: FakeAsset | None = None
+    description: str | None = None
+    owner_id: int | None = None
+    owner: FakeMember | None = None  # when cached
 
     @property
     def me(self) -> SimpleNamespace | None:
@@ -148,6 +182,14 @@ class FakeGuild:
     def get_role(self, role_id: int, /) -> FakeRole | None:
         """The guild's role with that ID, if any."""
         return next((role for role in self.roles if role.id == role_id), None)
+
+    def get_channel(self, channel_id: int, /) -> FakeChannel | None:
+        """The guild's cached channel with that ID, if any."""
+        return next((channel for channel in self.channels if channel.id == channel_id), None)
+
+    def as_guild(self) -> discord.Guild:
+        """This fake, typed as the discord.py guild it stands for."""
+        return cast("discord.Guild", self)
 
 
 type RoleRequest = tuple[tuple[int, ...], bool]  # the role IDs and the atomic flag of add_roles
@@ -159,7 +201,7 @@ class FakeMember:
 
     discord.py sends one add-role request per role when ``atomic`` is true, and otherwise one
     request that replaces the member's roles. A role ID in ``errors`` makes the call raise that
-    error instead.
+    error instead. It has the attributes that ``xincord.core.placeholders`` reads from members.
     """
 
     guild: FakeGuild
@@ -168,6 +210,29 @@ class FakeMember:
     bot: bool = False
     requests: list[RoleRequest] = field(default_factory=list[RoleRequest])
     errors: dict[int, Exception] = field(default_factory=dict[int, Exception])
+    global_name: str | None = None
+    nick: str | None = None
+    avatar: FakeAsset | None = None
+    default_avatar: FakeAsset = FakeAsset("https://cdn.example/default.png")
+    guild_avatar: FakeAsset | None = None
+    roles: tuple[FakeRole, ...] = ()
+    created_at: datetime = datetime(2021, 6, 1, tzinfo=UTC)
+    joined_at: datetime | None = datetime(2022, 1, 1, tzinfo=UTC)
+
+    @property
+    def mention(self) -> str:
+        """The mention markup."""
+        return f"<@{self.id}>"
+
+    @property
+    def display_name(self) -> str:
+        """The nickname, the global name or the username, whichever is set first."""
+        return self.nick or self.global_name or self.name
+
+    @property
+    def display_avatar(self) -> FakeAsset:
+        """The guild avatar, else the user's avatar, else the default one."""
+        return self.guild_avatar or self.avatar or self.default_avatar
 
     async def add_roles(self, *roles: FakeRole, atomic: bool = True) -> None:
         """Record the request, or raise the error set for one of the roles."""

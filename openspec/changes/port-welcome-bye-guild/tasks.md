@@ -22,7 +22,7 @@
 
 ## 5. Placeholders
 
-- [ ] 5.1 xfail tests for "Templates get v3's wbg@ placeholders" against stubs in `values.py`
+- [x] 5.1 xfail tests for "Templates get v3's wbg@ placeholders" against stubs in `values.py`
 - [ ] 5.2 Implement `command_values`, `member_event_values` and the channel checks; remove the
       markers
 
