@@ -171,6 +171,14 @@ async def test_bundled_config(
             id="URL without a host",
         ),
         pytest.param(
+            (
+                'url: "https://lc.ntust.edu.tw/p/403-1070-1626-1.php"',
+                'url: "https://lc.ntust.edu.tw:99999/p/403-1070-1626-1.php"',
+            ),
+            "boards.1.url: Value error, must be an http or https URL with a host and no spaces",
+            id="URL with an invalid port",
+        ),
+        pytest.param(
             ("channel-id: 102", "channel-id: general"),
             "boards.1.channel-id: Input should be a valid integer",
             id="channel by name",
