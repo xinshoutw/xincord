@@ -5,7 +5,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/storage/JsonImpl.kt:75-120
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
@@ -17,40 +17,44 @@ type Operation = Callable[[Wallet, int], Wallet]
 
 @dataclass(frozen=True)
 class Wallet:
-    """A user's money (the balance) and cost (the spending) in one guild, 0 and 0 at first."""
+    """A user's money (the balance) and cost (the spending) in one guild, 0 and 0 at first.
+
+    Python's integers are exact and never wrap, where v3's 32-bit ``Int`` did; either amount may be
+    negative, as in v3.
+    """
 
     money: int = 0
     cost: int = 0
 
 
 def add_money(wallet: Wallet, value: int) -> Wallet:
-    """Stub."""
-    raise NotImplementedError
+    """Add ``value`` to the money (v3's ``addMoney``)."""
+    return replace(wallet, money=wallet.money + value)
 
 
 def remove_money(wallet: Wallet, value: int) -> Wallet:
-    """Stub."""
-    raise NotImplementedError
+    """Move ``value`` from the money to the cost: a purchase (v3's ``removeMoneyAddCost``)."""
+    return Wallet(money=wallet.money - value, cost=wallet.cost + value)
 
 
 def set_money(wallet: Wallet, value: int) -> Wallet:
-    """Stub."""
-    raise NotImplementedError
+    """Set the money to ``value`` (v3's ``setMoney``)."""
+    return replace(wallet, money=value)
 
 
 def add_cost(wallet: Wallet, value: int) -> Wallet:
-    """Stub."""
-    raise NotImplementedError
+    """Add ``value`` to the cost (v3's ``addCost``)."""
+    return replace(wallet, cost=wallet.cost + value)
 
 
 def remove_cost(wallet: Wallet, value: int) -> Wallet:
-    """Stub."""
-    raise NotImplementedError
+    """Subtract ``value`` from the cost (v3's ``removeCost``)."""
+    return replace(wallet, cost=wallet.cost - value)
 
 
 def set_cost(wallet: Wallet, value: int) -> Wallet:
-    """Stub."""
-    raise NotImplementedError
+    """Set the cost to ``value`` (v3's ``setCost``)."""
+    return replace(wallet, cost=value)
 
 
 # v3's change commands, in v3's order, and what each does to the member's wallet.
@@ -65,5 +69,13 @@ OPERATIONS: Mapping[str, Operation] = {
 
 
 def rank(wallets: Mapping[int, Wallet], kind: Kind, limit: int) -> list[tuple[int, int]]:
-    """Stub."""
-    raise NotImplementedError
+    """Return the first ``limit`` user IDs and amounts, from the highest money or cost.
+
+    Every wallet counts, those at 0 too, as in v3. Equal amounts are ordered by user ID, the lowest
+    first: v3 kept them in the order of a Java ``HashMap``, which no one could predict.
+    """
+    amounts = [
+        (user_id, wallet.money if kind == "money" else wallet.cost)
+        for user_id, wallet in wallets.items()
+    ]
+    return sorted(amounts, key=lambda pair: (-pair[1], pair[0]))[:limit]

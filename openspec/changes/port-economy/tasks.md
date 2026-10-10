@@ -23,7 +23,7 @@
 
 - [x] 5.1 xfail tests for "Changes follow v3's arithmetic" and "Boards rank the wallets" against
       stubs in `wallet.py`
-- [ ] 5.2 Implement `OPERATIONS` and `rank`; remove the markers
+- [x] 5.2 Implement `OPERATIONS` and `rank`; remove the markers
 
 ## 6. Storage
 
