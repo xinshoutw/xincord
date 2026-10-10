@@ -18,11 +18,9 @@ from xincord.plugins.economy.wallet import OPERATIONS, Wallet
 if TYPE_CHECKING:
     from xincord.core.storage import JSON, Store
 
-STORED = "Wallets are kept per guild in v3's documents"
 ADD_MONEY = OPERATIONS["add-money"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=STORED)
 async def test_first_change(store: Store) -> None:
     """Requirement: Wallets are kept per guild in v3's documents."""
     assert await change(store, 10, 7, ADD_MONEY, 5) == (Wallet(), Wallet(money=5))
@@ -36,7 +34,6 @@ async def test_first_change(store: Store) -> None:
     assert await read(store, 10, 7) == Wallet(money=5)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=STORED)
 async def test_user_without_a_wallet(store: Store) -> None:
     """Requirement: Wallets are kept per guild in v3's documents."""
     await store.put(NAMESPACE, "10", {"7": {"cost": 1, "money": 2}})
@@ -47,7 +44,6 @@ async def test_user_without_a_wallet(store: Store) -> None:
     assert await store.items(NAMESPACE) == {"10": {"7": {"cost": 1, "money": 2}}}
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=STORED)
 async def test_other_entries_kept(store: Store) -> None:
     """Requirement: Wallets are kept per guild in v3's documents."""
     await store.put(
@@ -74,7 +70,6 @@ async def test_other_entries_kept(store: Store) -> None:
     assert await read_all(store, 10) == {7: Wallet(money=1, cost=7), 8: Wallet(money=4, cost=3)}
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=STORED)
 async def test_amounts_stay_exact(store: Store) -> None:
     """Requirement: Wallets are kept per guild in v3's documents."""
     await change(store, 10, 7, OPERATIONS["set-money"], 2**53 + 1)  # past a double's precision
@@ -83,7 +78,6 @@ async def test_amounts_stay_exact(store: Store) -> None:
     assert await read(store, 10, 7) == Wallet(money=2**54 + 1)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=STORED)
 @pytest.mark.parametrize(
     "entry",
     [
@@ -115,7 +109,6 @@ async def test_unreadable_entry(store: Store, entry: JSON) -> None:
     assert await store.get(NAMESPACE, "10") == {"7": entry, "8": {"cost": 0, "money": 4}}
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=STORED)
 async def test_unreadable_document(store: Store) -> None:
     """Requirement: Wallets are kept per guild in v3's documents."""
     await store.put(NAMESPACE, "10", [1, 2])
@@ -127,7 +120,6 @@ async def test_unreadable_document(store: Store) -> None:
     assert await store.get(NAMESPACE, "10") == [1, 2]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Changes are atomic")
 async def test_concurrent_changes(store: Store) -> None:
     """Requirement: Changes are atomic."""
     await asyncio.gather(*(change(store, 10, 7, ADD_MONEY, 1) for _ in range(50)))
