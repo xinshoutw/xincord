@@ -52,21 +52,32 @@ DUPLICATES = [
         "commands.1.name",
     ),
 ]
-# Templates that the plugin cannot post, and the key in them that the error names.
+SIX_ROWS = "content: links\ncomponents:\n" + (
+    "  - !ButtonsComponent\n    buttons: [{style: 5, url: 'https://e.x', label: L}]\n" * 6
+)
+# Templates that the plugin cannot post, and why, as the renderer says.
 UNPOSTABLE = [
     (
         "components:\n  - !ButtonsComponent\n    buttons: [{uid: {action: pay}, label: Pay}]\n",
-        "components.0.buttons.0.uid",
+        "components with a uid need an ID builder",
     ),
-    ("model_key: message\n", "model_key"),
+    ("model_key: message\n", "no model named 'message' was supplied"),
     (
         (
             "is_components_v2: true\n"
             "components_v2:\n"
             "  - {type: action_row, components: [{type: button, label: Pay, uid: {action: pay}}]}\n"
         ),
-        "components_v2.0.components.0.uid",
+        "components with a uid need an ID builder",
     ),
+    (
+        (
+            "is_components_v2: true\n"
+            "components_v2:\n  - {type: file_display, file_path: missing.pdf}\n"
+        ),
+        "cannot attach missing.pdf",
+    ),
+    (SIX_ROWS, "row cannot be negative or greater than or equal to 5"),
 ]
 
 
@@ -112,15 +123,17 @@ async def test_duplicate_names(
     assert f"config.yaml: {key}: " in log
 
 
+@pytest.mark.xfail(strict=True, reason="The config is validated at load")
 async def test_too_many_commands(operator: Operator, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config is validated at load."""
     entries = "".join(
-        f"  - {{name: c{index}, description: d, template: cub-none-card}}\n" for index in range(101)
+        f"  - {{name: c{index}, description: d, template: cub-none-card}}\n" for index in range(100)
     )
 
     log = await refused(operator, f"commands:\n{entries}", caplog)
 
-    assert "config.yaml: commands: 101 commands" in log
+    # The core's /xincord takes one of the 100 places.
+    assert "config.yaml: commands: 100 commands, more than the 99 places left" in log
 
 
 async def test_missing_template(operator: Operator, caplog: pytest.LogCaptureFixture) -> None:
@@ -132,9 +145,14 @@ async def test_missing_template(operator: Operator, caplog: pytest.LogCaptureFix
     assert "config.yaml: commands.0.template: " in log
 
 
-@pytest.mark.parametrize(("template", "key"), UNPOSTABLE, ids=["uid", "model_key", "v2-uid"])
+@pytest.mark.xfail(strict=True, reason="The config is validated at load")
+@pytest.mark.parametrize(
+    ("template", "reason"),
+    UNPOSTABLE,
+    ids=["uid", "model_key", "v2-uid", "missing-file", "six-rows"],
+)
 async def test_template_that_cannot_be_posted(
-    operator: Operator, caplog: pytest.LogCaptureFixture, template: str, key: str
+    operator: Operator, caplog: pytest.LogCaptureFixture, template: str, reason: str
 ) -> None:
     """Requirement: The config is validated at load."""
     operator.template("faq", 'content: "Ask in #help"\n')
@@ -142,7 +160,33 @@ async def test_template_that_cannot_be_posted(
 
     log = await refused(operator, "commands:\n  - {name: faq, description: FAQ}\n", caplog)
 
-    assert f"en-US/message/faq.yaml: {key}: " in log
+    assert f"en-US/message/faq.yaml: cannot be posted: {reason}" in log
+
+
+@pytest.mark.xfail(strict=True, reason="The config is validated at load")
+async def test_link_button_with_a_uid(operator: Operator) -> None:
+    """Requirement: The config is validated at load."""
+    operator.template(
+        "site",
+        "content: Our site\n"
+        "components:\n"
+        "  - !ButtonsComponent\n"
+        "    buttons: [{style: 5, url: 'https://e.x', label: Site, uid: {action: open}}]\n",
+    )
+
+    bot = await operator.load("commands:\n  - {name: site, description: Site}\n")
+
+    assert bot.loaded == ("CustomCommands",)
+
+
+@pytest.mark.xfail(strict=True, reason="The config is validated at load")
+async def test_name_with_a_line_break(operator: Operator, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: The config is validated at load."""
+    operator.template("pay", 'content: "Pay here"\n')
+
+    log = await refused(operator, 'commands:\n  - {name: "pay\\n", description: Pay}\n', caplog)
+
+    assert "config.yaml: commands.0.name" in log
 
 
 async def test_missing_commands(operator: Operator, caplog: pytest.LogCaptureFixture) -> None:

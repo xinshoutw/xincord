@@ -67,7 +67,7 @@
       entry point
 - [x] 11.2 Replay the templates, unload dependents and modules, upload after an unloading reload,
       guard a moved entry point; remove the markers
-- [ ] 11.3 xfail tests for "Lang files are validated at load" (combining marks, line breaks) and
+- [x] 11.3 xfail tests for "Lang files are validated at load" (combining marks, line breaks) and
       "The config is validated at load" (a trailing line break, templates that fail to render, a
       link button with a `uid`, the room left)
 - [ ] 11.4 Follow Discord's scripts in `is_command_name`, check the configured name with it,

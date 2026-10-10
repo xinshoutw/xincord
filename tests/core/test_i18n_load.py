@@ -15,7 +15,9 @@ if TYPE_CHECKING:
 
 
 REGISTER = "calc:\n  name: calc\n  description: Calculate\n"
-VALID_NAMES = ["calc", "my-calc_2", "o'clock", chr(0x8A08) + chr(0x7B97)]
+DEVANAGARI = "".join(map(chr, (0x0928, 0x092E, 0x0938, 0x094D, 0x0924, 0x0947)))  # with marks
+THAI = "".join(map(chr, (0x0E2A, 0x0E27, 0x0E31, 0x0E2A, 0x0E14, 0x0E35)))  # with marks
+VALID_NAMES = ["calc", "my-calc_2", "o'clock", chr(0x8A08) + chr(0x7B97), DEVANAGARI, THAI]
 INVALID_NAMES = ["Calc", "my calc", "x" * 33, ""]
 
 
@@ -98,6 +100,17 @@ def test_public_name_check_refuses(name: str) -> None:
     """Requirement: Lang files are validated at load."""
 
     assert not is_command_name(name)
+
+
+@pytest.mark.xfail(strict=True, reason="Lang files are validated at load")
+def test_marks_of_other_scripts_are_refused(tmp_path: Path) -> None:
+    """Requirement: Lang files are validated at load."""
+    accented = "cafe" + chr(0x0301)  # a combining mark, which Discord takes in Devanagari and Thai
+
+    assert not is_command_name(accented)
+    assert not is_command_name("calc\n")
+    with pytest.raises(LangError, match=r"calc\.name"):
+        load(tmp_path, {"en-US/register.yaml": f'calc:\n  name: "{accented}"\n'})
 
 
 @pytest.mark.parametrize("description", ["", "x" * 101])
