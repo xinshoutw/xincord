@@ -45,7 +45,7 @@
 
 - [x] 9.1 xfail tests for "Voice channel changes are logged" and "Logs reach every listen channel"
       against a stub listener
-- [ ] 9.2 Implement the voice listener and the posts; remove the markers
+- [x] 9.2 Implement the voice listener and the posts; remove the markers
 
 ## 10. Status changes
 

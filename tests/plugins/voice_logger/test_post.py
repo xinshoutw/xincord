@@ -8,7 +8,6 @@ import logging
 from typing import TYPE_CHECKING, cast
 
 import discord
-import pytest
 
 from discord_fakes import (
     FakeChannel,
@@ -24,13 +23,12 @@ from xincord.plugins.voice_logger.settings import Setting
 from xincord.plugins.voice_logger.store import add_channels, read_settings
 
 if TYPE_CHECKING:
+    import pytest
+
     from xincord.core.bot import Bot
     from xincord.core.storage import Store
 
 GOLDEN = golden("voice_logger")
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Logs reach every listen channel"
-)
 
 
 async def join(bot: Bot, locale: discord.Locale = discord.Locale.american_english) -> None:
@@ -51,7 +49,6 @@ def titles(channel: FakeChannel) -> list[str]:
     return found
 
 
-@XFAIL
 async def test_locale_without_templates(
     bot: Bot, store: Store, channels: dict[int, FakeChannel]
 ) -> None:
@@ -63,7 +60,6 @@ async def test_locale_without_templates(
     assert titles(channels[5]) == [GOLDEN["voice"]["zh-TW"]["join"]["title"]]  # v3's default
 
 
-@XFAIL
 async def test_deleted_listen_channel(
     bot: Bot, store: Store, channels: dict[int, FakeChannel], caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -81,7 +77,6 @@ async def test_deleted_listen_channel(
     assert titles(channels[6]) == [GOLDEN["voice"]["en-US"]["join"]["title"]]
 
 
-@XFAIL
 async def test_refused_listen_channel(
     bot: Bot, store: Store, channels: dict[int, FakeChannel], caplog: pytest.LogCaptureFixture
 ) -> None:

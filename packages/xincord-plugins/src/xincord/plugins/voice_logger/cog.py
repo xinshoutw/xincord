@@ -4,30 +4,35 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:29-439
 """
 
+import logging
 import re
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 from xincord.core.component_ids import ComponentIds
-from xincord.core.placeholders import placeholder_values
+from xincord.core.placeholders import actor_values, placeholder_values
 from xincord.core.templates import render_message
 
-from .settings import list_text
-from .store import add_channels, read_setting, remove, toggle
+from .logs import Place, voice_change
+from .settings import list_text, targets
+from .store import add_channels, read_setting, read_settings, remove, toggle
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Mapping, Sequence
 
     from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
     from xincord.core.templates import Message, Templates
 
+    from .logs import VoiceChannelLike
     from .settings import Setting
     from .store import Kind
+
+logger = logging.getLogger(__name__)
 
 # v3's only field, in v3's prefix, so that v3's menus keep working.
 IDS = ComponentIds("voice_logger", ("action",), legacy_prefix="voice-logger@")
@@ -39,6 +44,21 @@ ENTITY_SELECTS = frozenset({5, 6, 7, 8})  # user, role, mentionable and channel 
 SELECTS = {"modify_allow_btn": "modify-allow", "modify_block_btn": "modify-block"}
 MENUS: dict[str | None, Kind] = {"modify_allow_menu": "allow", "modify_block_menu": "block"}
 SNOWFLAKE = re.compile(r"[0-9]+")
+
+
+class Postable(Protocol):
+    """A channel that takes messages, as the plugin posts its logs."""
+
+    async def send(
+        self,
+        *,
+        content: str | None = None,
+        embeds: Sequence[discord.Embed] = (),
+        view: discord.ui.View | discord.ui.LayoutView | None = None,
+        files: Sequence[discord.File] = (),
+    ) -> object:
+        """Send a message to the channel."""
+        ...
 
 
 class VoiceLogger(commands.Cog):
@@ -134,10 +154,61 @@ class VoiceLogger(commands.Cog):
     ) -> None:
         """Post a join, a leave or a switch to the listen channels that detect it.
 
-        Raises:
-            NotImplementedError: Not implemented yet.
+        The channels are read at once, before anything awaits: discord.py runs listeners as tasks,
+        and later events change its cache meanwhile. The member is the one whose state changed,
+        bots included, also when a moderator moved them (v3's ``Placeholder.get(member)``).
         """
-        raise NotImplementedError
+        joined, left = _place(after.channel), _place(before.channel)
+        change = voice_change(joined, left)
+        if change is None:
+            return
+        name, values = change
+        guild = member.guild
+        sides = [(place.id, place.category_id) for place in (joined, left) if place is not None]
+        listen = targets(await read_settings(self.store, guild.id), sides)
+        bot = self.bot.user
+        actor = {} if bot is None else actor_values(member, bot)
+        await self._post(guild, listen, name, actor | values)
+
+    async def _post(
+        self, guild: discord.Guild, listen: Sequence[int], name: str, values: Mapping[str, str]
+    ) -> None:
+        """Send template ``name`` to each listen channel of ``listen``, in the guild's locale.
+
+        v3 used ``guild.locale``; the templates fall back to zh-TW. Each channel gets its own
+        render, because discord.py closes a message's files once sent, and is reached without
+        the cache. A channel that Discord no longer has loses its settings; a refusal is a
+        warning; the other channels still get the log. v3 stopped at the first missing channel
+        and threw for channels other than text and voice channels.
+        """
+        template = self.templates.message(name, guild.preferred_locale.value)
+        for channel_id in listen:
+            partial = self.bot.get_partial_messageable(channel_id, guild_id=guild.id)
+            channel = cast("Postable", partial)  # send's overloads never take a view union
+            message = render_message(template, values, build_id=IDS.build)
+            try:
+                await channel.send(
+                    content=message.content or None,
+                    embeds=message.embeds,
+                    view=message.view,
+                    files=message.files,
+                )
+            except discord.NotFound:
+                await remove(self.store, guild.id, channel_id)
+                logger.info(
+                    "VoiceLogger forgot the listen channel %s of %s (%s), which no longer exists",
+                    channel_id,
+                    guild.name,
+                    guild.id,
+                )
+            except discord.HTTPException as error:
+                logger.warning(
+                    "VoiceLogger cannot post in the listen channel %s of %s (%s): %s",
+                    channel_id,
+                    guild.name,
+                    guild.id,
+                    error,
+                )
 
     def _menu(self, interaction: discord.Interaction, setting: Setting) -> Message:
         """v3's settings menu for ``setting``, in the user's locale.
@@ -179,6 +250,11 @@ def _ids(values: object) -> list[int]:
     return [
         int(entry) for entry in entries if isinstance(entry, str) and SNOWFLAKE.fullmatch(entry)
     ]
+
+
+def _place(channel: VoiceChannelLike | None) -> Place | None:
+    """What the logs show of a voice state's channel, if the member is in one."""
+    return None if channel is None else Place.of(channel)
 
 
 def _where(interaction: discord.Interaction) -> tuple[int, int] | None:

@@ -23,9 +23,6 @@ if TYPE_CHECKING:
     from xincord.core.storage import Store
 
 GOLDEN = golden("voice_logger")
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Voice channel changes are logged"
-)
 LOCALES = {"en-US": discord.Locale.american_english, "zh-TW": discord.Locale.taiwan_chinese}
 
 
@@ -66,7 +63,6 @@ def posts(channel: FakeChannel) -> list[dict[str, Any]]:
     return found
 
 
-@XFAIL
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 @pytest.mark.parametrize("who", ["member", "bot"])
 async def test_join(
@@ -82,7 +78,6 @@ async def test_join(
     assert posts(channels[5]) == [GOLDEN["voice"][locale]["join"]]
 
 
-@XFAIL
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_leave_without_a_category(
     bot: Bot, store: Store, channels: dict[int, FakeChannel], locale: str
@@ -97,7 +92,6 @@ async def test_leave_without_a_category(
     assert posts(channels[5]) == [GOLDEN["voice"][locale]["left"]]
 
 
-@XFAIL
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_switch(
     bot: Bot, store: Store, channels: dict[int, FakeChannel], locale: str
@@ -116,7 +110,6 @@ async def test_switch(
     assert 7 not in channels  # it detects neither side
 
 
-@XFAIL
 async def test_same_channel(bot: Bot, store: Store, channels: dict[int, FakeChannel]) -> None:
     """Requirement: Voice channel changes are logged."""
     await toggle(store, 10, 5)
@@ -131,7 +124,6 @@ async def test_same_channel(bot: Bot, store: Store, channels: dict[int, FakeChan
     assert channels == {}
 
 
-@XFAIL
 async def test_not_detected(bot: Bot, store: Store, channels: dict[int, FakeChannel]) -> None:
     """Requirement: Voice channel changes are logged."""
     guild = voice_guild()
