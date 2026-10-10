@@ -301,7 +301,6 @@ async def test_undeletable_channel(scene: Scene, caplog: pytest.LogCaptureFixtur
     assert "cannot delete the channel 700" in caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason="Submitting the reason opens a ticket channel")
 async def test_typed_mentions_ping_nobody(scene: Scene) -> None:
     """Requirement: Submitting the reason opens a ticket channel."""
     ticket = await open_ticket(scene, reason="<@9> <@&5> @everyone")

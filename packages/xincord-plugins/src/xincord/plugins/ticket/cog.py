@@ -410,7 +410,7 @@ class Ticket(ControlRow, commands.Cog):
             discord.HTTPException: Discord refused a message.
         """
         mentions = discord.AllowedMentions(
-            everyone=False, users=True, roles=[discord.Object(role) for role in entry.admin_ids]
+            everyone=False, users=False, roles=[discord.Object(role) for role in entry.admin_ids]
         )
         *parts, last = opener(entry.admin_ids, reason)
         row = control_row(controls, locked=False, texts=self.public, build_id=IDS.build)
