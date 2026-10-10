@@ -6,7 +6,7 @@
 ## 2. Installation
 
 - [x] 2.1 xfail tests for "The plugin installs as BotInfo", with the test fixtures
-- [ ] 2.2 Add the package, its `setup`, the members intent and the `BotInfo` entry point; remove
+- [x] 2.2 Add the package, its `setup`, the members intent and the `BotInfo` entry point; remove
       the markers
 
 ## 3. Config

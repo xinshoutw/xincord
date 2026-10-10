@@ -10,7 +10,6 @@ from importlib.resources import files
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 from xincord.core.plugins import PluginInfo, discover
 
@@ -19,7 +18,6 @@ if TYPE_CHECKING:
 
     from xincord.core.bot import Bot
 
-XFAIL = pytest.mark.xfail(strict=True, reason="The plugin installs as BotInfo")
 LANG_FILES = (
     "en-US/register.yaml",
     "en-US/message/bot-info.yaml",
@@ -28,7 +26,6 @@ LANG_FILES = (
 )
 
 
-@XFAIL
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as BotInfo."""
     assert discover(["BotInfo"]) == [
@@ -36,14 +33,12 @@ def test_discovered_by_name() -> None:
     ]
 
 
-@XFAIL
 async def test_the_bot_requests_the_members_intent(bot: Bot) -> None:
     """Requirement: The plugin installs as BotInfo."""
     assert bot.loaded == ("BotInfo",)
     assert bot.intents.members
 
 
-@XFAIL
 async def test_first_load_creates_the_files(bot: Bot, tmp_path: Path) -> None:
     """Requirement: The plugin installs as BotInfo."""
     directory = tmp_path / "plugins" / "BotInfo"
