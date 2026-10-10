@@ -5,8 +5,10 @@ Kotlin:
 """
 
 import re
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
+import discord
+from discord import app_commands
 from discord.ext import commands
 
 from xincord.core.component_ids import ComponentIds
@@ -19,8 +21,6 @@ from .store import add_channels, read_setting, remove, toggle
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-    import discord
-
     from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 
 # v3's only field, in v3's prefix, so that v3's menus keep working.
 IDS = ComponentIds("voice_logger", ("action",), legacy_prefix="voice-logger@")
+ROOT = "voice-logger"  # v3's command, and the root of its register.yaml keys
 MENU = "voice-logger@setting"  # the settings menu's template
 BUTTON = 2  # the component type of a button
 ENTITY_SELECTS = frozenset({5, 6, 7, 8})  # user, role, mentionable and channel select menus
@@ -49,6 +50,27 @@ class VoiceLogger(commands.Cog):
         self.store = store
         self.lang = lang
         self.templates = templates
+
+    def command(self) -> app_commands.Group:
+        """Build v3's ``/voice-logger`` with its subcommand ``setting``, from ``register.yaml``.
+
+        As in v3, only administrators see it by default; there is no other check. The group is
+        built here, so its module is the plugin's and unloading the plugin removes it.
+        """
+        lang = self.lang
+        group = app_commands.Group(
+            name=lang.command(ROOT, f"{ROOT}.name"),
+            description=lang.command("commands about voice logger", f"{ROOT}.description"),
+            default_permissions=discord.Permissions(administrator=True),
+        )
+        key = f"{ROOT}.subcommands.setting"
+        setting: app_commands.Command[Any, ..., None] = app_commands.Command(
+            name=lang.command("setting", f"{key}.name"),
+            description=lang.command("set voice log in this channel", f"{key}.description"),
+            callback=self.show_settings,
+        )
+        group.add_command(setting)
+        return group
 
     async def show_settings(self, interaction: discord.Interaction) -> None:
         """Edit the deferred response into the current channel's settings menu (v3's ``setting``).

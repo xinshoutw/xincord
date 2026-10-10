@@ -12,7 +12,6 @@ Kotlin:
 from typing import TYPE_CHECKING, Any, cast
 
 import discord
-import pytest
 from discord import app_commands
 
 from discord_fakes import FakeChannel, FakeGuild, FakeInteraction, FakeMember
@@ -32,9 +31,6 @@ if TYPE_CHECKING:
     type Callback = Callable[..., Awaitable[None]]
 
 GOLDEN = golden("voice_logger")
-XFAIL = pytest.mark.xfail(
-    strict=True, reason="The command is a localized administrator guild command"
-)
 NAME = "voice-logger"
 GUILD = FakeGuild(10)
 
@@ -50,7 +46,6 @@ def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
     return found
 
 
-@XFAIL
 async def test_command_payload(bot: Bot) -> None:
     """Requirement: The command is a localized administrator guild command."""
     global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
@@ -63,7 +58,6 @@ async def test_command_payload(bot: Bot) -> None:
     assert NAME not in {entry["name"] for entry in global_payload}
 
 
-@XFAIL
 async def test_command_callback(bot: Bot, cog: VoiceLogger) -> None:
     """Requirement: The command is a localized administrator guild command."""
     group = bot.tree.get_command(NAME)

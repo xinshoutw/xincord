@@ -33,6 +33,8 @@ async def setup(bot: Bot) -> None:
     lang = context.lang(DEFAULT_LOCALE)
     cog = VoiceLogger(bot, context.store, lang, Templates.load(lang))
     await bot.add_cog(cog)
+    # A guild command, as in v3. discord.py removes it when the plugin unloads.
+    bot.tree.add_command(cog.command())
     # The menu's buttons and select menus with IDS's IDs, v3's too, reach cog.handle; the core
     # drops the route when the plugin unloads.
     bot.route(__name__, IDS, cog.handle)

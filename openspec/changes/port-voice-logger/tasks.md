@@ -39,7 +39,7 @@
 ## 8. Command
 
 - [x] 8.1 xfail tests for "The command is a localized administrator guild command"
-- [ ] 8.2 Build the group and its subcommand and register it in `setup`; remove the markers
+- [x] 8.2 Build the group and its subcommand and register it in `setup`; remove the markers
 
 ## 9. Voice changes
 
