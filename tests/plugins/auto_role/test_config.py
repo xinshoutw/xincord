@@ -7,12 +7,11 @@ Kotlin:
 """
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
 from plugin_fakes import load_plugin
-from xincord.plugins.auto_role.cog import AutoRole
 from xincord.plugins.auto_role.config import Config
 
 if TYPE_CHECKING:
@@ -20,6 +19,7 @@ if TYPE_CHECKING:
 
     from xincord.core.bot import Bot
     from xincord.core.storage import Store
+    from xincord.plugins.auto_role.cog import AutoRole
 
 # v3's shape with 64-bit IDs; the values are placeholders.
 V3_CONFIG = """\
@@ -33,10 +33,15 @@ guilds:
 
 
 def loaded_cog(bot: Bot) -> AutoRole:
-    """The cog of the loaded plugin."""
+    """The cog of the loaded plugin.
+
+    When a plugin's setup fails, as with the invalid files below, discord.py drops its modules, and
+    the next load imports them again: an isinstance check against the class imported here would
+    depend on the test order.
+    """
     cog = bot.get_cog("AutoRole")
-    assert isinstance(cog, AutoRole)
-    return cog
+    assert cog is not None
+    return cast("AutoRole", cog)
 
 
 async def test_v3_config_file(

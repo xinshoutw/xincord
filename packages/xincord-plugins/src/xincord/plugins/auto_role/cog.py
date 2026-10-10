@@ -6,7 +6,7 @@ Kotlin:
 """
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 import discord
 from discord.ext import commands
@@ -30,6 +30,21 @@ class AutoRole(commands.Cog):
         """
         self.bot = bot
         self.roles = config.roles_by_guild()
+
+    @override
+    async def cog_load(self) -> None:
+        """Check the config at once when the plugin loads into a ready bot, as on a reload."""
+        if self.bot.is_ready():
+            self.check()
+
+    @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        """Check the config once the guilds are known; discord.py fires this per session."""
+        self.check()
+
+    def check(self) -> None:
+        """Stub until problems are logged when the bot is ready."""
+        raise NotImplementedError
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
