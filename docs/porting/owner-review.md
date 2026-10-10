@@ -457,3 +457,34 @@ here; delete a section once it is empty.
 - Run the v3 data import before anyone uses `/add-ticket` on a v3 panel (see the choice above).
 - Unverified without Discord: Discord's exact webhook username rules, and how a long archive behaves near Discord's rate limits.
 - Packaging was checked: the wheel's lang files, `xincord --no-online` from the built wheels, and the compose image with the fourteen ported plugins; a discord.py probe walked every flow with HTTP recorded (archived design, "Checks").
+
+## TicketAwayNotice (v3 TicketAddons, `port-ticket-away-notice`)
+
+### User-visible changes
+- The plugin is `TicketAwayNotice` under `plugins:` and in `plugins/TicketAwayNotice/`; `migrate_v3` moves v3's `plugins/TicketAddons/` there with its config and template.
+- Enabling it makes the bot request the privileged Presence and Server Members intents; without the Presence intent in the developer portal, Discord refuses the bot's connection (4014).
+- The notice is posted only in `guild_id` (v3: in every guild where the owner was a member and offline).
+- Threads, forum posts, announcement channels and voice and stage channels' chats with a matching name get the notice (v3 posted in text channels only and threw for the others); categories and forums are skipped quietly, and so are threads that the bot starts itself, such as Ticket's archives.
+- The notice appears only while the owner is offline as Discord reports it (v3 posted almost always, since it cached no members), and not when the owner comes online or the channel is deleted during the wait.
+- The bundled `config.yaml` holds 0 for `guild_id` and `user_id`, so the plugin does not load until both are set (v3 shipped the shop's real IDs); v3's file loads unchanged and warns `unknown key enabled`.
+- The bundled `not-online.yaml` holds an example shop name (範例商店) and example channel IDs, with the text in the embed's description, where channel mentions show as links (v3: in the title, shown as raw `<#...>` text); v3's footer `❖ ORDERLY SERVER ❖` is kept, and operators' files keep their own text.
+- New log lines: warnings for a guild the bot is not in and an owner who is not a member (at READY and per channel), a refused member lookup and a refused notice; a template that can never be posted (a component ID, more than ten embeds, an empty message) keeps the plugin from loading, with the file named.
+### Choices made without the owner
+- Channel kinds: implemented every new channel and thread that takes messages (text, announcement, voice and stage chats, threads, forum posts); alternative: text channels only, all that v3 managed to post in.
+- The bot's own threads: skipped, so that Ticket's archive (a thread named after the ticket channel) never gets the notice (found in the cross-review); alternative: treat them as any thread.
+- Ticket's channels: kept v3's prefix matching, so the default prefixes (`客服單-`, `ticket-`) do not match Ticket's channels, named after the username (see the Ticket section's question); alternative: also watch every channel that Ticket opens.
+- The wait: implemented a check of the channel and the owner before and after `delay_millis`; alternative: v3's single check before the wait.
+- An owner that discord.py has not cached (a large guild still being chunked): read through REST, whose member has no presence and counts as offline, as in v3; alternative: skip the notice, or ask the gateway for the presence (`query_members(presences=True)`).
+- Notices that wait during an unload or a reload are dropped; alternative: hand them to the reloaded plugin.
+- Bundled config: both IDs ship as 0 and the plugin does not load until they are set; alternative: optional IDs, with the plugin idle until set.
+- Validation: both IDs must be positive integers at load (v3 took any text); prefixes stay case-sensitive, numbers in `prefix` are read as text as v3 did, and an empty prefix still matches every channel, as in v3.
+- Bundled template: v3's text with example values, moved into the description; alternative: keep it in the title as v3, or a new generic text.
+- The notice stays zh-TW for everyone, with v3's global placeholders only (`bot_id`, `bot_name`); alternative: the guild's locale, or guild and channel placeholders.
+- A check at READY warns about a missing guild or owner (v3 checked nothing); alternative: warnings only when a channel is created.
+### Manual checks
+- Smoke checklist in `openspec/changes/archive/2026-10-11-port-ticket-away-notice/design.md`.
+- Allow the Presence intent in the developer portal before enabling TicketAwayNotice (the Server Members intent is already on), or the bot does not connect.
+- At cutover, after `migrate_v3` moved `plugins/TicketAddons/`, check that `guild_id` is the shop's guild: the guild filter now applies, so a wrong value stops the notices (the READY check names it).
+- The bot needs View Channel, Send Messages and Embed Links in the new channels.
+- An image check with every plugin enabled needs example IDs in `plugins/TicketAwayNotice/config.yaml`, as Economy's `admin_id`.
+- Done: the wheel, `xincord --no-online`, the compose image with the fifteen ported plugins, and a probe through discord.py's gateway code, again after the cross-review's fixes (archived design, "Checks" and "Cross-review").

@@ -1,7 +1,9 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-11 after `port-ticket`, the fourteenth plugin port (ticket panels, ticket channels
-with their overwrites, and archives through webhooks), which followed `chat-logger-split-storage`
+Updated 2026-10-11 after `port-ticket-away-notice`, the fifteenth plugin port (v3 TicketAddons: a
+notice in new ticket channels while the shop's owner is offline, the first plugin with the presences
+intent and delayed work started by an event), which followed `port-ticket` (ticket panels, ticket
+channels with their overwrites, and archives through webhooks), `chat-logger-split-storage`
 (the owner's third follow-up change: ChatLogger keeps 5 years of messages by default in its own
 SQLite files under `data/ChatLogger/`; with it, a data directory per plugin in the core and a core
 fix that rolls back a failed commit), `custom-commands-from-config`,
@@ -407,11 +409,33 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
   (the archived design, "Channel names"). Reuse: `xincord.plugins.redaction`, the overwrite map
   of `tickets.overwrites`, the webhook pattern of `archive.py`, `discord_fakes.FakeCategory`,
   hashable `FakeMember`, `bad_request()`, `button_rows()`, the scene's `click` and `refuse_edit`.
+- **TicketAwayNotice** (v3 TicketAddons; `xincord.plugins.ticket_away_notice`, `INTENTS =
+  discord.Intents(members=True, presences=True)`, both privileged, zh-TW `message/not-online.yaml`
+  only, config `guild_id`, `user_id`, `prefix`, `delay_millis` without defaults; the bundled file
+  holds 0 for both IDs, so the plugin waits for the operator): the first plugin that reads members'
+  statuses and the first with delayed work started by an event. `config.py`'s `Config.watches` is
+  the pure filter (the guild, case-sensitive prefixes); `cog.py`: `on_guild_channel_create` and
+  `on_thread_create` call `watch`, which checks without awaiting, keeps the channels that take
+  messages (`Postable`, a Protocol with `send`) and skips the bot's own threads (Ticket's archives),
+  then starts a notice task kept in `notices`; the task checks `_due` (the channel and the guild
+  still cached, the owner offline: the cache, else `fetch_member`, whose member has no presence and
+  reads offline), waits on the cog's `sleep`, checks `_due` again and posts `not-online` in the
+  default locale with `global_values`, logging what it does not handle with `logger.exception`.
+  `cog_unload` sets `closed` (a listener that discord.py scheduled before the unload starts nothing)
+  and cancels the notices; `check()` from `on_ready` and `cog_load` in a ready bot warns about a
+  missing guild or owner; `check_notice` in `setup` refuses a template that can never be posted (a
+  `uid`, more than ten embeds, an empty message). Numbers in `prefix` read as text, as v3's kaml
+  did. Reuse: the scene's `Clock` (an injected `sleep` that waits until the test wakes it), the
+  gateway scene through discord.py's parsers with `FakeRest` answering `POST
+  /channels/{id}/messages`, `payloads.guild(members=, presences=)`, `payloads.presence`,
+  `payloads.channel(guild_id=)`, and `FakeRest`'s `form` for uploads.
 - **Plugin names** (`rename-plugins`): the six ported plugins that the owner renamed carry their new
   names everywhere but the inventories, Kotlin citations, legacy component ID prefixes and
-  placeholder keys (porting guide, "Plugin names"); `migrate_v3.RENAMED` maps all nine v3 names.
-  Reuse: the capability rename recipe and the image check with every plugin (section 7).
-- **Still to build:** the plugins after Ticket and the owner's follow-up changes (section 5).
+  placeholder keys (porting guide, "Plugin names"); `migrate_v3.RENAMED` maps all nine v3 names,
+  and TicketAwayNotice was ported under its new name. Reuse: the capability rename recipe and the
+  image check with every plugin (section 7).
+- **Still to build:** the plugins after TicketAwayNotice and the owner's follow-up changes (section
+  5).
 
 ## 5. Status and next steps
 
@@ -425,7 +449,7 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 `port-welcome-bye-guild`, `port-interval-pusher`, `port-feedbacker`, `port-economy`,
 `port-dynamic-voice-channel`, `port-voice-logger`, `port-chat-logger`, `port-giveaway`,
 `rename-plugins`, `uptime-heartbeat-keep-pushing`, `custom-commands-from-config`,
-`chat-logger-split-storage`, `port-ticket`. Each one's
+`chat-logger-split-storage`, `port-ticket`, `port-ticket-away-notice`. Each one's
 `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
@@ -434,10 +458,12 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 
 Core is complete; Example (the template), Calculator, AutoRole, BotInfo, CustomCommands,
 WelcomeGoodbye, UptimeHeartbeat, Feedback, Economy, DynamicVoiceChannel, VoiceLogger, ChatLogger,
-Giveaway and Ticket are ported. Next: **TicketAwayNotice** (`port-ticket-away-notice`, v3
-TicketAddons): it posts its notice in new channels whose names start with its prefixes; Ticket names
-its channels after the member's username (see the archived `port-ticket` design, "Channel names",
-and the review queue's question about a `ticket-` prefix).
+Giveaway, Ticket and TicketAwayNotice are ported. Next: **NtustAnnouncements**
+(`port-ntust-announcements`, v3 NtustManager, `docs/porting/analysis/inventory/NtustManager.md`): a
+background poster without commands that polls NTUST's announcement boards over HTTP, has Gemini turn
+each new article into Markdown and posts it to a guild and channel that v3 hard-coded (config keys
+with example values, never the real IDs); its API key needs the redaction and hidden config errors
+of section 7, and its loop UptimeHeartbeat's `Failures`.
 The owner renamed nine plugins on 2026-10-10 (`docs/porting/decisions.md`, Amendment 1; the table
 in `docs/porting-guide.md`, "Plugin names"), and `rename-plugins` applied the renames to the ported
 ones. A port of a renamed plugin uses the new name for the entry point, `plugins/<Name>/`, the
@@ -449,9 +475,9 @@ one OpenSpec change each (`port-<plugin-kebab>`): Example (done), Calculator (do
 AutoRole (done), BotInfo (done, with the configurable AGPL source link of C3), CustomCommands
 (done), WelcomeGoodbye (done), UptimeHeartbeat (done), Feedback (done), Economy (done),
 DynamicVoiceChannel (done), VoiceLogger (done), ChatLogger (done), Giveaway (done), Ticket (done),
-then TicketAwayNotice (v3 TicketAddons), NtustAnnouncements (v3 NtustManager), NtustCourseWatch (v3
-NtustCourse), MusicPlayer (with Lavalink in `compose.yaml`). Update `docs/porting-guide.md` after
-each one.
+TicketAwayNotice (done, v3 TicketAddons), then NtustAnnouncements (v3 NtustManager),
+NtustCourseWatch (v3 NtustCourse), MusicPlayer (with Lavalink in `compose.yaml`). Update
+`docs/porting-guide.md` after each one.
 
 The owner also asked for follow-up changes (section 6). Done: UptimeHeartbeat logs URLs as origins
 only and never stops a listener (`uptime-heartbeat-keep-pushing`); CustomCommands defines its
@@ -564,6 +590,10 @@ Answered on 2026-10-10 (afternoon), from the review queue (the answered items we
    that TicketAwayNotice's default prefixes match them; the Message Content intent for the archive;
    `TZ` for the archive's times; the v3 data import before anyone uses `/add-ticket` on v3 panels
    (until then a new button takes index 0, the v3 button's, and both open the new entry).
+7. **TicketAwayNotice** (review queue, "TicketAwayNotice"): the Presence intent must be allowed in
+   the developer portal before the plugin is enabled, or Discord refuses the bot's connection; at
+   cutover, `guild_id` must be the shop's guild, since the guild filter now applies (the READY check
+   names a wrong one).
 
 ## 7. Verified facts and pitfalls
 
@@ -902,10 +932,34 @@ setup-uv v10.2.0, setup-node v7.1.0.
   `clyde`, `everyone` or `here`, or over 80 characters; a string option takes up to 6000
   characters, a reply at most 2000.
 
+- With the presences intent, discord.py does not chunk a guild that is not large: its
+  `GUILD_CREATE` carries the members and their presences (`_guild_needs_chunking`); large guilds are
+  chunked without presences. `PRESENCE_UPDATE` updates cached members only, so a plugin that reads
+  statuses declares the members intent too. A member from `fetch_member` has no presence:
+  `member.status` is `Status.offline`, as JDA's default.
+- `on_thread_create` fires only for a `THREAD_CREATE` marked `newly_created`; a thread that the bot
+  did not cache otherwise arrives as `on_thread_join`.
+- `Messageable.send` builds a `Message` from Discord's answer: a REST recorder that answers `{}`
+  makes it raise `KeyError`, so tests give `FakeRest.answers` a message payload per post.
+- `Cog._eject` removes the cog's listeners before it calls `cog_unload`, and logs instead of raising
+  what `cog_unload` raises: a stub there cannot fail a test with `raises=NotImplementedError`. A
+  listener that discord.py scheduled as a task before the unload still runs afterwards on the old
+  cog: a cog that starts work from listeners sets a `closed` flag in `cog_unload` (TicketAwayNotice,
+  found in its cross-review).
+- A thread that the bot starts reaches `on_thread_create` like any other; `thread.owner_id` names
+  its creator (Ticket's archive threads take the ticket channel's name).
+- `Templates.load` already refuses a static `color_code` that is not a color; only a rendered one (a
+  placeholder) fails at render time, where a load-time render with no values catches a `uid` or a
+  `model_key` that the plugin cannot give.
+- An image check or `xincord --no-online` with every plugin enabled needs example values in
+  `plugins/Economy/config.yaml` (`admin_id`) and `plugins/TicketAwayNotice/config.yaml` (`guild_id`,
+  `user_id`), whose bundled files wait for the operator.
+
 **v3 behaviors never to reproduce:** loading plugins in reverse dependency order, non-atomic JSON
 writes that reset corrupt files, recursive placeholder expansion, shared mutable placeholder
 caches, `asTextChannel()` failures in threads, voice chat and announcement channels, allow-all
-mentions.
+mentions, guild filters that never applied, and delayed messages that nothing could cancel or check
+again (the porting guide has the full list).
 
 **Exact numbers (Calculator):** `decimal` defaults to 28 digits, and `Fraction` reduces with a
 gcd that costs 75 to 180 ms per operation at 100,000 digits; scaled integers (v3's `BigDecimal`)
