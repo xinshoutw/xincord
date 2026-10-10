@@ -229,3 +229,7 @@ ephemerally.
 - **WHEN** each command runs
 - **THEN** its callback, bound to the plugin's cog, answers in the response that the tree deferred
   ephemerally
+
+#### Scenario: Outside a guild
+- **WHEN** a command's callback runs without a guild, which Discord never sends for guild commands
+- **THEN** nothing is answered, as in v3

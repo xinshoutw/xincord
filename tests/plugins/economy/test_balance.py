@@ -135,3 +135,16 @@ async def test_member_names_themselves(cog: Economy, store: Store) -> None:
     await show(cog, interaction, FakeUser(id=7, name="bob"))
 
     assert replied(interaction) == [GOLDEN["balance"]["en-US"]]
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="The commands are localized guild commands"
+)
+async def test_outside_a_guild(cog: Economy) -> None:
+    """Requirement: The commands are localized guild commands."""
+    interaction = balance(BOB)
+    interaction.guild = None
+
+    await show(cog, interaction)
+
+    assert interaction.sent == []
