@@ -104,9 +104,10 @@ channel and the status of types 192 and 193.
 - `list_text(ids, line, empty, values, prefix)`: v3's list field. Each ID renders the locale's
   `placeholder.<prefix>_list_format` with `<prefix>_channel_mention` (`<#id>`) and
   `<prefix>_channel_id` and the interaction's values, in one pass (v3 replaced the two keys and then
-  ran the substitutor); an empty list renders `placeholder.empty`. When the lines exceed 1024 UTF-16
-  code units, Discord's field limit, the text keeps the whole lines that fit with `...` after them:
-  v3 threw there, after saving, so the menu of a list of about 22 IDs broke for good.
+  ran the substitutor); an empty list renders `placeholder.empty`. When the lines exceed Discord's
+  field limit, 1024 characters counted in UTF-16 code units as JDA counted them, the text keeps the
+  whole lines that fit with `...` after them: v3 threw there, after saving, so the menu of a list
+  of about 22 IDs broke for good.
 
 `store.py` keeps one document per guild in the key-value table: namespace `VoiceLogger` (the
 plugin's name), key the guild ID in decimal, value v3's document unchanged,

@@ -65,9 +65,9 @@ def list_text(
     """v3's list field: ``line`` rendered for each ID, or ``empty`` for an empty list.
 
     Each line gets ``<prefix>_channel_mention`` and ``<prefix>_channel_id`` (v3 replaced them
-    first) and ``values``, in one pass. Lines that do not fit in Discord's 1024 UTF-16 code units
-    are left out, and ``...`` follows the others: v3 threw there, after saving the list, so the
-    menu never opened again.
+    first) and ``values``, in one pass. Lines that do not fit in a field's 1024 characters, counted
+    in UTF-16 code units as JDA counted them, are left out, and ``...`` follows the others: v3
+    threw there, after saving the list, so the menu never opened again.
     """
     if not ids:
         return render(empty, values)
@@ -91,5 +91,9 @@ def list_text(
 
 
 def _units(text: str) -> int:
-    """The length of ``text`` in UTF-16 code units, as Discord counts it."""
+    """The length of ``text`` in UTF-16 code units, Java's ``String.length``.
+
+    A character outside the BMP counts twice, so the result never exceeds Discord's limit,
+    whichever way Discord counts it.
+    """
     return len(text.encode("utf-16-le")) // 2

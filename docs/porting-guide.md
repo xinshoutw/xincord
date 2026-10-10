@@ -60,6 +60,12 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `ChannelManager.setPosition(n)` (a raw position) | `bot.http.request(Route("PATCH", "/channels/{channel_id}", channel_id=...), json={"position": n})`; discord.py's `edit(position=...)` renumbers the guild's channels of the same sorting bucket in one bulk request | |
 | `ChannelManager.putMemberPermissionOverride(id, allow, deny)` | `channel.set_permissions(member, overwrite=PermissionOverwrite(...))`, a `PUT` of that overwrite that keeps the others | |
 | Embedded MongoDB collections (`CacheDbManager`, `MemoryCacheDb`) | one JSON document per guild in the store under `<Name>.<collection>` (DynamicVoiceChannel's rooms), changed under the guild's lock | B8 |
+| `ChannelUpdateVoiceStatusEvent` (JDA parsed `VOICE_CHANNEL_STATUS_UPDATE` and cached each voice channel's status) | `bot.relay_gateway_event("VOICE_CHANNEL_STATUS_UPDATE")` in `setup` and a cog listener `on_gateway_voice_channel_status_update(payload)`; the plugin tracks the statuses itself (VoiceLogger) | B3 |
+| `guild.retrieveAuditLogs().type(ActionType.X)` for types that discord.py does not know (192, 193) | `bot.http.request(Route("GET", "/guilds/{guild_id}/audit-logs", ...), params={"action_type": ..., "limit": ...})`, the raw entries: `Guild.audit_logs` drops their `options` (VoiceLogger) | |
+| `guild.retrieveMemberById(id)` | `await guild.fetch_member(id)`, which raises `discord.NotFound` for a user who left | |
+| `guild.getGuildChannelById(id).sendMessage(...)` to a channel that a command set up | `bot.get_partial_messageable(id, guild_id=...).send(...)`, which needs no cache; `discord.NotFound` means the channel is gone (VoiceLogger's listen channels) | |
+| `deferEdit()` and `hook.editOriginal(MessageEditData.fromCreateData(...))` on a component | `interaction.response.edit_message(content=..., embeds=..., view=..., attachments=...)`: one type-7 response that replaces the message (`embeds=()` and `view=None` clear them) | B5 |
+| `EntitySelectInteractionEvent.values` | `interaction.data["values"]`, snowflakes as strings, with `component_type` 5 to 8 | |
 | Ktor Web-Dashboard | not ported | B13 |
 
 ## Intents kept from the v4 attempt (A3)
@@ -215,6 +221,19 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - A plugin with a second kind of per-guild data keeps it in its own namespace, `<Name>.<kind>`
   (DynamicVoiceChannel's `DynamicVoiceChannel.rooms`), so that the plugin's namespace keeps v3's
   documents only.
+- A gateway event that discord.py does not parse is relayed with `bot.relay_gateway_event(<name>)`
+  in `setup` (a core method since port-voice-logger) and handled by a cog listener
+  `on_gateway_<name in lower case>(payload)` that validates Discord's payload (VoiceLogger's
+  `parse_update`). The relay lasts as long as the bot; a reload only adds the listener again.
+- Messages to channels that a command set up (VoiceLogger's listen channels) go through
+  `bot.get_partial_messageable(id, guild_id=...)`, which needs no cache and reaches archived
+  threads; a `discord.NotFound` forgets the channel's settings, another refusal is a warning, and
+  the other channels still get the message.
+- Settings that v3 kept per channel inside a guild's file (`{"<channelId>": {...}}`) stay one
+  document per guild, changed one channel at a time under the guild's lock; a change that changes
+  nothing writes nothing (VoiceLogger's `store.py`).
+- Audit log entries of types that discord.py does not know are read raw and matched by type,
+  channel and time, never taken as "the guild's newest entry" (VoiceLogger's `status.match`).
 
 ## Pitfalls
 
@@ -380,11 +399,27 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   and stores `null` for a missing key when the function returns None. Changes that may find nothing
   to change use `store.lock` with `get`, `put` and `delete` (DynamicVoiceChannel's `unbind` and
   `untrack`).
+- **Unparsed gateway events.** discord.py 2.7.1 drops `VOICE_CHANNEL_STATUS_UPDATE` (its gateway
+  logs "Unknown event" at debug level) and has no `VoiceChannel.status`. Its `AuditLogAction` lacks
+  the types 192 and 193: `AuditLogEntry` names them `unknown_192`, gives no `target` and drops their
+  `options`, where the channel and the status are. Discord documents (2026-04-20) that statuses are
+  not part of channel objects; its Request Channel Info (gateway opcode 43) reads them.
+- **The voice state after.** `on_voice_state_update` gets discord.py's cached voice state as `after`,
+  which later events update in place, and a copy as `before`: a join and a leave that discord.py
+  parses before the listener runs reach it as no change, and a switch and a leave as a leave from
+  the first channel.
+- **Replacing a component's message.** `interaction.response.edit_message(...)` keeps what it is
+  not given; JDA's `MessageEditData.fromCreateData` replaced everything, so pass `embeds=()` and
+  `view=None` to clear them.
+- **Lengths in UTF-16.** JDA counted Discord's text limits with Java's `String.length`, in UTF-16
+  code units, where a character outside the BMP counts twice; Python's `len` counts it once. Count
+  `len(text.encode("utf-16-le")) // 2` to stay within the limits (VoiceLogger's lists,
+  DynamicVoiceChannel's names).
 
 v3 behaviors never to reproduce: loading plugins in reverse dependency order, non-atomic JSON
 writes that silently reset corrupt files, recursive placeholder expansion, shared mutable
 placeholder caches, `asTextChannel()` failures in threads, voice chat and announcement channels,
-and allow-all mentions.
+allow-all mentions, and naming the member of an event after the guild's newest audit log entry.
 
 ## Differences from v3
 
@@ -534,3 +569,17 @@ Every deliberate difference, added by the change that introduces it.
 | DynamicVoiceChannel | the plugin did not load without SQLiteAPI, which it never used; an unreadable binding file was replaced by `[]`; the commands needed the core's auto-defer | no dependency; an unreadable document stops the handling with an error and is never overwritten; the command tree always defers the commands | port-dynamic-voice-channel |
 | DynamicVoiceChannel | bindings in `plugins/DynamicVoiceChannel/data/<guildId>.json` and rooms in MongoDB's `DynamicVoiceChannel.generated_cache` | v3's binding documents and the rooms per guild in the SQLite store; v3's files and MongoDB are not read (migration deferred, B11) | port-dynamic-voice-channel |
 | DynamicVoiceChannel | the en-US `unbind-fail` title said "is not be found" | it says "was not found" | port-dynamic-voice-channel |
+| VoiceLogger | the first use after a start threw (`ConcurrentModificationException`) when a settings file held a left guild or a deleted listen channel, and the plugin then logged nothing until a restart, or never again | settings are read from the store at each use | port-voice-logger |
+| VoiceLogger | a listen channel's first selection was saved in the block mode while the menu showed the allow mode, so after a restart the channel logged every voice channel | new entries keep the allow mode | port-voice-logger |
+| VoiceLogger | "Delete" deleted the guild's whole settings file, so the guild's other listen channels lost their settings at the next restart | it deletes the channel's settings only | port-voice-logger |
+| VoiceLogger | the switch embed's `Channel Join` showed an earlier join's channel or the placeholder itself | it shows the joined channel | port-voice-logger |
+| VoiceLogger | a channel outside categories showed an earlier event's category or the placeholder | `-` | port-voice-logger |
+| VoiceLogger | a status change named the user of the guild's newest type-192 audit log entry, whatever its channel or age, so a cleared status named the last person who set one; without such an entry or View Audit Log, nothing was posted | the entry of the change's type (192 or 193) and channel, made within 30 seconds, names the member; without one the log shows `-` | port-voice-logger |
+| VoiceLogger | the audit log and the member were read for every status change, before the listen channels were looked for | only for changes that a listen channel detects | port-voice-logger |
+| VoiceLogger | a log stopped at the first listen channel that no longer existed and threw for listen channels that were neither text nor voice channels | each listen channel gets the log on its own; a deleted one is forgotten, a refusing one is a warning | port-voice-logger |
+| VoiceLogger | `/voice-logger setting` gave no reply outside plain text channels | the menu works in every channel, which can then be a listen channel | port-voice-logger |
+| VoiceLogger | a list of more than about 22 channels made the menu throw after the selection was saved, so it never opened again | the list shows the lines that fit and `...` | port-voice-logger |
+| VoiceLogger | `%...%` in channel names and statuses was expanded, and a status naming its own key made the log throw | names and statuses are shown as written | port-voice-logger |
+| VoiceLogger | the values stayed in the member's shared substitutor, mixed between the status handler and the voice handler | each log renders with its own values | port-voice-logger |
+| VoiceLogger | the settings of a left guild were deleted at the next start only; an unknown select menu action threw; an unreadable file was replaced by `{}`; the command needed the core's auto-defer | they are deleted on leave and at READY; no response; an error without overwriting; the command tree always defers the command | port-voice-logger |
+| VoiceLogger | settings in `plugins/VoiceLogger/setting/<guildId>.json` | v3's document per guild in the SQLite store; v3's files are not read (migration deferred, B11) | port-voice-logger |

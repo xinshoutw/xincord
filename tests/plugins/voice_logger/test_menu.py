@@ -117,7 +117,7 @@ def test_long_list() -> None:
     lines = text.split("\n")
     assert lines == [f"<#{channel}> (`{channel}`)" for channel in LONG[:21]] + ["..."]
     assert len(text) == 21 * 47 + 3
-    # Discord counts UTF-16 code units, where a character outside the BMP takes two: with 20
+    # Counted in UTF-16 code units, as JDA did, a character outside the BMP takes two: with 20
     # loudspeakers, a line takes 87 of them (67 characters), so 11 lines fit, not 15.
     wide = list_text(LONG, chr(0x1F50A) * 20 + LINE, "Empty", {}, "allowlist")
     assert wide.split("\n")[-1] == "..."

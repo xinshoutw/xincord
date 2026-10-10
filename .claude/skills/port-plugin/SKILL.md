@@ -42,7 +42,8 @@ Names: `<Plugin>` is the v3 name (`AutoRole`, `_Example`), `<kebab>` its kebab c
    `pytest --runxfail`) -> commit with `xfail(strict=True)` -> implement and remove the marker ->
    commit. Tick `tasks.md` in the same commits. The project's Claude Code hooks (ruff on each edit,
    the gate on stop) run only in a session started in this repository; from elsewhere, run
-   `uv run ruff format` and `uv run ruff check` on the changed files before the gate.
+   `uv run ruff check --fix` and then `uv run ruff format` on the changed files before the gate (in
+   that order: a fix that removes an import leaves a blank line that only the formatter removes).
 5. **Wire it up.** Entry point, `setup`, command, routes: see the conventions.
 6. **Golden tests.** v3's text per locale in `golden.yaml`; v3 component IDs from the inventory
    decode and upgrade to the expected new IDs (a plugin with v3 components); every shipped template
@@ -71,7 +72,12 @@ Names: `<Plugin>` is the v3 name (`AutoRole`, `_Example`), `<kebab>` its kebab c
    For voice and channel work, give `_add_guild_from_data` the category and voice channels
    (`parent_id`), feed `state.parse_voice_state_update(...)` with a `member` payload, and answer the
    recorded `POST /guilds/{id}/channels` with the body plus an `id` so that `clone()` returns a
-   channel (DynamicVoiceChannel's probe).
+   channel (DynamicVoiceChannel's probe). A gateway event that the plugin relays goes through
+   discord.py's real gateway code: build `DiscordWebSocket(socket=None, loop=...)`, set
+   `_discord_parsers = state.parsers`, `_dispatch = bot.dispatch`, `_dispatch_listeners = []`,
+   `_keep_alive = None` and `shard_id = None`, and await `ws.received_message(json.dumps({"op": 0,
+   "s": 1, "t": <name>, "d": <payload>}))`; answer `POST /channels/<id>/messages` with a message
+   payload so that a partial messageable's `send` returns (VoiceLogger's probe).
 8. **Document.** `docs/porting-guide.md`: differences rows, new pitfalls, convention changes. Audit
    the inventory: each behavior is a scenario with a test, or out of scope or a v3 difference in
    `design.md`, with the reason.
@@ -166,6 +172,9 @@ async def setup(bot: Bot) -> None:
   missing key when the function returns None: a change that may find nothing to change (an unbind,
   forgetting a room) uses `store.lock` with `get`, `put` and `delete`, and deletes the document
   with its last entry (DynamicVoiceChannel's `store.py`).
+- Settings that v3 kept per channel inside a guild's file (`{"<channelId>": {...}}`) stay one
+  document per guild; each change reads it under the guild's lock, rewrites the one entry in v3's
+  shape and keeps the others as they were (VoiceLogger's `_change` and `remove`).
 
 ### Commands
 
@@ -244,6 +253,19 @@ async def setup(bot: Bot) -> None:
   `discord.Intents(members=True)` for member events, and for `Guild.member_count`, which
   discord.py updates only from those events (BotInfo). The members intent is privileged: the
   design's smoke checklist says to allow it in the developer portal.
+- A gateway event that discord.py does not parse (VoiceLogger's `VOICE_CHANNEL_STATUS_UPDATE`):
+  `bot.relay_gateway_event("<Discord's name>")` in `setup`, and a cog listener
+  `on_gateway_<name in lower case>(payload)` that validates the payload (`parse_update`). The relay
+  lasts as long as the bot. Audit log entries of types that discord.py does not know (192, 193) are
+  read raw with `bot.http.request(Route("GET", "/guilds/{guild_id}/audit-logs", ...),
+  params=...)`, because `Guild.audit_logs` drops their `options`, and matched by type, channel and
+  time (`status.match`), never as the guild's newest entry; `guild.fetch_member` stands for JDA's
+  `retrieveMemberById`.
+- Messages to channels that a command set up (VoiceLogger's listen channels) go through
+  `bot.get_partial_messageable(id, guild_id=...)` and a `Postable` cast (the `send` overloads take no
+  view union): no cache needed, archived threads reached; a `discord.NotFound` forgets the channel's
+  settings, another refusal is a warning naming the guild and the channel, and the other channels
+  still get the message (VoiceLogger's `_post`).
 - Problems the operator must fix (a missing role or permission) are `logger.warning` lines from
   `logging.getLogger(__name__)` that name the plugin; Discord errors on one item are logged and the
   others still handled.
@@ -251,8 +273,10 @@ async def setup(bot: Bot) -> None:
   where JDA's `GuildVoiceUpdateEvent` fired for channel changes only: compare the channels' IDs.
   Count a channel's members with `channel.voice_states` (no member cache needed), and read it at
   the start of the listener, before the first await: discord.py runs listeners as tasks, and the
-  events parsed meanwhile are already in the cache. `INTENTS = discord.Intents(voice_states=True)`
-  (in discord.py's defaults, declared anyway).
+  events parsed meanwhile are already in the cache. `after` is the cached voice state itself, which
+  later events update in place (`before` is a copy): read the channels' IDs, names and categories
+  at once (VoiceLogger's `Place.of`). `INTENTS = discord.Intents(voice_states=True)` (in
+  discord.py's defaults, declared anyway).
 - A sequence of Discord requests that another event must not interleave with (creating a room,
   then deleting it when it empties) runs under a per-guild `store.lock("<Name>:voice:<guildId>")`,
   outside the store's data lock; re-check under the lock what the listener read before.
@@ -318,7 +342,12 @@ async def setup(bot: Bot) -> None:
   handler gets `ParsedId` (values are strings), dispatches on `action`, and may raise: the core
   logs it with the plugin's name and upgrades legacy IDs on the message afterwards.
 - `interaction.response.edit_message(view=...)` changes only the components; content and embeds
-  stay.
+  stay. To replace the whole message, as JDA's `MessageEditData.fromCreateData` did, pass the
+  rendered `content`, `embeds`, `view` and `attachments` (`embeds=()` and `view=None` clear them):
+  one type-7 response stands for v3's `deferEdit` and `editOriginal` (VoiceLogger's `_edit`).
+- An entity select menu's choice is `interaction.data["values"]`, snowflakes as strings, with
+  `component_type` 5 to 8; v3's `EntitySelectInteractionEvent` covered all four (VoiceLogger's
+  `handle`).
 - A plugin with v3 components routes them all to one `handle(interaction, parsed)` that dispatches
   on `interaction.type` and `parsed.fields["action"]`, as v3's `onButtonInteraction` and
   `onModalInteraction` did; other actions get no response. The core parses v3's IDs and upgrades
@@ -407,6 +436,14 @@ async def setup(bot: Bot) -> None:
   `errors`. Test interleavings with `gate` and `cloning` (wait on the event or on the task's
   failure), never with sleeps. The bot's user for `bot_*` values is an autouse fixture patching
   `Bot.user`.
+- Relayed gateway events (VoiceLogger's `test_status.py`): `plugin_fakes.gateway(bot, name,
+  payload)` hands the payload to discord.py's parser table, as its gateway does, and awaits the
+  listeners it dispatched; `plugin_fakes.parsers(bot)` is that table. `FakeRest.answers` answers a
+  `"<method> <path>"` with successive payloads and records query `params`; `FakeGuild.members` and
+  `fetch_member` stand for Discord's members; `FakeInteraction` gives `guild_id` and `channel_id`;
+  a `channels` fixture patches `bot.get_partial_messageable` with `FakeChannel`s by ID. ruff counts
+  fixtures as arguments (PLR0913, PLR0917, at most five): bundle them in a dataclass fixture
+  (`Scene`) with helper methods.
 - When the new behavior runs from a listener that earlier tests already trigger (`on_ready` for the
   checks at READY), a stub would break those tests: mark the new tests `xfail(strict=True,
   reason=...)` without `raises`, failing on their assertions. A plugin whose `cog_load` can raise
