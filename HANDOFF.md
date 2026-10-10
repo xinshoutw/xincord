@@ -1,6 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after `port-feedbacker`, the eighth plugin port. Core is complete. Read
+Updated 2026-10-10 after `port-economy`, the ninth plugin port. Core is complete. Read
 this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and
 binding; do not re-open them unless you find a serious problem, and then ask the owner.
 
@@ -73,9 +73,11 @@ starting with Core. Motivation: easier maintenance and faster iteration.
     `user_values`, `member_values`, `guild_values`, `channel_values`, `event_values`,
     `interaction_values` with JDA's `command_string`), `placeholder_values(interaction)` (v3's
     `Placeholder.get(event)`: the acting user's keys with the bot's and the interaction's),
-    Protocols that discord.py classes satisfy (`EventLike` and `ClientLike` for interactions), and
-    JDA locale names (`resources/locales.yaml`, `locale_names`). A thread whose parent channel is
-    not cached gives no `channel_category_name` (discord.py's `Thread.category` raises there).
+    `global_values(client)` (v3's global substitutor, `bot_id` and `bot_name`, for templates v3
+    rendered without a user), Protocols that discord.py classes satisfy (`EventLike` and
+    `ClientLike` for interactions), and JDA locale names (`resources/locales.yaml`,
+    `locale_names`). A thread whose parent channel is not cached gives no `channel_category_name`
+    (discord.py's `Thread.category` raises there).
   - `xincord.core.templates` (package: `base`, `schema`, `schema_v2`, `render`, `render_v2`,
     `__init__`): v1 message templates, Components V2 and modal templates, validated at load
     (`load_message`, `load_modal`, `Templates.load`) and rendered to
@@ -183,8 +185,7 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   edits the deferred response, with the files as `attachments`. The bundled templates hold the
   example account number `000000000000`. Reuse: `FakeInteraction(command=SimpleNamespace(name=...))`
   and `ClosingChannel` (`tests/plugins/simple_command/test_post.py`) for discord.py's closed files.
-  `_bot_values` now exists in BotInfo and SimpleCommand: a third plugin that needs v3's global keys
-  moves it into `xincord.core.placeholders`.
+  Their v3 global keys now come from the core's `global_values` (moved there by Economy).
 - **WelcomeByeGuild** (`xincord.plugins.welcome_bye_guild`, `INTENTS = discord.Intents(members=True)`,
   no config, en-US and zh-TW): the first plugin with data. `store.py` keeps v3's per-guild document
   (`{"welcomeChannelId", "byeChannelId"}`, 0 = unbound) in the key-value table under the namespace
@@ -228,7 +229,25 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   `FakeResponse.send_message` and `send_modal`, `FakeInteraction.followup`, `not_found()`, route
   tests through `bot.on_interaction` with v3 IDs (`tests/plugins/feedbacker/test_routes.py`), and
   the HTTP-recording probe for interactions (skill step 7).
-- **Still to build:** the plugins after Feedbacker (section 5).
+- **Economy** (`xincord.plugins.economy`, no intents, en-US and zh-TW, config `admin_id` and
+  `board_user_show_limit`): the first plugin whose data must never lose an update. `wallet.py` is
+  pure (`Wallet`, v3's six `OPERATIONS` on exact integers, `rank` with ties by user ID);
+  `store.py` keeps v3's per-guild document (`{"<userId>": {"cost", "money"}}`, namespace
+  `Economy`), reads without writing, changes one user's entry in a single `Store.update` whose
+  function returns a new document and hands the wallets back through a list, raises `DataError` for
+  entries that are not v3's shape without overwriting them, and keeps the wallets of guilds the bot
+  left, as v3 did. `cog.py` builds v3's nine guild commands from `COMMANDS`
+  (`CommandSpec(kind, ...)`: `show_balance`, `show_board`, `change_wallet`), checks `admin_id`
+  (Discord's Administrator does not count), answers `no-permission` with `global_values`, renders
+  the boards from the first embed's description (`_board`; `check_boards` refuses a template
+  without it at load) and routes `IDS = ComponentIds("economy", ("action",),
+  legacy_prefix="economy@")` to `handle`, where any Economy button shows the presser's wallet.
+  `admin_id` has no default and ships empty, so the plugin waits for the operator. Reuse:
+  `global_values`, the `Store.update` pattern for balances and counters, `check_boards` for row
+  templates, `numbers(embed)` in `tests/plugins/economy/test_change.py` to compare amounts without
+  typing non-ASCII, and operator templates written under `tmp_path / "plugins"` before
+  `load_plugin` (`tests/plugins/economy/test_board.py`).
+- **Still to build:** the plugins after Economy (section 5).
 
 ## 5. Status and next steps
 
@@ -239,18 +258,19 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `core-command-tree`, `core-component-routing`, `core-interaction-values`, `core-startup`,
 `core-reload`, `core-console`, `core-status-log`, `container`, `port-example`,
 `port-basic-calculator`, `port-auto-role`, `port-bot-info`, `port-simple-command`,
-`port-welcome-bye-guild`, `port-interval-pusher`, `port-feedbacker`. Each one's
+`port-welcome-bye-guild`, `port-interval-pusher`, `port-feedbacker`, `port-economy`. Each one's
 `design.md` in `openspec/changes/archive/` records its decisions and "v3 behaved differently"
 notes; `docs/porting-guide.md` has the differences table.
 
 ### Next: the plugins
 
 Core is complete; _Example (the template), BasicCalculator, AutoRole, BotInfo, SimpleCommand,
-WelcomeByeGuild, IntervalPusher and Feedbacker are ported. Next: **Economy** (`port-economy`).
+WelcomeByeGuild, IntervalPusher, Feedbacker and Economy are ported. Next:
+**DynamicVoiceChannel** (`port-dynamic-voice-channel`).
 Port the plugins in C1 order with the `port-plugin` skill (`.claude/skills/port-plugin/SKILL.md`),
 one OpenSpec change each (`port-<plugin-kebab>`): _Example (done), BasicCalculator (done),
 AutoRole (done), BotInfo (done, with the configurable AGPL source link of C3), SimpleCommand
-(done), WelcomeByeGuild (done), IntervalPusher (done), Feedbacker (done), then Economy,
+(done), WelcomeByeGuild (done), IntervalPusher (done), Feedbacker (done), Economy (done), then
 DynamicVoiceChannel, VoiceLogger, ChatLogger, Giveaway, Ticket, TicketAddons, NtustManager,
 NtustCourse, MusicPlayer (with Lavalink in `compose.yaml`).
 Update `docs/porting-guide.md` after each one.
@@ -303,6 +323,8 @@ its user-visible changes, the choices made without the owner and the manual chec
    fills that list; plugins that are not enabled no longer create files under `plugins/<Name>/`;
    the privileged members intent is requested only when an enabled plugin needs it.
 2. **Production version (F1)** is unknown; it matters only if a data migration is ever needed.
+   The local copy (`XsDiscordBotKt/Server/`) runs Economy 3.2.1, whose wallets are the legacy
+   single `plugins/Economy/data/data.json`; Economy reads no v3 file until that migration exists.
 3. **Lavalink image** (arm64, compose details) and **VoiceLogger status events** (audit types
    192/193, maybe raw gateway handling): verify when those plugins start.
 
@@ -446,6 +468,13 @@ setup-uv v10.2.0, setup-node v7.1.0.
   `LayoutView.from_message` when `message.flags.components_v2`.
 - After a handler deletes the message of a v3 ID, the core's legacy upgrade cannot fetch it and
   logs an error (a v3-opened Feedbacker modal submitted after the switch).
+- `app_commands.describe(...)` applied to a built `Command` gives every option it does not name
+  an ellipsis as its description: call it once with all the options (`rename` leaves the others).
+- A component interaction's `data` carries `component_type` (2 for a button); a modal
+  submission's has none.
+- pyright widens `dict[str, JSON] | {...}` beyond `dict[str, JSON]`; annotate the merged document
+  (`updated: dict[str, JSON] = {**entries, key: value}`) before returning it from a
+  `Store.update` function.
 - A probe can log in offline: point `discord.http.Route.BASE` at a local server and call
   `bot.http.static_login(token)` inside `async with bot`; set `bot._ready` for READY.
 - A scratch probe can drive real discord.py objects offline: set `bot._connection.user` to a

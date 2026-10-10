@@ -200,3 +200,34 @@ here; delete a section once it is empty.
 - This is the first modal xincord sends (a label around the text input, as discord.py builds it): check that it opens in both languages.
 - At cutover, add `form_failure` and `form_submit_failure` to the existing `plugins/Feedbacker/config.yaml` for zh-TW texts, and press one star of a v3 form if any remains.
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `Feedbacker` enabled, with the bundled and v3's config); an image build with the plugin enabled is still open.
+
+## Economy (`port-economy`)
+
+### User-visible changes
+- A user whom `admin_id` does not list and who names someone else in `/balance` gets `no-permission` (v3: their own wallet, without a word).
+- `/balance` and `economy@` buttons no longer create a zero wallet, so members appear on `/top-money` and `/top-cost` only once an administrator changed their wallet (v3 ranked everyone who had run `/balance`, at 0).
+- Board ties are ordered by user ID, the lowest first (v3: no defined order).
+- Amounts stay exact past 2147483647 (v3 wrapped them to negative numbers, and a `value` above that got no reply).
+- Every change reply has both `%economy_money_before%` and `%economy_cost_before%` (matters only for operators' templates).
+- The bundled `config.yaml` lists no administrator, so Economy stays disabled, with `admin_id` named in the log, until one is added (v3 shipped two real IDs); a v3 file loads unchanged and warns about `enabled` and the eight Google Sheets keys.
+- Economy no longer needs the GoogleSheetAPI plugin.
+- A `top-money` or `top-cost` template whose first embed has no description disables the plugin at load, naming the file (v3: no reply at each use).
+- The commands always answer (v3 needed the core's auto-defer switch).
+- An `economy@` button whose ID is not in v3's field format is logged as malformed instead of showing the wallet; no v3 template or production message has one.
+### Choices made without the owner
+- `admin_id` in the bundled file: implemented an empty list with v3's at-least-one rule, so the plugin waits for the operator; alternative: load with a warning and answer `no-permission` to every administrator command.
+- Amount range: implemented exact Python integers without a bound (Discord sends at most 2^53 per change); alternative: keep v3's 32-bit range and refuse results outside it.
+- Negative amounts: kept v3's `Bad Value`, English in every locale, after the command runs; alternative: `min_value=0` on the option so that Discord's client refuses them, or a localized template.
+- `/balance member:` from a non-administrator: implemented `no-permission` when the member is someone else; alternative: v3's silent fallback to their own wallet.
+- Board ties: implemented the lowest user ID first; alternative: the order in which the wallets were first changed.
+- Reads: implemented no write for `/balance`, the button and the boards; alternative: v3's zero wallet on the first read, which put the member on the boards.
+- Before values: implemented both in every change reply; alternative: only those of the amounts the command changes, as v3 set them.
+- Wallets of guilds the bot left: kept, as v3 did; alternative: delete them on leave and at startup, as WelcomeByeGuild does.
+- Unreadable stored entries: implemented a logged error, the command left "thinking" and nothing overwritten; alternative: read them as 0, which the next change would write over.
+- The `economy@` button (no producer in v3's templates or the production copy): kept for IDs the core's v3 decoder reads, any fields ignored; alternative: drop it.
+- Core: `global_values(client)` in `xincord.core.placeholders`, now used by BotInfo, SimpleCommand and Economy's `no-permission` (v3 rendered it with its global keys only); alternative: render `no-permission` with the user's values, without a core change.
+### Manual checks
+- Smoke checklist in `openspec/changes/archive/2026-10-10-port-economy/design.md` (needs a token, a test guild and a second account).
+- Economy reads no v3 data: until the deferred migration (B11) exists, switching it over restarts every wallet at 0. The local production copy holds the legacy `plugins/Economy/data/data.json` (Economy 3.2.1), which v3.4 would have moved into the only guild's file; the migration must do the same.
+- At cutover, keep the existing `plugins/Economy/config.yaml` (it lists the administrators); its `enabled` and Google Sheets keys can be deleted to silence the warnings.
+- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `Economy` enabled, with the bundled, an operator's and v3's config); an image build with the plugin enabled is still open.
