@@ -67,7 +67,7 @@
 - [x] 8.4 xfail tests for "The message files are open while the plugin is loaded" and "Stored
       messages are kept for the retention period": a cancelled open or close, a corrupt file
       named, leftover temporary files removed at open, a file that cannot be deleted
-- [ ] 8.5 Close what a cancelled open opened, name the corrupt file, clear the leftovers, try each
+- [x] 8.5 Close what a cancelled open opened, name the corrupt file, clear the leftovers, try each
       expired file on its own; remove the markers
 - [ ] 8.6 xfail tests for "A new message file starts when the newest is full": a split that keeps
       failing is logged once until a file starts

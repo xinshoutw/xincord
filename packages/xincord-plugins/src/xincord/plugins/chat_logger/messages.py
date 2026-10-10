@@ -172,29 +172,34 @@ class MessageFiles:
     async def open(self) -> None:
         """Open the message files in the directory, creating the table where it is missing.
 
-        Other files in the directory are left alone. No file is created before the first message.
+        Temporary files that an interrupted new file left are removed; other files are left
+        alone. No file is created before the first message. Call it once.
 
         Raises:
-            sqlite3.DatabaseError: A message file is not a database; it is left as it is, and no
-                file stays open.
+            sqlite3.DatabaseError: A message file is not a database; the error names it, the file
+                is left as it is, and no file stays open.
         """
         executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="xincord-chat-logger")
         try:
             await asyncio.get_running_loop().run_in_executor(executor, self._open)
         except BaseException:
-            executor.shutdown()
+            # A cancelled caller leaves the opening running: what it opens closes after it.
+            executor.submit(self._close)
+            executor.shutdown(wait=False)
             raise
         self._executor = executor
 
     async def close(self) -> None:
-        """Close the files after the work already under way; later work raises RuntimeError."""
+        """Close the files after the work already under way; later work raises RuntimeError.
+
+        The closing runs even when the caller is cancelled.
+        """
         executor, self._executor = self._executor, None
         if executor is None:
             return
-        try:
-            await asyncio.get_running_loop().run_in_executor(executor, self._close)
-        finally:
-            executor.shutdown()
+        closed = asyncio.wrap_future(executor.submit(self._close))
+        executor.shutdown(wait=False)  # the thread ends once the queued jobs and this one ran
+        await asyncio.shield(closed)
 
     async def add(
         self, message_id: int, guild_id: int, channel_id: int, user_id: int, text: str
@@ -236,10 +241,8 @@ class MessageFiles:
         Each file whose messages all lie below ``before`` (the next file starts there or earlier)
         is deleted, never the newest; then the other files' older messages, ``batch`` at a time,
         each batch its own job, so that the messages that arrive meanwhile are not held up long.
-        Return how many messages the files that stay lost.
-
-        Raises:
-            OSError: A file could not be deleted; it is closed and left for the next start.
+        Return how many messages the files that stay lost. A file that cannot be deleted is
+        logged, closed and left for the next start; the others are still deleted.
         """
         for name in await self._run(self._drop_expired, before):
             logger.info("ChatLogger deleted the message file %s, whose messages all expired", name)
@@ -266,15 +269,19 @@ class MessageFiles:
     # The jobs below run on the files' thread.
 
     def _open(self) -> None:
+        if not self.directory.is_dir():
+            return
+        for leftover in self.directory.glob("messages-*.db.tmp*"):  # a crash ended an attempt
+            leftover.unlink(missing_ok=True)
         found = sorted(
             (start, path)
-            for path in (self.directory.iterdir() if self.directory.is_dir() else ())
+            for path in self.directory.iterdir()
             if (start := parse_name(path.name)) is not None
         )
         opened: list[MessageFile] = []
         try:
             for start, path in found:
-                opened.append(MessageFile(start, first_id(start), path, connect(path)))
+                opened.append(MessageFile(start, first_id(start), path, _connect_named(path)))
         except BaseException:
             for file in opened:
                 file.connection.close()
@@ -358,11 +365,7 @@ class MessageFiles:
         gone, self._files = self._files[:count], self._files[count:]
         for file in gone:
             file.connection.close()
-        for file in gone:
-            file.path.unlink(missing_ok=True)
-            # A journal left beside a file that a crash interrupted goes with it.
-            file.path.with_name(f"{file.path.name}-journal").unlink(missing_ok=True)
-        return [file.path.name for file in gone]
+        return [file.path.name for file in gone if _delete(file.path)]
 
     def _prune(self, before: int, batch: int) -> int:
         """Delete up to ``batch`` messages below ``before`` from the oldest file holding any."""
@@ -386,6 +389,29 @@ class MessageFiles:
             rows = transaction(file.connection, lambda db: db.execute(GUILDS).fetchall())
             found.update(row[0] for row in rows)
         return sorted(found)
+
+
+def _connect_named(path: Path) -> sqlite3.Connection:
+    """Open a message file found in the directory; an error names the file."""
+    try:
+        return connect(path)
+    except sqlite3.DatabaseError as error:
+        message = f"{path}: {error}"
+        raise sqlite3.DatabaseError(message) from error
+
+
+def _delete(path: Path) -> bool:
+    """Delete a closed message file and a journal left beside it; log a failure, return success.
+
+    A file that stays is read again at the next start, and deleted then if it expired.
+    """
+    try:
+        path.unlink(missing_ok=True)
+        path.with_name(f"{path.name}-journal").unlink(missing_ok=True)
+    except OSError:
+        logger.exception("ChatLogger cannot delete the message file %s", path.name)
+        return False
+    return True
 
 
 def _take(db: sqlite3.Connection, message_ids: list[int]) -> list[tuple[int, Stored]]:

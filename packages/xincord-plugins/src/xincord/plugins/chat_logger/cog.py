@@ -130,7 +130,7 @@ class ChatLogger(commands.Cog):
         before = time_snowflake(utcnow() - timedelta(days=days))
         try:
             deleted = await self.messages.prune(before)
-        except sqlite3.Error, OSError:
+        except sqlite3.Error:
             logger.exception("ChatLogger cannot delete the messages older than %s days", days)
             return
         logger.debug("ChatLogger deleted %s messages older than %s days", deleted, days)

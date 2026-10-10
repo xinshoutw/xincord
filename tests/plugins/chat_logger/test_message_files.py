@@ -458,7 +458,6 @@ async def test_after_closing(open_files: Opener, directory: Path) -> None:
     assert rows(directory) == {FIRST: [(at(5), 10, 30, 7, "a", 0)]}
 
 
-@pytest.mark.xfail(strict=True, reason=OPEN)
 async def test_corrupt_file(open_files: Opener, directory: Path) -> None:
     """Requirement: The message files are open while the plugin is loaded."""
     files = await open_files()
@@ -512,7 +511,6 @@ class Connections:
         return still_open
 
 
-@pytest.mark.xfail(strict=True, reason=OPEN)
 async def test_cancelled_open(
     directory: Path, write_file: WriteFile, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -536,7 +534,6 @@ async def test_cancelled_open(
     assert connections.open() == [False, False]
 
 
-@pytest.mark.xfail(strict=True, reason=OPEN)
 async def test_cancelled_close(
     open_files: Opener, write_file: WriteFile, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -570,7 +567,6 @@ async def test_cancelled_close(
     assert connections.open() == [False]
 
 
-@pytest.mark.xfail(strict=True, reason="A new message file starts when the newest is full")
 async def test_leftovers_removed_at_open(open_files: Opener, directory: Path) -> None:
     """Requirement: A new message file starts when the newest is full."""
     directory.mkdir(parents=True)
@@ -583,7 +579,6 @@ async def test_leftovers_removed_at_open(open_files: Opener, directory: Path) ->
     assert [path.name for path in directory.iterdir()] == ["notes.txt"]
 
 
-@pytest.mark.xfail(strict=True, reason="Stored messages are kept for the retention period")
 async def test_undeletable_file(
     open_files: Opener,
     directory: Path,
@@ -592,9 +587,10 @@ async def test_undeletable_file(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Requirement: Stored messages are kept for the retention period."""
+    # Two expired files, whose ranges end 1850 and 1830 days ago, and the newest.
     first = write_file(ago(1900), created(1900))
     second = write_file(ago(1850), created(1850))
-    third = write_file(ago(1800), created(1))
+    third = write_file(ago(1830), created(1))
     real_unlink = Path.unlink
 
     def unlink(path: Path, *, missing_ok: bool = False) -> None:
