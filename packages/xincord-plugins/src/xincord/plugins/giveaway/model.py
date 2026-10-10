@@ -108,6 +108,11 @@ def draw_winners(
     return tuple(results)
 
 
+def is_due(instance: Instance, now: int) -> bool:
+    """Whether the automatic draw draws it: not drawn, and its end time has come, as in v3."""
+    return not instance.ended and instance.config.end_at <= now
+
+
 def is_closed(instance: Instance, now: int) -> bool:
     """Whether joining is over: the giveaway is drawn or its end time has come, as in v3."""
     return instance.ended or now >= instance.config.end_at

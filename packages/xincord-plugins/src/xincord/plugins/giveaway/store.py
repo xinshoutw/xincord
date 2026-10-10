@@ -6,17 +6,21 @@ Kotlin:
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/json/JsonGuildFileManager.kt:7-40
 """
 
+import logging
 from typing import TYPE_CHECKING
 
-from .model import DataError, instance_json, parse_instance
+from .model import DataError, drawn, instance_json, is_due, parse_instance
 
 if TYPE_CHECKING:
     import asyncio
+    import random
     from collections.abc import Callable
 
     from xincord.core.storage import JSON, Store
 
     from .model import Instance
+
+logger = logging.getLogger(__name__)
 
 NAMESPACE = "Giveaway"  # the store namespace: the plugin's name, keys are guild IDs
 
@@ -33,6 +37,45 @@ class Giveaways:
     def __init__(self, store: Store) -> None:
         """Keep the shared store."""
         self.store = store
+        self.reported: set[str] = set()  # the broken entries that the automatic draw logged
+
+    async def guild_ids(self) -> list[str]:
+        """The keys of the guilds' documents, which are guild IDs unless someone edited them."""
+        return await self.store.keys(NAMESPACE)
+
+    async def draw_due(self, guild_id: int, now: int, rng: random.Random) -> list[Instance]:
+        """Draw the guild's due giveaways at ``now`` and store them; return them.
+
+        One write for the guild, under its lock, before anything is posted: v3 saved after
+        queuing the posts, and a draw and the automatic draw could both draw. A broken entry is
+        skipped, and logged the first time.
+
+        Raises:
+            DataError: The guild's document is not v3's shape.
+        """
+        async with self.lock(guild_id):
+            document = await self._document(guild_id)
+            due: dict[str, Instance] = {}
+            for key, entry in document.items():
+                try:
+                    instance = parse_instance(entry, _where(guild_id, key))
+                except DataError as error:
+                    self._report(guild_id, key, error)
+                    continue
+                if is_due(instance, now):
+                    due[key] = drawn(instance, now, rng)
+            if due:
+                written = {key: instance_json(instance) for key, instance in due.items()}
+                updated: dict[str, JSON] = {**document, **written}
+                await self.store.put(NAMESPACE, str(guild_id), updated)
+            return list(due.values())
+
+    def _report(self, guild_id: int, key: str, error: DataError) -> None:
+        """Log a broken entry the first time the automatic draw skips it."""
+        where = _where(guild_id, key)
+        if where not in self.reported:
+            self.reported.add(where)
+            logger.warning("Giveaway skips the giveaway %s of guild %s: %s", key, guild_id, error)
 
     def lock(self, guild_id: int) -> asyncio.Lock:
         """The lock of the guild's document, the same across reloads."""

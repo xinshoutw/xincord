@@ -28,7 +28,6 @@ if TYPE_CHECKING:
     from plugin_fakes import Ready
 
 GOLDEN = golden("giveaway")
-REASON = "Due giveaways are drawn automatically"
 NOW = 1772244000  # the tests' clock
 DUE = Instance(
     id="3f2a9c1b7e4d4a60",
@@ -104,7 +103,7 @@ class Draws:
 def draws(scene: Scene, monkeypatch: pytest.MonkeyPatch) -> Draws:
     """Guild 10 is available; its channels are partial messageables, recorded by ID."""
     ticks = Ticks(NOW)
-    scene.cog.sleep = ticks.sleep  # pyright: ignore[reportAttributeAccessIssue]
+    scene.cog.sleep = ticks.sleep
     scene.cog.clock = ticks.time
     guilds = {10: FakeGuild(10)}
     found = Draws(scene, ticks, guilds)
@@ -130,7 +129,6 @@ def announced(draws: Draws, channel_id: int = 5) -> list[object]:
     ]
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 async def test_first_pass(draws: Draws, ready: Ready) -> None:
     """Requirement: Due giveaways are drawn automatically."""
     scene = draws.scene
@@ -156,7 +154,6 @@ async def test_first_pass(draws: Draws, ready: Ready) -> None:
     assert not loop.done()
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_later_passes(draws: Draws) -> None:
     """Requirement: Due giveaways are drawn automatically."""
     scene = draws.scene
@@ -175,7 +172,6 @@ async def test_later_passes(draws: Draws) -> None:
     assert len(announced(draws)) == 1  # drawn once
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_language(draws: Draws, locale: str) -> None:
     """Requirement: Due giveaways are drawn automatically."""
@@ -187,7 +183,6 @@ async def test_language(draws: Draws, locale: str) -> None:
     assert announced(draws) == [GOLDEN["announcement"][locale].format(body="Nitro: <@111>")]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_skipped_guilds(draws: Draws) -> None:
     """Requirement: Due giveaways are drawn automatically."""
     scene = draws.scene
@@ -210,7 +205,6 @@ async def test_skipped_guilds(draws: Draws) -> None:
     assert len(announced(draws)) == 2
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_post_gone(draws: Draws, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Due giveaways are drawn automatically."""
     scene = draws.scene
@@ -228,7 +222,6 @@ async def test_post_gone(draws: Draws, caplog: pytest.LogCaptureFixture) -> None
     assert len(announced(draws, 6)) == 1  # the other giveaway is still handled
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_broken_data(draws: Draws, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Due giveaways are drawn automatically."""
     scene = draws.scene
@@ -250,7 +243,6 @@ async def test_broken_data(draws: Draws, caplog: pytest.LogCaptureFixture) -> No
     assert caplog.text.count("Giveaway skips the giveaway broken of guild 10") == 1
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 async def test_failed_pass(
     draws: Draws, ready: Ready, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -272,7 +264,6 @@ async def test_failed_pass(
     assert not loop.done()
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 @pytest.mark.parametrize("config", ["autoDrawIntervalSeconds: 1\n"])
 async def test_clamped_period(draws: Draws, ready: Ready) -> None:
     """Requirement: Due giveaways are drawn automatically."""
@@ -282,7 +273,6 @@ async def test_clamped_period(draws: Draws, ready: Ready) -> None:
     assert draws.ticks.delays == [5, 5]
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 async def test_unload(draws: Draws, ready: Ready) -> None:
     """Requirement: Due giveaways are drawn automatically."""
     loop = await draws.start(ready)

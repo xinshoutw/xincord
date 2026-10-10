@@ -5,13 +5,15 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:16-380
 """
 
+import asyncio
 import logging
 import random
+import re
 import sqlite3
 import time
 import uuid
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, cast, override, runtime_checkable
 
 import discord
 from discord import app_commands
@@ -28,8 +30,7 @@ from .texts import Texts, language, post_buttons, post_embed, preview, result
 from .times import format_end_time
 
 if TYPE_CHECKING:
-    import asyncio
-    from collections.abc import Callable, Mapping, Sequence
+    from collections.abc import Awaitable, Callable, Mapping, Sequence
 
     from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
@@ -44,6 +45,11 @@ logger = logging.getLogger(__name__)
 IDS = ComponentIds("giveaway", ("action", "sub_action", "giveaway_id"), legacy_prefix="giveaway@")
 BUTTON = 2  # the component type of a button, which v3's onButtonInteraction took
 # The builder's buttons that open the modal of the same name, and the modals that change a draft.
+FIRST_PASS = 5  # v3's initial delay of the automatic draw, in seconds after READY
+GUILD_ID = re.compile(r"[0-9]+")  # the store's keys, unless someone edited them
+
+type Sleep = Callable[[float], Awaitable[object]]
+
 # The text of each refusal of a draw or a reroll.
 REFUSALS = {
     "not-allowed": "error.not-allowed",
@@ -78,6 +84,21 @@ class Posted(Protocol):
         ...
 
 
+class Editable(Protocol):
+    """A message that the bot can edit without fetching it, as the plugin calls it."""
+
+    async def edit(
+        self,
+        *,
+        content: str | None = None,
+        embeds: Sequence[discord.Embed] = (),
+        view: discord.ui.View | discord.ui.LayoutView | None = None,
+        attachments: Sequence[discord.File] = (),
+    ) -> object:
+        """Replace the message."""
+        ...
+
+
 @runtime_checkable
 class Postable(Protocol):
     """A channel that takes messages (forums and categories do not), as the plugin calls it."""
@@ -91,6 +112,14 @@ class Postable(Protocol):
         files: Sequence[discord.File] = (),
     ) -> Posted:
         """Send a message to the channel."""
+        ...
+
+
+class Channel(Postable, Protocol):
+    """A partial messageable: messages can be sent there and edited by ID."""
+
+    def get_partial_message(self, message_id: int, /) -> Editable:
+        """The channel's message ``message_id``, without fetching it."""
         ...
 
 
@@ -120,11 +149,97 @@ class Giveaway(commands.Cog):
         # Each user's draft per guild, by user ID and guild ID; v3's StepManager.steps.
         self.drafts: dict[tuple[int, int], Session] = {}
         self.clock: Callable[[], float] = time.time  # now, in epoch seconds
+        self.sleep: Sleep = asyncio.sleep  # between the automatic draw's passes
         self.tasks: tuple[asyncio.Task[None], ...] = ()  # the automatic draw once loaded
 
+    @override
+    async def cog_load(self) -> None:
+        """Start the automatic draw, which waits until the bot is ready.
+
+        ``setup`` runs before the gateway connects, and ``--no-online`` never connects, so nothing
+        is drawn before READY; in a ready bot, as after a reload, the first pass comes five seconds
+        later, as v3's scheduler started on each load.
+        """
+        self.tasks = (asyncio.create_task(self._auto_draw(), name="Giveaway automatic draw"),)
+
+    @override
+    async def cog_unload(self) -> None:
+        """Stop the automatic draw and wait for it, before the store closes."""
+        for task in self.tasks:
+            task.cancel()
+        await asyncio.gather(*self.tasks, return_exceptions=True)
+
+    async def _auto_draw(self) -> None:
+        """Pass five seconds after READY, then each ``autoDrawIntervalSeconds`` after a pass.
+
+        v3's scheduler ran at a fixed rate from each start; a pass takes milliseconds. A failed
+        pass is logged and the next one runs, as v3's ``runCatching``.
+        """
+        await self.bot.wait_until_ready()
+        await self.sleep(FIRST_PASS)
+        while True:
+            try:
+                await self.draw_due()
+            except Exception:
+                logger.exception("Giveaway's automatic draw failed")
+            await self.sleep(self.config.period)
+
     async def draw_due(self) -> None:
-        """One pass of the automatic draw: draw, store and announce the due giveaways."""
-        raise NotImplementedError
+        """One pass of the automatic draw: draw, store and announce the due giveaways.
+
+        Only in guilds that the bot is in and that are available: v3 also drew those of guilds it
+        had left while offline, without posting. Each guild's draws are stored before its posts
+        are updated and the winners announced; a guild that fails is logged, the others go on.
+        """
+        now = int(self.clock())
+        for key in await self.giveaways.guild_ids():
+            guild = self.bot.get_guild(int(key)) if GUILD_ID.fullmatch(key) else None
+            if guild is None or guild.unavailable:
+                continue
+            try:
+                drawn = await self.giveaways.draw_due(guild.id, now, self.random)
+            except DataError, sqlite3.Error:
+                logger.exception("Giveaway cannot draw the due giveaways of guild %s", key)
+                continue
+            for instance in drawn:
+                await self._announce(instance)
+
+    async def _announce(self, instance: Instance) -> None:
+        """Update the post of a giveaway drawn automatically and announce its winners there.
+
+        Through a partial messageable, so threads, announcement channels and voice channel chats
+        work without the cache; v3 reached text channels only and drew the others silently. Each
+        refusal is a warning naming the giveaway.
+        """
+        partial = self.bot.get_partial_messageable(instance.channel_id, guild_id=instance.guild_id)
+        channel = cast("Channel", partial)  # the send and edit overloads take no view union
+        post = self.render_post(instance)
+        try:
+            await channel.get_partial_message(instance.message_id).edit(
+                content=post.content,
+                embeds=post.embeds,
+                view=post.view,
+                attachments=post.files,
+            )
+        except discord.HTTPException as error:
+            logger.warning("Giveaway cannot update the post of giveaway %s: %s", instance.id, error)
+        texts = self._giveaway_texts(instance)
+        message = render_message(
+            self.templates.message("auto-draw-result", texts.locale),
+            global_values(self.bot) | result(instance, texts, reroll=False),
+            build_id=IDS.build,
+        )
+        try:
+            await channel.send(
+                content=message.content or None,
+                embeds=message.embeds,
+                view=message.view,
+                files=message.files,
+            )
+        except discord.HTTPException as error:
+            logger.warning(
+                "Giveaway cannot announce the winners of giveaway %s: %s", instance.id, error
+            )
 
     def command(self) -> app_commands.Command[Any, ..., None]:
         """Build v3's ``/create-giveaway``, localized from ``register.yaml``.
