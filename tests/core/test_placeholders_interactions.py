@@ -9,7 +9,6 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast
 
 import discord
-import pytest
 
 from xincord.core.placeholders import interaction_values, locale_names
 
@@ -188,11 +187,6 @@ class OrphanThread:
         raise discord.ClientException(msg)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=discord.ClientException,
-    reason="Interaction language and channel follow v3",
-)
 def test_thread_with_an_uncached_parent() -> None:
     """Requirement: Interaction language and channel follow v3."""
     values = interaction_values(FakeInteraction({"type": 1, "name": "x"}, channel=OrphanThread()))

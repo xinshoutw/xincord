@@ -6,7 +6,7 @@
       the markers
 - [x] 1.3 xfail test for "Interaction language and channel follow v3" in a thread whose parent
       channel is not cached (found while checking the commands in threads)
-- [ ] 1.4 Give no category for such a thread instead of raising; remove the marker
+- [x] 1.4 Give no category for such a thread instead of raising; remove the marker
 
 ## 2. Resources
 

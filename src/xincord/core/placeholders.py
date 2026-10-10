@@ -5,12 +5,11 @@ from datetime import UTC, datetime
 from importlib.resources import files
 from typing import TYPE_CHECKING, Protocol, cast, runtime_checkable
 
+import discord
 import yaml
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping, Sequence
-
-    import discord
 
 # JDA 6.4.1 ChannelType names by Discord channel type number.
 CHANNEL_TYPES = {
@@ -458,7 +457,7 @@ def interaction_values(interaction: InteractionLike) -> dict[str, str]:
     channel = interaction.channel
     if (name := getattr(channel, "name", None)) is not None:
         values |= {"channel_id": str(getattr(channel, "id", 0)), "channel_name": str(name)}
-        if (category := getattr(channel, "category", None)) is not None:
+        if (category := _category(channel)) is not None:
             values["channel_category_name"] = str(getattr(category, "name", ""))
     if "component_type" in data:
         values |= _component_values(str(data.get("custom_id", "")), interaction.message)
@@ -476,6 +475,14 @@ def placeholder_values(interaction: EventLike) -> dict[str, str]:
     bot = interaction.client.user
     actor = {} if bot is None else actor_values(interaction.user, bot)
     return actor | interaction_values(interaction)
+
+
+def _category(channel: object) -> object:
+    """Return the channel's category, or None for a thread whose parent channel is not cached."""
+    try:
+        return getattr(channel, "category", None)
+    except discord.ClientException:  # discord.py's Thread.category raises without the parent
+        return None
 
 
 def _command_values(data: Mapping[str, object]) -> dict[str, str]:
