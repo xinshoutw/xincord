@@ -73,7 +73,7 @@
 
 ## 14. Confirming
 
-- [ ] 14.1 xfail tests for "Confirming posts a new panel", "Confirming adds a button to the
+- [x] 14.1 xfail tests for "Confirming posts a new panel", "Confirming adds a button to the
        message" and "A panel that cannot be posted keeps the builder" against a stub `_confirm`
 - [ ] 14.2 Implement `_confirm`, `panel_button` and the add path; remove the markers
 

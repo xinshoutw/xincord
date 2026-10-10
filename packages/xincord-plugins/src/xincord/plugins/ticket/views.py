@@ -45,3 +45,10 @@ def _button(draft: Draft, custom_id: str) -> discord.ui.Button[discord.ui.View]:
         label=draft.button_text or None,
         emoji=discord.PartialEmoji.from_str(draft.button_emoji) if draft.button_emoji else None,
     )
+
+
+def panel_button(
+    draft: Draft, index: int, build_id: IdBuilder
+) -> discord.ui.Button[discord.ui.View]:
+    """The panel's button ``index``, v3's ``buildTicketButton``: it opens the reason modal."""
+    raise NotImplementedError
