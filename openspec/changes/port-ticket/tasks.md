@@ -45,7 +45,7 @@
 
 ## 9. Modals
 
-- [ ] 9.1 xfail tests for "Builder buttons open pre-filled modals" (and the preview modal of "The
+- [x] 9.1 xfail tests for "Builder buttons open pre-filled modals" (and the preview modal of "The
       preview shows the draft") against a stub `_open_modal`
 - [ ] 9.2 Implement `_open_modal`; remove the markers
 
