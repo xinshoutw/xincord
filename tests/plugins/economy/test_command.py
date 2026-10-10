@@ -42,7 +42,6 @@ NAMES = (
 GUILD = FakeGuild(id=10)
 ADMIN = FakeMember(GUILD, id=1, name="admin")  # listed in the conftest's admin_id
 BOB = FakeMember(GUILD, id=7, name="bob")
-LOCALIZED = "The commands are localized guild commands"
 
 
 def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
@@ -56,7 +55,6 @@ def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
     return found
 
 
-@pytest.mark.xfail(strict=True, reason=LOCALIZED)
 async def test_command_payloads(bot: Bot) -> None:
     """Requirement: The commands are localized guild commands."""
     global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
@@ -68,7 +66,6 @@ async def test_command_payloads(bot: Bot) -> None:
     assert not {entry["name"] for entry in global_payload} & set(NAMES)
 
 
-@pytest.mark.xfail(strict=True, reason=LOCALIZED)
 @pytest.mark.parametrize("name", NAMES)
 async def test_command_callback(bot: Bot, cog: Economy, name: str) -> None:
     """Requirement: The commands are localized guild commands."""

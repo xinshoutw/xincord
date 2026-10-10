@@ -10,7 +10,7 @@ import discord
 
 from xincord.core.templates import Templates
 
-from .cog import Economy, check_boards
+from .cog import COMMANDS, IDS, Economy, check_boards
 from .config import Config
 
 if TYPE_CHECKING:
@@ -25,7 +25,7 @@ DEFAULT_LOCALE = "zh-TW"
 
 
 async def setup(bot: Bot) -> None:
-    """Load the lang files, the templates and the config, then add the cog.
+    """Load the lang files, the templates and the config, then register the cog's handlers.
 
     The lang files load first, so that they are written even while the config waits for an
     administrator. The wallets are in the shared store.
@@ -34,4 +34,11 @@ async def setup(bot: Bot) -> None:
     lang = context.lang(DEFAULT_LOCALE)
     templates = Templates.load(lang)
     check_boards(lang, templates)
-    await bot.add_cog(Economy(context.config(Config), context.store, lang, templates))
+    cog = Economy(context.config(Config), context.store, lang, templates)
+    await bot.add_cog(cog)
+    # Guild commands, as in v3. discord.py removes them when the plugin unloads.
+    for name in COMMANDS:
+        bot.tree.add_command(cog.command(name))
+    # Buttons with IDS's IDs, v3's economy@ too, reach cog.handle; the core drops the route when
+    # the plugin unloads.
+    bot.route(__name__, IDS, cog.handle)

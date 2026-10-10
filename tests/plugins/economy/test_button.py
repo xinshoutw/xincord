@@ -118,7 +118,6 @@ def posted(custom_id: str, interaction: FakeInteraction) -> FakeMessage:
     return FakeMessage([discord.ActionRow(payload)], interaction.sent)
 
 
-@pytest.mark.xfail(strict=True, reason="Economy buttons show the presser's wallet")
 async def test_v3_button_routed(bot: Bot, store: Store) -> None:
     """Requirement: Economy buttons show the presser's wallet."""
     await give_bob(store)
@@ -133,7 +132,6 @@ async def test_v3_button_routed(bot: Bot, store: Store) -> None:
     assert buttons(fields["view"]) == [("Pocket", "economy:1:")]
 
 
-@pytest.mark.xfail(strict=True, reason="Economy buttons show the presser's wallet")
 async def test_new_button_routed(bot: Bot, store: Store) -> None:
     """Requirement: Economy buttons show the presser's wallet."""
     await give_bob(store)

@@ -6,9 +6,10 @@ Kotlin:
 """
 
 from dataclasses import replace
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, cast
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from xincord.core.component_ids import ComponentIds
@@ -37,6 +38,44 @@ BAD_VALUE = "Bad Value"  # v3's reply to a negative amount, the same in every lo
 BOARDS: dict[str, Kind] = {"top-money": "money", "top-cost": "cost"}
 
 
+class CommandSpec(NamedTuple):
+    """One of v3's commands: the handler that serves it and v3's base texts."""
+
+    kind: Literal["balance", "board", "change"]
+    description: str
+    member: str = ""  # the member option's description, if it has the option
+    value: str = ""  # the value option's description, if it has the option
+
+
+MODIFY = "Specify the member to modify."
+# v3's commands, in v3's order, with the texts of Register.kt.
+COMMANDS = {
+    "balance": CommandSpec(
+        "balance", "Get current money from member", "Specify the member to query."
+    ),
+    "top-money": CommandSpec("board", "Get leaderboard for money"),
+    "top-cost": CommandSpec("board", "Get leaderboard from log money"),
+    "add-money": CommandSpec(
+        "change", "Add money to member's balance", MODIFY, "Specify the amount to add."
+    ),
+    "remove-money": CommandSpec(
+        "change", "Remove money from member's balance", MODIFY, "Specify the amount to remove."
+    ),
+    "set-money": CommandSpec(
+        "change", "Set money to member's balance", MODIFY, "Specify the new balance."
+    ),
+    "add-cost": CommandSpec(
+        "change", "Add money log to member", MODIFY, "Specify the amount to add."
+    ),
+    "remove-cost": CommandSpec(
+        "change", "Remove money log to member", MODIFY, "Specify the amount to remove."
+    ),
+    "set-cost": CommandSpec(
+        "change", "Set money log to member", MODIFY, "Specify the new balance."
+    ),
+}
+
+
 class Economy(commands.Cog):
     """The plugin's state and handlers; ``setup`` registers them."""
 
@@ -46,6 +85,45 @@ class Economy(commands.Cog):
         self.store = store
         self.lang = lang
         self.templates = templates
+
+    def command(self, name: str) -> app_commands.Command[Any, ..., None]:
+        """Build v3's command ``name``, localized from ``register.yaml``.
+
+        ``balance`` is for everyone, as v3's ``DefaultMemberPermissions.ENABLED``; Discord shows
+        the others to administrators by default, and their handlers check ``admin_id``, as in v3.
+        """
+        lang, spec = self.lang, COMMANDS[name]
+        command: app_commands.Command[Any, ..., None]
+        label = lang.command(name, f"{name}.name")
+        description = lang.command(spec.description, f"{name}.description")
+        if spec.kind == "balance":
+            command = app_commands.Command(
+                name=label, description=description, callback=self.show_balance
+            )
+        elif spec.kind == "board":
+            command = app_commands.Command(
+                name=label, description=description, callback=self.show_board
+            )
+        else:
+            command = app_commands.Command(
+                name=label, description=description, callback=self.change_wallet
+            )
+        # One call each: describe gives every option it does not name the text "...".
+        options = {
+            key: text for key, text in (("member", spec.member), ("value", spec.value)) if text
+        }
+        app_commands.rename(
+            **{key: lang.command(key, f"{name}.options.{key}.name") for key in options}
+        )(command)
+        app_commands.describe(
+            **{
+                key: lang.command(text, f"{name}.options.{key}.description")
+                for key, text in options.items()
+            }
+        )(command)
+        if spec.kind == "balance":
+            return command
+        return app_commands.default_permissions(administrator=True)(command)
 
     async def show_balance(
         self,
