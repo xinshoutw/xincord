@@ -17,7 +17,7 @@
 ## 4. Counts
 
 - [x] 4.1 xfail tests for "The counts sum the bot's guilds", with `member_count` on `FakeGuild`
-- [ ] 4.2 Implement the counts; remove the markers
+- [x] 4.2 Implement the counts; remove the markers
 
 ## 5. Reply
 

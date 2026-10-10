@@ -37,5 +37,9 @@ class BotInfo(commands.Cog):
 
 
 def counts(guilds: Collection[Counted]) -> tuple[int, int]:
-    """Stub until the counts exist."""
-    raise NotImplementedError
+    """Return the number of ``guilds`` and the sum of their member counts.
+
+    As in v3, a user in several guilds counts once per guild, and bots count. An unknown member
+    count (a guild unavailable since the bot connected) adds nothing.
+    """
+    return len(guilds), sum(guild.member_count or 0 for guild in guilds)
