@@ -7,7 +7,7 @@ Kotlin:
 
 import random
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any, cast
 
 import discord
@@ -16,8 +16,9 @@ from discord.ext import commands
 
 from xincord.core.component_ids import ComponentIds
 from xincord.core.placeholders import global_values, placeholder_values
-from xincord.core.templates import render_message, render_modal
+from xincord.core.templates import modal_values, render_message, render_modal
 
+from .drafts import submit
 from .model import Draft
 from .texts import Texts, language, preview
 from .times import format_end_time
@@ -182,8 +183,35 @@ class Giveaway(commands.Cog):
     async def _apply(
         self, interaction: discord.Interaction, session: Session, sub_action: str
     ) -> None:
-        """Change the draft with the submitted modal ``sub_action``."""
-        raise NotImplementedError
+        """Change the draft with the submitted modal ``sub_action`` and update the builder.
+
+        An invalid value gets v3's error ephemerally and leaves the draft. A valid one replaces
+        the builder message through the submission (a modal opened from a message may update it),
+        where v3 deferred and edited it through the command's 15-minute hook.
+        """
+        now = int(self.clock())
+        values = modal_values(interaction.data)
+        changed = submit(session.draft, sub_action, values, now, self.config.zone)
+        if isinstance(changed, str):
+            await _tell(interaction, self._texts(interaction).get(changed))
+            return
+        await self._update(interaction, session, changed)
+
+    async def _update(
+        self, interaction: discord.Interaction, session: Session, draft: Draft
+    ) -> None:
+        """Keep the user's new draft and show it in the builder that the interaction came from."""
+        # The session was found by the user and this interaction's guild.
+        self.drafts[interaction.user.id, cast("int", interaction.guild_id)] = replace(
+            session, draft=draft
+        )
+        message = self._builder(interaction, draft)
+        await interaction.response.edit_message(
+            content=message.content,
+            embeds=message.embeds,
+            view=message.view,
+            attachments=message.files,
+        )
 
     async def _remove_prize(self, interaction: discord.Interaction, session: Session) -> None:
         """Remove the draft's last prize."""

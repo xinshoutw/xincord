@@ -5,6 +5,7 @@ draw waits for it. ``scene`` runs the command, presses the builder's buttons and
 as administrator 7 of guild 10, through the plugin's route handler.
 """
 
+import sys
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, cast
 
@@ -17,19 +18,36 @@ from xincord.core.bot import Bot
 from xincord.plugins.giveaway.cog import IDS, Session
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, Mapping
+    from collections.abc import AsyncGenerator, Iterator, Mapping
     from pathlib import Path
 
     from xincord.core.storage import Store
     from xincord.plugins.giveaway.cog import Giveaway
     from xincord.plugins.giveaway.model import Draft
 
+PACKAGE = "xincord.plugins.giveaway"
 NOW = 1772244000  # 2026-02-28 10:00 in Asia/Taipei, the tests' clock
 GUILD = 10
 USER = 7  # the administrator who builds the giveaway, unless a test says otherwise
 BUILDER = 43  # the ID of the builder message that shows the user's draft
 COMPONENT = discord.InteractionType.component
 MODAL = discord.InteractionType.modal_submit
+
+
+@pytest.fixture(autouse=True)
+def plugin_modules() -> Iterator[None]:
+    """The plugin's modules, the same before and after each test.
+
+    discord.py drops a plugin's modules when its setup fails (an invalid config), and the next load
+    imports new ones, whose dataclasses never equal those that the test modules imported.
+    """
+    kept = {
+        name: module
+        for name, module in sys.modules.items()
+        if name == PACKAGE or name.startswith(f"{PACKAGE}.")
+    }
+    yield
+    sys.modules.update(kept)
 
 
 @pytest.fixture(autouse=True)

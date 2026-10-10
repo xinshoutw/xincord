@@ -69,7 +69,7 @@
 
 - [x] 13.1 xfail tests for "Submitted modals change the draft" against stubs `drafts.submit` and
       `_apply`
-- [ ] 13.2 Implement them; remove the markers
+- [x] 13.2 Implement them; remove the markers
 
 ## 14. Prizes and policy
 

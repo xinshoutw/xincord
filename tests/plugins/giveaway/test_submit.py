@@ -21,7 +21,6 @@ if TYPE_CHECKING:
     from discord_fakes import FakeInteraction
 
 GOLDEN = golden("giveaway")
-REASON = "Submitted modals change the draft"
 TAIPEI = 'timeZone: "Asia/Taipei"\n'
 NEXT_LINE = chr(0x85)
 
@@ -44,7 +43,6 @@ def reply(interaction: FakeInteraction) -> object:
     return fields["content"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_title(scene: Scene) -> None:
     """Requirement: Submitted modals change the draft."""
     scene.keep(Draft())
@@ -55,7 +53,6 @@ async def test_title(scene: Scene) -> None:
     assert embed_dict(shown(submitted))["title"] == GOLDEN["preview"]["en-US"]["full"]["title"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_kotlin_trim(scene: Scene) -> None:
     """Requirement: Submitted modals change the draft."""
     scene.keep(Draft())
@@ -65,7 +62,6 @@ async def test_kotlin_trim(scene: Scene) -> None:
     assert scene.draft().title == f"{NEXT_LINE}Nitro"  # Kotlin's trim keeps U+0085
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("config", [TAIPEI])
 async def test_end_time(scene: Scene) -> None:
     """Requirement: Submitted modals change the draft."""
@@ -78,7 +74,6 @@ async def test_end_time(scene: Scene) -> None:
     assert end_time == "<t:1772330400:F>\n2026-03-01 10:00"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("config", [TAIPEI])
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 @pytest.mark.parametrize(
@@ -109,7 +104,6 @@ async def test_errors(
     assert scene.draft() == draft
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_prizes(scene: Scene) -> None:
     """Requirement: Submitted modals change the draft."""
     scene.keep(Draft())
@@ -120,7 +114,6 @@ async def test_prizes(scene: Scene) -> None:
     assert scene.draft().prizes == tuple(Prize(f"P{index}", 2) for index in range(60))
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_cleared(scene: Scene) -> None:
     """Requirement: Submitted modals change the draft."""
     scene.keep(Draft(description="desc", sponsor="Shop", thumbnail_url="https://x/y.png"))
@@ -136,7 +129,6 @@ async def test_cleared(scene: Scene) -> None:
     assert [field["value"] for field in embed["fields"]][0::5] == [not_set, not_set]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_values_as_typed(scene: Scene) -> None:
     """Requirement: Submitted modals change the draft."""
     scene.keep(Draft())
@@ -152,7 +144,6 @@ async def test_values_as_typed(scene: Scene) -> None:
     )
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 def test_unknown_modal() -> None:
     """Requirement: Submitted modals change the draft."""
     draft = Draft(title="Nitro")
