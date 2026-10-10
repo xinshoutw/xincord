@@ -35,11 +35,6 @@ if TYPE_CHECKING:
     from xincord.plugins.voice_logger.cog import VoiceLogger
 
 GOLDEN = golden("voice_logger")
-XFAIL = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The settings components change the settings",
-)
 LOCALES = {"en-US": discord.Locale.american_english, "zh-TW": discord.Locale.taiwan_chinese}
 BUTTON, CHANNEL_SELECT = 2, 8  # component types
 
@@ -93,7 +88,6 @@ def fields_of(edited: dict[str, Any]) -> list[str]:
     return [str(field.value) for field in embed.fields]
 
 
-@XFAIL
 async def test_toggle(cog: VoiceLogger, store: Store) -> None:
     """Requirement: The settings components change the settings."""
     await add_channels(store, 10, 5, "allow", [30])
@@ -108,7 +102,6 @@ async def test_toggle(cog: VoiceLogger, store: Store) -> None:
     assert len(edited["view"].children) == 4  # v3's buttons again
 
 
-@XFAIL
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 @pytest.mark.parametrize("kind", ["allow", "block"])
 async def test_modify_a_list(cog: VoiceLogger, store: Store, locale: str, kind: str) -> None:
@@ -142,7 +135,6 @@ async def test_modify_a_list(cog: VoiceLogger, store: Store, locale: str, kind: 
     )
 
 
-@XFAIL
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_delete(cog: VoiceLogger, store: Store, locale: str) -> None:
     """Requirement: The settings components change the settings."""
@@ -160,7 +152,6 @@ async def test_delete(cog: VoiceLogger, store: Store, locale: str) -> None:
     assert edited["view"] is None  # no components left
 
 
-@pytest.mark.xfail(strict=True, reason="The settings components change the settings")
 async def test_v3_ids(bot: Bot, store: Store) -> None:
     """Requirement: The settings components change the settings."""
     old, new = component("voice-logger@a:toggle_btn"), component("voice_logger:1:a=toggle_btn")
@@ -175,7 +166,6 @@ async def test_v3_ids(bot: Bot, store: Store) -> None:
     assert IDS.upgrade("voice-logger@a:toggle_btn") == "voice_logger:1:a=toggle_btn"
 
 
-@XFAIL
 @pytest.mark.parametrize(
     ("custom_id", "values"),
     [

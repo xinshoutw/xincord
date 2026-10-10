@@ -10,7 +10,7 @@ import discord
 
 from xincord.core.templates import Templates
 
-from .cog import VoiceLogger
+from .cog import IDS, VoiceLogger
 
 if TYPE_CHECKING:
     from xincord.core.bot import Bot
@@ -31,4 +31,8 @@ async def setup(bot: Bot) -> None:
     """
     context = bot.plugin_context(__name__)
     lang = context.lang(DEFAULT_LOCALE)
-    await bot.add_cog(VoiceLogger(bot, context.store, lang, Templates.load(lang)))
+    cog = VoiceLogger(bot, context.store, lang, Templates.load(lang))
+    await bot.add_cog(cog)
+    # The menu's buttons and select menus with IDS's IDs, v3's too, reach cog.handle; the core
+    # drops the route when the plugin unloads.
+    bot.route(__name__, IDS, cog.handle)
