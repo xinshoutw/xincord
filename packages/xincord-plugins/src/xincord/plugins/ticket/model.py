@@ -55,6 +55,11 @@ class Draft:
         return Entry(self.reason_title, self.admin_ids, self.category_id)
 
 
+def hex_color(color: int) -> str:
+    """A color as v3 showed it in its modal: ``String.format("#%06X", color and 0xFFFFFF)``."""
+    return f"#{color & 0xFFFFFF:06X}"
+
+
 def parse_entry(value: JSON, where: str) -> Entry:
     """Read a stored entry as v3's Moshi did: every field required, integers exact.
 

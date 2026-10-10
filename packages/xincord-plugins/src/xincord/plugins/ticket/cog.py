@@ -15,10 +15,11 @@ from discord import app_commands
 from discord.ext import commands
 
 from xincord.core.component_ids import ComponentIds
-from xincord.core.placeholders import global_values
-from xincord.core.templates import render_message
+from xincord.core.placeholders import global_values, placeholder_values
+from xincord.core.templates import render_message, render_modal
 
 from .drafts import defaults
+from .model import hex_color
 from .texts import Texts
 from .views import preview_button, preview_embed
 
@@ -243,8 +244,25 @@ class Ticket(commands.Cog):
     async def _open_modal(
         self, interaction: discord.Interaction, session: Session, sub_action: str
     ) -> None:
-        """Open the modal of the builder's button ``sub_action``, pre-filled with the draft."""
-        raise NotImplementedError
+        """Open the modal of the builder's button ``sub_action``, pre-filled with the draft.
+
+        In the user's locale, with v3's ``Placeholder.get(event)`` and the draft's ``tt@*`` values,
+        inserted as written; an empty value leaves its input empty. The preview button opens v3's
+        ``preview-reason``, titled with the reason title, which v3 could not reach (B1).
+        """
+        draft = session.draft
+        values = placeholder_values(interaction) | {
+            "tt@author": draft.author,
+            "tt@author-icon-url": draft.author_icon_url,
+            "tt@title": draft.title,
+            "tt@description": draft.description,
+            "tt@hex-color": hex_color(draft.color),
+            "tt@btn-text": draft.button_text,
+            "tt@btn-emoji": draft.button_emoji,
+            "tt@reason-title": draft.reason_title,
+        }
+        template = self.templates.modal(MODALS[sub_action], interaction.locale.value)
+        await interaction.response.send_modal(render_modal(template, values, build_id=IDS.build))
 
     async def _screen(
         self, interaction: discord.Interaction, session: Session, screen: str | None

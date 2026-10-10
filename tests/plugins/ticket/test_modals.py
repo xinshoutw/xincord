@@ -63,9 +63,6 @@ def inputs(opened: discord.ui.Modal) -> list[Input]:
     return found
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Builder buttons open pre-filled modals"
-)
 @pytest.mark.parametrize(
     ("sub_action", "expected"),
     [
@@ -109,9 +106,6 @@ async def test_pre_filled_modals(scene: Scene, sub_action: str, expected: list[I
     assert scene.session().draft == DRAFT
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Builder buttons open pre-filled modals"
-)
 async def test_empty_values(scene: Scene) -> None:
     """Requirement: Builder buttons open pre-filled modals."""
     scene.keep(Draft("Why?", color=0x0000AB))
@@ -124,9 +118,6 @@ async def test_empty_values(scene: Scene) -> None:
     assert color[0][2] == "#0000AB"  # v3's "#%06X"
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Builder buttons open pre-filled modals"
-)
 async def test_zh_tw_button_modal(scene: Scene) -> None:
     """Requirement: Builder buttons open pre-filled modals."""
     scene.keep(DRAFT, scene.who(locale="zh-TW"))
@@ -137,7 +128,6 @@ async def test_zh_tw_button_modal(scene: Scene) -> None:
     assert opened.custom_id == IDS.build({"action": "create", "sub_action": "modify-btn-text"})
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The preview shows the draft")
 async def test_preview_button(scene: Scene) -> None:
     """Requirement: The preview shows the draft."""
     scene.keep(DRAFT)
