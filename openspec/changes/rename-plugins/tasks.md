@@ -31,7 +31,7 @@
 
 ## 6. UptimeHeartbeat
 
-- [ ] 6.1 xfail tests for "The plugin installs as UptimeHeartbeat" and "The status code decides
+- [x] 6.1 xfail tests for "The plugin installs as UptimeHeartbeat" and "The status code decides
       what follows" (a log line with the new name)
 - [ ] 6.2 Rename the package, the entry point, the cog, the log lines and task names, the tests;
       remove the markers
