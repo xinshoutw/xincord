@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast
 
 import discord
+import pytest
 
 from xincord.core.placeholders import interaction_values, locale_names
 
@@ -172,6 +173,32 @@ def test_guild_channel_and_direct_message() -> None:
     assert guild["channel_category_name"] == "Text"
     assert "channel_category_name" not in uncategorized
     assert direct == {"language": locale_names("en-US")[1]}
+
+
+class OrphanThread:
+    """A thread whose parent channel discord.py has not cached, as in a guild it never cached."""
+
+    id = 8
+    name = "help"
+
+    @property
+    def category(self) -> object:
+        """discord.py's ``Thread.category`` raises when the parent is unknown."""
+        msg = "Parent channel not found"
+        raise discord.ClientException(msg)
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=discord.ClientException,
+    reason="Interaction language and channel follow v3",
+)
+def test_thread_with_an_uncached_parent() -> None:
+    """Requirement: Interaction language and channel follow v3."""
+    values = interaction_values(FakeInteraction({"type": 1, "name": "x"}, channel=OrphanThread()))
+
+    assert (values["channel_id"], values["channel_name"]) == ("8", "help")
+    assert "channel_category_name" not in values
 
 
 def discord_interaction_fits(interaction: discord.Interaction) -> None:

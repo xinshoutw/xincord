@@ -145,6 +145,14 @@ bot) | interaction_values(interaction)`, or the interaction values alone while
 cog imports the core function. BotInfo's and SimpleCommand's `_bot_values` stay: this plugin does
 not need v3's bare global keys.
 
+A check of the commands through discord.py's own invocation path (a real `discord.Interaction` from
+a gateway payload, in a guild that discord.py had not cached) showed that `interaction_values`
+failed in a thread: `getattr(thread, "category", None)` lets discord.py's `ClientException` ("Parent
+channel not found") through when the parent channel is not cached. `interaction_values` now treats
+that thread as having no category, so `channel_category_name` is absent and the command still
+answers. With the guilds intent the parent is normally cached, so this affects guilds discord.py
+has not cached, such as an unavailable one.
+
 ### Tests
 
 - `tests/plugins/welcome_bye_guild/`: `test_plugin.py`, `test_store.py`, `test_values.py`,

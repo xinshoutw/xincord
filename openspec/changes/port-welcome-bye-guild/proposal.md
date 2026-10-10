@@ -24,7 +24,9 @@ guild with four guild commands. The bindings live in one JSON file per guild.
 - A guild's bindings are deleted when the bot leaves it and, when the bot is ready, for every guild
   it left while it was offline or while the plugin was off.
 - Core: v3's `Placeholder.get(event)` moves from _Example into `xincord.core.placeholders` as
-  `placeholder_values(interaction)`, which _Example now imports.
+  `placeholder_values(interaction)`, which _Example now imports. `interaction_values` no longer
+  fails in a thread whose parent channel is not cached (discord.py's `Thread.category` raises
+  there), which would have left such a command unanswered.
 - v3's defects are fixed: the commands answer in threads, voice channel chats and announcement
   channels (v3 gave no reply there, and saved a binding chosen with the option silently), so
   `invalid-channel` reaches the administrator; names are no longer expanded as placeholders;
@@ -65,7 +67,8 @@ Dashboard's toggle and reload (B13).
 ### Modified Capabilities
 
 - `core-placeholders`: adds v3's `Placeholder.get(event)`, the acting user's and the interaction's
-  values in one call.
+  values in one call; a thread whose parent channel is not cached gives no category instead of
+  failing the interaction values.
 
 ## Impact
 

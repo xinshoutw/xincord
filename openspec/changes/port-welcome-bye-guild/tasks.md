@@ -4,6 +4,9 @@
       `placeholder_values` in `xincord.core.placeholders`
 - [x] 1.2 Move `placeholder_values` from _Example into the core, make _Example import it; remove
       the markers
+- [x] 1.3 xfail test for "Interaction language and channel follow v3" in a thread whose parent
+      channel is not cached (found while checking the commands in threads)
+- [ ] 1.4 Give no category for such a thread instead of raising; remove the marker
 
 ## 2. Resources
 
