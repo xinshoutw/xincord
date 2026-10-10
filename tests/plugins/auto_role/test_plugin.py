@@ -10,7 +10,6 @@ from importlib.resources import files
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 from plugin_fakes import load_plugin
 from xincord.core.plugins import PluginInfo, discover
@@ -21,10 +20,7 @@ if TYPE_CHECKING:
     from xincord.core.bot import Bot
     from xincord.core.storage import Store
 
-XFAIL = pytest.mark.xfail(strict=True, reason="The plugin installs as AutoRole")
 
-
-@XFAIL
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as AutoRole."""
     assert discover(["AutoRole"]) == [
@@ -32,14 +28,12 @@ def test_discovered_by_name() -> None:
     ]
 
 
-@XFAIL
 async def test_the_bot_requests_the_members_intent(bot: Bot) -> None:
     """Requirement: The plugin installs as AutoRole."""
     assert bot.loaded == ("AutoRole",)
     assert bot.intents.members
 
 
-@XFAIL
 async def test_first_load_creates_the_config(store: Store, tmp_path: Path) -> None:
     """Requirement: The plugin installs as AutoRole."""
     bot = await load_plugin("AutoRole", tmp_path / "plugins", store)
