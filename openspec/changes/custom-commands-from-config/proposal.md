@@ -31,6 +31,11 @@ only. v3 needed Kotlin changes in three files to add one (inventory B3), and so 
   command whose `extras` sets `guilds` is uploaded to those guilds only.
 - `xincord.core.migrate_v3` sets v3's `plugins/CustomCommands/config.yaml` (SimpleCommand's, which
   held only `enabled`) aside as `config.v3.yaml`, so that the plugin writes its bundled commands.
+- Core fix found here: a reload whose `config.yaml` or lang files no longer validate removed the
+  plugin for good (discord.py runs the previous version's setup again, which read the same broken
+  files, and the core kept listing the plugin, which no reload could bring back until a restart).
+  The previous version now gets the config and lang it loaded before; when it fails anyway, the
+  plugin is unloaded cleanly and a later reload loads it.
 
 Kotlin sources (v3's fixed command set, replaced):
 - `XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/command/Register.kt:9-60`
@@ -60,11 +65,14 @@ None.
 - `core-i18n`: the command name check is public; command strings can carry their translations.
 - `core-command-tree`: a guild command can be limited to some guilds.
 - `core-config`: the migration sets CustomCommands' v3 switch file aside.
+- `core-plugins`: a failed reload keeps the previous version with the config and lang it had, or
+  unloads the plugin cleanly when that version fails too.
 
 ## Impact
 
 `packages/xincord-plugins/src/xincord/plugins/custom_commands/` (a new `config.py`, `cog.py`,
 `__init__.py`, the bundled `config.yaml`; `lang/zh-TW/register.yaml` removed) and its tests;
-`src/xincord/core/i18n.py`, `command_tree.py` and `migrate_v3.py` and their tests. No new
+`src/xincord/core/i18n.py`, `command_tree.py`, `plugins.py`, `bot.py` and `migrate_v3.py` and
+their tests. No new
 dependencies. Operators edit `plugins/CustomCommands/config.yaml` instead of code; a v3 install
 runs `migrate_v3` as before and gets v3's five commands.

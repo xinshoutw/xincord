@@ -10,51 +10,58 @@
 - [x] 2.1 xfail tests for "Commands are split into guild and global scopes": a guild list
 - [x] 2.2 Build each guild's payload without the commands of other guilds; remove the markers
 
-## 3. Bundled config
+## 3. Core: failed reloads
 
-- [x] 3.1 Bundle `config.yaml` with v3's five commands (not read yet)
+- [ ] 3.1 xfail tests for "Hot reload follows dependencies and intents": broken files keep the
+      previous version, and a previous version that fails too is unloaded
+- [ ] 3.2 Replay the previous version's config and lang in discord.py's fallback and unload a
+      plugin whose previous version fails; remove the markers
 
-## 4. Commands from the config
+## 4. Bundled config
 
-- [ ] 4.1 xfail tests for "The plugin installs as CustomCommands", "Commands come from the config"
+- [x] 4.1 Bundle `config.yaml` with v3's five commands (not read yet)
+
+## 5. Commands from the config
+
+- [ ] 5.1 xfail tests for "The plugin installs as CustomCommands", "Commands come from the config"
       and "Config changes apply on reload"
-- [ ] 4.2 Read the config in `setup`, build the commands from its entries and drop the bundled
+- [ ] 5.2 Read the config in `setup`, build the commands from its entries and drop the bundled
       `register.yaml`; remove the markers
 
-## 5. Templates and placeholders
+## 6. Templates and placeholders
 
-- [ ] 5.1 xfail tests for "A command posts its message in the channel": the template key and the
+- [ ] 6.1 xfail tests for "A command posts its message in the channel": the template key and the
       user's placeholders
-- [ ] 5.2 Implement `template` and `placeholder_values`; remove the markers
+- [ ] 6.2 Implement `template` and `placeholder_values`; remove the markers
 
-## 6. Replies
+## 7. Replies
 
-- [ ] 6.1 xfail tests for "A command can answer with a public or an ephemeral reply"
-- [ ] 6.2 Implement `reply`; remove the markers
+- [ ] 7.1 xfail tests for "A command can answer with a public or an ephemeral reply"
+- [ ] 7.2 Implement `reply`; remove the markers
 
-## 7. Validation
+## 8. Validation
 
-- [ ] 7.1 xfail tests for "The config is validated at load"
-- [ ] 7.2 Implement the value rules in the models and the checks in `setup`; remove the markers
+- [ ] 8.1 xfail tests for "The config is validated at load"
+- [ ] 8.2 Implement the value rules in the models and the checks in `setup`; remove the markers
 
-## 8. Migration
+## 9. Migration
 
-- [ ] 8.1 xfail tests for "CustomCommands' v3 switch file is set aside"
-- [ ] 8.2 Set the switch file aside in `migrate_v3`; remove the markers
+- [ ] 9.1 xfail tests for "CustomCommands' v3 switch file is set aside"
+- [ ] 9.2 Set the switch file aside in `migrate_v3`; remove the markers
 
-## 9. Checks and docs
+## 10. Checks and docs
 
-- [ ] 9.1 The wheel ships `config.yaml` and the templates and no `register.yaml`; `xincord
+- [ ] 10.1 The wheel ships `config.yaml` and the templates and no `register.yaml`; `xincord
       --no-online` loads the plugin from a scratch venv; a probe through discord.py's objects
       (translated payload, public and ephemeral replies)
-- [ ] 9.2 Image check: `docker compose build` and `docker compose run --rm -T bot --no-online`
-- [ ] 9.3 Porting guide rows and conventions, port-plugin skill notes; audit the scenarios and the
+- [ ] 10.2 Image check: `docker compose build` and `docker compose run --rm -T bot --no-online`
+- [ ] 10.3 Porting guide rows and conventions, port-plugin skill notes; audit the scenarios and the
       inventory against the tests and `design.md`
-- [ ] 9.4 Cross-review (a subagent) and its fixes
+- [ ] 10.4 Cross-review (a subagent) and its fixes
 
-## 10. Close
+## 11. Close
 
-- [ ] 10.1 Gate passes, push, CI green
-- [ ] 10.2 Archive the change and run `openspec validate --all --strict`
-- [ ] 10.3 Update `HANDOFF.md`, `docs/porting/owner-review.md` and the port-plugin skill; push; CI
+- [ ] 11.1 Gate passes, push, CI green
+- [ ] 11.2 Archive the change and run `openspec validate --all --strict`
+- [ ] 11.3 Update `HANDOFF.md`, `docs/porting/owner-review.md` and the port-plugin skill; push; CI
       green

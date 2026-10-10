@@ -152,6 +152,37 @@ as the bot's `allowed_mentions` allows users (B19).
   discord.py's own guild commands (`add_command(..., guilds=...)`) would leave a duplicate name to
   Discord's refusal of the whole upload.
 
+### Failed reloads (core fix)
+
+Found while writing this change's reload tests and confirmed with a scratch probe on BotInfo on
+2026-10-10: when a reload fails, discord.py's `reload_extension` runs the previous module's `setup`
+again (`lib.setup(self)`), and that setup reads the plugin's files again, so a `config.yaml` or
+lang file that broke the new version broke the previous one too. discord.py then left the plugin
+unregistered (no cog, no commands) while the core kept it in `loaded`, and `reload_plugin` and the
+full reload failed with `Extension ... has not been loaded` until a restart. `core-plugins`
+promised the previous version ("a failed reload SHALL keep the previous version"), and this change
+makes config reloads the operator's way to change CustomCommands.
+
+- `PluginContext` records what `config(model)` (by the model's qualified name) and `lang(locale)`
+  returned; `replaying()` gives a context that hands those back instead of reading the files.
+- `Bot._reload` gives the new version a fresh context and keeps the previous one, which
+  `plugin_context(module)` returns, replaying, while discord.py runs the previous setup. discord.py
+  removes the extension's modules from `sys.modules` before that call and restores them only after
+  it (2.7.1: `_load_from_module_spec` and `reload_extension`), while every setup of a load runs
+  with its module in `sys.modules`; that is how the core tells the two apart. Should a later
+  discord.py change that order, the previous setup reads the files again, as before this change,
+  and the core test "Broken files keep the previous version" fails.
+- When discord.py restored the previous version, the core keeps its context, with its recorded
+  reads, and reports `plugin X failed to reload: ...` (the new version's error, which names the
+  file and the key). When the previous version fails too, the core removes what that setup added
+  (discord.py's `_remove_module_references`), forgets the plugin and reports `plugin X failed to
+  reload and is unloaded: ...`; a full reload, or `load_plugin`, loads it again.
+- Templates are not replayed: `Templates.load(lang)` parses again the files that the previous lang
+  lists, so a broken template that the previous version used unloads the plugin. Replaying them
+  would need plugins to load templates through their context.
+- Plugins that depend on one that a failed reload unloaded stay loaded, as the reload stops at the
+  failure; their own reload or a full reload sorts them out.
+
 ### Migration
 
 `migrate_v3.set_aside_v3_configs(root)` renames `plugins/CustomCommands/config.yaml` to
@@ -173,7 +204,9 @@ checked by the core, but nothing reads it; the bundled `config.yaml` holds the s
 ### Tests (xfail-first)
 
 - Core: `tests/core/test_i18n_load.py` (`is_command_name`), `test_i18n_lookup.py` (`localized`),
-  `test_command_tree.py` (a guild list), `test_migrate_v3.py` (the switch file).
+  `test_command_tree.py` (a guild list), `test_plugins.py` (failed reloads, with fake plugins
+  that read a config, a lang directory or a file of their own), `test_migrate_v3.py` (the switch
+  file).
 - Plugin: `tests/plugins/custom_commands/`: `test_plugin.py` (installation), `test_command.py`
   (payloads from the bundled and operator configs, permissions, guild lists, the callback),
   `test_post.py` (the channel posts, the template key, the user's placeholders), `test_reply.py`
@@ -223,6 +256,11 @@ checked by the core, but nothing reads it; the bundled `config.yaml` holds the s
    and the key in the log; a broken edit followed by a reload keeps the commands that were loaded.
 7. `python -m xincord.core.migrate_v3` renames v3's `plugins/CustomCommands/config.yaml` (only
    `enabled`) to `config.v3.yaml`, with a report line.
+8. Every plugin: a reload whose `config.yaml` or lang files are broken keeps the previous version
+   running with its old config and lang, and its summary names the file and the key; when the
+   previous version fails too, the summary says `... failed to reload and is unloaded: ...` and a
+   later reload loads it again (before: the plugin vanished, still listed as loaded, until a
+   restart).
 
 ## Risks / Trade-offs
 
@@ -233,6 +271,8 @@ checked by the core, but nothing reads it; the bundled `config.yaml` holds the s
   (discord.py's `CommandAlreadyRegistered`), in the order of the core config's `plugins` list.
 - A copied v3 `register.yaml` edited after the cutover changes nothing; the bundled config's
   comment says where the names live.
+- A broken template that the loaded commands use, followed by a reload, unloads the plugin until a
+  reload with the template fixed (templates are not replayed; see "Failed reloads").
 
 ## Manual smoke checklist
 
