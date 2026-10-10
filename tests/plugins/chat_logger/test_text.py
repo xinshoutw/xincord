@@ -5,12 +5,8 @@ Kotlin:
 """
 
 import discord
-import pytest
 
 from xincord.plugins.chat_logger.text import fit, message_text
-
-TEXT = "A message's text is its content and its rich embeds"
-FIT = "Logged texts are shown as written and fit an embed field"
 
 
 def rich(**fields: object) -> discord.Embed:
@@ -18,14 +14,12 @@ def rich(**fields: object) -> discord.Embed:
     return discord.Embed.from_dict({"type": "rich", **fields})
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=TEXT)
 def test_plain_message() -> None:
     """Requirement: A message's text is its content and its rich embeds."""
     assert message_text("hello", []) == "hello"
     assert message_text("", []) == ""  # an attachment alone: v3 stored the empty content too
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=TEXT)
 def test_content_and_embeds() -> None:
     """Requirement: A message's text is its content and its rich embeds."""
     embed = rich(
@@ -40,7 +34,6 @@ def test_content_and_embeds() -> None:
     assert message_text("see", [embed]) == "see\n\nA\nT\n\nD\n\nn\nv\n\nm\nw"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=TEXT)
 def test_missing_parts() -> None:
     """Requirement: A message's text is its content and its rich embeds."""
     # v3 appended "null" for a missing title or description.
@@ -50,7 +43,6 @@ def test_missing_parts() -> None:
     assert message_text("x", [rich(image={"url": "https://example.com/a.png"})]) == "x"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=TEXT)
 def test_link_preview() -> None:
     """Requirement: A message's text is its content and its rich embeds."""
     # Discord adds previews of the content's links after the message is sent.
@@ -64,14 +56,12 @@ def test_link_preview() -> None:
     assert message_text("", [discord.Embed.from_dict({"title": "T"})]) == "T"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=FIT)
 def test_short_text() -> None:
     """Requirement: Logged texts are shown as written and fit an embed field."""
     assert fit("%bot_id% %cl_msg_after%") == "%bot_id% %cl_msg_after%"
     assert fit("a" * 1024) == "a" * 1024
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=FIT)
 def test_long_text() -> None:
     """Requirement: Logged texts are shown as written and fit an embed field."""
     # v3 threw for a field over 1024 characters, so the log was lost.
