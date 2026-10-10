@@ -6,8 +6,6 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChatLogger.kt:174-180
 """
 
-import pytest
-
 from xincord.plugins.listen_channels.settings import ChannelIds, Setting, detects, targets
 
 # Channels and threads as (ID, then what holds them): channel 30 of category 22, 31 of category
@@ -28,9 +26,6 @@ def detected(setting: Setting) -> list[int]:
     return [channel for channel, place in PLACES.items() if detects(setting, *place)]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Listen channels detect message channels"
-)
 def test_allow_mode() -> None:
     """Requirement: Listen channels detect message channels."""
     setting = Setting(allow_mode=True, allow=(30, 20), block=(31, 32))  # the block list is unused
@@ -40,9 +35,6 @@ def test_allow_mode() -> None:
     assert detected(setting) == [30, 31, 40, 41]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Listen channels detect message channels"
-)
 def test_block_mode() -> None:
     """Requirement: Listen channels detect message channels."""
     setting = Setting(allow_mode=False, allow=(32,), block=(30, 20))  # the allow list is unused
@@ -51,9 +43,6 @@ def test_block_mode() -> None:
     assert detected(setting) == [32, 33, 42]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Listen channels detect message channels"
-)
 def test_a_thread_on_its_own() -> None:
     """Requirement: Listen channels detect message channels."""
     # v3's select menus offered threads; the allow list can hold one.
@@ -61,9 +50,6 @@ def test_a_thread_on_its_own() -> None:
     assert detected(Setting(allow_mode=False, block=(42,))) == [30, 31, 32, 33, 40, 41]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Listen channels detect message channels"
-)
 def test_every_detecting_listen_channel() -> None:
     """Requirement: Listen channels detect message channels."""
     settings = {
