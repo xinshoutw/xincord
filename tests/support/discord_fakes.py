@@ -317,6 +317,12 @@ def forbidden() -> discord.Forbidden:
     return discord.Forbidden(response, "Missing Permissions")
 
 
+def not_found() -> discord.NotFound:
+    """The error discord.py raises for a message or channel that is gone."""
+    response = cast("aiohttp.ClientResponse", SimpleNamespace(status=404, reason="Not Found"))
+    return discord.NotFound(response, "Unknown Message")
+
+
 def embed_dict(embed: discord.Embed) -> dict[str, Any]:
     """``embed.to_dict()`` without the keys discord.py always adds (``type``, ``flags``)."""
     return {key: value for key, value in embed.to_dict().items() if key not in {"type", "flags"}}

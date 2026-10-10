@@ -150,6 +150,12 @@ class Feedbacker(commands.Cog):
         await interaction.response.send_modal(render_modal(template, values, build_id=IDS.build))
         await _highlight(interaction)
 
+    async def submit_form(
+        self, interaction: discord.Interaction, fields: Mapping[str, str]
+    ) -> None:
+        """Post the submitted feedback in the submit channel, then delete the form."""
+        raise NotImplementedError
+
 
 async def _highlight(interaction: discord.Interaction) -> None:
     """Edit the pressed form so that its pressed star stands out; a refusal is logged.

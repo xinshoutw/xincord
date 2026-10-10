@@ -42,3 +42,21 @@ modal:
     title: "您覺得今天的服務怎麼樣呢？ :D"
     label: "請簡述評價內容"
     placeholder: "超讚"
+
+# The review per guild locale, for alice (ID 7, no avatar) rating three stars with "great", as
+# Embed.to_dict() without "type" and "flags"; the color is #60C0C0.
+review:
+  en-US:
+    title: "☛ New Review from alice"
+    description: "★ ★ ★ ☆ ☆ "
+    thumbnail: {url: "https://cdn.example/default.png"}
+    color: 6340800
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    fields: [{name: "Review Content", value: "great", inline: false}]
+  zh-TW:
+    title: "☛ 來自 alice 的新評價"
+    description: "★ ★ ★ ☆ ☆ "
+    thumbnail: {url: "https://cdn.example/default.png"}
+    color: 6340800
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    fields: [{name: "評價內容", value: "great", inline: false}]
