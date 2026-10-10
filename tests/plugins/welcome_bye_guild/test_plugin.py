@@ -10,13 +10,15 @@ Kotlin:
 from typing import TYPE_CHECKING
 
 import discord
+import pytest
 
+from plugin_fakes import load_plugin
 from xincord.core.plugins import PluginInfo, discover
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from xincord.core.bot import Bot
+    from xincord.core.storage import Store
 
 MESSAGES = (
     "welcome",
@@ -40,28 +42,34 @@ LANG_FILES = tuple(
 )
 
 
+@pytest.mark.xfail(strict=True, reason="The plugin installs as WelcomeGoodbye")
 def test_discovered_by_name() -> None:
-    """Requirement: The plugin installs as WelcomeByeGuild."""
-    assert discover(["WelcomeByeGuild"]) == [
+    """Requirement: The plugin installs as WelcomeGoodbye."""
+    assert discover(["WelcomeGoodbye"]) == [
         PluginInfo(
-            "WelcomeByeGuild",
-            "xincord.plugins.welcome_bye_guild",
+            "WelcomeGoodbye",
+            "xincord.plugins.welcome_goodbye",
             intents=discord.Intents(members=True),
         )
     ]
 
 
-async def test_the_bot_requests_the_members_intent(bot: Bot) -> None:
-    """Requirement: The plugin installs as WelcomeByeGuild."""
-    assert bot.loaded == ("WelcomeByeGuild",)
+@pytest.mark.xfail(strict=True, reason="The plugin installs as WelcomeGoodbye")
+async def test_the_bot_requests_the_members_intent(store: Store, tmp_path: Path) -> None:
+    """Requirement: The plugin installs as WelcomeGoodbye."""
+    bot = await load_plugin("WelcomeGoodbye", tmp_path / "plugins", store)
+
+    assert bot.loaded == ("WelcomeGoodbye",)
     assert bot.intents.members
 
 
-async def test_first_load_creates_the_lang_files(bot: Bot, tmp_path: Path) -> None:
-    """Requirement: The plugin installs as WelcomeByeGuild."""
-    directory = tmp_path / "plugins" / "WelcomeByeGuild"
+@pytest.mark.xfail(strict=True, reason="The plugin installs as WelcomeGoodbye")
+async def test_first_load_creates_the_lang_files(store: Store, tmp_path: Path) -> None:
+    """Requirement: The plugin installs as WelcomeGoodbye."""
+    bot = await load_plugin("WelcomeGoodbye", tmp_path / "plugins", store)
+    directory = tmp_path / "plugins" / "WelcomeGoodbye"
 
-    assert bot.loaded == ("WelcomeByeGuild",)
+    assert bot.loaded == ("WelcomeGoodbye",)
     assert len(LANG_FILES) == 28
     for name in LANG_FILES:
         assert (directory / "lang" / name).is_file()
