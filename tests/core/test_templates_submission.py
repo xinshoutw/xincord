@@ -8,17 +8,12 @@ import pytest
 
 from xincord.core.templates import modal_values
 
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Modal submissions are read back"
-)
-
 
 def text_input(custom_id: str, value: str) -> dict[str, object]:
     """A text input as a modal submission carries it."""
     return {"type": 4, "id": 2, "custom_id": custom_id, "value": value}
 
 
-@XFAIL
 def test_label_and_action_row_inputs() -> None:
     """Requirement: Modal submissions are read back."""
     data: dict[str, object] = {
@@ -33,7 +28,6 @@ def test_label_and_action_row_inputs() -> None:
     assert modal_values(data) == {"form": "great", "title": ""}
 
 
-@XFAIL
 def test_other_components_are_skipped() -> None:
     """Requirement: Modal submissions are read back."""
     select = {"type": 3, "id": 2, "custom_id": "pick", "values": ["a"]}
@@ -42,7 +36,6 @@ def test_other_components_are_skipped() -> None:
     assert modal_values(data) == {}
 
 
-@XFAIL
 @pytest.mark.parametrize("data", [None, {}, {"components": "broken"}])
 def test_no_inputs(data: dict[str, object] | None) -> None:
     """Requirement: Modal submissions are read back."""
