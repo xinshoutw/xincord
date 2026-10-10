@@ -12,7 +12,12 @@ from discord.ext import commands
 
 from xincord.core.component_ids import ComponentIds
 from xincord.plugins.listen_channels.menu import ListenChannels, Menu
+from xincord.plugins.listen_channels.settings import targets
 from xincord.plugins.listen_channels.store import ListenSettings
+
+from .logs import Place
+from .messages import MessageLog
+from .text import message_text
 
 if TYPE_CHECKING:
     from xincord.core.component_ids import ParsedId
@@ -41,6 +46,7 @@ class ChatLogger(commands.Cog):
         self.store = store
         self.lang = lang
         self.settings = ListenSettings(store, NAMESPACE)
+        self.messages = MessageLog(store)
         # The menu, its components, the posts and the checks at READY, shared with VoiceLogger.
         self.listen = ListenChannels(bot, self.settings, Menu(lang, templates, IDS, "cl", MENU))
 
@@ -75,5 +81,25 @@ class ChatLogger(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
-        """Store a guild message that the bot did not send."""
-        raise NotImplementedError
+        """Store a guild message that the bot did not send, other bots' and webhooks' included.
+
+        With ``log_all`` false, only when a listen channel of the guild detects its channel; v3
+        stored only the channels that had a table already, a set that no setting changed.
+        """
+        guild = message.guild
+        if guild is None or self._own(message.author):
+            return
+        place = Place.of(message.channel.id, message.channel)
+        text = message_text(message.content, message.embeds)
+        if not self.config.log_all and not await self._targets(guild.id, place):
+            return
+        await self.messages.add(message.id, guild.id, place.id, message.author.id, text)
+
+    def _own(self, author: discord.abc.Snowflake) -> bool:
+        """Whether ``author`` is the bot, whose messages v3 did not store."""
+        bot = self.bot.user
+        return bot is not None and author.id == bot.id
+
+    async def _targets(self, guild_id: int, place: Place) -> list[int]:
+        """The listen channels of the guild that detect ``place``, in stored order."""
+        return targets(await self.settings.read_settings(guild_id), [place.ids])

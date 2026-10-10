@@ -17,10 +17,7 @@ from discord_fakes import BOT_USER
 if TYPE_CHECKING:
     from conftest import Scene
 
-REASON = "Guild messages are stored"
 
-
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_stored_message(scene: Scene) -> None:
     """Requirement: Guild messages are stored."""
     await scene.send(100, 30, "hello")
@@ -34,7 +31,6 @@ async def test_stored_message(scene: Scene) -> None:
     ]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_bots_and_webhooks(scene: Scene) -> None:
     """Requirement: Guild messages are stored."""
     other_bot = payloads.user(8, "helper", bot=True)
@@ -48,7 +44,6 @@ async def test_bots_and_webhooks(scene: Scene) -> None:
     assert await scene.rows() == [(100, 10, 30, 8, "beep", 0), (101, 10, 30, 500, "hi", 0)]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_the_bots_own_message(scene: Scene) -> None:
     """Requirement: Guild messages are stored."""
     await scene.send(100, 30, "posted by the bot", author=BOT_USER.id)
@@ -56,7 +51,6 @@ async def test_the_bots_own_message(scene: Scene) -> None:
     assert await scene.rows() == []
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("config", ["log_all: false\n"])
 async def test_only_detected_channels(scene: Scene) -> None:
     """Requirement: Guild messages are stored."""
@@ -70,7 +64,6 @@ async def test_only_detected_channels(scene: Scene) -> None:
     assert [row[0] for row in await scene.rows()] == [100, 101]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_direct_message(scene: Scene) -> None:
     """Requirement: Guild messages are stored."""
     await scene.parse("MESSAGE_CREATE", payloads.message(100, 50, None, payloads.user(7), "hi"))

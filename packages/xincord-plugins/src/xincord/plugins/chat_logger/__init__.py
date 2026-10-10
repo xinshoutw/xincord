@@ -34,6 +34,8 @@ async def setup(bot: Bot) -> None:
     lang = context.lang(DEFAULT_LOCALE)
     templates = Templates.load(lang)
     cog = ChatLogger(bot, context.config(Config), context.store, lang, templates)
+    # The stored messages' table in the shared store, before any listener runs.
+    await cog.messages.create()
     await bot.add_cog(cog)
     # A guild command, as in v3. discord.py removes it when the plugin unloads.
     bot.tree.add_command(cog.command())
