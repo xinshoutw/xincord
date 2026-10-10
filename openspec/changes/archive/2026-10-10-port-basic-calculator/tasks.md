@@ -59,6 +59,6 @@
 
 ## 12. Close
 
-- [ ] 12.1 Gate passes, push, CI green
-- [ ] 12.2 Archive the change and run `openspec validate --all --strict`
-- [ ] 12.3 Update `HANDOFF.md` and `docs/porting/owner-review.md`; push; CI green
+- [x] 12.1 Gate passes, push, CI green
+- [x] 12.2 Archive the change and run `openspec validate --all --strict`
+- [x] 12.3 Update `HANDOFF.md` and `docs/porting/owner-review.md`; push; CI green

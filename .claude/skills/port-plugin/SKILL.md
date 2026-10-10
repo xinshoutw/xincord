@@ -29,7 +29,8 @@ Names: `<Plugin>` is the v3 name (`AutoRole`, `_Example`), `<kebab>` its kebab c
    Run `openspec validate port-<kebab> --strict`, the gate, and commit
    (`docs(plugin-<kebab>): propose port-<kebab>`).
 3. **Resources.** Copy v3's `config.yaml` and lang files into the package (fix missing final
-   newlines), example values only: never real IDs, account numbers or tokens.
+   newlines and CRLF line endings), example values only: never real IDs, account numbers or
+   tokens.
 4. **Per requirement, xfail-first.** Test (fails for the expected reason; check with
    `pytest --runxfail`) -> commit with `xfail(strict=True)` -> implement and remove the marker ->
    commit. Tick `tasks.md` in the same commits.

@@ -1,8 +1,8 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after `port-example`, the first plugin port. Core is complete. Read this file
-first, then `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and binding; do
-not re-open them unless you find a serious problem, and then ask the owner.
+Updated 2026-10-10 after `port-basic-calculator`, the second plugin port. Core is complete. Read
+this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and
+binding; do not re-open them unless you find a serious problem, and then ask the owner.
 
 Talk to the owner in Traditional Chinese. Everything written into the repository is English.
 
@@ -141,7 +141,15 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   (`FakeInteraction` records `sent`; `buttons`, `embed_dict`); the `store` fixture is in
   `tests/conftest.py`. When a second plugin needs v3's `Placeholder.get(event)`, move the
   example's `placeholder_values` into `xincord.core.placeholders`.
-- **Still to build:** the plugins after _Example (section 5).
+- **BasicCalculator** (`xincord.plugins.basic_calculator`, no config): `calculator.py` is a pure
+  evaluator with v3's shunting-yard pass and `BigDecimal` results (`BigDecimal(unscaled, scale)`),
+  v3's defects fixed and size limits; `cog.py` runs it in `asyncio.to_thread`, posts the answer to
+  the channel (`_post`: a `runtime_checkable` `Postable` protocol, fallback to the deferred
+  response on `discord.HTTPException`) and edits errors into the deferred response. Reuse:
+  `discord_fakes.FakeChannel`, `forbidden()` and `delete_original_response`; the golden pattern
+  for recorded v3 answers with an independent evaluator (`tests/plugins/basic_calculator/
+  test_golden.py`).
+- **Still to build:** the plugins after BasicCalculator (section 5).
 
 ## 5. Status and next steps
 
@@ -150,15 +158,16 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `project-skeleton`, `core-config`, `core-storage`, `core-i18n`, `core-placeholders`,
 `core-templates`, `core-components-v2`, `core-component-ids`, `core-plugin-loading`,
 `core-command-tree`, `core-component-routing`, `core-interaction-values`, `core-startup`,
-`core-reload`, `core-console`, `core-status-log`, `container`, `port-example`. Each one's `design.md` in `openspec/changes/archive/` records its decisions and "v3 behaved
-differently" notes; `docs/porting-guide.md` has the differences table.
+`core-reload`, `core-console`, `core-status-log`, `container`, `port-example`,
+`port-basic-calculator`. Each one's `design.md` in `openspec/changes/archive/` records its
+decisions and "v3 behaved differently" notes; `docs/porting-guide.md` has the differences table.
 
 ### Next: the plugins
 
-Core is complete and _Example is ported (the template). Next: **BasicCalculator**
-(`port-basic-calculator`). Port the plugins in C1 order with the `port-plugin` skill
+Core is complete; _Example (the template) and BasicCalculator are ported. Next: **AutoRole**
+(`port-auto-role`). Port the plugins in C1 order with the `port-plugin` skill
 (`.claude/skills/port-plugin/SKILL.md`), one OpenSpec change each (`port-<plugin-kebab>`):
-_Example (done), then BasicCalculator, AutoRole,
+_Example (done), BasicCalculator (done), then AutoRole,
 BotInfo (with the configurable AGPL source link, C3), SimpleCommand, WelcomeByeGuild,
 IntervalPusher, Feedbacker, Economy, DynamicVoiceChannel, VoiceLogger, ChatLogger, Giveaway,
 Ticket, TicketAddons, NtustManager, NtustCourse, MusicPlayer (with Lavalink in `compose.yaml`).
@@ -243,6 +252,13 @@ setup-uv v10.2.0, setup-node v7.1.0.
   wheels.
 - Tests must not unload or reload a real plugin: discord.py re-imports its modules and later tests'
   `isinstance` checks fail.
+- `str.splitlines()` also splits at U+0085 and U+2028: split JSONL with `split("\n")`. Kotlin's
+  `isWhitespace()` is `str.isspace()` without U+0085.
+- ruff S105 reports names like `token` compared with or assigned a string; rename them.
+- Some v3 resources have CRLF line endings; git stores LF but the copied working file keeps CRLF.
+- A stub whose annotations use `discord` keeps the import under `TYPE_CHECKING` until code uses it
+  at runtime, or ruff's TC rules fail the gate.
+- Python 3.14 accepts `except A, B:` without parentheses, and ruff formats it that way.
 
 **discord.py 2.7.1 facts**
 - Decorators evaluate app-command annotations at import time; keep those imports at runtime
@@ -278,7 +294,9 @@ writes that reset corrupt files, recursive placeholder expansion, shared mutable
 caches, `asTextChannel()` failures in threads, voice chat and announcement channels, allow-all
 mentions.
 
-**BasicCalculator:** `decimal` defaults to 28 digits; use `Fraction` or exact decimal arithmetic.
-The golden files decide.
+**Exact numbers (BasicCalculator):** `decimal` defaults to 28 digits, and `Fraction` reduces with a
+gcd that costs 75 to 180 ms per operation at 100,000 digits; scaled integers (v3's `BigDecimal`)
+cost a few milliseconds. Python refuses `str()`/`int()` conversions over 4,300 digits and computes
+`10**999999999` if asked: bound sizes first.
 
 **Kotlin lookup keys:** v3 used camelCase property paths; xincord uses the YAML keys.
