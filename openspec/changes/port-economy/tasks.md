@@ -16,7 +16,7 @@
 
 ## 4. Config
 
-- [ ] 4.1 xfail tests for "The config lists the administrators"
+- [x] 4.1 xfail tests for "The config lists the administrators"
 - [ ] 4.2 Add `admin_id` and `board_user_show_limit` with v3's checks; remove the markers
 
 ## 5. Wallets

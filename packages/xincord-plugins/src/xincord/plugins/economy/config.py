@@ -12,3 +12,13 @@ class Config(Model):
 
     v3's ``enabled`` key is gone: the core config's ``plugins`` list enables the plugin.
     """
+
+    @property
+    def admin_id(self) -> tuple[int, ...]:
+        """Stub."""
+        raise NotImplementedError
+
+    @property
+    def board_user_show_limit(self) -> int:
+        """Stub."""
+        raise NotImplementedError

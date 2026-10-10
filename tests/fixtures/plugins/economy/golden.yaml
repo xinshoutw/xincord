@@ -1,0 +1,22 @@
+# Golden data for the Economy tests. The text is v3's, from
+# XsDiscordBotKt@3a59607:Plugins/Economy/src/main/resources/.
+
+# v3's config.yaml without its Google OAuth notes, with example administrator IDs in place of the
+# real ones v3 shipped.
+v3_config: |
+  enabled: false
+  client_id: "xxx.xxx.com"
+  client_secret: "xxx-xxx-xxx"
+  port: 8888  # default
+
+  sheet_id: "ABCDEFG123456"
+  sheet_label: "Economy"
+  sheet_range_id: "A2:A"
+  sheet_range_money: "B2:B"
+  sheet_range_cost: "C2:C"
+
+  admin_id:
+    - 111111111111111111
+    - 222222222222222222
+
+  board_user_show_limit: 10
