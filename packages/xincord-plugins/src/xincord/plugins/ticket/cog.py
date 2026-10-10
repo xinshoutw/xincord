@@ -38,6 +38,22 @@ BUTTON = 2  # the component type of a button, which v3's onButtonInteraction too
 # The component types of user, role, mentionable and channel selects: v3's
 # EntitySelectInteractionEvent.
 ENTITY_SELECTS = frozenset((5, 6, 7, 8))
+# The builder's buttons that open a modal, and the modal's template.
+MODALS = {
+    "modify-author": "modify-author",
+    "modify-content": "modify-content",
+    "modify-color": "modify-embed-color",
+    "modify-btn-text": "modify-btn-text",
+    "modify-reason": "modify-reason-title",
+    "prev": "preview-reason",
+}
+# The builder's buttons that show another screen, and its template (None: the main screen).
+SCREENS: dict[str, str | None] = {
+    "modify-category": "modify-category",
+    "modify-admin": "modify-admin-role",
+    "modify-btn-color": "modify-btn-color",
+    "back": None,
+}
 MESSAGE_ID = re.compile(r"[0-9]{1,20}")  # a snowflake as /add-ticket's text option gives it
 ROW_SIZE = 5  # the components an action row holds at most
 
@@ -187,18 +203,87 @@ class Ticket(commands.Cog):
     async def press(
         self, interaction: discord.Interaction, sub_action: str, fields: Mapping[str, str]
     ) -> None:
-        """Handle a press of the builder's button ``sub_action``."""
-        raise NotImplementedError
+        """Handle a press of the builder's button ``sub_action``.
+
+        Without the user's draft, or from a builder message other than the one that shows it, the
+        user gets the session-expired text (v3 acknowledged silently, and any builder of the user
+        drove the newest step). Unknown sub-actions get no response, as in v3.
+        """
+        session = self._session(interaction)
+        if session is None:
+            await _tell(interaction, self.texts(interaction).get("error.expired"))
+            return
+        if sub_action == "confirm-create":
+            await self._confirm(interaction, session)
+        elif sub_action == "modify-btn-color-submit":
+            await self._style(interaction, session, fields.get("color_index", ""))
+        elif sub_action in MODALS:
+            await self._open_modal(interaction, session, sub_action)
+        elif sub_action in SCREENS:
+            await self._screen(interaction, session, SCREENS[sub_action])
 
     async def choose(
         self, interaction: discord.Interaction, sub_action: str, values: Sequence[str]
     ) -> None:
-        """Handle a selection in the builder's select ``sub_action``."""
-        raise NotImplementedError
+        """Handle a selection in the builder's select ``sub_action``, as a press."""
+        session = self._session(interaction)
+        if session is None:
+            await _tell(interaction, self.texts(interaction).get("error.expired"))
+            return
+        await self._select(interaction, session, sub_action, values)
 
     async def submit(self, interaction: discord.Interaction, sub_action: str) -> None:
-        """Handle a submission of the builder's modal ``sub_action``."""
+        """Handle a submission of the builder's modal ``sub_action``, as a press."""
+        session = self._session(interaction)
+        if session is None:
+            await _tell(interaction, self.texts(interaction).get("error.expired"))
+            return
+        await self._apply(interaction, session, sub_action)
+
+    async def _open_modal(
+        self, interaction: discord.Interaction, session: Session, sub_action: str
+    ) -> None:
+        """Open the modal of the builder's button ``sub_action``, pre-filled with the draft."""
         raise NotImplementedError
+
+    async def _screen(
+        self, interaction: discord.Interaction, session: Session, screen: str | None
+    ) -> None:
+        """Show the builder's ``screen``, or its main screen."""
+        raise NotImplementedError
+
+    async def _style(self, interaction: discord.Interaction, session: Session, index: str) -> None:
+        """Set the panel button's style from a color button's index."""
+        raise NotImplementedError
+
+    async def _select(
+        self,
+        interaction: discord.Interaction,
+        session: Session,
+        sub_action: str,
+        values: Sequence[str],
+    ) -> None:
+        """Change the draft with a selection in the builder's select ``sub_action``."""
+        raise NotImplementedError
+
+    async def _apply(
+        self, interaction: discord.Interaction, session: Session, sub_action: str
+    ) -> None:
+        """Change the draft with the submitted modal ``sub_action``."""
+        raise NotImplementedError
+
+    async def _confirm(self, interaction: discord.Interaction, session: Session) -> None:
+        """Post the panel, or add its button to the message, and store it."""
+        raise NotImplementedError
+
+    def _session(self, interaction: discord.Interaction) -> Session | None:
+        """The user's draft in the guild, if the interaction comes from the builder showing it."""
+        guild_id = interaction.guild_id
+        session = None if guild_id is None else self.drafts.get((interaction.user.id, guild_id))
+        message = interaction.message
+        if session is None or message is None or message.id != session.message_id:
+            return None
+        return session
 
     async def _open(
         self, interaction: discord.Interaction, guild_id: int, session: Session
@@ -246,6 +331,11 @@ class Ticket(commands.Cog):
     def public(self) -> Texts:
         """The texts of public messages (the control row, the archive's markers): zh-TW, as v3."""
         return Texts(self.lang, self.lang.default_locale)
+
+
+async def _tell(interaction: discord.Interaction, text: str) -> None:
+    """Answer the interaction with ``text``, ephemerally, as v3's replies."""
+    await interaction.response.send_message(text, ephemeral=True)
 
 
 def _values(data: Mapping[str, object]) -> list[str]:

@@ -35,9 +35,6 @@ async def act(scene: Scene, how: str, who: Who) -> FakeInteraction:
             return await scene.submit("modify-reason", {"reason": "Why?"}, who)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Only the latest builder of a draft works"
-)
 @pytest.mark.parametrize("how", ACTS)
 async def test_no_draft(scene: Scene, how: str) -> None:
     """Requirement: Only the latest builder of a draft works."""
@@ -48,9 +45,6 @@ async def test_no_draft(scene: Scene, how: str) -> None:
     assert scene.cog.drafts == {}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Only the latest builder of a draft works"
-)
 @pytest.mark.parametrize("how", ACTS)
 async def test_older_builder(scene: Scene, how: str) -> None:
     """Requirement: Only the latest builder of a draft works."""
@@ -64,9 +58,6 @@ async def test_older_builder(scene: Scene, how: str) -> None:
     assert scene.session().message_id == 44
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Only the latest builder of a draft works"
-)
 async def test_another_users_draft(scene: Scene) -> None:
     """Requirement: Only the latest builder of a draft works."""
     scene.keep(Draft("Old"))  # administrator 7's draft in builder 43

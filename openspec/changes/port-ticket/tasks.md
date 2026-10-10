@@ -40,7 +40,7 @@
 
 - [x] 8.1 xfail tests for "Only the latest builder of a draft works" against stubs `press`,
       `choose` and `submit`, with `handle` dispatching to them
-- [ ] 8.2 Look the session up by user, guild and builder message and answer the session-expired
+- [x] 8.2 Look the session up by user, guild and builder message and answer the session-expired
       text; remove the markers
 
 ## 9. Modals
