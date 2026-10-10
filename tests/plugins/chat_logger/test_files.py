@@ -22,8 +22,6 @@ from xincord.plugins.chat_logger.files import (
 )
 
 NOON = datetime(2026, 10, 11, 12, 0, 0, tzinfo=UTC)
-FILES = "Stored messages live in the plugin's own files"
-SPLIT = "A new message file starts when the newest is full"
 
 
 def at(seconds: float) -> int:
@@ -31,7 +29,6 @@ def at(seconds: float) -> int:
     return time_snowflake(NOON + timedelta(seconds=seconds))
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=FILES)
 def test_names() -> None:
     """Requirement: Stored messages live in the plugin's own files."""
     start = NOON + timedelta(seconds=5)
@@ -41,7 +38,6 @@ def test_names() -> None:
     assert parse_name(file_name(start)) == start
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=FILES)
 @pytest.mark.parametrize(
     "name",
     [
@@ -57,7 +53,6 @@ def test_other_names(name: str) -> None:
     assert parse_name(name) is None
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=FILES)
 def test_first_id_and_second() -> None:
     """Requirement: Stored messages live in the plugin's own files."""
     created = at(5.25) + 12345  # worker, process and increment bits after the time
@@ -68,7 +63,6 @@ def test_first_id_and_second() -> None:
     assert first_second(created) == NOON + timedelta(seconds=5)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=FILES)
 def test_route() -> None:
     """Requirement: Stored messages live in the plugin's own files."""
     first_ids = [at(0), at(60), at(120)]
@@ -83,7 +77,6 @@ def test_route() -> None:
     assert route([at(0)], at(-1)) == 0
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=SPLIT)
 def test_next_start() -> None:
     """Requirement: A new message file starts when the newest is full."""
     newest = NOON
