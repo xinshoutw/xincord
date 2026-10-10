@@ -5,7 +5,7 @@
 
 ## 2. Installation
 
-- [ ] 2.1 xfail tests for "The plugin installs as AutoRole", with the test fixtures and the
+- [x] 2.1 xfail tests for "The plugin installs as AutoRole", with the test fixtures and the
       `config` argument of `plugin_fakes.load_plugin`
 - [ ] 2.2 Add the package, its `setup`, the members intent and the `AutoRole` entry point; remove
       the markers

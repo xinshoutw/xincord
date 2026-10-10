@@ -75,12 +75,17 @@ def golden(package: str) -> dict[str, Any]:
     return data
 
 
-async def load_plugin(name: str, root: Path, store: Store) -> Bot:
+async def load_plugin(name: str, root: Path, store: Store, *, config: str | None = None) -> Bot:
     """Load the installed plugin ``name`` through its entry point, as startup does, offline.
 
     ``setup_hook`` sets the command translator and runs the plugin's ``setup``; ``root`` takes
-    the place of ``plugins/``.
+    the place of ``plugins/``. ``config``, when given, is written to ``<root>/<name>/config.yaml``
+    first, as an operator's file.
     """
+    if config is not None:
+        path = root / name / "config.yaml"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(config, encoding="utf-8")
     bot = Bot(discover([name]), root=root, store=store)
     await bot.setup_hook()
     return bot
