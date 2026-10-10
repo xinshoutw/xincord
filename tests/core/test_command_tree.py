@@ -42,6 +42,7 @@ form = command("form", defer=False)
 info = command("info", **{"global": True})
 about = command("about", **{"global": True})
 stats = command("stats")
+shop = command("shop", guilds=frozenset({1}))  # a guild command for guild 1 only
 
 
 async def report(interaction: discord.Interaction, message: discord.Message) -> None:
@@ -163,6 +164,38 @@ async def test_scopes_and_translation(tmp_path: Path, monkeypatch: pytest.Monkey
     assert [command["name"] for command in global_payload] == ["info"]
     assert [command["name"] for command in guild_payload] == ["ping"]
     assert guild_payload[0]["name_localizations"]["zh-TW"] == "pong-tw"
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="Commands are split into guild and global scopes",
+)
+async def test_guild_list_payloads(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Requirement: Commands are split into guild and global scopes."""
+    tree, _ = tree_with(monkeypatch, ping, shop, info)
+
+    first = await tree.payloads(1)
+    second = await tree.payloads(2)
+    every = await tree.payloads()
+
+    assert [[command["name"] for command in payload] for payload in first] == [
+        ["info"],
+        ["ping", "shop"],
+    ]
+    assert [[command["name"] for command in payload] for payload in second] == [["info"], ["ping"]]
+    assert [command["name"] for command in every[1]] == ["ping", "shop"]
+
+
+@pytest.mark.xfail(strict=True, reason="Commands are split into guild and global scopes")
+async def test_guild_list(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Requirement: Commands are split into guild and global scopes."""
+    tree, http = tree_with(monkeypatch, ping, shop)
+
+    await tree.sync_guild(store, 1)
+    await tree.sync_guild(store, 2)
+
+    assert http.uploads == [(1, ["ping", "shop"]), (2, ["ping"])]
 
 
 async def sync_all(tree: CommandTree, store: Store) -> list[bool]:

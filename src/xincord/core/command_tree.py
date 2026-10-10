@@ -40,8 +40,10 @@ class CommandTree(app_commands.CommandTree[discord.Client]):
             await interaction.response.defer(ephemeral=True, thinking=True)
         return True
 
-    async def payloads(self) -> tuple[list[Payload], list[Payload]]:
+    async def payloads(self, guild_id: int | None = None) -> tuple[list[Payload], list[Payload]]:
         """Return the payloads of the global commands and of the guild commands, translated."""
+        if guild_id is not None:
+            raise NotImplementedError
         global_payload: list[Payload] = []
         guild_payload: list[Payload] = []
         for command in self.get_commands():
