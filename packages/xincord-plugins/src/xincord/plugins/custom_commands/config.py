@@ -25,9 +25,17 @@ class CommandSpec(Model):
     description: str
     # Per Discord locale (zh-TW, en-US, ...).
     localizations: dict[str, Localization] = Field(default_factory=dict[str, Localization])
+    # The message template it posts, lang/<locale>/message/<template>.yaml; v3 named each one
+    # after its command.
+    template: str | None = None
     # discord.py's permission names; v3's commands were for administrators.
     permissions: tuple[str, ...] = ("administrator",)
     guilds: tuple[int, ...] = ()  # the guilds that get the command; empty for every guild
+
+    @property
+    def template_name(self) -> str:
+        """The name of the message template that the command posts."""
+        return self.template or self.name
 
 
 class Config(Model):

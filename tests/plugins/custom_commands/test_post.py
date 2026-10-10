@@ -157,7 +157,6 @@ async def test_bot_placeholders(store: Store, tmp_path: Path) -> None:
     assert sent[0][1]["content"] == "xincord (99)"
 
 
-@pytest.mark.xfail(strict=True, reason="A command posts its message in the channel")
 async def test_user_placeholders(store: Store, tmp_path: Path) -> None:
     """Requirement: A command posts its message in the channel."""
     cog = await load_with('content: "%user_name% in %channel_name%"\n', tmp_path, store)
@@ -167,7 +166,6 @@ async def test_user_placeholders(store: Store, tmp_path: Path) -> None:
     assert sent[0][1]["content"] == "alice in general"
 
 
-@pytest.mark.xfail(strict=True, reason="A command posts its message in the channel")
 async def test_template_key(operator: Operator) -> None:
     """Requirement: A command posts its message in the channel."""
     bot = await operator.load(PAY)

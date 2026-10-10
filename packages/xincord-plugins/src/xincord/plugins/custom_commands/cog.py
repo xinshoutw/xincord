@@ -13,7 +13,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from xincord.core.i18n import localized
-from xincord.core.placeholders import global_values
+from xincord.core.placeholders import placeholder_values
 from xincord.core.templates import render_message
 
 if TYPE_CHECKING:
@@ -78,15 +78,16 @@ class CustomCommands(commands.Cog):
         return command
 
     async def post_message(self, interaction: discord.Interaction) -> None:
-        """Post the message named after the command in its channel, then delete the response.
+        """Post the command's message template in its channel, then delete the response.
 
         The message is public, so it is rendered in the default locale for every user, as in v3,
-        with v3's global placeholders. When the channel takes no messages or refuses this one, the
-        deferred response shows the message instead; v3 had already deleted it.
+        with the placeholders of the user, the bot and the interaction (v3's global ones, the
+        bot's, among them). When the channel takes no messages or refuses this one, the deferred
+        response shows the message instead; v3 had already deleted it.
         """
         name = interaction.command.name if interaction.command else ""
-        template = self.templates.message(name, self.lang.default_locale)
-        values = global_values(interaction.client)
+        template = self.templates.message(self.specs[name].template_name, self.lang.default_locale)
+        values = placeholder_values(interaction)
         channel = _postable(interaction.channel)
         if channel is None:
             logger.warning(
