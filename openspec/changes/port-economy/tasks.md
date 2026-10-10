@@ -11,7 +11,7 @@
 
 ## 3. Installation
 
-- [ ] 3.1 xfail tests for "The plugin installs as Economy"
+- [x] 3.1 xfail tests for "The plugin installs as Economy"
 - [ ] 3.2 Add the package, its `setup` and the `Economy` entry point; remove the markers
 
 ## 4. Config
