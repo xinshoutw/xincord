@@ -1,4 +1,4 @@
-# plugin-welcome-bye-guild Specification
+# plugin-welcome-goodbye Specification
 
 ## Purpose
 Members who join or leave a guild are welcomed or seen off in channels that its administrators
@@ -6,24 +6,24 @@ bind.
 
 ## Requirements
 
-### Requirement: The plugin installs as WelcomeByeGuild
+### Requirement: The plugin installs as WelcomeGoodbye
 The `xincord-plugins` distribution SHALL register the plugin in the `xincord.plugins` entry-point
-group as `WelcomeByeGuild`, pointing to `xincord.plugins.welcome_bye_guild`, with no dependencies
+group as `WelcomeGoodbye`, pointing to `xincord.plugins.welcome_goodbye`, with no dependencies
 and the members intent. It SHALL bundle v3's en-US and zh-TW lang files, which its first load
-writes to `plugins/WelcomeByeGuild/lang/`, and no `config.yaml`: v3's only key was `enabled`.
+writes to `plugins/WelcomeGoodbye/lang/`, and no `config.yaml`: v3's only key was `enabled`.
 
 #### Scenario: Discovered by name
-- **WHEN** discovery runs with `WelcomeByeGuild` enabled
-- **THEN** it returns `WelcomeByeGuild` from `xincord.plugins.welcome_bye_guild` with no
+- **WHEN** discovery runs with `WelcomeGoodbye` enabled
+- **THEN** it returns `WelcomeGoodbye` from `xincord.plugins.welcome_goodbye` with no
   dependencies and the members intent, and the bot requests that intent
 
 #### Scenario: First load creates the lang files
 - **WHEN** the plugin loads in an empty directory
 - **THEN** the en-US and zh-TW `register.yaml` and the 13 message templates of each exist under
-  `plugins/WelcomeByeGuild/lang/`, and no `config.yaml` is written
+  `plugins/WelcomeGoodbye/lang/`, and no `config.yaml` is written
 
 ### Requirement: Each guild's channels are stored
-The plugin SHALL keep each guild's welcome and bye channel IDs in the store's `WelcomeByeGuild`
+The plugin SHALL keep each guild's welcome and bye channel IDs in the store's `WelcomeGoodbye`
 namespace under the guild ID, as v3's document `{"welcomeChannelId": ..., "byeChannelId": ...}`
 with `0` for an unbound channel, and change it under the guild's lock. A guild without a document,
 or a document without a field, SHALL read as unbound, and setting a channel to its current value
@@ -35,7 +35,7 @@ SHALL write nothing.
 
 #### Scenario: v3's document
 - **WHEN** channel 5 is set as guild 10's welcome channel
-- **THEN** the store holds `{"welcomeChannelId": 5, "byeChannelId": 0}` under `WelcomeByeGuild`
+- **THEN** the store holds `{"welcomeChannelId": 5, "byeChannelId": 0}` under `WelcomeGoodbye`
   and `10`
 
 #### Scenario: Missing field

@@ -1,4 +1,4 @@
-# plugin-feedbacker Specification
+# plugin-feedback Specification
 
 ## Purpose
 Administrators ask a member to rate the service with five star buttons; the member's stars and
@@ -6,22 +6,22 @@ feedback are posted to a submit channel.
 
 ## Requirements
 
-### Requirement: The plugin installs as Feedbacker
+### Requirement: The plugin installs as Feedback
 The `xincord-plugins` distribution SHALL register the plugin in the `xincord.plugins` entry-point
-group as `Feedbacker`, pointing to `xincord.plugins.feedbacker`, with no dependencies and no
+group as `Feedback`, pointing to `xincord.plugins.feedback`, with no dependencies and no
 intents. It SHALL bundle `config.yaml` and v3's en-US and zh-TW lang files (`register.yaml`, the
 `ask-message` and `print-result` messages and the `fill-form` modal), which its first load writes
-to `plugins/Feedbacker/`.
+to `plugins/Feedback/`.
 
 #### Scenario: Discovered by name
-- **WHEN** discovery runs with `Feedbacker` enabled
-- **THEN** it returns `Feedbacker` from `xincord.plugins.feedbacker` with no dependencies and no
+- **WHEN** discovery runs with `Feedback` enabled
+- **THEN** it returns `Feedback` from `xincord.plugins.feedback` with no dependencies and no
   intents
 
 #### Scenario: First load creates the files
 - **WHEN** the plugin loads in an empty directory
-- **THEN** `plugins/Feedbacker/config.yaml` is the bundled file and the eight lang files exist
-  under `plugins/Feedbacker/lang/`
+- **THEN** `plugins/Feedback/config.yaml` is the bundled file and the eight lang files exist
+  under `plugins/Feedback/lang/`
 
 ### Requirement: The config holds the replies
 `config.yaml` SHALL keep v3's required replies `form_no_permission`, `form_not_you` and
@@ -44,15 +44,15 @@ load, and the error SHALL name the key.
 - **THEN** the plugin does not load and the error names the key
 
 ### Requirement: The command is a localized guild command
-The plugin SHALL register `feedbacker` as a guild command that every member sees, with v3's
-description and localizations and two required options: `member`, a user, and `submit-channel`,
-which offers text channels only. The command tree SHALL defer it ephemerally before its callback
-runs.
+The plugin SHALL register `feedback` (v3: `feedbacker`) as a guild command that every member sees,
+with v3's description and localizations, except the en-US name `feedback`, and two required
+options: `member`, a user, and `submit-channel`, which offers text channels only. The command tree
+SHALL defer it ephemerally before its callback runs.
 
 #### Scenario: Command payload
 - **WHEN** the guild command payload is built
-- **THEN** `feedbacker` has v3's description, its en-US and zh-TW localizations, no default member
-  permissions, the user option `member` and the channel option `submit-channel` with the channel
+- **THEN** `feedback` has v3's description, its en-US (name `feedback`) and zh-TW localizations,
+  no default member permissions, the user option `member` and the channel option `submit-channel` with the channel
   type 0
 
 #### Scenario: Command callback
@@ -61,16 +61,16 @@ runs.
   ephemerally
 
 ### Requirement: Administrators post a feedback form
-When an administrator runs `feedbacker`, the plugin SHALL post `ask-message` in the command's
+When an administrator runs `feedback`, the plugin SHALL post `ask-message` in the command's
 channel, rendered in the administrator's locale with v3's values of the member and
 `%fb_submit_channel_id%`, then replace the deferred response with `form_success`. Each of the five
 star buttons SHALL carry the member's ID, the submit channel's ID and its star count.
 
 #### Scenario: Form posted
-- **WHEN** an administrator with an en-US or a zh-TW client runs `feedbacker` for member 7 with
+- **WHEN** an administrator with an en-US or a zh-TW client runs `feedback` for member 7 with
   submit channel 6
 - **THEN** the channel gets v3's embed in that locale over five gray buttons labeled with one to
-  five stars, whose IDs are `feedbacker:1:a=submit_star;b=7;d=6;c=<stars>`, and the response is
+  five stars, whose IDs are `feedback:1:a=submit_star;b=7;d=6;c=<stars>`, and the response is
   `form_success`
 
 ### Requirement: Only administrators post forms
@@ -78,7 +78,7 @@ The plugin SHALL replace the deferred response with `form_no_permission` and pos
 user does not have the Administrator permission.
 
 #### Scenario: Member without Administrator
-- **WHEN** a member without Administrator runs `feedbacker`
+- **WHEN** a member without Administrator runs `feedback`
 - **THEN** the response is `form_no_permission` and nothing is posted
 
 ### Requirement: A form that cannot be posted is reported
@@ -115,7 +115,7 @@ message so that the pressed button is blue (primary) and its other buttons with 
 #### Scenario: Modal opens
 - **WHEN** member 7 with an en-US or a zh-TW client presses the three-star button
 - **THEN** the modal shows v3's title and its optional paragraph input `form` of at most 1024
-  characters in that locale, and the modal's ID is `feedbacker:1:a=submit_form;c=3;d=6`
+  characters in that locale, and the modal's ID is `feedback:1:a=submit_form;c=3;d=6`
 
 #### Scenario: Pressed star highlighted
 - **WHEN** member 7 presses the three-star button after the five-star one
@@ -178,7 +178,7 @@ before anything is sent.
 - **THEN** no modal opens and nothing is posted
 
 ### Requirement: v3's forms keep working
-The plugin SHALL route the IDs of `ComponentIds("feedbacker", ("action", "user_id", "star_count",
+The plugin SHALL route the IDs of `ComponentIds("feedback", ("action", "user_id", "star_count",
 "submit_channel_id"), legacy_prefix="feedbacker@")`: button presses with the action `submit_star`
 and modal submissions with `submit_form`, in v3's format too, after which the core upgrades the
 form's IDs. Other actions SHALL get no response, as in v3.
@@ -186,7 +186,7 @@ form's IDs. Other actions SHALL get no response, as in v3.
 #### Scenario: v3's star button
 - **WHEN** member 7 presses `feedbacker@a:submit_star;b:7;d:6;c:3` on a v3 form
 - **THEN** the modal opens and the form's buttons get IDs such as
-  `feedbacker:1:a=submit_star;b=7;d=6;c=3`
+  `feedback:1:a=submit_star;b=7;d=6;c=3`
 
 #### Scenario: v3's modal
 - **WHEN** a modal with the ID `feedbacker@a:submit_form;c:3;d:6` is submitted

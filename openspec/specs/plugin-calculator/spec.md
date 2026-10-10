@@ -1,4 +1,4 @@
-# plugin-basic-calculator Specification
+# plugin-calculator Specification
 
 ## Purpose
 `/basic-calculate` evaluates an arithmetic formula exactly and posts the result in the channel, or
@@ -6,21 +6,21 @@ answers privately with the reason it cannot.
 
 ## Requirements
 
-### Requirement: The plugin installs as BasicCalculator
+### Requirement: The plugin installs as Calculator
 The `xincord-plugins` distribution SHALL register the plugin in the `xincord.plugins` entry-point
-group as `BasicCalculator`, pointing to `xincord.plugins.basic_calculator`, with no dependencies and
+group as `Calculator`, pointing to `xincord.plugins.calculator`, with no dependencies and
 no extra intents. It SHALL bundle en-US and zh-TW lang files, which its first load writes to
-`plugins/BasicCalculator/`, and no config file.
+`plugins/Calculator/`, and no config file.
 
 #### Scenario: Discovered by name
-- **WHEN** discovery runs with `BasicCalculator` enabled
-- **THEN** it returns `BasicCalculator` from `xincord.plugins.basic_calculator` with no
+- **WHEN** discovery runs with `Calculator` enabled
+- **THEN** it returns `Calculator` from `xincord.plugins.calculator` with no
   dependencies and no intents
 
 #### Scenario: First load creates the lang files
 - **WHEN** the plugin loads in an empty directory
 - **THEN** `register.yaml`, `message/basic-calculate.yaml` and `message/error.yaml` exist for en-US
-  and zh-TW under `plugins/BasicCalculator/lang/`, and no `config.yaml` is written
+  and zh-TW under `plugins/Calculator/lang/`, and no `config.yaml` is written
 
 ### Requirement: Formulas are trimmed as in v3
 The plugin SHALL remove the formula's leading and trailing whitespace as Kotlin's `trim()` did, for

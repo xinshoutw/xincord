@@ -1,6 +1,7 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after `port-giveaway`, the thirteenth plugin port. Core is complete. Read
+Updated 2026-10-10 after `rename-plugins` (the owner's plugin renames), which followed
+`port-giveaway`, the thirteenth plugin port. Core is complete. Read
 this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and
 binding; do not re-open them unless you find a serious problem, and then ask the owner.
 
@@ -63,8 +64,10 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 - **Core modules (all archived and green):**
   - `xincord.core.config`: `load_config`, `parse_model`, `unknown_keys`, `Model`, `ConfigError`,
     the core schema `CoreConfig` (`token`, `plugins`, `status.activities`, `interaction_log`) and
-    the default `resources/config.yaml`. `xincord.core.migrate_v3` converts the v3 core config and
-    lists the plugins whose v3 config had `enabled: true` (`python -m xincord.core.migrate_v3 <dir>`).
+    the default `resources/config.yaml`. `xincord.core.migrate_v3` converts the v3 core config,
+    lists the plugins whose v3 config had `enabled: true` (renamed ones under their new names,
+    `RENAMED`) and moves each renamed plugin's v3 directory to its new name (`python -m
+    xincord.core.migrate_v3 <dir>`).
   - `xincord.core.storage`: `Store` over one SQLite connection on one worker thread; JSON values by
     namespace and key; `update` (atomic read-modify-write), `run` (plugin tables), `lock(key)`.
   - `xincord.core.i18n`: `export_lang`, `Lang.load` (locales, flattened YAML keys, Discord name
@@ -293,27 +296,27 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   with port-chat-logger.
 - **ChatLogger** (`xincord.plugins.chat_logger`, `INTENTS = discord.Intents(guild_messages=True,
   message_content=True)`, the second privileged, en-US and zh-TW, config `log_all` and
-  `retention_days`): the first plugin that stores message content and the first with a plugin
-  table. The listen channel code it shares with VoiceLogger is `xincord.plugins.listen_channels`,
-  a package without an entry point: `settings.py` (`Setting`, `detects(setting, channel_id,
-  *parents)`, `targets`, `list_text`, `units`), `store.py` (`ListenSettings(store, namespace)`) and
-  `menu.py` (`Menu`, `ListenChannels`: `show`, `handle`, `post`, `check_guilds`); both cogs keep
-  their command group, `show_settings` and `handle`. `messages.py` keeps `ChatLogger_messages` in
-  the core store through `Store.run` (one table in `data/xincord.db`, v3's columns plus the guild
-  and the channel; the owner asked for own files instead, a follow-up change, section 6); `text.py` (`message_text`: the content and the rich embeds; `fit`:
-  1024 UTF-16 code units; a member's embeds are previews and left out); `created.py`
-  (`parse_created`: a new message from the `MESSAGE_CREATE` payload that `setup` relays, because
-  `on_message`'s cached `Message` takes later edits in place); `logs.py` (`Place.of`,
-  `author_values`, `unknown_author`, `message_url`); `cog.py`: `on_gateway_message_create` (its
-  insert registers in `inserting`, and the edits and deletions of that message wait for it),
-  `on_raw_message_edit`, `on_raw_message_delete`, `on_raw_bulk_message_delete` (a gone or
-  refusing listen channel is tried once per purge: `ListenChannels.post` returns it), the
-  retention loop (started after the checks of a ready bot; `prune` at READY and hourly, `sleep`),
-  `on_guild_remove` and `check_guilds` (the shared check asks Discord about uncached IDs, so
-  archived threads stay). Reuse: `tests/support/payloads.py`, `plugin_fakes.add_guild`, `gateway`
-  and `burst` (frames parsed together, listeners as concurrent tasks), the `scene` fixture, a
-  `config` fixture that tests parametrize by name, `Hours` for a loop's sleep and
-  `discord_fakes.server_error()`.
+  `retention_days`): the first plugin that stores message content and the first with a plugin table.
+  The listen channel code it shares with VoiceLogger is `xincord.plugins.listen_channels`, a package
+  without an entry point: `settings.py` (`Setting`, `detects(setting, channel_id, *parents)`,
+  `targets`, `list_text`, `units`), `store.py` (`ListenSettings(store, namespace)`) and `menu.py`
+  (`Menu`, `ListenChannels`: `show`, `handle`, `post`, `check_guilds`); both cogs keep their command
+  group, `show_settings` and `handle`. `messages.py` keeps `ChatLogger_messages` in the core store
+  through `Store.run` (one table in `data/xincord.db`, v3's columns plus the guild and the channel;
+  the owner asked for own files instead, a follow-up change, section 6); `text.py` (`message_text`:
+  the content and the rich embeds; `fit`: 1024 UTF-16 code units; a member's embeds are previews and
+  left out); `created.py` (`parse_created`: a new message from the `MESSAGE_CREATE` payload that
+  `setup` relays, because `on_message`'s cached `Message` takes later edits in place); `logs.py`
+  (`Place.of`, `author_values`, `unknown_author`, `message_url`); `cog.py`:
+  `on_gateway_message_create` (its insert registers in `inserting`, and the edits and deletions of
+  that message wait for it), `on_raw_message_edit`, `on_raw_message_delete`,
+  `on_raw_bulk_message_delete` (a gone or refusing listen channel is tried once per purge:
+  `ListenChannels.post` returns it), the retention loop (started after the checks of a ready bot;
+  `prune` at READY and hourly, `sleep`), `on_guild_remove` and `check_guilds` (the shared check asks
+  Discord about uncached IDs, so archived threads stay). Reuse: `tests/support/payloads.py`,
+  `plugin_fakes.add_guild`, `gateway` and `burst` (frames parsed together, listeners as concurrent
+  tasks), the `scene` fixture, a `config` fixture that tests parametrize by name, `Hours` for a
+  loop's sleep and `discord_fakes.server_error()`.
 - **Giveaway** (`xincord.plugins.giveaway`, no intents, en-US and zh-TW plus a new `text.yaml` per
   locale holding the texts v3 wrote in Kotlin, config `defaultLocale`, `autoDrawIntervalSeconds`
   and the new `timeZone` as pydantic aliases): the first plugin with state between interactions, a
@@ -334,6 +337,10 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   `FakeInteraction.original`, `FakeChannel.send` returning a `FakeMessage` with `jump_url`,
   `FakeChannel.get_partial_message`, and the script check that every `text.yaml` fragment is in the
   Kotlin sources.
+- **Plugin names** (`rename-plugins`): the six ported plugins that the owner renamed carry their new
+  names everywhere but the inventories, Kotlin citations, legacy component ID prefixes and
+  placeholder keys (porting guide, "Plugin names"); `migrate_v3.RENAMED` maps all nine v3 names.
+  Reuse: the capability rename recipe and the image check with every plugin (section 7).
 - **Still to build:** the plugins after Giveaway and the owner's follow-up changes (section 5).
 
 ## 5. Status and next steps
@@ -346,8 +353,8 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `core-reload`, `core-console`, `core-status-log`, `container`, `port-example`,
 `port-basic-calculator`, `port-auto-role`, `port-bot-info`, `port-simple-command`,
 `port-welcome-bye-guild`, `port-interval-pusher`, `port-feedbacker`, `port-economy`,
-`port-dynamic-voice-channel`, `port-voice-logger`, `port-chat-logger`, `port-giveaway`. Each one's
-`design.md` in
+`port-dynamic-voice-channel`, `port-voice-logger`, `port-chat-logger`, `port-giveaway`,
+`rename-plugins`. Each one's `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
@@ -374,7 +381,9 @@ each one.
 The owner also asked for follow-up changes (section 6), not started yet: UptimeHeartbeat logs only
 the host on failure and never stops a listener; CustomCommands defines its commands in the config
 file; ChatLogger keeps 5 years by default in its own files, starting a new file when one grows too
-large; the v3 data import (`xincord migrate`) before cutover.
+large; the v3 data import (`xincord migrate`) before cutover, which must read a renamed plugin's v3
+data from `plugins/<new name>/` once `migrate_v3` moved it (or from both places) and write the new
+store namespaces (`WelcomeGoodbye`).
 
 ### Working tips from this session
 
@@ -457,7 +466,9 @@ Answered on 2026-10-10 (afternoon), from the review queue (the answered items we
 2. **Production version (F1)** is unknown. The v3 data import must handle the local copy
    (`XsDiscordBotKt/Server/`), which runs Economy 3.2.1: its wallets are the legacy single
    `plugins/Economy/data/data.json`, which v3.4 would have moved into the only guild's file, and
-   the import must do the same. Economy reads no v3 file until the import exists.
+   the import must do the same. Economy reads no v3 file until the import exists. `migrate_v3`
+   counts a plugin as enabled only with `enabled: true`, a key v3 added in 3.3.0 (`ea14fbf`), so
+   on a 3.2.x directory its `plugins` list is almost empty (found in `rename-plugins`' review).
 3. **ChatLogger** needs the Message Content intent turned on in the developer portal before the
    operator enables it, or Discord refuses the bot's connection.
 4. **Lavalink image** (arm64, compose details): verify when MusicPlayer starts. **VoiceLogger
@@ -712,7 +723,21 @@ setup-uv v10.2.0, setup-node v7.1.0.
   (importlib mode), so a fixture's method builds its dataclasses (`scene.who(...)`).
 - With OrbStack running, `docker compose build` and `docker compose run --rm -T bot --no-online`
   with a temporary `bot/config.yaml` check an image; `docker compose down -v` and removing `bot/`
-  clean up.
+  clean up. With every ported plugin enabled, Economy needs `bot/plugins/Economy/config.yaml` with
+  an example `admin_id`, or the check exits 1.
+- OpenSpec 1.14.1 cannot rename a capability: ADD the requirements to the new one (the delta's `##
+  Purpose` seeds its spec), REMOVE them from the old one with a reason and a migration, and set
+  `retire_capabilities: true` in the change's `.openspec.yaml`, so that `archive` deletes the
+  emptied spec instead of refusing it. A requirement's header changes through RENAMED
+  (`FROM:`/`TO:`) plus MODIFIED under the new header. A trial archive in a detached worktree shows
+  the result first.
+- `git mv` of a package leaves its untracked `__pycache__` behind, and the old directory then
+  imports as a namespace package: delete it after the move.
+- zsh expands a word that starts with `=` as a command's path (`echo =====` fails with "not
+  found"): quote such separators.
+- CI's `astral-sh/setup-uv` step is pinned by SHA but has no `version` input, so it installs the
+  newest uv (0.13.0 on 2026-10-10, before this session's changes too), and `uv sync` warns that
+  `uv_build>=0.12.24,<0.13` does not include it; the gate still passes.
 
 **v3 behaviors never to reproduce:** loading plugins in reverse dependency order, non-atomic JSON
 writes that reset corrupt files, recursive placeholder expansion, shared mutable placeholder

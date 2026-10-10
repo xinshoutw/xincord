@@ -6,19 +6,19 @@ embed, under a button that counts its presses.
 
 ## Requirements
 
-### Requirement: The plugin installs as _Example
+### Requirement: The plugin installs as Example
 The `xincord-plugins` distribution SHALL register the plugin in the `xincord.plugins` entry-point
-group as `_Example`, pointing to `xincord.plugins.example`, with no dependencies and no extra
+group as `Example`, pointing to `xincord.plugins.example`, with no dependencies and no extra
 intents. It SHALL bundle a default `config.yaml` and en-US and zh-TW lang files, which its first
-load writes to `plugins/_Example/`.
+load writes to `plugins/Example/`.
 
 #### Scenario: Discovered by name
-- **WHEN** discovery runs with `_Example` enabled
-- **THEN** it returns `_Example` from `xincord.plugins.example` with no dependencies and no intents
+- **WHEN** discovery runs with `Example` enabled
+- **THEN** it returns `Example` from `xincord.plugins.example` with no dependencies and no intents
 
 #### Scenario: First load creates the files
 - **WHEN** the plugin loads in an empty directory
-- **THEN** `plugins/_Example/config.yaml` holds the bundled default and the en-US and zh-TW lang
+- **THEN** `plugins/Example/config.yaml` holds the bundled default and the en-US and zh-TW lang
   files exist
 
 ### Requirement: The config holds an example key

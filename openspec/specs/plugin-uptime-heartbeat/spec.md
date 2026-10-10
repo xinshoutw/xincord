@@ -1,4 +1,4 @@
-# plugin-interval-pusher Specification
+# plugin-uptime-heartbeat Specification
 
 ## Purpose
 Each configured listener pushes an HTTP GET to its URL, typically an Uptime Kuma push monitor, at a
@@ -6,20 +6,20 @@ fixed delay, with the bot's REST ping in the URL.
 
 ## Requirements
 
-### Requirement: The plugin installs as IntervalPusher
+### Requirement: The plugin installs as UptimeHeartbeat
 The `xincord-plugins` distribution SHALL register the plugin in the `xincord.plugins` entry-point
-group as `IntervalPusher`, pointing to `xincord.plugins.interval_pusher`, with no dependencies and
+group as `UptimeHeartbeat`, pointing to `xincord.plugins.uptime_heartbeat`, with no dependencies and
 no intents. It SHALL bundle a default `config.yaml` that lists no listeners, which its first load
-writes to `plugins/IntervalPusher/`, and no lang files.
+writes to `plugins/UptimeHeartbeat/`, and no lang files.
 
 #### Scenario: Discovered by name
-- **WHEN** discovery runs with `IntervalPusher` enabled
-- **THEN** it returns `IntervalPusher` from `xincord.plugins.interval_pusher` with no dependencies
+- **WHEN** discovery runs with `UptimeHeartbeat` enabled
+- **THEN** it returns `UptimeHeartbeat` from `xincord.plugins.uptime_heartbeat` with no dependencies
   and no intents
 
 #### Scenario: First load creates the config
 - **WHEN** the plugin loads in an empty directory
-- **THEN** `plugins/IntervalPusher/config.yaml` holds the bundled default, which lists no
+- **THEN** `plugins/UptimeHeartbeat/config.yaml` holds the bundled default, which lists no
   listeners, and no `lang` directory is written
 
 ### Requirement: The config lists the URLs to push
@@ -145,7 +145,7 @@ logging a warning or an error, and a reload SHALL start the loops of the new con
 - **THEN** each listener pushes once at once, with the measured ping in its URL
 
 #### Scenario: Loaded into a ready bot
-- **WHEN** the plugin loads while the bot is ready, as after `/xincord reload IntervalPusher`
+- **WHEN** the plugin loads while the bot is ready, as after `/xincord reload UptimeHeartbeat`
 - **THEN** each listener pushes at once
 
 #### Scenario: Unloaded during a push

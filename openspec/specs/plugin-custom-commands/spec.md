@@ -1,26 +1,26 @@
-# plugin-simple-command Specification
+# plugin-custom-commands Specification
 
 ## Purpose
 Five administrator commands post a shop's bank payment instructions publicly in the channel.
 
 ## Requirements
 
-### Requirement: The plugin installs as SimpleCommand
+### Requirement: The plugin installs as CustomCommands
 The `xincord-plugins` distribution SHALL register the plugin in the `xincord.plugins` entry-point
-group as `SimpleCommand`, pointing to `xincord.plugins.simple_command`, with no dependencies or
+group as `CustomCommands`, pointing to `xincord.plugins.custom_commands`, with no dependencies or
 intents. It SHALL bundle v3's zh-TW lang files, with example values in place of v3's bank account
-numbers, which its first load writes to `plugins/SimpleCommand/lang/`, and no `config.yaml`: v3's
+numbers, which its first load writes to `plugins/CustomCommands/lang/`, and no `config.yaml`: v3's
 only key was `enabled`.
 
 #### Scenario: Discovered by name
-- **WHEN** discovery runs with `SimpleCommand` enabled
-- **THEN** it returns `SimpleCommand` from `xincord.plugins.simple_command` with no dependencies or
-  intents
+- **WHEN** discovery runs with `CustomCommands` enabled
+- **THEN** it returns `CustomCommands` from `xincord.plugins.custom_commands` with no dependencies
+  or intents
 
 #### Scenario: First load creates the lang files
 - **WHEN** the plugin loads in an empty directory
 - **THEN** the zh-TW `register.yaml` and the five message templates exist under
-  `plugins/SimpleCommand/lang/`, and no `config.yaml` is written
+  `plugins/CustomCommands/lang/`, and no `config.yaml` is written
 
 ### Requirement: A command posts its message in the channel
 On each of its commands, the plugin SHALL render the message template named after the command in
