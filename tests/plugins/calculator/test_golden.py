@@ -19,12 +19,12 @@ from fractions import Fraction
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from xincord.plugins.basic_calculator.calculator import CalcError, calculate, normalize
+from xincord.plugins.calculator.calculator import CalcError, calculate, normalize
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-FIXTURES = Path(__file__).parents[2] / "fixtures" / "plugins" / "basic_calculator"
+FIXTURES = Path(__file__).parents[2] / "fixtures" / "plugins" / "calculator"
 NEXT_LINE = chr(0x85)  # not whitespace for Kotlin
 NUMBER = re.compile(r"[0-9]+\.?[0-9]*|\.[0-9]+")
 # The independent evaluator leaves the size limits to the plugin's own tests.

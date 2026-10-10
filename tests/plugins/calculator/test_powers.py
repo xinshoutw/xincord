@@ -8,7 +8,7 @@ import time
 
 import pytest
 
-from xincord.plugins.basic_calculator.calculator import CalcError, evaluate_postfix, to_postfix
+from xincord.plugins.calculator.calculator import CalcError, evaluate_postfix, to_postfix
 
 
 def result(formula: str) -> str:

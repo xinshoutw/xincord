@@ -1,4 +1,4 @@
-# Golden data for the BasicCalculator tests. The text is v3's, from
+# Golden data for the Calculator tests. The text is v3's, from
 # XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/resources/lang/.
 # golden.jsonl and edge-cases.jsonl hold v3's answers to 3155 formulas (see test_golden.py).
 

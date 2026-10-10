@@ -13,7 +13,7 @@
 ## 3. Calculator
 
 - [x] 3.1 xfail tests for "The plugin installs as Calculator"
-- [ ] 3.2 Rename the package, the entry point, the cog, the log line, the tests and the fixtures;
+- [x] 3.2 Rename the package, the entry point, the cog, the log line, the tests and the fixtures;
       remove the markers
 
 ## 4. CustomCommands

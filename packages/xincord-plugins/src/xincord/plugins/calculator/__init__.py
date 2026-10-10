@@ -1,4 +1,4 @@
-"""BasicCalculator: ``/basic-calculate`` evaluates a formula exactly and posts the result.
+"""Calculator: ``/basic-calculate`` evaluates a formula exactly and posts the result.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/Event.kt:14-62
@@ -10,7 +10,7 @@ import discord
 
 from xincord.core.templates import Templates
 
-from .cog import BasicCalculator
+from .cog import Calculator
 
 if TYPE_CHECKING:
     from xincord.core.bot import Bot
@@ -29,7 +29,7 @@ async def setup(bot: Bot) -> None:
     """
     context = bot.plugin_context(__name__)
     lang = context.lang(DEFAULT_LOCALE)
-    cog = BasicCalculator(lang, Templates.load(lang))
+    cog = Calculator(lang, Templates.load(lang))
     await bot.add_cog(cog)
     # A guild command, as in v3. discord.py removes it when the plugin unloads.
     bot.tree.add_command(cog.command())

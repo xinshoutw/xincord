@@ -15,7 +15,7 @@ import pytest
 
 from discord_fakes import FakeChannel, FakeInteraction, embed_dict, forbidden
 from plugin_fakes import golden, load_plugin
-from xincord.plugins.basic_calculator.cog import BasicCalculator
+from xincord.plugins.calculator.cog import Calculator
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from discord_fakes import Sent
     from xincord.core.storage import Store
 
-GOLDEN = golden("basic_calculator")
+GOLDEN = golden("calculator")
 TEMPLATE = 'content: "%user_name%: %bc_question% = %bc_answer% (%bc_answer_round%)"\n'
 ERROR_TEMPLATE = 'content: "%user_name%: %bc_question% -> %bc_error%"\n'
 
@@ -41,7 +41,7 @@ def command(formula: str, locale: discord.Locale, channel: object) -> FakeIntera
 
 
 async def run(
-    cog: BasicCalculator,
+    cog: Calculator,
     formula: str,
     *,
     locale: discord.Locale = discord.Locale.american_english,
@@ -53,14 +53,14 @@ async def run(
     return interaction.sent
 
 
-async def load_with(name: str, template: str, tmp_path: Path, store: Store) -> BasicCalculator:
+async def load_with(name: str, template: str, tmp_path: Path, store: Store) -> Calculator:
     """Load the plugin with the operator's en-US ``message/<name>.yaml``."""
-    message = tmp_path / "plugins" / "BasicCalculator" / "lang" / "en-US" / "message"
+    message = tmp_path / "plugins" / "Calculator" / "lang" / "en-US" / "message"
     message.mkdir(parents=True)
     (message / f"{name}.yaml").write_text(template, encoding="utf-8")
-    bot = await load_plugin("BasicCalculator", tmp_path / "plugins", store)
-    cog = bot.get_cog("BasicCalculator")
-    assert isinstance(cog, BasicCalculator)
+    bot = await load_plugin("Calculator", tmp_path / "plugins", store)
+    cog = bot.get_cog("Calculator")
+    assert isinstance(cog, Calculator)
     return cog
 
 
@@ -69,7 +69,7 @@ def embeds(fields: dict[str, object]) -> list[dict[str, Any]]:
     return [embed_dict(embed) for embed in cast("Sequence[discord.Embed]", fields["embeds"])]
 
 
-async def test_answer(cog: BasicCalculator) -> None:
+async def test_answer(cog: Calculator) -> None:
     """Requirement: The answer is posted in the channel."""
     sent = await run(cog, "1+1 = ?")
 
@@ -78,7 +78,7 @@ async def test_answer(cog: BasicCalculator) -> None:
 
 
 @pytest.mark.parametrize("locale", [discord.Locale.taiwan_chinese, discord.Locale.japanese])
-async def test_locale_and_fallback(cog: BasicCalculator, locale: discord.Locale) -> None:
+async def test_locale_and_fallback(cog: Calculator, locale: discord.Locale) -> None:
     """Requirement: The answer is posted in the channel."""
     sent = await run(cog, "1+1 = ?", locale=locale)
 
@@ -104,7 +104,7 @@ async def test_placeholders(store: Store, tmp_path: Path, formula: str, content:
 
 
 async def test_channel_refuses_the_message(
-    cog: BasicCalculator, caplog: pytest.LogCaptureFixture
+    cog: Calculator, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: The answer is posted in the channel."""
     with caplog.at_level(logging.WARNING):
@@ -115,7 +115,7 @@ async def test_channel_refuses_the_message(
     assert "cannot post" in caplog.text
 
 
-async def test_channel_without_messages(cog: BasicCalculator) -> None:
+async def test_channel_without_messages(cog: Calculator) -> None:
     """Requirement: The answer is posted in the channel."""
     forum = SimpleNamespace(id=6, name="questions")  # a forum or a category has no send
 
@@ -133,7 +133,7 @@ async def test_channel_without_messages(cog: BasicCalculator) -> None:
         (discord.Locale.japanese, "zh-TW"),
     ],
 )
-async def test_error(cog: BasicCalculator, locale: discord.Locale, expected: str) -> None:
+async def test_error(cog: Calculator, locale: discord.Locale, expected: str) -> None:
     """Requirement: Errors are answered privately."""
     sent = await run(cog, "1e5", locale=locale)
 
@@ -141,7 +141,7 @@ async def test_error(cog: BasicCalculator, locale: discord.Locale, expected: str
     assert embeds(sent[0][1]) == [GOLDEN["error"][expected]]
 
 
-async def test_placeholder_text_in_the_formula(cog: BasicCalculator) -> None:
+async def test_placeholder_text_in_the_formula(cog: Calculator) -> None:
     """Requirement: Errors are answered privately."""
     sent = await run(cog, "%bot_name%")
 

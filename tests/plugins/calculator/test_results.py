@@ -6,7 +6,7 @@ Kotlin:
 
 import pytest
 
-from xincord.plugins.basic_calculator.calculator import (
+from xincord.plugins.calculator.calculator import (
     DIGITS_MAX,
     NEGATE,
     RESULT_MAX,

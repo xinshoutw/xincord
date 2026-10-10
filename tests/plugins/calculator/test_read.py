@@ -6,7 +6,7 @@ Kotlin:
 
 import pytest
 
-from xincord.plugins.basic_calculator.calculator import FORMULA_MAX, NEGATE, CalcError, to_postfix
+from xincord.plugins.calculator.calculator import FORMULA_MAX, NEGATE, CalcError, to_postfix
 
 IDEOGRAPHIC_SPACE = chr(0x3000)
 NEXT_LINE = chr(0x85)

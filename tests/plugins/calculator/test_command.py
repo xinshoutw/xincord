@@ -21,12 +21,12 @@ if TYPE_CHECKING:
     from discord_fakes import Sent
     from xincord.core.bot import Bot
     from xincord.core.command_tree import CommandTree
-    from xincord.plugins.basic_calculator.cog import BasicCalculator
+    from xincord.plugins.calculator.cog import Calculator
 
     # discord.py calls a cog command's function with the cog, its binding.
-    type Callback = Callable[[BasicCalculator, discord.Interaction, str], Awaitable[None]]
+    type Callback = Callable[[Calculator, discord.Interaction, str], Awaitable[None]]
 
-GOLDEN = golden("basic_calculator")
+GOLDEN = golden("calculator")
 DATA = {
     "type": 1,
     "name": "basic-calculate",
@@ -52,7 +52,7 @@ async def test_command_payload(bot: Bot) -> None:
     assert [listed(option, wanted) for option, wanted in options] == expected["options"]
 
 
-async def test_command_callback(bot: Bot, cog: BasicCalculator) -> None:
+async def test_command_callback(bot: Bot, cog: Calculator) -> None:
     """Requirement: The command is a localized guild command."""
     command = bot.tree.get_command("basic-calculate")
     assert isinstance(command, app_commands.Command)

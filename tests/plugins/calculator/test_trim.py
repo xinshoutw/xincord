@@ -6,7 +6,7 @@ Kotlin:
 
 import pytest
 
-from xincord.plugins.basic_calculator.calculator import normalize
+from xincord.plugins.calculator.calculator import normalize
 
 IDEOGRAPHIC_SPACE = chr(0x3000)
 NEXT_LINE = chr(0x85)  # whitespace for Python's str.isspace(), not for Kotlin's isWhitespace()

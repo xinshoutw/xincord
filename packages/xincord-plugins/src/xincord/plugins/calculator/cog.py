@@ -37,7 +37,7 @@ class Postable(Protocol):
         ...
 
 
-class BasicCalculator(commands.Cog):
+class Calculator(commands.Cog):
     """The plugin's state and handlers; ``setup`` registers them."""
 
     def __init__(self, lang: Lang, templates: Templates) -> None:
@@ -98,7 +98,7 @@ async def _post(interaction: discord.Interaction, reply: Message) -> None:
             await channel.send(content=reply.content or None, embeds=reply.embeds)
         except discord.HTTPException as error:
             logger.warning(
-                "BasicCalculator cannot post in %r, so it answers privately: %s", channel, error
+                "Calculator cannot post in %r, so it answers privately: %s", channel, error
             )
         else:
             await interaction.delete_original_response()

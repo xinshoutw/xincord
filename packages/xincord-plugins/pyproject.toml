@@ -10,7 +10,7 @@ dependencies = ["aiohttp>=3.14.4", "xincord"]
 # core config's `plugins` list uses it.
 [project.entry-points."xincord.plugins"]
 Example = "xincord.plugins.example"
-BasicCalculator = "xincord.plugins.basic_calculator"
+Calculator = "xincord.plugins.calculator"
 AutoRole = "xincord.plugins.auto_role"
 BotInfo = "xincord.plugins.bot_info"
 SimpleCommand = "xincord.plugins.simple_command"
