@@ -14,6 +14,8 @@ texts:
     delete: "刪除"
     # reply.go-to-channel with the channel `%tt@thread%`, inserted as written.
     go-to-placeholder: "請到此頻道 %tt@thread% 並等待人員回覆繼續!"
+    # New: v3's lock and unlock failed without an answer.
+    lock-failed: "變更客服單權限失敗：%tt@error%"
 
 # A guild's document as v3's Moshi wrote it (compact, its field order), after the inventory's
 # example: two buttons on one panel, the second with its own category. Snowflakes above 2^53 must

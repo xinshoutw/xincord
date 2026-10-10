@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     import pytest
 
 type Sent = tuple[str, dict[str, object]]  # the method and the keyword arguments of a response
+UNKNOWN_MEMBER = "Unknown Member"  # Discord's text when a member is not in the guild
 
 
 @dataclass(frozen=True)
@@ -156,6 +157,8 @@ class FakeChannel:
     """A text channel that records sent messages into ``sent``, or fails with ``error``.
 
     Pass the interaction's ``sent`` list to see the channel's messages in order with the responses.
+    ``overwrites`` are its permission overwrites, which ``set_permissions`` records and changes;
+    ``bot_permissions`` is what ``permissions_for`` answers for the bot.
     """
 
     sent: list[Sent] = field(default_factory=list[Sent])
@@ -170,11 +173,50 @@ class FakeChannel:
     category: object = None  # the channel's category, if any
     parent: object = None  # a thread's channel
     delete_error: Exception | None = None  # what deleting the channel raises
+    overwrites: dict[object, discord.PermissionOverwrite] = field(
+        default_factory=dict[object, discord.PermissionOverwrite]
+    )
+    bot_permissions: discord.Permissions = field(default_factory=discord.Permissions.all)
+    permissions_error: Exception | None = None  # what changing an overwrite raises
 
     @property
     def mention(self) -> str:
         """The mention markup."""
         return f"<#{self.id}>"
+
+    def permissions_for(self, target: object, /) -> discord.Permissions:
+        """The bot's permissions in the channel."""
+        del target
+        return self.bot_permissions
+
+    def overwrites_for(self, target: object, /) -> discord.PermissionOverwrite:
+        """A copy of the overwrite of ``target``, found by ID, or an empty one, as discord.py's."""
+        target_id = getattr(target, "id", None)
+        for holder, overwrite in self.overwrites.items():
+            if getattr(holder, "id", None) == target_id:
+                return discord.PermissionOverwrite.from_pair(*overwrite.pair())
+        return discord.PermissionOverwrite()
+
+    async def set_permissions(
+        self,
+        target: FakeMember,
+        *,
+        overwrite: discord.PermissionOverwrite | None = None,
+        reason: str | None = None,
+    ) -> None:
+        """Record the overwrite of ``target`` and put it in ``overwrites``, or raise
+        ``permissions_error``; None removes it."""
+        del reason
+        if self.permissions_error is not None:
+            raise self.permissions_error
+        fields: dict[str, object] = {"id": self.id, "target": target.id, "overwrite": overwrite}
+        self.sent.append(("channel.set_permissions", fields))
+        kept = {
+            holder: value
+            for holder, value in self.overwrites.items()
+            if getattr(holder, "id", None) != target.id
+        }
+        self.overwrites = kept if overwrite is None else {**kept, target: overwrite}
 
     async def delete(self, *, reason: str | None = None) -> None:
         """Record the channel's deletion, or raise ``delete_error``."""
@@ -283,26 +325,16 @@ class FakeVoiceChannel(FakeChannel):
 class FakeCategory(FakeChannel):
     """A category that creates text channels in it, recording each into ``sent``.
 
-    ``overwrites`` are its permission overwrites; ``bot_permissions`` what ``permissions_for``
-    answers for the bot. A created channel records its messages into ``sent`` too, and fails its
-    sends with ``send_error``; ``create_error`` makes the creation fail.
+    A created channel records its messages into ``sent`` too, and fails its sends with
+    ``send_error``; ``create_error`` makes the creation fail.
     """
 
     type: discord.ChannelType = discord.ChannelType.category
-    overwrites: dict[object, discord.PermissionOverwrite] = field(
-        default_factory=dict[object, discord.PermissionOverwrite]
-    )
-    bot_permissions: discord.Permissions = field(default_factory=discord.Permissions.all)
     create_error: Exception | None = None
     send_error: Exception | None = None
     channel_delete_error: Exception | None = None  # what deleting a created channel raises
     created: list[FakeChannel] = field(default_factory=list[FakeChannel])
     next_channel_id: int = 700
-
-    def permissions_for(self, target: object, /) -> discord.Permissions:
-        """The bot's permissions in the category."""
-        del target
-        return self.bot_permissions
 
     async def create_text_channel(
         self,
@@ -478,6 +510,7 @@ class FakeGuild:
     owner_id: int | None = None
     owner: FakeMember | None = None  # when cached
     members: list[FakeMember] = field(default_factory=_no_members)  # as Discord has them
+    cached_members: list[FakeMember] = field(default_factory=_no_members)  # as discord.py has them
 
     @property
     def me(self) -> FakeMe | None:
@@ -497,11 +530,15 @@ class FakeGuild:
         """The guild's cached channel with that ID, if any."""
         return next((channel for channel in self.channels if channel.id == channel_id), None)
 
+    def get_member(self, user_id: int, /) -> FakeMember | None:
+        """The member with that ID from ``cached_members``, if discord.py has it."""
+        return next((member for member in self.cached_members if member.id == user_id), None)
+
     async def fetch_member(self, member_id: int, /) -> FakeMember:
         """The member with that ID from ``members``, as Discord answers; NotFound otherwise."""
         found = next((member for member in self.members if member.id == member_id), None)
         if found is None:
-            raise not_found()
+            raise not_found(UNKNOWN_MEMBER)
         return found
 
     @property
@@ -592,10 +629,10 @@ def server_error() -> discord.DiscordServerError:
     return discord.DiscordServerError(response, "Internal Server Error")
 
 
-def not_found() -> discord.NotFound:
-    """The error discord.py raises for a message or channel that is gone."""
+def not_found(text: str = "Unknown Message") -> discord.NotFound:
+    """The error discord.py raises for a message, a channel or a member that is gone."""
     response = cast("aiohttp.ClientResponse", SimpleNamespace(status=404, reason="Not Found"))
-    return discord.NotFound(response, "Unknown Message")
+    return discord.NotFound(response, text)
 
 
 def bad_request(text: str) -> discord.HTTPException:

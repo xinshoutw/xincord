@@ -44,6 +44,7 @@ BUTTON = 2  # the component type of a button, which v3's onButtonInteraction too
 # The component types of user, role, mentionable and channel selects: v3's
 # EntitySelectInteractionEvent.
 ENTITY_SELECTS = frozenset((5, 6, 7, 8))
+LOCKS = frozenset(("lock", "unlock"))  # the control row's first button, by its state
 # The builder's buttons that open a modal, and the modal's template.
 MODALS = {
     "modify-author": "modify-author",
@@ -214,10 +215,8 @@ class Ticket(commands.Cog):
         data = cast("Mapping[str, object]", interaction.data or {})
         if interaction.type is discord.InteractionType.component:
             kind = data.get("component_type")
-            if kind == BUTTON and action == "create":
-                await self.press(interaction, sub_action, fields)
-            elif kind == BUTTON and action == "press":
-                await self.ask(interaction, fields)
+            if kind == BUTTON:
+                await self._button(interaction, fields)
             elif kind in ENTITY_SELECTS and action == "create":
                 await self.choose(interaction, sub_action, _values(data))
         elif interaction.type is discord.InteractionType.modal_submit:
@@ -225,6 +224,22 @@ class Ticket(commands.Cog):
                 await self.submit(interaction, sub_action)
             elif action == "submit":
                 await self.open_ticket(interaction, fields)
+
+    async def _button(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
+        """Send a button's press to the handler of the ID's action; others get no response."""
+        action = fields.get("action")
+        if action == "create":
+            await self.press(interaction, fields.get("sub_action", ""), fields)
+        elif action == "press":
+            await self.ask(interaction, fields)
+        elif action in LOCKS:
+            await self.lock(interaction, fields, locked=action == "lock")
+
+    async def lock(
+        self, interaction: discord.Interaction, fields: Mapping[str, str], *, locked: bool
+    ) -> None:
+        """Deny or allow the ticket's member View Channel, then show the other control row."""
+        raise NotImplementedError
 
     async def ask(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
         """Answer a panel button with the reason modal of its stored entry.

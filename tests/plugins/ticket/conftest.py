@@ -163,10 +163,16 @@ class Scene:
 
     async def click(self, action: str, who: Who, **fields: str) -> FakeInteraction:
         """``who`` presses a panel's or a ticket's button ``action`` with the ID's ``fields``."""
+        return await self.handle(self.button(action, who, **fields))
+
+    def button(self, action: str, who: Who = ME, **fields: str) -> FakeInteraction:
+        """The press of a panel's or a ticket's button ``action``, not handled yet."""
         custom_id = IDS.build({"action": action, **fields})
-        interaction = self.interaction(
-            {"component_type": BUTTON, "custom_id": custom_id}, COMPONENT, who
-        )
+        return self.interaction({"component_type": BUTTON, "custom_id": custom_id}, COMPONENT, who)
+
+    async def handle(self, interaction: FakeInteraction) -> FakeInteraction:
+        """Hand ``interaction`` to the plugin's route handler, with its parsed ID."""
+        custom_id = str(interaction.data["custom_id"])
         await self.cog.handle(interaction.as_interaction(), IDS.parse(custom_id))
         return interaction
 
