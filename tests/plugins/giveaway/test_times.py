@@ -40,7 +40,6 @@ def host_zone(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     time.tzset()
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(
     ("text", "zone", "expected"),
     [
@@ -55,7 +54,6 @@ def test_accepted(text: str, zone: tzinfo, expected: int) -> None:
     assert parse_end_time(text, zone) == expected
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(
     ("text", "fields"),
     [
@@ -70,7 +68,6 @@ def test_clamped_day(text: str, fields: tuple[int, ...]) -> None:
     assert parse_end_time(text, TAIPEI) == epoch(*fields)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(
     ("text", "fields"),
     [
@@ -84,7 +81,6 @@ def test_end_of_day(text: str, fields: tuple[int, ...]) -> None:
     assert parse_end_time(text, TAIPEI) == epoch(*fields)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(
     "text",
     [
@@ -117,7 +113,6 @@ def test_rejected(text: str) -> None:
     assert parse_end_time(text, TAIPEI) is None
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 def test_zone_transitions() -> None:
     """Requirement: End times are read and shown in the configured zone."""
     # Java's atZone moves a time in a gap forward and takes the earlier offset in an overlap.
@@ -125,7 +120,6 @@ def test_zone_transitions() -> None:
     assert parse_end_time("2026-11-01 01:30", NEW_YORK) == epoch(2026, 11, 1, 5, 30, zone=UTC)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(
     ("moment", "zone", "shown"),
     [
@@ -140,7 +134,6 @@ def test_shown(moment: int, zone: tzinfo, shown: str) -> None:
     assert parse_end_time(shown, zone) == moment
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.usefixtures("host_zone")
 def test_host_zone() -> None:
     """Requirement: End times are read and shown in the configured zone."""
