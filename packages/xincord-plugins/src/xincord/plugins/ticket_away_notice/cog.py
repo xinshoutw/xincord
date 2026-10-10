@@ -76,6 +76,12 @@ class TicketAwayNotice(commands.Cog):
         self.notices: set[asyncio.Task[None]] = set()  # the notices under way
 
     @override
+    async def cog_load(self) -> None:
+        """Check the guild and the owner at once when the plugin loads into a ready bot."""
+        if self.bot.is_ready():
+            self.check()
+
+    @override
     async def cog_unload(self) -> None:
         """Cancel the notices under way and wait for them to end.
 
@@ -86,6 +92,15 @@ class TicketAwayNotice(commands.Cog):
         for task in notices:
             task.cancel()
         await asyncio.gather(*notices, return_exceptions=True)
+
+    @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        """Check the guild and the owner once their members are known; fires per session."""
+        self.check()
+
+    def check(self) -> None:
+        """Warn about a configured guild that the bot is not in and an owner who is not in it."""
+        raise NotImplementedError
 
     @commands.Cog.listener()
     async def on_guild_channel_create(self, channel: discord.abc.GuildChannel) -> None:
