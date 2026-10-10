@@ -124,14 +124,10 @@ async def test_measured_round_trip() -> None:
     assert [(route.method, route.path) for route in requests] == [("GET", "/users/@me")]
 
 
-STATUS = "The status code decides what follows"
-
-
 def records_above(caplog: pytest.LogCaptureFixture, level: int) -> list[logging.LogRecord]:
     return [record for record in caplog.records if record.levelno > level]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=STATUS)
 @pytest.mark.parametrize("status", [200, 204, 299])
 async def test_success(status: int, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
@@ -143,7 +139,6 @@ async def test_success(status: int, caplog: pytest.LogCaptureFixture) -> None:
     assert f"IntervalPusher listener 1 pushed {PUSHED}" in caplog.messages
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=STATUS)
 async def test_not_found(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
     keep_pushing = await Fakes(answers=(404,)).pusher().push()
@@ -156,7 +151,6 @@ async def test_not_found(caplog: pytest.LogCaptureFixture) -> None:
     )
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=STATUS)
 async def test_monitor_offline(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
     keep_pushing = await Fakes(answers=(521,)).pusher().push()
@@ -169,7 +163,6 @@ async def test_monitor_offline(caplog: pytest.LogCaptureFixture) -> None:
     )
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=STATUS)
 @pytest.mark.parametrize("status", [500, 302, 401])
 async def test_other_status(status: int, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
@@ -183,7 +176,6 @@ async def test_other_status(status: int, caplog: pytest.LogCaptureFixture) -> No
     )
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=STATUS)
 @pytest.mark.parametrize(
     ("error", "text"),
     [
@@ -208,7 +200,6 @@ async def test_network_error(error: Exception, text: str, caplog: pytest.LogCapt
     assert record.exc_info is None
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=STATUS)
 async def test_unexpected_error(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
     keep_pushing = await Fakes(answers=(ValueError("unexpected"),)).pusher().push()
@@ -216,5 +207,6 @@ async def test_unexpected_error(caplog: pytest.LogCaptureFixture) -> None:
     assert keep_pushing
     [record] = records_above(caplog, logging.INFO)
     assert record.levelno == logging.ERROR
-    assert record.getMessage() == f"IntervalPusher listener 1: pushing to {URL} failed: unexpected"
+    assert record.getMessage() == f"IntervalPusher listener 1: pushing to {URL} failed"
     assert record.exc_info is not None  # the traceback, for a failure nobody expected
+    assert str(record.exc_info[1]) == "unexpected"

@@ -95,7 +95,7 @@ tokens included. v3's levels are kept:
 | 521 | warning | `IntervalPusher listener 1: the status monitor is offline (code 521)` | goes on |
 | other status | error | `IntervalPusher listener 1: pushing to <url> failed with code <status>` | goes on |
 | `aiohttp.ClientError`, `OSError` (timeouts) | error | `IntervalPusher listener 1: pushing to <URL template> failed: <error>` | goes on |
-| any other `Exception` | error, with the traceback | the same line | goes on |
+| any other `Exception` | error, with the traceback | `IntervalPusher listener 1: pushing to <URL template> failed` | goes on |
 | failed ping | warning | `IntervalPusher listener 1 could not measure the REST ping, so %ping% is -1: <error>` | pushes |
 
 An error without a message is named by its type (aiohttp's total timeout raises a bare

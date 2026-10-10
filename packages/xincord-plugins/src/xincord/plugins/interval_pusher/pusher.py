@@ -31,6 +31,11 @@ NO_PING = -1  # what %ping% becomes when the ping cannot be measured, as in v3
 PING_ERRORS = (discord.DiscordException, aiohttp.ClientError, OSError)
 # v3's limits: 10 seconds to connect and 30 seconds for the whole request.
 TIMEOUT = aiohttp.ClientTimeout(total=30, connect=10)
+# A push that did not reach the monitor: aiohttp's errors and OSError, timeouts included.
+NETWORK_ERRORS = (aiohttp.ClientError, OSError)
+SUCCESS = range(200, 300)
+NOT_FOUND = 404  # Uptime Kuma's answer for an unknown or paused push token: stop, as v3
+ORIGIN_DOWN = 521  # Cloudflare's answer when the monitor behind it is offline
 
 
 def build_url(template: str, ping: int) -> str:
@@ -93,8 +98,54 @@ class Pusher:
         return build_url(template, ping)
 
     async def push(self) -> bool:
-        """Push once and log the outcome; return whether the listener keeps pushing."""
-        raise NotImplementedError
+        """Push once and log the outcome at v3's levels; return whether to keep pushing.
+
+        A cancelled push raises ``CancelledError``, which is no ``Exception``, and logs nothing;
+        v3 caught the cancellation while it waited for the ping and logged a spurious failure.
+        """
+        try:
+            url = await self.url()
+            status = await self.get(url)
+        except NETWORK_ERRORS as error:
+            # The URL as configured, as v3 logged it; a network error needs no traceback.
+            logger.error(  # noqa: TRY400
+                "IntervalPusher listener %d: pushing to %s failed: %s",
+                self.number,
+                self.listener.url,
+                describe(error),
+            )
+            return True
+        except Exception:
+            # Unexpected: the traceback shows where it failed.
+            logger.exception(
+                "IntervalPusher listener %d: pushing to %s failed", self.number, self.listener.url
+            )
+            return True
+        return self.follow(url, status)
+
+    def follow(self, url: str, status: int) -> bool:
+        """Log a push's status code as v3 did; only a 404 stops the listener."""
+        if status in SUCCESS:
+            logger.debug("IntervalPusher listener %d pushed %s", self.number, url)
+        elif status == NOT_FOUND:
+            logger.warning(
+                "IntervalPusher listener %d stopped: the status monitor refused the push "
+                "(code 404)",
+                self.number,
+            )
+            return False
+        elif status == ORIGIN_DOWN:
+            logger.warning(
+                "IntervalPusher listener %d: the status monitor is offline (code 521)", self.number
+            )
+        else:
+            logger.error(
+                "IntervalPusher listener %d: pushing to %s failed with code %d",
+                self.number,
+                url,
+                status,
+            )
+        return True
 
 
 def describe(error: BaseException) -> str:
