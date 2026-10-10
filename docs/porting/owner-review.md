@@ -339,3 +339,46 @@ here; delete a section once it is empty.
 - Unverified without a real guild: whether Discord sends `MESSAGE_UPDATE` for pins and link previews and which previews it types `rich` (members' are never logged either way; a bot's rich preview would log an edit), and how long a large purge takes to post.
 - At cutover, set the listen channels up again in each guild listed in v3's `plugins/ChatLogger/setting/`; messages stored by v3 are not migrated (B11).
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `ChatLogger` and `VoiceLogger` enabled); an image build with the plugin enabled is still open.
+
+## Giveaway (`port-giveaway`)
+
+### User-visible changes
+- The builder keeps working after 15 minutes: each press and submission updates it (v3 edited through the command's token and silently stopped after 15 minutes).
+- Only the newest builder message of a draft works; an older one, or any after a reload or a restart, answers the session-expired text.
+- A second Confirm Create press while the giveaway is being posted answers the session-expired text (v3 posted two giveaways).
+- A post that cannot be made (a refusing channel, a channel without messages, a store failure) keeps the builder and the draft and sends `create-failed` with the error as an ephemeral message (v3 turned the builder into it, without buttons).
+- Long descriptions and prize lists end with `...` in the preview and the post, and the post's description shortens so that the embed fits Discord's 6000 characters (v3: the preview froze, or the post or its refresh failed).
+- Join / Leave, Draw Winners and Reroll are acknowledged at once, then update the post through the press; the joined, left, draw-result and refusal replies are ephemeral follow-ups, and any press repairs a post that shows an outdated state (v3 left a post whose refresh failed with Reroll disabled for good).
+- The automatic draw refreshes and announces giveaways in threads, announcement channels and voice channel chats too (v3 drew them silently).
+- The announcement pings the winners but no roles or @everyone named in a title (B19).
+- An uppercase `HTTPS://` thumbnail is shown (v3 accepted it but never showed it).
+- A user whose locale has no lang files (en-GB, ja) sees English texts and buttons, a zh-CN user zh-TW ones (v3 mixed English texts with zh-TW buttons).
+- Typed `%...%` in titles, descriptions and sponsors is shown as written (v3 expanded it).
+- Giveaways stay when the bot leaves a guild (v3 deleted them); due giveaways of a guild that the bot left wait until it is back.
+- New config key `timeZone` (an IANA zone, empty for the host's); an invalid `defaultLocale` stops only this plugin, with the key named (v3 aborted the bot).
+- New lang files `plugins/Giveaway/lang/<locale>/text.yaml` hold the texts that v3 wrote in code (field names, statuses, replies, errors); operators can edit them.
+- A post button without a giveaway ID answers `Giveaway not found.` in the user's language (v3: `Invalid giveaway id.` in English); a modal with an unknown sub-action gets no response.
+- End times after 9999 (`+12026-01-05 10:00`) and `9999-12-31 24:00` get the format error.
+- v3's `plugins/Giveaway/data/*.json` are not read: v3's giveaways answer `Giveaway not found.` after the switch until the deferred migration copies them (B11).
+### Choices made without the owner
+- Builder updates: implemented answering each press and submission with `response.edit_message`; alternative: v3's edits through the command's hook (15-minute limit).
+- Joins and draws: implemented deferring at once, then editing the post through the press's webhook and replying with ephemeral follow-ups, the post re-rendered on every press; alternative: v3's REST edit of the post and an ephemeral reply, which a burst of joins queues behind the channel's rate limit.
+- Drafts: implemented no time limit (one per member and guild, gone at confirmation, cancel, a new command, the guild's leave, a reload or a restart); alternative: drop drafts idle for a day.
+- Leaving a guild: implemented keeping its giveaways (rerolls after a re-invite); alternative: v3's deletion.
+- Guilds left while offline: implemented drawing their due giveaways when the bot is back; alternative: v3's silent draw without posting.
+- Time zone: implemented `timeZone`, empty by default for the host's zone as in v3, which is UTC in the container; alternative: ship `timeZone: "Asia/Taipei"`, or set `TZ` in `compose.yaml`.
+- Invalid `defaultLocale`: implemented failing this plugin's load with the key named; alternative: fall back to zh-TW, as v3's code intended.
+- Language: implemented one locale per message (the locale's files, else zh-TW for Chinese locales, else en-US); alternative: the configured default locale for every missing locale.
+- Hard-coded texts: implemented a new `text.yaml` per locale; alternative: English texts in code for every locale (Python files cannot hold the zh-TW texts).
+- Winners: implemented `random.SystemRandom` and `sample`, v3's distribution; alternative: `secrets.SystemRandom` (the same generator).
+- Thumbnails: implemented showing any-case http(s) URLs with the scheme in lower case; alternative: refuse uppercase schemes at input.
+- End times: implemented years 0001 to 9999; alternative: compute later years by hand.
+- The automatic draw's period: implemented counting from the end of each pass; alternative: v3's fixed rate from each start.
+### Manual checks
+- Smoke checklist in `openspec/changes/archive/2026-10-10-port-giveaway/design.md` (needs a token, a test guild and a second account).
+- Before cutover, set `timeZone: "Asia/Taipei"` in `plugins/Giveaway/config.yaml` (or `TZ` in `compose.yaml`): the container's zone is UTC, so typed end times would be read 8 hours off.
+- The bot needs View Channel, Send Messages (in threads too) and Embed Links in giveaway channels; Read Message History only for the core's upgrade of v3 posts.
+- Unverified without Discord: that a type-7 response to a modal submission updates the ephemeral builder, and how a burst of joins looks (a response may show a count one behind until the next press).
+- At cutover, v3's running giveaways are not migrated (B11): finish them in v3 first, or build the migration.
+- Packaging was checked: the wheel's files, `xincord --no-online` from the built wheels, and the compose image (`docker compose run --rm -T bot --no-online` with `Giveaway` enabled), whose Python resolves `Asia/Taipei`.
+- After the deferred migration (B11), the core upgrades v3 posts' IDs with a fetch and an edit, which can briefly revert a concurrent edit of the post's buttons; the next press repairs it.

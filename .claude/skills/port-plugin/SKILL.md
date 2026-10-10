@@ -417,10 +417,13 @@ async def setup(bot: Bot) -> None:
   `message.edit(view=...)` (Feedbacker's `highlight`). A submission that posts elsewhere defers
   (`response.defer()`, a deferred message update) and reports a failure with
   `followup.send(..., ephemeral=True)`.
-- A button that changes its own message (Giveaway's Join / Leave and Draw Winners) answers with
-  `response.edit_message(...)` and the whole re-rendered message, then tells the user with
-  `followup.send(..., ephemeral=True)`: one interaction response per press, which no channel rate
-  limit delays (v3 edited through the REST API and replied).
+- A button whose handler waits for a shared lock or the store before it can answer (Giveaway's
+  Join / Leave and Draw Winners) acknowledges at once with `response.defer()` (a deferred update),
+  then shows its message as stored with `edit_original_response(...)` (the component's message,
+  through the press's webhook, which no channel rate limit delays) on every press, refusals
+  included, so that a stale message repairs itself, and tells the user with
+  `followup.send(..., ephemeral=True)`; v3 edited through the REST API and replied. A burst on a
+  large document otherwise runs past Discord's three seconds.
 - State that a builder keeps between interactions (Giveaway's drafts) lives on the cog, keyed by
   user and guild, with the ID of the message that shows it (the message that
   `edit_original_response` returns); presses and modal submissions from another message answer

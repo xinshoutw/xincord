@@ -1,6 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after `port-chat-logger`, the twelfth plugin port. Core is complete. Read
+Updated 2026-10-10 after `port-giveaway`, the thirteenth plugin port. Core is complete. Read
 this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and
 binding; do not re-open them unless you find a serious problem, and then ask the owner.
 
@@ -312,7 +312,27 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   and `burst` (frames parsed together, listeners as concurrent tasks), the `scene` fixture, a
   `config` fixture that tests parametrize by name, `Hours` for a loop's sleep and
   `discord_fakes.server_error()`.
-- **Still to build:** the plugins after ChatLogger (section 5).
+- **Giveaway** (`xincord.plugins.giveaway`, no intents, en-US and zh-TW plus a new `text.yaml` per
+  locale holding the texts v3 wrote in Kotlin, config `defaultLocale`, `autoDrawIntervalSeconds`
+  and the new `timeZone` as pydantic aliases): the first plugin with state between interactions, a
+  scheduled job and random draws. Pure modules: `model.py` (`Draft`, `Instance`, v3's Moshi JSON
+  through `parse_instance` / `instance_json`, `draw_winners` with an injected generator, the
+  transitions `join` and `draw` returning an outcome and the new instance, `new_id`), `times.py`
+  (Java's `yyyy-MM-dd HH:mm` SMART parse in a zone), `inputs.py` (Kotlin's trim, `toIntOrNull`,
+  `java.net.URI`'s http check, UTF-16 `clip`), `drafts.py`, `texts.py` (`language`: one locale per
+  message; `Texts`; the preview, post embed and buttons, `result`). `store.py`: `Giveaways`, v3's
+  documents per guild, every change a pure transition under `store.lock("Giveaway:<guild>")`,
+  `draw_due`. `cog.py`: drafts per user and guild with the builder message's ID, updated through
+  each interaction (`response.edit_message`, modal submissions too); the confirmation takes the
+  draft before its first await and gives it back on any failure; post presses defer at once, then
+  show the stored post with `edit_original_response` and reply with ephemeral follow-ups; the
+  automatic draw (READY + 5 s, then each period) stores before it posts through partial
+  messageables; `on_guild_remove` drops drafts only. Reuse: `scene.who(...)`, `Ticks`,
+  `GatedChannel` and the `plugin_modules` autouse fixture (`tests/plugins/giveaway/`),
+  `FakeInteraction.original`, `FakeChannel.send` returning a `FakeMessage` with `jump_url`,
+  `FakeChannel.get_partial_message`, and the script check that every `text.yaml` fragment is in the
+  Kotlin sources.
+- **Still to build:** the plugins after Giveaway (section 5).
 
 ## 5. Status and next steps
 
@@ -324,20 +344,28 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `core-reload`, `core-console`, `core-status-log`, `container`, `port-example`,
 `port-basic-calculator`, `port-auto-role`, `port-bot-info`, `port-simple-command`,
 `port-welcome-bye-guild`, `port-interval-pusher`, `port-feedbacker`, `port-economy`,
-`port-dynamic-voice-channel`, `port-voice-logger`, `port-chat-logger`. Each one's `design.md` in
+`port-dynamic-voice-channel`, `port-voice-logger`, `port-chat-logger`, `port-giveaway`. Each one's
+`design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
 ### Next: the plugins
 
 Core is complete; _Example (the template), BasicCalculator, AutoRole, BotInfo, SimpleCommand,
-WelcomeByeGuild, IntervalPusher, Feedbacker, Economy, DynamicVoiceChannel, VoiceLogger and
-ChatLogger are ported. Next: **Giveaway** (`port-giveaway`).
+WelcomeByeGuild, IntervalPusher, Feedbacker, Economy, DynamicVoiceChannel, VoiceLogger, ChatLogger
+and Giveaway are ported. Next: **Ticket** (`port-ticket`).
+The owner renamed several plugins on 2026-10-10 (_Example -> Example, BasicCalculator ->
+Calculator, SimpleCommand -> CustomCommands, WelcomeByeGuild -> WelcomeGoodbye, IntervalPusher ->
+UptimeHeartbeat, Feedbacker -> Feedback, TicketAddons -> TicketAwayNotice, NtustManager ->
+NtustAnnouncements, NtustCourse -> NtustCourseWatch): a port of a renamed plugin uses the new name
+for the entry point, `plugins/<Name>/`, the store namespace, the component ID namespace, the
+package and the capability, and keeps the v3 legacy prefixes. As of `port-giveaway` the ported
+ones still carry their v3 names in the repository.
 Port the plugins in C1 order with the `port-plugin` skill (`.claude/skills/port-plugin/SKILL.md`),
 one OpenSpec change each (`port-<plugin-kebab>`): _Example (done), BasicCalculator (done),
 AutoRole (done), BotInfo (done, with the configurable AGPL source link of C3), SimpleCommand
 (done), WelcomeByeGuild (done), IntervalPusher (done), Feedbacker (done), Economy (done),
-DynamicVoiceChannel (done), VoiceLogger (done), ChatLogger (done), then Giveaway, Ticket,
+DynamicVoiceChannel (done), VoiceLogger (done), ChatLogger (done), Giveaway (done), then Ticket,
 TicketAddons, NtustManager, NtustCourse, MusicPlayer (with Lavalink in `compose.yaml`).
 Update `docs/porting-guide.md` after each one.
 
@@ -397,6 +425,9 @@ its user-visible changes, the choices made without the owner and the manual chec
 4. **Lavalink image** (arm64, compose details): verify when MusicPlayer starts. **VoiceLogger
    status events** were built in port-voice-logger (the core relays the gateway event; the audit
    log is read raw); what needs a real guild is in `docs/porting/owner-review.md`.
+5. **Giveaway's time zone:** before cutover, set `timeZone: "Asia/Taipei"` in
+   `plugins/Giveaway/config.yaml` (or `TZ` in `compose.yaml`): the container's zone is UTC, so typed
+   end times would be read 8 hours off. v3's running giveaways are not migrated (B11).
 
 ## 7. Verified facts and pitfalls
 
@@ -621,6 +652,28 @@ setup-uv v10.2.0, setup-node v7.1.0.
   run the gate and `scripts/check_commit_msg.py` by hand, and fast-forward `main` afterwards.
 - Requesting the privileged message content intent without the developer portal's permission makes
   Discord close the gateway (4014); the bot does not connect.
+- A failed plugin load makes discord.py drop the plugin's modules; the next load imports new
+  classes, and frozen dataclasses from the old and the new modules never compare equal: an autouse
+  fixture that puts the plugin's `sys.modules` entries back after each test keeps one set
+  (Giveaway's `plugin_modules`).
+- `response.edit_message` answers a modal submission with type 7 when the modal came from a
+  message's button; after a component's `response.defer()`, `edit_original_response` edits the
+  component's message (both seen in Giveaway's probe).
+- `bot.get_partial_messageable(c, guild_id=g).get_partial_message(m).edit(...)` edits a message
+  without fetching it, in any channel kind.
+- `datetime.fromtimestamp(ts, zone)` raises when the UTC time is past 9999, even when the zone's
+  wall time is not; `strftime("%Y")` does not pad years below 1000 everywhere; a naive
+  `datetime(1, 1, 1).timestamp()` raises `ValueError`.
+- `zoneinfo` keys are case-insensitive on macOS (its file system) and case-sensitive on Linux. The
+  python slim image ships tzdata (`ZoneInfo("Asia/Taipei")` works there); the container's own zone
+  is UTC.
+- `Store.put` encodes the value with `json.dumps` on the event loop: a very large document delays
+  other handlers; acknowledge interactions before waiting for the store.
+- ruff's PLR0913 counts keyword-only arguments too; test modules cannot import `conftest` at runtime
+  (importlib mode), so a fixture's method builds its dataclasses (`scene.who(...)`).
+- With OrbStack running, `docker compose build` and `docker compose run --rm -T bot --no-online`
+  with a temporary `bot/config.yaml` check an image; `docker compose down -v` and removing `bot/`
+  clean up.
 
 **v3 behaviors never to reproduce:** loading plugins in reverse dependency order, non-atomic JSON
 writes that reset corrupt files, recursive placeholder expansion, shared mutable placeholder
