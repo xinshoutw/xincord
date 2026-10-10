@@ -15,6 +15,7 @@ from xincord.core.migrate_v3 import (
     main,
     migrate_core_config,
     migrate_directory,
+    set_aside_v3_configs,
 )
 
 if TYPE_CHECKING:
@@ -258,3 +259,42 @@ def test_migrated_directory_is_left_alone(tmp_path: Path) -> None:
     assert (old / "config.yaml").is_file()
     assert not (tmp_path / "plugins" / "Feedback").exists()
     assert len(migrated) == len(backed_up) == 1
+
+
+@pytest.mark.xfail(strict=True, reason="CustomCommands' v3 switch file is set aside")
+@pytest.mark.parametrize("enabled", ["true", "false"])
+def test_switch_file_set_aside(tmp_path: Path, enabled: str) -> None:
+    """Requirement: CustomCommands' v3 switch file is set aside."""
+    (tmp_path / "config.yaml").write_text(V3_TEXT, encoding="utf-8")
+    write_plugin(tmp_path, "SimpleCommand", f"enabled: {enabled}\n")
+
+    report = migrate_directory(tmp_path)
+
+    directory = tmp_path / "plugins" / "CustomCommands"
+    config, backup = directory / "config.yaml", directory / "config.v3.yaml"
+    assert backup.read_text(encoding="utf-8") == f"enabled: {enabled}\n"
+    assert not config.exists()
+    plugins = load_config(tmp_path / "config.yaml", CoreConfig, "").plugins
+    assert plugins == (("CustomCommands",) if enabled == "true" else ())
+    assert f"{config}: moved to {backup}; CustomCommands writes its bundled config" in report
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="CustomCommands' v3 switch file is set aside"
+)
+def test_other_files_stay(tmp_path: Path) -> None:
+    """Requirement: CustomCommands' v3 switch file is set aside."""
+    xincord = write_plugin(tmp_path / "xincord", "CustomCommands", "commands: []\n")
+    v3 = write_plugin(tmp_path / "v3", "CustomCommands", "enabled: true\n")
+    (v3 / "config.v3.yaml").write_text("enabled: false\n", encoding="utf-8")
+
+    kept = set_aside_v3_configs(tmp_path / "xincord")
+    beside = set_aside_v3_configs(tmp_path / "v3")
+    nothing = set_aside_v3_configs(tmp_path / "empty")
+
+    assert (xincord / "config.yaml").read_text(encoding="utf-8") == "commands: []\n"
+    assert not (xincord / "config.v3.yaml").exists()
+    assert (v3 / "config.yaml").read_text(encoding="utf-8") == "enabled: true\n"
+    assert (v3 / "config.v3.yaml").read_text(encoding="utf-8") == "enabled: false\n"
+    assert (kept, nothing) == ([], [])
+    assert beside == [f"{v3 / 'config.yaml'}: kept, {v3 / 'config.v3.yaml'} exists"]

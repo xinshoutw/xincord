@@ -46,7 +46,7 @@
 
 ## 9. Migration
 
-- [ ] 9.1 xfail tests for "CustomCommands' v3 switch file is set aside"
+- [x] 9.1 xfail tests for "CustomCommands' v3 switch file is set aside"
 - [ ] 9.2 Set the switch file aside in `migrate_v3`; remove the markers
 
 ## 10. Checks and docs

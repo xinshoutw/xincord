@@ -39,6 +39,11 @@ RENAMED = {
 }
 
 
+# Plugins whose v3 config.yaml held only `enabled`, which the core config's plugins list carries
+# now, and whose xincord config.yaml holds what v3 kept in its code (CustomCommands' commands).
+SET_ASIDE = ("CustomCommands",)
+
+
 def migrate_core_config(v3: Mapping[str, object]) -> tuple[dict[str, object], list[str]]:
     """Convert a parsed v3 core config to the new schema.
 
@@ -170,6 +175,21 @@ def move_renamed_directories(root: Path) -> list[str]:
         source.rename(target)
         report.append(f"{source}: moved to {target}")
     return report
+
+
+def set_aside_v3_configs(root: Path) -> list[str]:
+    """Rename each ``SET_ASIDE`` plugin's v3 ``config.yaml`` to ``config.v3.yaml``.
+
+    Only a file that holds no key but ``enabled`` goes; the plugin then writes its bundled
+    ``config.yaml`` at its first load.
+
+    Args:
+        root: The server directory of a v3 installation.
+
+    Returns:
+        One report line per file set aside, or kept beside an existing ``config.v3.yaml``.
+    """
+    raise NotImplementedError
 
 
 def migrate_directory(root: Path) -> list[str]:
