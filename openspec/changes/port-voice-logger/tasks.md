@@ -23,7 +23,7 @@
 ## 5. Detection
 
 - [x] 5.1 xfail tests for "Listen channels detect voice channels" against stubs in `settings.py`
-- [ ] 5.2 Implement `detects` and `targets`; remove the markers
+- [x] 5.2 Implement `detects` and `targets`; remove the markers
 
 ## 6. Settings menu
 
