@@ -19,9 +19,6 @@ def texts(html: str, selector: str) -> list[str]:
     return [element.text() for element in parse(html).select(selector)]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 def test_compound_selectors() -> None:
     """Requirement: Board pages list their announcements."""
     html = (
@@ -38,9 +35,6 @@ def test_compound_selectors() -> None:
     assert texts(html, "#dyn_2_3") == []  # IDs compare with case
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 def test_descendant_selectors() -> None:
     """Requirement: Board pages list their announcements."""
     html = (
@@ -66,9 +60,6 @@ def test_descendant_selectors() -> None:
     assert document.select_first("table") is None
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 def test_omitted_end_tags() -> None:
     """Requirement: Board pages list their announcements."""
     # HTML lets pages omit these end tags; an HTML5 parser such as jsoup adds the tbody.
@@ -91,9 +82,6 @@ def test_omitted_end_tags() -> None:
     assert texts(html, "p") == ["first"]  # a block closes the paragraph
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 def test_cells_without_rows() -> None:
     """Requirement: Board pages list their announcements."""
     # A cell straight in a table gets the row and the body that jsoup would add.
@@ -102,9 +90,6 @@ def test_cells_without_rows() -> None:
     assert [cell.text() for cell in document.select("table tbody tr td")] == ["alone"]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 def test_end_tags() -> None:
     """Requirement: Board pages list their announcements."""
     # An end tag closes the nearest open element of its name; a stray one changes nothing; void
@@ -127,9 +112,6 @@ def test_end_tags() -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 def test_attributes() -> None:
     """Requirement: Board pages list their announcements."""
     link = parse('<a href="/p/1.php?a=1&amp;b=2" href="/second" data-x>x</a>').select_first("a")
@@ -140,9 +122,6 @@ def test_attributes() -> None:
     assert link.attr("title") == ""
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 @pytest.mark.parametrize(
     ("html", "expected"),
     [
@@ -165,11 +144,6 @@ def test_text(html: str, expected: str) -> None:
     assert texts(html, "a") == [expected]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Article pages give their content as minified HTML",
-)
 def test_outer_html() -> None:
     """Requirement: Article pages give their content as minified HTML."""
     html = (
@@ -185,3 +159,27 @@ def test_outer_html() -> None:
         '<p title="say &quot;hi&quot; &amp; go">A &lt;tag&gt; &amp; text<br>'
         '<img src="a.png"></p>\n<style>p > a { color: red; }</style></div>'
     )
+
+
+def test_end_tags_stay_in_their_cell() -> None:
+    """Requirement: Board pages list their announcements."""
+    # An end tag inside a table cell closes nothing outside it, as in HTML.
+    html = "<div class=outer><table><tr><td><span>x</div>y</td></tr></table>z</div>"
+    document = parse(html)
+
+    assert texts(html, "td") == ["xy"]
+    assert texts(html, "div.outer") == ["xy z"]  # the table is a block, as in jsoup
+    assert len(document.select("div.outer table td span")) == 1
+
+
+def test_raw_text_is_no_text() -> None:
+    """Requirement: Board pages list their announcements."""
+    # jsoup keeps scripts and styles as data, which text() leaves out.
+    assert texts("<a>One<script>var x = 1;</script><style>p {}</style>two</a>", "a") == ["Onetwo"]
+
+
+@pytest.mark.parametrize("selector", ["a > b", "a, b", "*", "", "a[href]"])
+def test_unsupported_selectors(selector: str) -> None:
+    """Requirement: Board pages list their announcements."""
+    with pytest.raises(ValueError, match="unsupported selector"):
+        parse("<a>x</a>").select(selector)

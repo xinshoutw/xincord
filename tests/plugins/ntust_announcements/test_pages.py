@@ -54,9 +54,6 @@ def expected(fixture: str) -> list[Link]:
     return [Link(item["type"], item["url"], item["title"]) for item in GOLDEN["entries"][fixture]]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 def test_student_affairs_board() -> None:
     """Requirement: Board pages list their announcements."""
     dormitory = board("STUDENT_DORMITORY", "student-affairs")
@@ -68,9 +65,6 @@ def test_student_affairs_board() -> None:
     assert links[-1].url.startswith("https://docs.google.com/")
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 def test_academic_affairs_board() -> None:
     """Requirement: Board pages list their announcements."""
     url = "https://www.academic.ntust.edu.tw/p/403-1048-1416-1.php"
@@ -81,9 +75,6 @@ def test_academic_affairs_board() -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 def test_language_center_board() -> None:
     """Requirement: Board pages list their announcements."""
     url = "https://lc.ntust.edu.tw/p/403-1070-1626-1.php"
@@ -94,9 +85,6 @@ def test_language_center_board() -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 def test_title_prefix() -> None:
     """Requirement: Board pages list their announcements."""
     url = "https://student.ntust.edu.tw/p/403-1053-1435-1.php"
@@ -108,9 +96,6 @@ def test_title_prefix() -> None:
     assert len(board_links(html, board("STUDENT_MAIN_OFFICE", "student-affairs", url), url)) == 3
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 @pytest.mark.parametrize(
     ("href", "page_url", "url"),
     [
@@ -150,9 +135,6 @@ def test_links(href: str, page_url: str, url: str) -> None:
     assert complete_url(href, page_url) == url
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 def test_rows() -> None:
     """Requirement: Board pages list their announcements."""
     html = (
@@ -175,9 +157,6 @@ def test_rows() -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 def test_no_list() -> None:
     """Requirement: Board pages list their announcements."""
     recruitment = page("language-center-recruitment.html")
@@ -191,9 +170,6 @@ def test_no_list() -> None:
     assert board_links(rows, board("L", "language-center"), STUDENT) == []
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 @pytest.mark.parametrize(
     ("text", "trimmed"),
     [
@@ -208,11 +184,6 @@ def test_trim(text: str, trimmed: str) -> None:
     assert trim(text) == trimmed
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Article pages give their content as minified HTML",
-)
 def test_container() -> None:
     """Requirement: Article pages give their content as minified HTML."""
     html = article_html(page("student-article.html"))
@@ -232,11 +203,6 @@ def test_container() -> None:
     assert "trimmed copy" not in html  # the page's comment, outside the container
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Article pages give their content as minified HTML",
-)
 def test_fallback_container() -> None:
     """Requirement: Article pages give their content as minified HTML."""
     html = article_html(page("academic-article.html"))
@@ -246,11 +212,6 @@ def test_fallback_container() -> None:
     assert html.endswith("</div>")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Article pages give their content as minified HTML",
-)
 def test_preferred_container() -> None:
     """Requirement: Article pages give their content as minified HTML."""
     html = '<div class="M23">first</div><div id="Dyn_2_3" class="M23">second</div>'
@@ -258,11 +219,6 @@ def test_preferred_container() -> None:
     assert article_html(html) == '<div id="Dyn_2_3" class="M23">second</div>'
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Article pages give their content as minified HTML",
-)
 @pytest.mark.parametrize(
     "html",
     [
@@ -276,18 +232,14 @@ def test_no_container(html: str) -> None:
     assert article_html(html) is None
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Article pages give their content as minified HTML",
-)
 @pytest.mark.parametrize(
     ("html", "minified"),
     [
         pytest.param("<p>a<!-- one\n two --></p><!---->", "<p>a</p>", id="comments"),
         pytest.param("<div>\n  <p>a</p>\n</div>", "<div><p>a</p></div>", id="between tags"),
         pytest.param("<p>\n   text   \n</p>", "<p>\ntext\n</p>", id="line edges"),
-        pytest.param("<p>a \t b\n\n\nc</p>", "<p>a b c</p>", id="runs"),
+        pytest.param("<p>a \t b</p>", "<p>a b</p>", id="runs"),
+        pytest.param("<p>a\n\n\nb</p>", "<p>a\nb</p>", id="empty lines"),
         pytest.param("<p>a\r   b</p>", "<p>a\nb</p>", id="carriage return"),
         pytest.param(
             f"<p>a{NBSP}{NBSP}b{IDEOGRAPHIC_SPACE}{IDEOGRAPHIC_SPACE}c</p>",
@@ -303,11 +255,6 @@ def test_minify(html: str, minified: str) -> None:
     assert minify(html) == minified
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Article pages give their content as minified HTML",
-)
 @pytest.mark.parametrize(
     ("url", "article"),
     [

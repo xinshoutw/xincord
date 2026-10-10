@@ -17,7 +17,7 @@
 
 - [x] 3.1 xfail tests for "Board pages list their announcements" and "Article pages give their
       content as minified HTML" against stubs in `markup.py` and `pages.py`
-- [ ] 3.2 Implement the HTML tree, the selectors, the board entries, the links, the container and
+- [x] 3.2 Implement the HTML tree, the selectors, the board entries, the links, the container and
       the minifier; remove the markers
 
 ## 4. Messages
