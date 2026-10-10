@@ -152,7 +152,7 @@
       presses answered only after the guild's lock and the store, which a burst on a large
       document kept past Discord's three seconds; a drawn giveaway whose post was never
       refreshed kept Reroll disabled for good)
-- [ ] 25.10 Defer each post press first, then show the stored giveaway in the post on every press
+- [x] 25.10 Defer each post press first, then show the stored giveaway in the post on every press
       from it, with replies and refusals as ephemeral follow-ups; remove the markers
 
 ## 26. Close

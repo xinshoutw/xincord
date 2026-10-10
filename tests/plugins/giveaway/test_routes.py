@@ -73,14 +73,19 @@ async def test_v3_post(scene: Scene) -> None:
     await scene.bot.on_interaction(interaction.as_interaction())
 
     assert (await scene.stored(GIVEAWAY.id)).participant_ids == (8,)
-    # The response replaced the post with new IDs; the core then upgrades the message it fetched
-    # (here the fake, which still holds v3's IDs).
-    assert methods(interaction) == ["response.edit_message", "followup.send", "message.edit"]
+    # The press showed the post with new IDs; the core then upgrades the message it fetched (here
+    # the fake, which still holds v3's IDs).
+    assert methods(interaction) == [
+        "response.defer",
+        "edit_original_response",
+        "followup.send",
+        "message.edit",
+    ]
     expected = [
         f"giveaway:1:a={action};c={GIVEAWAY.id}" for action in ("participate", "draw", "reroll")
     ]
-    assert button_ids(interaction.sent[0][1]["view"]) == expected
-    assert button_ids(interaction.sent[2][1]["view"]) == expected
+    assert button_ids(interaction.sent[1][1]["view"]) == expected
+    assert button_ids(interaction.sent[3][1]["view"]) == expected
     assert IDS.upgrade(custom_id) == expected[0]
 
 
@@ -112,7 +117,7 @@ async def test_new_ids(scene: Scene) -> None:
 
     await scene.bot.on_interaction(interaction.as_interaction())
 
-    assert methods(interaction) == ["response.edit_message", "followup.send"]
+    assert methods(interaction) == ["response.defer", "edit_original_response", "followup.send"]
 
 
 @pytest.mark.parametrize(

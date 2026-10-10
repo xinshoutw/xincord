@@ -34,17 +34,21 @@ GIVEAWAY = Instance(
 )
 
 
+DEFERRED = ("response.defer", {"ephemeral": False, "thinking": False})  # acknowledged at once
+
+
 def participants(fields: dict[str, Any]) -> str:
-    """The participant count that a replaced post shows."""
+    """The participant count that a shown post holds."""
     [embed] = cast("tuple[discord.Embed, ...]", fields["embeds"])
     value: str = embed_dict(embed)["fields"][1]["value"]
     return value
 
 
 def updated(interaction: FakeInteraction) -> tuple[str, str]:
-    """The post's participant count in the press's response, and the ephemeral follow-up."""
-    (method, post), (followup, reply) = interaction.sent
-    assert method == "response.edit_message"
+    """The participant count of the post shown through the press, and the ephemeral reply."""
+    deferred, (method, post), (followup, reply) = interaction.sent
+    assert deferred == DEFERRED
+    assert method == "edit_original_response"
     assert isinstance(post["view"], discord.ui.View)
     assert followup == "followup.send"
     assert reply["ephemeral"] is True
@@ -52,9 +56,10 @@ def updated(interaction: FakeInteraction) -> tuple[str, str]:
 
 
 def told(interaction: FakeInteraction) -> object:
-    """The text of the interaction's only response, an ephemeral reply."""
-    [(method, fields)] = interaction.sent
-    assert method == "response.send_message"
+    """The text of the ephemeral reply that ends the press's responses."""
+    assert interaction.sent[0] == DEFERRED
+    method, fields = interaction.sent[-1]
+    assert method == "followup.send"
     assert fields["ephemeral"] is True
     return fields["content"]
 
@@ -100,7 +105,7 @@ async def test_another_message(scene: Scene) -> None:
         "participate", GIVEAWAY.id, scene.who(user=8, admin=False, message_id=999)
     )
 
-    assert clicked.sent == [("response.defer", {"ephemeral": False, "thinking": False})]
+    assert clicked.sent == [DEFERRED]  # acknowledged, and nothing changes
     assert (await scene.stored(GIVEAWAY.id)).participant_ids == ()
 
 
@@ -128,7 +133,6 @@ async def test_joins_at_once(scene: Scene) -> None:
     assert sorted((await scene.stored(GIVEAWAY.id)).participant_ids) == [8, 9, 10]
 
 
-STALE = "Members join and leave"
 DRAWN = replace(
     GIVEAWAY,
     config=replace(GIVEAWAY.config, end_at=NOW - 60),
@@ -139,7 +143,6 @@ DRAWN = replace(
 )
 
 
-@pytest.mark.xfail(strict=True, reason=STALE)
 @pytest.mark.parametrize(
     ("action", "giveaway", "user"),
     [("participate", GIVEAWAY, 8), ("draw", DRAWN, 7)],
@@ -169,7 +172,6 @@ async def test_acknowledged_at_once(
     assert order == ["defer", "change"]
 
 
-@pytest.mark.xfail(strict=True, reason=STALE)
 @pytest.mark.parametrize(
     ("action", "user", "reply"), [("participate", 8, "closed"), ("draw", 7, "drawn")]
 )

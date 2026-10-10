@@ -261,12 +261,15 @@ class Giveaway(commands.Cog):
     async def join(self, interaction: discord.Interaction, giveaway_id: str | None) -> None:
         """Add the user to the giveaway's participants, or remove them, as v3's toggle.
 
-        The stored giveaway changes under its guild's lock, so joins at once all count. The post
-        is updated through the press, in one response that no channel rate limit delays (v3 edited
-        it through the REST API), and the user is told in the giveaway's language. A drawn or
-        ended giveaway answers that it is closed; a press from a message other than the post is
-        acknowledged without a change, as in v3; an unknown giveaway answers that it is not found.
+        The press is acknowledged at once, before it waits for the guild's lock, under which the
+        stored giveaway changes, so joins at once all count and Discord's three seconds never run
+        out. The post then shows the stored giveaway through the press (v3 edited it through the
+        REST API, which a burst queued behind the channel's rate limit), and the user is told
+        ephemerally in the giveaway's language. A drawn or ended giveaway answers that it is
+        closed; a press from another message than the post changes nothing, as v3's
+        ``deferEdit``; an unknown giveaway answers that it is not found.
         """
+        await interaction.response.defer()
         user_id, now = interaction.user.id, int(self.clock())
 
         def toggle(current: Instance) -> tuple[str, Instance]:
@@ -278,15 +281,11 @@ class Giveaway(commands.Cog):
         if found is None:
             return
         outcome, instance = found
-        texts = self._giveaway_texts(instance)
-        match outcome:
-            case "elsewhere":
-                await interaction.response.defer()
-            case "closed":
-                await _tell(interaction, texts.get("error.closed"))
-            case _:
-                await self._refresh(interaction, instance)
-                await interaction.followup.send(texts.get(f"reply.{outcome}"), ephemeral=True)
+        if outcome == "elsewhere":
+            return
+        await self._refresh(interaction, instance)
+        key = "error.closed" if outcome == "closed" else f"reply.{outcome}"
+        await _say(interaction, self._giveaway_texts(instance).get(key))
 
     async def _change[T](
         self,
@@ -306,13 +305,19 @@ class Giveaway(commands.Cog):
             else await self.giveaways.change(guild_id, giveaway_id, transition)
         )
         if found is None:
-            await _tell(interaction, self._texts(interaction).get("error.not-found"))
+            await _say(interaction, self._texts(interaction).get("error.not-found"))
         return found
 
     async def _refresh(self, interaction: discord.Interaction, instance: Instance) -> None:
-        """Replace the pressed post with the giveaway as stored now, through the press."""
+        """Show the giveaway as stored in the pressed post, through the acknowledged press.
+
+        Every press from the post shows it, refusals included, so a post that an interrupted
+        draw or a response that arrived late left stale is repaired by the next press.
+        """
+        if not _from_post(interaction, instance):
+            return
         message = self.render_post(instance)
-        await interaction.response.edit_message(
+        await interaction.edit_original_response(
             content=message.content,
             embeds=message.embeds,
             view=message.view,
@@ -328,11 +333,13 @@ class Giveaway(commands.Cog):
     ) -> None:
         """Draw the giveaway's winners, or draw them again, as v3's draw and reroll.
 
-        The draw is stored under the guild's lock before anything is sent, so two draws, or a draw
-        and the automatic draw, never both draw. The post is updated through the press and v3's
-        ``draw-result`` follows ephemerally, both in the giveaway's language; a refusal gets v3's
-        text.
+        The press is acknowledged at once. The draw is stored under the guild's lock before
+        anything is sent, so two draws, or a draw and the automatic draw, never both draw. The
+        post shows the stored giveaway through the press and v3's ``draw-result`` follows
+        ephemerally, both in the giveaway's language; a refusal gets v3's text, the post showing
+        the stored giveaway too.
         """
+        await interaction.response.defer()
         drawer = Drawer(interaction.user.id, admin=interaction.permissions.administrator)
         now = int(self.clock())
 
@@ -344,11 +351,11 @@ class Giveaway(commands.Cog):
             return
         outcome, instance = found
         texts = self._giveaway_texts(instance)
+        await self._refresh(interaction, instance)
         if outcome != "drawn":
             end = {"ga@end": str(instance.config.end_at)}
-            await _tell(interaction, texts.get(REFUSALS[outcome], end))
+            await _say(interaction, texts.get(REFUSALS[outcome], end))
             return
-        await self._refresh(interaction, instance)
         message = render_message(
             self.templates.message("draw-result", texts.locale),
             global_values(interaction.client) | result(instance, texts, reroll=reroll),
@@ -643,6 +650,11 @@ class Giveaway(commands.Cog):
 async def _tell(interaction: discord.Interaction, text: str) -> None:
     """Answer the interaction with ``text``, ephemerally, as v3's replies."""
     await interaction.response.send_message(text, ephemeral=True)
+
+
+async def _say(interaction: discord.Interaction, text: str) -> None:
+    """Tell the user ``text`` ephemerally, after the press was acknowledged."""
+    await interaction.followup.send(text, ephemeral=True)
 
 
 async def _delete(posted: Posted) -> None:

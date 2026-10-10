@@ -60,10 +60,14 @@ def seeded(seed: int) -> random.Random:
     return random.Random(seed)  # noqa: S311 - reproducible draws, not secrets
 
 
+DEFERRED = ("response.defer", {"ephemeral": False, "thinking": False})  # acknowledged at once
+
+
 def drawn(interaction: FakeInteraction) -> tuple[dict[str, Any], str]:
-    """The post that the press's response shows, and the ephemeral result that follows."""
-    (method, post), (followup, result) = interaction.sent
-    assert method == "response.edit_message"
+    """The post shown through the press, and the ephemeral result that follows."""
+    deferred, (method, post), (followup, result) = interaction.sent
+    assert deferred == DEFERRED
+    assert method == "edit_original_response"
     assert followup == "followup.send"
     assert result["ephemeral"] is True
     [embed] = cast("tuple[discord.Embed, ...]", post["embeds"])
@@ -71,9 +75,10 @@ def drawn(interaction: FakeInteraction) -> tuple[dict[str, Any], str]:
 
 
 def told(interaction: FakeInteraction) -> object:
-    """The text of the interaction's only response, an ephemeral reply."""
-    [(method, fields)] = interaction.sent
-    assert method == "response.send_message"
+    """The text of the ephemeral reply that ends the press's responses."""
+    assert interaction.sent[0] == DEFERRED
+    method, fields = interaction.sent[-1]
+    assert method == "followup.send"
     assert fields["ephemeral"] is True
     return fields["content"]
 
@@ -189,10 +194,11 @@ async def test_draws_at_once(scene: Scene) -> None:
         scene.click("draw", GIVEAWAY.id, scene.who(user=9, message_id=500)),
     )
 
-    outcomes = sorted(len(clicked.sent) for clicked in (first, second))
-    assert outcomes == [1, 2]  # one drew, the other was told that it is drawn
-    refused = first if len(first.sent) == 1 else second
-    assert told(refused) == GOLDEN["replies"]["en-US"]["drawn"]
+    # One drew, the other was told that it is drawn; both show the drawn giveaway.
+    replies = sorted(str(told(clicked)) for clicked in (first, second))
+    header = f"**{GOLDEN['result']['en-US']['drawn']}**\n"
+    assert replies[0].startswith(header)
+    assert replies[1] == GOLDEN["replies"]["en-US"]["drawn"]
 
 
 async def test_long_result(scene: Scene) -> None:
@@ -216,3 +222,14 @@ async def test_unknown_giveaway(scene: Scene) -> None:
     clicked = await scene.click("reroll", "0000000000000000", scene.who(locale="zh-TW"))
 
     assert told(clicked) == GOLDEN["replies"]["zh-TW"]["not-found"]
+
+
+async def test_from_another_message(scene: Scene) -> None:
+    """Requirement: The creator or an administrator draws and administrators reroll."""
+    await scene.add(GIVEAWAY)
+
+    clicked = await scene.click("draw", GIVEAWAY.id, scene.who(user=8, admin=False, message_id=9))
+
+    # Only the giveaway's post shows the giveaway; this message stays as it is.
+    assert [method for method, _ in clicked.sent] == ["response.defer", "followup.send"]
+    assert told(clicked) == GOLDEN["replies"]["en-US"]["not-allowed"]
