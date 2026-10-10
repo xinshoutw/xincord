@@ -6,7 +6,7 @@ Kotlin:
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     import random
@@ -99,12 +99,155 @@ def draw_winners(
 def parse_instance(entry: JSON, where: str) -> Instance:
     """Read v3's JSON of a giveaway, as Moshi did; ``where`` names it in errors.
 
+    Missing optional fields take v3's defaults, except ``createdAtEpochSecond``, which Kotlin set to
+    the time of reading and v3 never read: it reads as 0. ``endedAtEpochSecond`` may be null;
+    an explicit null anywhere else fails, as in Moshi. Booleans are not integers. Duplicate
+    participants read once, in order, as v3's set kept them. Unknown fields are ignored.
+
     Raises:
         DataError: The entry is not v3's shape.
     """
-    raise NotImplementedError
+    fields = _object(entry, where, "the giveaway")
+    ended_at = fields.get("endedAtEpochSecond")
+    return Instance(
+        id=_text(fields, "id", where),
+        guild_id=_integer(fields, "guildId", where),
+        channel_id=_integer(fields, "channelId", where),
+        message_id=_integer(fields, "messageId", where),
+        creator_id=_integer(fields, "creatorId", where),
+        config=_draft(_required(fields, "config", where), where),
+        locale_tag=_text(fields, "localeTag", where, DEFAULT_LOCALE_TAG),
+        created_at=_integer(fields, "createdAtEpochSecond", where, 0),
+        ended_at=None if ended_at is None else _integer(fields, "endedAtEpochSecond", where),
+        ended=_flag(fields, "ended", where),
+        participant_ids=tuple(dict.fromkeys(_integers(fields, "participantIds", where))),
+        winner_results=tuple(
+            Winners(
+                _text(result, "prizeName", where),
+                tuple(_integers(result, "winnerIds", where)),
+            )
+            for result in _objects(fields, "winnerResults", where)
+        ),
+    )
 
 
 def instance_json(instance: Instance) -> dict[str, JSON]:
-    """v3's JSON of ``instance``, in Moshi's field order."""
-    raise NotImplementedError
+    """v3's JSON of ``instance``, in Moshi's field order; an unset end time is left out."""
+    config = instance.config
+    draft: dict[str, JSON] = {
+        "title": config.title,
+        "description": config.description,
+        "sponsor": config.sponsor,
+        "thumbnailUrl": config.thumbnail_url,
+        "endAtEpochSecond": config.end_at,
+        "winnerDuplicatePolicy": config.policy.value,
+        "prizes": [
+            {"name": prize.name, "winnerCount": prize.winner_count} for prize in config.prizes
+        ],
+    }
+    ended_at: dict[str, JSON] = (
+        {} if instance.ended_at is None else {"endedAtEpochSecond": instance.ended_at}
+    )
+    return {
+        "id": instance.id,
+        "guildId": instance.guild_id,
+        "channelId": instance.channel_id,
+        "messageId": instance.message_id,
+        "creatorId": instance.creator_id,
+        "localeTag": instance.locale_tag,
+        "createdAtEpochSecond": instance.created_at,
+        **ended_at,
+        "ended": instance.ended,
+        "config": draft,
+        "participantIds": list(instance.participant_ids),
+        "winnerResults": [
+            {"prizeName": result.prize_name, "winnerIds": list(result.winner_ids)}
+            for result in instance.winner_results
+        ],
+    }
+
+
+def _draft(value: JSON, where: str) -> Draft:
+    """v3's ``GiveawayConfig``, every field optional."""
+    fields = _object(value, where, "config")
+    policy = _text(fields, "winnerDuplicatePolicy", where, Policy.ALLOW_DUPLICATE.value)
+    if policy not in Policy:
+        msg = f"{where}: unknown winnerDuplicatePolicy {policy!r}"
+        raise DataError(msg)
+    return Draft(
+        title=_text(fields, "title", where, ""),
+        description=_text(fields, "description", where, ""),
+        sponsor=_text(fields, "sponsor", where, ""),
+        thumbnail_url=_text(fields, "thumbnailUrl", where, ""),
+        end_at=_integer(fields, "endAtEpochSecond", where, 0),
+        policy=Policy(policy),
+        prizes=tuple(
+            Prize(_text(prize, "name", where), _integer(prize, "winnerCount", where, 1))
+            for prize in _objects(fields, "prizes", where)
+        ),
+    )
+
+
+def _object(value: JSON, where: str, what: str) -> dict[str, JSON]:
+    if not isinstance(value, dict):
+        msg = f"{where}: {what} is not a JSON object: {value!r}"
+        raise DataError(msg)
+    return value
+
+
+def _required(fields: dict[str, JSON], key: str, where: str) -> JSON:
+    """A field without a default: Moshi failed without it, and for null."""
+    value = fields.get(key)
+    if value is None:
+        msg = f"{where}: {key} is missing or null"
+        raise DataError(msg)
+    return value
+
+
+def _field(fields: dict[str, JSON], key: str, where: str, default: JSON) -> JSON:
+    """A field with v3's default when it is missing; None as the default makes it required."""
+    return default if key not in fields and default is not None else _required(fields, key, where)
+
+
+def _text(fields: dict[str, JSON], key: str, where: str, default: str | None = None) -> str:
+    value = _field(fields, key, where, default)
+    if not isinstance(value, str):
+        msg = f"{where}: {key} is not a text: {value!r}"
+        raise DataError(msg)
+    return value
+
+
+def _integer(fields: dict[str, JSON], key: str, where: str, default: int | None = None) -> int:
+    value = _field(fields, key, where, default)
+    if type(value) is not int:  # booleans and fractions are no snowflakes or seconds
+        msg = f"{where}: {key} is not an integer: {value!r}"
+        raise DataError(msg)
+    return value
+
+
+def _flag(fields: dict[str, JSON], key: str, where: str) -> bool:
+    value = _field(fields, key, where, False)  # noqa: FBT003 - v3's default
+    if type(value) is not bool:
+        msg = f"{where}: {key} is not a boolean: {value!r}"
+        raise DataError(msg)
+    return value
+
+
+def _list(fields: dict[str, JSON], key: str, where: str) -> list[JSON]:
+    value = _field(fields, key, where, [])
+    if not isinstance(value, list):
+        msg = f"{where}: {key} is not a list: {value!r}"
+        raise DataError(msg)
+    return value
+
+
+def _integers(fields: dict[str, JSON], key: str, where: str) -> list[int]:
+    items = _list(fields, key, where)
+    if not all(type(item) is int for item in items):
+        msg = f"{where}: {key} holds something that is not an integer: {items!r}"
+        raise DataError(msg)
+    return cast("list[int]", items)
+
+
+def _objects(fields: dict[str, JSON], key: str, where: str) -> list[dict[str, JSON]]:
+    return [_object(item, where, key) for item in _list(fields, key, where)]

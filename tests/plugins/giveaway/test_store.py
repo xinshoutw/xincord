@@ -71,7 +71,6 @@ def joined(user_id: int) -> Callable[[Instance], tuple[str, Instance]]:
     return add
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_v3_documents(store: Store) -> None:
     """Requirement: Giveaways are stored as v3's documents."""
     await store.put(NAMESPACE, str(GUILD), v3_document())
@@ -111,7 +110,6 @@ async def test_v3_documents(store: Store) -> None:
     assert compact(document) == GOLDEN["document"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 def test_defaults() -> None:
     """Requirement: Giveaways are stored as v3's documents."""
     instance = parse_instance(minimal(), "guild 10, giveaway a1")
@@ -129,7 +127,6 @@ def test_defaults() -> None:
     assert full.winner_results == (Winners("Nitro", ()),)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 def test_participants_read_once() -> None:
     """Requirement: Giveaways are stored as v3's documents."""
     instance = parse_instance(minimal(participantIds=[3, 1, 3, 2, 1]), "here")
@@ -137,7 +134,6 @@ def test_participants_read_once() -> None:
     assert instance.participant_ids == (3, 1, 2)  # v3's set, in insertion order
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 def test_unknown_fields_dropped() -> None:
     """Requirement: Giveaways are stored as v3's documents."""
     instance = parse_instance(minimal(extra="x"), "here")
@@ -145,7 +141,6 @@ def test_unknown_fields_dropped() -> None:
     assert "extra" not in instance_json(instance)  # Moshi dropped them when it saved
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(
     "entry",
     [
@@ -156,6 +151,7 @@ def test_unknown_fields_dropped() -> None:
         minimal(ended=1),
         minimal(creatorId=True),
         minimal(localeTag=None),
+        minimal(localeTag=5),
         minimal(config=None),
         minimal(participantIds=["111"]),
         minimal(config={"prizes": [{"winnerCount": 1}]}),
@@ -171,6 +167,7 @@ def test_unknown_fields_dropped() -> None:
         "number-flag",
         "flag-id",
         "null",
+        "number-locale",
         "null-config",
         "text-participant",
         "nameless-prize",
@@ -185,7 +182,6 @@ def test_not_v3_shape(entry: JSON) -> None:
         parse_instance(entry, "guild 10, giveaway a1")
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_broken_entry_stays(store: Store) -> None:
     """Requirement: Giveaways are stored as v3's documents."""
     broken = minimal(config={"winnerDuplicatePolicy": "RANDOM"})
@@ -208,7 +204,6 @@ async def test_broken_entry_stays(store: Store) -> None:
     assert running["participantIds"] == [111, 222, 333, 9]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("document", [[], "x", 5])
 async def test_broken_document(store: Store, document: JSON) -> None:
     """Requirement: Giveaways are stored as v3's documents."""
@@ -222,7 +217,6 @@ async def test_broken_document(store: Store, document: JSON) -> None:
     assert await store.get(NAMESPACE, str(GUILD)) == document
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_reads_write_nothing(store: Store) -> None:
     """Requirement: Giveaways are stored as v3's documents."""
     giveaways = Giveaways(store)
@@ -233,7 +227,6 @@ async def test_reads_write_nothing(store: Store) -> None:
     assert await store.keys(NAMESPACE) == []
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_add(store: Store) -> None:
     """Requirement: Giveaways are stored as v3's documents."""
     giveaways = Giveaways(store)
@@ -253,7 +246,6 @@ async def test_add(store: Store) -> None:
     }
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_unchanged_writes_nothing(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Giveaways are stored as v3's documents."""
     await store.put(NAMESPACE, str(GUILD), v3_document())
