@@ -24,10 +24,10 @@ if TYPE_CHECKING:
     from http_fakes import Monitor
     from plugin_fakes import Ready
     from xincord.core.storage import Store
-    from xincord.plugins.interval_pusher.cog import IntervalPusher
+    from xincord.plugins.uptime_heartbeat.cog import UptimeHeartbeat
 
 
-async def load(tmp_path: Path, store: Store, *urls: str) -> IntervalPusher:
+async def load(tmp_path: Path, store: Store, *urls: str) -> UptimeHeartbeat:
     """Load the plugin with listeners that push ``urls`` every 60 seconds; return its cog.
 
     The cog is looked up without an isinstance check: test_config.py loads invalid files, after
@@ -35,11 +35,11 @@ async def load(tmp_path: Path, store: Store, *urls: str) -> IntervalPusher:
     """
     entries = "".join(f"  - url: {json.dumps(url)}\n    interval: 60\n" for url in urls)
     bot = await load_plugin(
-        "IntervalPusher", tmp_path / "plugins", store, config=f"listeners:\n{entries}"
+        "UptimeHeartbeat", tmp_path / "plugins", store, config=f"listeners:\n{entries}"
     )
-    cog = bot.get_cog("IntervalPusher")
+    cog = bot.get_cog("UptimeHeartbeat")
     assert cog is not None
-    return cast("IntervalPusher", cog)
+    return cast("UptimeHeartbeat", cog)
 
 
 def plugin_problems(caplog: pytest.LogCaptureFixture) -> list[str]:
@@ -47,7 +47,7 @@ def plugin_problems(caplog: pytest.LogCaptureFixture) -> list[str]:
     return [
         record.getMessage()
         for record in caplog.records
-        if record.name.startswith("xincord.plugins.interval_pusher")
+        if record.name.startswith("xincord.plugins.uptime_heartbeat")
         and record.levelno >= logging.WARNING
     ]
 
@@ -78,7 +78,7 @@ async def test_loaded_into_a_ready_bot(
     tmp_path: Path, store: Store, monitor: Monitor, ready: Ready
 ) -> None:
     """Requirement: Pushing follows the bot's readiness and the plugin's lifetime."""
-    ready.set()  # as after /xincord reload IntervalPusher
+    ready.set()  # as after /xincord reload UptimeHeartbeat
 
     cog = await load(tmp_path, store, monitor.url("/one"))
     tasks = cog.tasks
@@ -102,7 +102,7 @@ async def test_unloaded_during_a_push(
     tasks = cog.tasks
     await monitor.received(2)  # /slow waits for an answer, /one waits for its next push
 
-    await cog.bot.remove_cog("IntervalPusher")
+    await cog.bot.remove_cog("UptimeHeartbeat")
 
     assert all(task.cancelled() for task in tasks)
     assert plugin_problems(caplog) == []  # v3 logged a spurious failure
@@ -131,7 +131,7 @@ async def test_unloaded_during_a_ping(
     async with asyncio.timeout(WAIT):
         await asked.wait()
 
-    await cog.bot.remove_cog("IntervalPusher")
+    await cog.bot.remove_cog("UptimeHeartbeat")
 
     assert all(task.cancelled() for task in tasks)
     assert plugin_problems(caplog) == []
@@ -145,7 +145,7 @@ async def test_reload(tmp_path: Path, store: Store, monitor: Monitor, ready: Rea
     await monitor.received(1)
 
     # A reload unloads the cog and runs setup again with the edited config.yaml.
-    await old.bot.remove_cog("IntervalPusher")
+    await old.bot.remove_cog("UptimeHeartbeat")
     new = await load(tmp_path, store, monitor.url("/new"))
     await monitor.received(2)
 

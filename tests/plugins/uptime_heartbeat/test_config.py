@@ -1,4 +1,4 @@
-"""The IntervalPusher config.
+"""The UptimeHeartbeat config.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/config/ConfigSerializer.kt:5-15
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
     from xincord.core.bot import Bot
     from xincord.core.storage import Store
-    from xincord.plugins.interval_pusher.cog import IntervalPusher
+    from xincord.plugins.uptime_heartbeat.cog import UptimeHeartbeat
 
 # v3's shipped listener, with an example domain instead of the owner's status domain.
 PUSH_URL = "https://status.example.com/api/push/xxxxxxxxxx?status=up&msg=OK&ping=%ping%"
@@ -30,16 +30,16 @@ listeners:
 """
 
 
-def loaded_cog(bot: Bot) -> IntervalPusher:
+def loaded_cog(bot: Bot) -> UptimeHeartbeat:
     """The cog of the loaded plugin.
 
     When a plugin's setup fails, as with the invalid files below, discord.py drops its modules, and
     the next load imports them again: an isinstance check against the class imported here would
     depend on the test order.
     """
-    cog = bot.get_cog("IntervalPusher")
+    cog = bot.get_cog("UptimeHeartbeat")
     assert cog is not None
-    return cast("IntervalPusher", cog)
+    return cast("UptimeHeartbeat", cog)
 
 
 def listener(url: str = PUSH_URL, interval: str = "60") -> str:
@@ -52,7 +52,7 @@ async def test_v3_config_file(
 ) -> None:
     """Requirement: The config lists the URLs to push."""
     with caplog.at_level(logging.WARNING):
-        bot = await load_plugin("IntervalPusher", tmp_path / "plugins", store, config=V3_CONFIG)
+        bot = await load_plugin("UptimeHeartbeat", tmp_path / "plugins", store, config=V3_CONFIG)
 
     listeners = loaded_cog(bot).listeners
     assert [(entry.url, entry.interval) for entry in listeners] == [(PUSH_URL, 60)]
@@ -62,7 +62,7 @@ async def test_v3_config_file(
 
 async def test_default_config(tmp_path: Path, store: Store) -> None:
     """Requirement: The config lists the URLs to push."""
-    bot = await load_plugin("IntervalPusher", tmp_path / "plugins", store)
+    bot = await load_plugin("UptimeHeartbeat", tmp_path / "plugins", store)
 
     assert loaded_cog(bot).listeners == ()
 
@@ -110,7 +110,7 @@ async def test_invalid_entries(
     config: str, error: str, tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: The config lists the URLs to push."""
-    bot = await load_plugin("IntervalPusher", tmp_path / "plugins", store, config=config)
+    bot = await load_plugin("UptimeHeartbeat", tmp_path / "plugins", store, config=config)
 
     assert bot.loaded == ()
     assert error in caplog.text
@@ -127,6 +127,6 @@ async def test_invalid_entries(
 )
 async def test_accepted_urls(url: str, tmp_path: Path, store: Store) -> None:
     """Requirement: The config lists the URLs to push."""
-    bot = await load_plugin("IntervalPusher", tmp_path / "plugins", store, config=listener(url))
+    bot = await load_plugin("UptimeHeartbeat", tmp_path / "plugins", store, config=listener(url))
 
     assert [entry.url for entry in loaded_cog(bot).listeners] == [url]

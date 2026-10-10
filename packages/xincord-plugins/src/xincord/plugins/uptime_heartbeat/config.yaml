@@ -1,4 +1,4 @@
-# IntervalPusher: list it under `plugins` in the core config.yaml to enable it.
+# UptimeHeartbeat: list it under `plugins` in the core config.yaml to enable it.
 
 # Each listener sends an HTTP GET to its url once the bot is ready, then again `interval` seconds
 # (from 1) after each attempt, typically to an Uptime Kuma push monitor. %ping% in the url becomes

@@ -85,7 +85,7 @@ class Pusher:
         the request time; ``discord.ext.tasks.loop`` would schedule from each start instead.
         """
         logger.info(
-            "IntervalPusher listener %d started (every %d s)",
+            "UptimeHeartbeat listener %d started (every %d s)",
             self.number,
             self.listener.interval,
         )
@@ -104,7 +104,8 @@ class Pusher:
             ping = await self.ping()
         except PING_ERRORS as error:
             logger.warning(
-                "IntervalPusher listener %d could not measure the REST ping, so %%ping%% is -1: %s",
+                "UptimeHeartbeat listener %d could not measure the REST ping, "
+                "so %%ping%% is -1: %s",
                 self.number,
                 describe(error),
             )
@@ -123,7 +124,7 @@ class Pusher:
         except NETWORK_ERRORS as error:
             # The URL as configured, as v3 logged it; a network error needs no traceback.
             logger.error(  # noqa: TRY400
-                "IntervalPusher listener %d: pushing to %s failed: %s",
+                "UptimeHeartbeat listener %d: pushing to %s failed: %s",
                 self.number,
                 self.listener.url,
                 describe(error),
@@ -132,7 +133,7 @@ class Pusher:
         except Exception:
             # Unexpected: the traceback shows where it failed.
             logger.exception(
-                "IntervalPusher listener %d: pushing to %s failed", self.number, self.listener.url
+                "UptimeHeartbeat listener %d: pushing to %s failed", self.number, self.listener.url
             )
             return True
         return self.follow(url, status)
@@ -140,21 +141,21 @@ class Pusher:
     def follow(self, url: str, status: int) -> bool:
         """Log a push's status code as v3 did; only a 404 stops the listener."""
         if status in SUCCESS:
-            logger.debug("IntervalPusher listener %d pushed %s", self.number, url)
+            logger.debug("UptimeHeartbeat listener %d pushed %s", self.number, url)
         elif status == NOT_FOUND:
             logger.warning(
-                "IntervalPusher listener %d stopped: the status monitor refused the push "
+                "UptimeHeartbeat listener %d stopped: the status monitor refused the push "
                 "(code 404)",
                 self.number,
             )
             return False
         elif status == ORIGIN_DOWN:
             logger.warning(
-                "IntervalPusher listener %d: the status monitor is offline (code 521)", self.number
+                "UptimeHeartbeat listener %d: the status monitor is offline (code 521)", self.number
             )
         else:
             logger.error(
-                "IntervalPusher listener %d: pushing to %s failed with code %d",
+                "UptimeHeartbeat listener %d: pushing to %s failed with code %d",
                 self.number,
                 url,
                 status,

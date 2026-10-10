@@ -44,7 +44,7 @@ class Listener(Model):
 
 
 class Config(Model):
-    """``plugins/IntervalPusher/config.yaml``; the bundled ``config.yaml`` lists no listeners.
+    """``plugins/UptimeHeartbeat/config.yaml``; the bundled ``config.yaml`` lists no listeners.
 
     v3's ``enabled`` key is gone: the core config's ``plugins`` list enables the plugin.
     """

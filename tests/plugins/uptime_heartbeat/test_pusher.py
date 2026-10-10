@@ -13,8 +13,8 @@ import aiohttp
 import discord
 import pytest
 
-from xincord.plugins.interval_pusher.config import Listener
-from xincord.plugins.interval_pusher.pusher import Pusher, build_url, rest_ping
+from xincord.plugins.uptime_heartbeat.config import Listener
+from xincord.plugins.uptime_heartbeat.pusher import Pusher, build_url, rest_ping
 
 if TYPE_CHECKING:
     from discord.http import Route
@@ -110,7 +110,7 @@ async def test_failed_ping(error: Exception, caplog: pytest.LogCaptureFixture) -
     [record] = caplog.records
     assert record.levelno == logging.WARNING
     assert record.getMessage().startswith(
-        "IntervalPusher listener 1 could not measure the REST ping, so %ping% is -1: "
+        "UptimeHeartbeat listener 1 could not measure the REST ping, so %ping% is -1: "
     )
 
 
@@ -145,15 +145,14 @@ def records_above(caplog: pytest.LogCaptureFixture, level: int) -> list[logging.
 @pytest.mark.parametrize("status", [200, 204, 299])
 async def test_success(status: int, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
-    with caplog.at_level(logging.DEBUG, "xincord.plugins.interval_pusher"):
+    with caplog.at_level(logging.DEBUG, "xincord.plugins.uptime_heartbeat"):
         keep_pushing = await Fakes(answers=(status,)).pusher().push()
 
     assert keep_pushing
     assert records_above(caplog, logging.DEBUG) == []
-    assert f"IntervalPusher listener 1 pushed {PUSHED}" in caplog.messages
+    assert f"UptimeHeartbeat listener 1 pushed {PUSHED}" in caplog.messages
 
 
-@pytest.mark.xfail(strict=True, reason="The status code decides what follows")
 async def test_not_found(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
     keep_pushing = await Fakes(answers=(404,)).pusher().push()
@@ -174,7 +173,7 @@ async def test_monitor_offline(caplog: pytest.LogCaptureFixture) -> None:
     [record] = records_above(caplog, logging.INFO)
     assert record.levelno == logging.WARNING
     assert record.getMessage() == (
-        "IntervalPusher listener 1: the status monitor is offline (code 521)"
+        "UptimeHeartbeat listener 1: the status monitor is offline (code 521)"
     )
 
 
@@ -187,7 +186,7 @@ async def test_other_status(status: int, caplog: pytest.LogCaptureFixture) -> No
     [record] = records_above(caplog, logging.INFO)
     assert record.levelno == logging.ERROR
     assert record.getMessage() == (
-        f"IntervalPusher listener 1: pushing to {PUSHED} failed with code {status}"
+        f"UptimeHeartbeat listener 1: pushing to {PUSHED} failed with code {status}"
     )
 
 
@@ -211,7 +210,7 @@ async def test_network_error(error: Exception, text: str, caplog: pytest.LogCapt
     [record] = records_above(caplog, logging.INFO)
     assert record.levelno == logging.ERROR
     # The URL as configured, as v3 logged it; no traceback for a network error.
-    assert record.getMessage() == f"IntervalPusher listener 1: pushing to {URL} failed: {text}"
+    assert record.getMessage() == f"UptimeHeartbeat listener 1: pushing to {URL} failed: {text}"
     assert record.exc_info is None
 
 
@@ -222,7 +221,7 @@ async def test_unexpected_error(caplog: pytest.LogCaptureFixture) -> None:
     assert keep_pushing
     [record] = records_above(caplog, logging.INFO)
     assert record.levelno == logging.ERROR
-    assert record.getMessage() == f"IntervalPusher listener 1: pushing to {URL} failed"
+    assert record.getMessage() == f"UptimeHeartbeat listener 1: pushing to {URL} failed"
     assert record.exc_info is not None  # the traceback, for a failure nobody expected
     assert str(record.exc_info[1]) == "unexpected"
 
@@ -236,7 +235,7 @@ async def test_first_push_at_once(caplog: pytest.LogCaptureFixture) -> None:
 
     push = ["ping", f"get {PUSHED}"]
     assert fakes.calls == [*push, "sleep 60", *push, "sleep 60"]
-    assert caplog.messages == ["IntervalPusher listener 1 started (every 60 s)"]
+    assert caplog.messages == ["UptimeHeartbeat listener 1 started (every 60 s)"]
 
 
 async def test_fixed_delay() -> None:

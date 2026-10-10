@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from .config import Config, Listener
 
 
-class IntervalPusher(commands.Cog):
+class UptimeHeartbeat(commands.Cog):
     """The plugin's state and loops; ``setup`` adds them."""
 
     def __init__(self, bot: commands.Bot, config: Config) -> None:
@@ -35,7 +35,7 @@ class IntervalPusher(commands.Cog):
         """
         self.tasks = tuple(
             asyncio.create_task(
-                self._push(number, listener), name=f"IntervalPusher listener {number}"
+                self._push(number, listener), name=f"UptimeHeartbeat listener {number}"
             )
             for number, listener in enumerate(self.listeners, start=1)
         )

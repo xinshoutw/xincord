@@ -1,4 +1,4 @@
-"""IntervalPusher: each configured listener pushes an HTTP GET to its URL at a fixed delay.
+"""UptimeHeartbeat: each configured listener pushes an HTTP GET to its URL at a fixed delay.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/Event.kt:10-54
@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import discord
 
-from .cog import IntervalPusher
+from .cog import UptimeHeartbeat
 from .config import Config
 
 if TYPE_CHECKING:
@@ -26,4 +26,4 @@ async def setup(bot: Bot) -> None:
     The plugin has no lang files: v3 had no text.
     """
     context = bot.plugin_context(__name__)
-    await bot.add_cog(IntervalPusher(bot, context.config(Config)))
+    await bot.add_cog(UptimeHeartbeat(bot, context.config(Config)))

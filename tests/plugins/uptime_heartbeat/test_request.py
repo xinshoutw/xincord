@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 import aiohttp
 from yarl import URL
 
-from xincord.plugins.interval_pusher.pusher import get_status, open_session
+from xincord.plugins.uptime_heartbeat.pusher import get_status, open_session
 
 if TYPE_CHECKING:
     from http_fakes import Monitor

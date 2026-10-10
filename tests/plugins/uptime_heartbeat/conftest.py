@@ -1,4 +1,4 @@
-"""Fixtures for the IntervalPusher tests: READY, Discord's REST API and a local status monitor."""
+"""Fixtures for the UptimeHeartbeat tests: READY, Discord's REST API and a local status monitor."""
 
 from typing import TYPE_CHECKING
 

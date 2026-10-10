@@ -1,4 +1,4 @@
-"""A local HTTP server for plugins that send HTTP requests, such as IntervalPusher's pushes."""
+"""A local HTTP server for plugins that send HTTP requests, such as UptimeHeartbeat's pushes."""
 
 import asyncio
 from contextlib import asynccontextmanager
