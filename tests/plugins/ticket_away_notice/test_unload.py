@@ -8,11 +8,11 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING
 
-import pytest
-
 from plugin_fakes import WAIT
 
 if TYPE_CHECKING:
+    import pytest
+
     from conftest import Scene
 
 
@@ -36,7 +36,6 @@ async def test_unload_during_the_wait(scene: Scene, caplog: pytest.LogCaptureFix
     assert caplog.records == []
 
 
-@pytest.mark.xfail(strict=True, reason="Pending notices end with the plugin")
 async def test_event_after_the_unload(scene: Scene) -> None:
     """Requirement: Pending notices end with the plugin."""
     cog = scene.cog

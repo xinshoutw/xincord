@@ -74,6 +74,7 @@ class TicketAwayNotice(commands.Cog):
         self.templates = templates
         self.sleep: Sleep = asyncio.sleep  # the wait before a notice, which tests replace
         self.notices: set[asyncio.Task[None]] = set()  # the notices under way
+        self.closed = False  # set when the cog unloads; no notice starts after it
 
     @override
     async def cog_load(self) -> None:
@@ -86,8 +87,11 @@ class TicketAwayNotice(commands.Cog):
         """Cancel the notices under way and wait for them to end.
 
         An unload and a reload remove the cog, so a notice that waits then is dropped; v3's
-        ``queueAfter`` could not be cancelled.
+        ``queueAfter`` could not be cancelled. discord.py removes the listeners first, but a
+        listener that it scheduled as a task before can still run afterwards: ``closed`` makes it
+        start nothing.
         """
+        self.closed = True
         notices = list(self.notices)
         for task in notices:
             task.cancel()
@@ -137,7 +141,9 @@ class TicketAwayNotice(commands.Cog):
         channel (B2). The notice runs as a task, so the listener holds nothing up.
         """
         guild_id = channel.guild.id
-        if not self.config.watches(guild_id, channel.name) or self._started_by_bot(channel):
+        if self.closed or not self.config.watches(guild_id, channel.name):
+            return
+        if self._started_by_bot(channel):
             return
         target = _postable(channel)
         if target is None:
