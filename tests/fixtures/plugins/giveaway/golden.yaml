@@ -1,0 +1,14 @@
+# Golden data for the Giveaway tests. The texts are v3's, from
+# XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/ (its Kotlin code and its resources), unless noted.
+
+# Texts that v3 wrote in Giveaway.kt, per locale.
+texts:
+  en-US:
+    join: "Join / Leave"
+    draw: "Draw Winners"
+    # post.title with the title `%ga@id%`, inserted as written (new: v3 used no placeholder there).
+    title-placeholder: "🎉 %ga@id%"
+  zh-TW:
+    join: "參加 / 退出"
+    draw: "手動開獎"
+    title-placeholder: "🎉 %ga@id%"
