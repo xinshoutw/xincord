@@ -119,6 +119,10 @@ class ControlRow:
         row = control_row(controls, locked=locked, texts=self.public, build_id=IDS.build)
         await interaction.edit_original_response(view=row)
 
+    async def delete(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
+        """Delete the ticket channel for its staff; anyone else gets an acknowledgement only."""
+        raise NotImplementedError
+
 
 def _controls(fields: Mapping[str, str]) -> Controls | None:
     """What a control row's ID carries; None when its member is no user ID."""

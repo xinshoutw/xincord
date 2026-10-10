@@ -95,7 +95,7 @@
 
 ## 18. Delete
 
-- [ ] 18.1 xfail tests for "Administrators delete the ticket" against a stub `delete`
+- [x] 18.1 xfail tests for "Administrators delete the ticket" against a stub `delete`
 - [ ] 18.2 Implement `delete`; remove the markers
 
 ## 19. Save

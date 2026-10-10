@@ -221,6 +221,8 @@ class Ticket(ControlRow, commands.Cog):
             await self.ask(interaction, fields)
         elif action in LOCKS:
             await self.lock(interaction, fields, locked=action == "lock")
+        elif action == "delete":
+            await self.delete(interaction, fields)
 
     async def ask(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
         """Answer a panel button with the reason modal of its stored entry.
