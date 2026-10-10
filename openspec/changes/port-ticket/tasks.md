@@ -91,7 +91,7 @@
 ## 17. Lock and unlock
 
 - [x] 17.1 xfail tests for "The control row locks and unlocks the ticket" against a stub `lock`
-- [ ] 17.2 Implement `lock`; remove the markers
+- [x] 17.2 Implement `lock`; remove the markers
 
 ## 18. Delete
 

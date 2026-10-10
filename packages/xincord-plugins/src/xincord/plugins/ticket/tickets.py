@@ -75,11 +75,19 @@ def overwrites[T: Hashable](
     built[member] = discord.PermissionOverwrite(view_channel=True)
     for role in roles:
         built[role] = discord.PermissionOverwrite(view_channel=True)
-    allow, deny = copied.get(me, discord.PermissionOverwrite()).pair()
-    mine = discord.PermissionOverwrite.from_pair(allow, deny)
-    mine.view_channel = True
-    built[me] = mine
+    built[me] = viewing(copied.get(me, discord.PermissionOverwrite()), allowed=True)
     return built
+
+
+def viewing(
+    overwrite: discord.PermissionOverwrite, *, allowed: bool
+) -> discord.PermissionOverwrite:
+    """A copy of ``overwrite`` that allows or denies View Channel, its other permissions kept, as
+    JDA's ``upsertPermissionOverride(...).grant`` or ``.deny``."""
+    allow, deny = overwrite.pair()
+    changed = discord.PermissionOverwrite.from_pair(allow, deny)
+    changed.view_channel = allowed
+    return changed
 
 
 def opener(admin_ids: Sequence[int], reason: str) -> list[str]:

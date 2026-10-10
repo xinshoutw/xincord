@@ -62,11 +62,6 @@ def shown_row(interaction: FakeInteraction) -> discord.ui.View:
     return view
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The control row locks and unlocks the ticket",
-)
 async def test_lock_and_unlock(scene: Scene) -> None:
     """Requirement: The control row locks and unlocks the ticket."""
     member = bob(scene)
@@ -103,11 +98,6 @@ async def test_lock_and_unlock(scene: Scene) -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The control row locks and unlocks the ticket",
-)
 async def test_cached_member(scene: Scene) -> None:
     """Requirement: The control row locks and unlocks the ticket."""
     # discord.py has member 8; Discord would not answer a fetch (it has no members here).
@@ -119,11 +109,6 @@ async def test_cached_member(scene: Scene) -> None:
     assert overwrites(scene) == [(MEMBER, 0, VIEW)]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The control row locks and unlocks the ticket",
-)
 async def test_anyone_in_the_channel(scene: Scene) -> None:
     """Requirement: The control row locks and unlocks the ticket."""
     bob(scene)
@@ -136,11 +121,6 @@ async def test_anyone_in_the_channel(scene: Scene) -> None:
     assert overwrites(scene) == [(MEMBER, 0, VIEW)]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The control row locks and unlocks the ticket",
-)
 @pytest.mark.parametrize(
     ("locale", "failed"),
     [
@@ -163,11 +143,6 @@ async def test_member_who_left(
     assert "Ticket cannot lock channel 5 for member 8" in caplog.text
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The control row locks and unlocks the ticket",
-)
 async def test_refused_overwrite(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The control row locks and unlocks the ticket."""
     bob(scene)
@@ -184,11 +159,6 @@ async def test_refused_overwrite(scene: Scene, caplog: pytest.LogCaptureFixture)
     assert "Ticket cannot unlock channel 5 for member 8" in caplog.text
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The control row locks and unlocks the ticket",
-)
 async def test_channel_without_overwrites(scene: Scene) -> None:
     """Requirement: The control row locks and unlocks the ticket."""
     bob(scene)
@@ -201,11 +171,6 @@ async def test_channel_without_overwrites(scene: Scene) -> None:
     assert interaction.sent == [DEFERRED, ("followup.send", {"content": reply, "ephemeral": True})]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The control row locks and unlocks the ticket",
-)
 @pytest.mark.parametrize("fields", [{"user_id": "x"}, {}], ids=["not-a-number", "missing"])
 async def test_malformed_member(scene: Scene, fields: dict[str, str]) -> None:
     """Requirement: The control row locks and unlocks the ticket."""
