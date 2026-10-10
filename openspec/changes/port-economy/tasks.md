@@ -33,7 +33,7 @@
 
 ## 7. Balance
 
-- [ ] 7.1 xfail tests for "The balance shows a wallet" against a stub `show_balance`
+- [x] 7.1 xfail tests for "The balance shows a wallet" against a stub `show_balance`
 - [ ] 7.2 Implement `show_balance`; remove the markers
 
 ## 8. Changes

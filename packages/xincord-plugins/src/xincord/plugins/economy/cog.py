@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 from discord.ext import commands
 
 if TYPE_CHECKING:
+    import discord
+
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
     from xincord.core.templates import Templates
@@ -25,3 +27,11 @@ class Economy(commands.Cog):
         self.store = store
         self.lang = lang
         self.templates = templates
+
+    async def show_balance(
+        self,
+        interaction: discord.Interaction,
+        member: discord.Member | discord.User | None = None,
+    ) -> None:
+        """Stub."""
+        raise NotImplementedError

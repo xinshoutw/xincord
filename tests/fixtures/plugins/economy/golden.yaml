@@ -20,3 +20,32 @@ v3_config: |
     - 222222222222222222
 
   board_user_show_limit: 10
+
+# The embeds per locale, as Embed.to_dict() without "type" and "flags", for bob (ID 7). The
+# balance shows the money 1500 and the cost 990.
+balance:
+  en-US:
+    author: {name: "Pocket Query", icon_url: "https://i.imgur.com/PsEXCuY.png"}
+    title: "☛ bob's Pocket"
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    fields:
+      - {name: "Balance", value: "1500 $", inline: false}
+      - {name: "Cost", value: "990 $", inline: false}
+  zh-TW:
+    author: {name: "口袋查詢", icon_url: "https://i.imgur.com/PsEXCuY.png"}
+    title: "☛ bob 的口袋"
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    fields:
+      - {name: "餘額", value: "1500 元", inline: false}
+      - {name: "總消費", value: "990 元", inline: false}
+no-permission:
+  en-US:
+    author: {name: "Pocket Failed", icon_url: "https://i.imgur.com/PsEXCuY.png"}
+    title: "You have no permission ><"
+    color: 16711680
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+  zh-TW:
+    author: {name: "口袋失敗", icon_url: "https://i.imgur.com/PsEXCuY.png"}
+    title: "你沒有權限 ><"
+    color: 16711680
+    footer: {text: "❖ ORDERLY SERVER ❖"}
