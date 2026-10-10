@@ -296,7 +296,7 @@ here; delete a section once it is empty.
 - Unverified without a real guild: Discord's `VOICE_CHANNEL_STATUS_UPDATE` payload (null or empty for a cleared status), whether Discord sends it when it clears a status by itself, whether type-192 and 193 entries carry `options.channel_id` and `options.status` as documented (or the channel in `target_id`), whether `options.status` is exactly the gateway's text (if not, set statuses show `-`), and how soon after the gateway event the entries exist.
 - After a discord.py upgrade, check the relay (discord.py's internal `ConnectionState.parsers`) and the audit log request (`HTTPClient.request` and `Route`); if discord.py starts parsing the event, the relay still runs after its parser.
 
-## ChatLogger (`port-chat-logger`)
+## ChatLogger (`port-chat-logger`, `chat-logger-split-storage`)
 
 ### User-visible changes
 - A deleted message's text leaves the store once its deletion is handled (v3 kept it).
@@ -310,6 +310,15 @@ here; delete a section once it is empty.
 - A webhook's edit shows the webhook's mention (v3: the placeholders themselves); a channel without a category shows `-`.
 - As in VoiceLogger: the menu answers in every channel, and logs reach listen channels of every kind; a deleted listen channel is forgotten and a refusing one no longer stops the others; a first selection keeps the allow mode; "Delete" deletes only that channel's settings; long lists end with `...`; settings of a guild the bot leaves are deleted at once.
 - The bundled `config.yaml` explains both keys and the Message Content intent (English comments).
+`chat-logger-split-storage`: messages are kept 5 years by default: the bundled `config.yaml` says `retention_days: 1826` (was 30), as the owner decided on 2026-10-10.
+`chat-logger-split-storage`: new config key `max_file_size_mb` (256 by default, 1 to 65536, with a comment): once the newest message file reaches that size, a new file starts.
+`chat-logger-split-storage`: the message log moved from `data/xincord.db` to `data/ChatLogger/messages-<UTC second>.db` in the `data` volume: no file before the first stored message, a new file at the size limit, and a file whose messages all expired is deleted whole. Backups must copy `data/ChatLogger/` too, best with the bot stopped.
+`chat-logger-split-storage`: with `log_all: true`, the messages of a guild the bot left now stay up to 5 years (the retention; see the choice on left guilds below).
+`chat-logger-split-storage`: new log lines: `ChatLogger started the message file ...` and `ChatLogger deleted the message file ..., whose messages all expired` (info); an error, once per episode, when a new file cannot be created; an error when an expired file cannot be deleted (it goes at the next start); a corrupt message file stops the plugin with an error that names it.
+`chat-logger-split-storage`: the `ChatLogger_messages` table of earlier xincord builds is dropped from `data/xincord.db` when the plugin loads, without its rows.
+`chat-logger-split-storage`: a message file that another program keeps locked for more than 5 seconds (a database browser holding a read transaction open) makes that message's storing, edit or deletion fail with an error; inspect copies of the files.
+`chat-logger-split-storage`: core: each plugin's context names a data directory, `data/<Name>/`, which the core never creates (`PluginContext.data_directory`; `Bot(...)` takes the required keyword `data`, and the program passes `data/`).
+`chat-logger-split-storage`: core, every plugin: a store write whose commit fails (another program holding a lock on `data/xincord.db` past 5 seconds) is rolled back and raises; before, a later write committed it.
 ### Choices made without the owner
 - Deleted messages: implemented removing their text once the deletion is handled; alternative: keeping it until the retention, as v3 kept it.
 - Threads: implemented detection through the parent channel and its category, or the thread's own ID; alternative: the thread's own ID only, as v3's allow mode.
@@ -320,9 +329,22 @@ here; delete a section once it is empty.
 - Left guilds with `log_all: true`: implemented keeping their messages until the retention, as v3 kept them; alternative: deleting them at the leave whatever `log_all` says.
 - Shared code: implemented `xincord.plugins.listen_channels` (settings, store, menu, posts, checks) for VoiceLogger and ChatLogger; alternative: two copies, as v3 had.
 - The READY check of the lists (both plugins): implemented asking Discord about each listed ID that discord.py has not cached and dropping it only on a 404, so archived threads stay; alternative: v3's dropping of every uncached ID, which unblocks a blocked thread after a restart.
+`chat-logger-split-storage`: file naming: implemented `messages-<UTC second where the file starts>.db` in ISO 8601's basic format (`messages-20261011T120005Z.db`), the names being the only record of the ranges; alternative: sequence numbers (`messages-0001.db`) with each file's range stored inside it.
+`chat-logger-split-storage`: size default: implemented 256 MiB; alternative: 1 GiB (fewer files, coarser expiry) or 64 MiB.
+`chat-logger-split-storage`: config keys: implemented `retention_days` kept with the default 1826 (5 x 365.25 days, rounded down) and `max_file_size_mb` in MiB from 1 to 65536 (the bound refuses a size typed in bytes); alternative: `retention_years`, or a size in bytes or GB.
+`chat-logger-split-storage`: when a file is too large: implemented a check of the newest file's page count after each message stored in it; alternative: a check every N messages, or a cap that makes SQLite refuse writes (`PRAGMA max_page_count`).
+`chat-logger-split-storage`: where a split falls: implemented the second after the newest stored message, so that no stored message moves; a late message for an older range still goes to that file, which can then pass the limit a little; alternative: splitting at the current time and moving rows.
+`chat-logger-split-storage`: the first file: implemented created with the first stored message and named after its second (none before any traffic, none under `--no-online`); alternative: created when the plugin loads, named after the load.
+`chat-logger-split-storage`: threads: implemented one thread for all of the plugin's files, one connection per file; alternative: a thread per file.
+`chat-logger-split-storage`: unload during traffic: implemented closing the files after the work already queued; a listener of the unloaded version that stores later fails, and discord.py logs it; alternative: waiting for the listeners still running.
+`chat-logger-split-storage`: a new file that keeps failing (a full disk): implemented a retry with every message stored in the full file, logged once per episode; alternative: retrying at most once a minute.
+`chat-logger-split-storage`: the old table: implemented `DROP TABLE IF EXISTS ChatLogger_messages` at every load; alternative: a one-off step in a migration.
+`chat-logger-split-storage`: the v3 import plan (`design.md`, "Migration"): implemented an import that refuses a `data/ChatLogger/` holding files and brings back v3's rows of deleted messages until the retention (v3 kept them); alternative: merging into existing files, or dropping v3's rows that could be deleted messages (they cannot be told apart).
 - Operator templates that put text around `%cl_msg_before%` or `%cl_msg_after%` (or move them into a title or the content) can exceed Discord's limits, and the log is then refused with a warning: implemented fitting the bare values only, as the shipped templates show them; alternative: clamping every rendered text in the core's renderer, for every plugin.
 ### Manual checks
-- Smoke checklist in `openspec/changes/archive/2026-10-10-port-chat-logger/design.md` (needs a token, a test guild and a second account).
+- Smoke checklist in `openspec/changes/archive/2026-10-10-port-chat-logger/design.md` (needs a token, a test guild and a second account); its steps 1 and 13, which look for `ChatLogger_messages` in `data/xincord.db`, are replaced by the checklist below.
+- Smoke checklist in `openspec/changes/archive/2026-10-11-chat-logger-split-storage/design.md`: a split at `max_file_size_mb: 1`, edits and deletions on both sides of it, a restart, the expiry of a whole file (needs a token, a test guild and a day).
+- `chat-logger-split-storage`: the image was checked with a probe that wrote message files into the named volume as uid 1000 (`design.md`, "Checks"); a run under compose with a token is still open.
 - Turn the Message Content intent on for the bot in the Discord developer portal (Bot, Privileged Gateway Intents) before enabling ChatLogger: without it, Discord refuses the bot's connection.
 - The bot needs View Channel and Read Message History in the logged channels, and View Channel, Send Messages and Embed Links in the listen channels.
 - Unverified without a real guild: whether Discord sends `MESSAGE_UPDATE` for pins and link previews and which previews it types `rich` (members' are never logged either way; a bot's rich preview would log an edit), and how long a large purge takes to post.

@@ -1,9 +1,11 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-11 after `custom-commands-from-config` (the owner's second follow-up change:
-CustomCommands defines its commands in its config file; with it, a core fix that keeps a plugin's
-previous version when its files break a reload), which followed `uptime-heartbeat-keep-pushing`,
-`rename-plugins` (the owner's plugin renames) and `port-giveaway`, the thirteenth plugin port.
+Updated 2026-10-11 after `chat-logger-split-storage` (the owner's third follow-up change:
+ChatLogger keeps 5 years of messages by default in its own SQLite files under `data/ChatLogger/`,
+a new file starting when the newest is full; with it, a data directory per plugin in the core and
+a core fix that rolls back a failed commit), which followed `custom-commands-from-config`,
+`uptime-heartbeat-keep-pushing`, `rename-plugins` (the owner's plugin renames) and
+`port-giveaway`, the thirteenth plugin port.
 Core is complete. Read this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The
 decisions are accepted and binding; do not re-open them unless you find a serious problem, and then
 ask the owner.
@@ -74,6 +76,8 @@ starting with Core. Motivation: easier maintenance and faster iteration.
     `enabled` (`python -m xincord.core.migrate_v3 <dir>`).
   - `xincord.core.storage`: `Store` over one SQLite connection on one worker thread; JSON values by
     namespace and key; `update` (atomic read-modify-write), `run` (plugin tables), `lock(key)`.
+    `run` rolls back when the commit itself fails (another connection's lock held past
+    `BUSY_TIMEOUT`, 5 s), since `chat-logger-split-storage`.
   - `xincord.core.i18n`: `export_lang`, `Lang.load` (locales, flattened YAML keys, Discord name
     rules, key-set warnings), `Lang.text` / `Lang.template` (fallback), `Lang.localization` (no
     fallback), `Lang.command` and `Translator`; `is_command_name` (Discord's name rules: letters,
@@ -105,9 +109,11 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   - `xincord.core.plugins`: `discover(enabled)` reads entry points (group `xincord.plugins`, name =
     plugin name) and the module constants `DEPENDS`, `SOFT_DEPENDS`, `INTENTS`, drops broken
     plugins, missing dependencies and cycles, and orders the rest with `graphlib`;
-    `required_intents`; `PluginContext` (`directory`, `store`, `config(Model)`, `lang(locale)`;
+    `required_intents`; `PluginContext` (`directory`, `store`, `data_directory` = `<data>/<Name>/`
+    for files a plugin keeps itself, never created by the core, `config(Model)`, `lang(locale)`;
     `reads` keeps what those returned, which a `replaying()` copy hands back).
-  - `xincord.core.bot.Bot(commands.Bot)`: created from the discovered plugins with their intents;
+  - `xincord.core.bot.Bot(commands.Bot)`: created from the discovered plugins with their intents,
+    `root` (`plugins/`) and the required keyword `data` (the plugins' data directories);
     `load_plugins()` (isolated failures, dependents skipped), `plugin_context(__name__)` for a
     plugin's `setup(bot)`, `load_plugin(info)` (hot load: refuses new intents or missing
     dependencies), `reload_plugin(name)` (with dependents; on a failure discord.py sets the
@@ -133,7 +139,8 @@ starting with Core. Motivation: easier maintenance and faster iteration.
     the summary; `plugin` autocompletes loaded plugins. `setup_hook` registers it.
   - `xincord.core.cli`: the `xincord` console script. `parse_args` (`--token`, `--level`,
     `--no-online`, `--force-renew-lang-resources` with v3's short forms) returns `Options`;
-    `run(options)` loads `config.yaml`, opens `data/xincord.db`, discovers `CoreConfig.plugins`
+    `run(options)` loads `config.yaml`, opens `data/xincord.db` (`DATA / "xincord.db"`; the bot
+    gets `DATA`, `data/`, for the plugins' data directories), discovers `CoreConfig.plugins`
     and either checks them offline (`--no-online`: load, unload, exit 0 or 1) or connects until
     SIGINT or SIGTERM closes the bot and the store; SIGHUP runs `bot.reload()`. Logs go to stderr
     only. On a terminal (not `--no-online`), `main` sets up logging inside
@@ -328,28 +335,40 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   Its settings, store, menu, posts and READY checks moved into `xincord.plugins.listen_channels`
   with port-chat-logger.
 - **ChatLogger** (`xincord.plugins.chat_logger`, `INTENTS = discord.Intents(guild_messages=True,
-  message_content=True)`, the second privileged, en-US and zh-TW, config `log_all` and
-  `retention_days`): the first plugin that stores message content and the first with a plugin table.
+  message_content=True)`, the second privileged, en-US and zh-TW, config `log_all`,
+  `retention_days` (1826, 5 years) and `max_file_size_mb` (256)): the first plugin that stores
+  message content and the first with files of its own.
   The listen channel code it shares with VoiceLogger is `xincord.plugins.listen_channels`, a package
   without an entry point: `settings.py` (`Setting`, `detects(setting, channel_id, *parents)`,
   `targets`, `list_text`, `units`), `store.py` (`ListenSettings(store, namespace)`) and `menu.py`
   (`Menu`, `ListenChannels`: `show`, `handle`, `post`, `check_guilds`); both cogs keep their command
-  group, `show_settings` and `handle`. `messages.py` keeps `ChatLogger_messages` in the core store
-  through `Store.run` (one table in `data/xincord.db`, v3's columns plus the guild and the channel;
-  the owner asked for own files instead, a follow-up change, section 6); `text.py` (`message_text`:
-  the content and the rich embeds; `fit`: 1024 UTF-16 code units; a member's embeds are previews and
-  left out); `created.py` (`parse_created`: a new message from the `MESSAGE_CREATE` payload that
-  `setup` relays, because `on_message`'s cached `Message` takes later edits in place); `logs.py`
-  (`Place.of`, `author_values`, `unknown_author`, `message_url`); `cog.py`:
-  `on_gateway_message_create` (its insert registers in `inserting`, and the edits and deletions of
-  that message wait for it), `on_raw_message_edit`, `on_raw_message_delete`,
-  `on_raw_bulk_message_delete` (a gone or refusing listen channel is tried once per purge:
-  `ListenChannels.post` returns it), the retention loop (started after the checks of a ready bot;
-  `prune` at READY and hourly, `sleep`), `on_guild_remove` and `check_guilds` (the shared check asks
-  Discord about uncached IDs, so archived threads stay). Reuse: `tests/support/payloads.py`,
-  `plugin_fakes.add_guild`, `gateway` and `burst` (frames parsed together, listeners as concurrent
-  tasks), the `scene` fixture, a `config` fixture that tests parametrize by name, `Hours` for a
-  loop's sleep and `discord_fakes.server_error()`.
+  group, `show_settings` and `handle`. Since `chat-logger-split-storage`, the stored messages are in
+  `data/ChatLogger/messages-<UTC second>.db` (`context.data_directory`; no file before the first
+  message): `files.py` names the files and routes an ID to the one whose range holds it (`route`,
+  `next_start`, `expired`); `messages.MessageFiles` keeps one connection per file on a thread of
+  its own (`open` in `cog_load`, `close` in `cog_unload` after the work under way and shielded from
+  cancellation, every method one job, each job's work in a file one `transaction` that rolls back a
+  failed commit), starts a new file after the newest stored ID once the newest file's page count
+  reaches the limit (built as `.tmp` and renamed closed; one error per failing episode), and
+  `prune` deletes expired files whole, then older rows in batches; `setup` drops the old
+  `ChatLogger_messages` table of `data/xincord.db`. The design of that change plans the import of
+  v3's message files (`xincord migrate`: an empty directory, copies of v3's files, a merge of
+  sorted cursors). `text.py` (`message_text`: the content and the rich embeds; `fit`: 1024 UTF-16
+  code units; a member's embeds are previews and left out); `created.py` (`parse_created`: a new
+  message from the `MESSAGE_CREATE` payload that `setup` relays, because `on_message`'s cached
+  `Message` takes later edits in place); `logs.py` (`Place.of`, `author_values`, `unknown_author`,
+  `message_url`); `cog.py`: `on_gateway_message_create` (its insert registers in `inserting`, and
+  the edits and deletions of that message wait for it), `on_raw_message_edit`,
+  `on_raw_message_delete`, `on_raw_bulk_message_delete` (a gone or refusing listen channel is tried
+  once per purge: `ListenChannels.post` returns it), the retention loop (started after the checks
+  of a ready bot; `prune` at READY and hourly, `sleep`), `on_guild_remove` and `check_guilds` (the
+  shared check asks Discord about uncached IDs, so archived threads stay). Reuse:
+  `tests/support/payloads.py`, `plugin_fakes.add_guild`, `gateway` and `burst` (frames parsed
+  together, listeners as concurrent tasks), the `scene` fixture, a `config` fixture that tests
+  parametrize by name, `Hours` for a loop's sleep, `discord_fakes.server_error()`, the `load`
+  fixture (unloads what a test loaded, closing its files), `write_file` (a message file as an
+  earlier run left it), `plugin_fakes.unclosed()` (leaked connections as an assertion) and
+  `MessageFiles` for any plugin whose data is kept for years.
 - **Giveaway** (`xincord.plugins.giveaway`, no intents, en-US and zh-TW plus a new `text.yaml` per
   locale holding the texts v3 wrote in Kotlin, config `defaultLocale`, `autoDrawIntervalSeconds`
   and the new `timeZone` as pydantic aliases): the first plugin with state between interactions, a
@@ -387,7 +406,8 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `port-basic-calculator`, `port-auto-role`, `port-bot-info`, `port-simple-command`,
 `port-welcome-bye-guild`, `port-interval-pusher`, `port-feedbacker`, `port-economy`,
 `port-dynamic-voice-channel`, `port-voice-logger`, `port-chat-logger`, `port-giveaway`,
-`rename-plugins`, `uptime-heartbeat-keep-pushing`, `custom-commands-from-config`. Each one's
+`rename-plugins`, `uptime-heartbeat-keep-pushing`, `custom-commands-from-config`,
+`chat-logger-split-storage`. Each one's
 `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
@@ -414,11 +434,12 @@ each one.
 
 The owner also asked for follow-up changes (section 6). Done: UptimeHeartbeat logs URLs as origins
 only and never stops a listener (`uptime-heartbeat-keep-pushing`); CustomCommands defines its
-commands in its config file (`custom-commands-from-config`). Not started yet: ChatLogger keeps 5
-years by default in its own files,
-starting a new file when one grows too large; the v3 data import (`xincord migrate`) before
-cutover, which must read a renamed plugin's v3 data from `plugins/<new name>/` once `migrate_v3`
-moved it (or from both places) and write the new store namespaces (`WelcomeGoodbye`).
+commands in its config file (`custom-commands-from-config`); ChatLogger keeps 5 years by default in
+its own files, starting a new file when one grows too large (`chat-logger-split-storage`). Not
+started yet: the v3 data import (`xincord migrate`) before cutover, which must read a renamed
+plugin's v3 data from `plugins/<new name>/` once `migrate_v3` moved it (or from both places), write
+the new store namespaces (`WelcomeGoodbye`), and import ChatLogger's message files as
+`chat-logger-split-storage`'s design plans ("Migration").
 
 ### Working tips from this session
 
@@ -486,7 +507,8 @@ Answered on 2026-10-10 (afternoon), from the review queue (the answered items we
 - **OrbStack:** Claude may start it and use it.
 - **ChatLogger:** the message log keeps 5 years by default and moves to its own files, starting a
   new file automatically when the current one grows too large (a follow-up change). This replaces
-  the shared-table answer to B8 and the 30-day default.
+  the shared-table answer to B8 and the 30-day default (`decisions.md`, Amendment 3). Done in
+  `chat-logger-split-storage` (2026-10-11); its choices are in the review queue.
 - **Data:** a v3 data import (`xincord migrate`, with a dry run and per-plugin counts) is built
   before cutover, covering Economy's wallets and the other data worth keeping, such as channel
   bindings. This reverses the deferral of Resolution 3 and B11 (`docs/porting/decisions.md`,
@@ -813,6 +835,28 @@ setup-uv v10.2.0, setup-node v7.1.0.
   derived from an object with the object (`Lang.parsed`).
 - A scratch pytest file outside the repository runs with the project's settings through `uv run
   pytest -c pyproject.toml --rootdir=. <file>` from the repository root.
+
+- Python 3.13+ `sqlite3` warns (`ResourceWarning`) when it collects a connection that nothing
+  closed; under `filterwarnings = error` the warning becomes an unraisable warning that fails
+  whichever test runs then, after the call phase that xfail watches. A cancelled task keeps its
+  exception, whose traceback keeps frames and their locals (the object that holds the connections)
+  alive. Assert `plugin_fakes.unclosed() == []`, or record the connections and check each:
+  `connection.total_changes` raises `ProgrammingError` on a closed connection, from any thread.
+- A commit that cannot get its lock (another connection reading past `timeout`, 5 s by default)
+  raises and leaves the write transaction open; the next commit on that connection applies it.
+  Commit inside the `try` that rolls back (`Store.run`, ChatLogger's `transaction`).
+- Cancelling the await of `loop.run_in_executor(...)` cancels the job if it has not started:
+  submit a job that must run with `executor.submit` and await it through `asyncio.shield`.
+  `ThreadPoolExecutor.shutdown(wait=False)` still runs the jobs queued before it.
+- SQLite names a file's journal after the path its connection opened: rename a database file only
+  while no connection has it open. `PRAGMA page_count` times `page_size` is the file's size in
+  constant time; deleted rows leave free pages that only `VACUUM` gives back.
+- discord.py's `Cog._inject` runs `cog_load` before anything else and does not call `cog_unload`
+  when `cog_load` raises: a `cog_load` that opens resources closes them itself on failure. A setup
+  that fails after `add_cog` makes discord.py remove the cog, which runs `cog_unload`.
+- `docker compose run --rm -T -v <script>:/probe.py:ro --entrypoint python bot /probe.py` runs a
+  scratch script in the image as uid 1000 against the named volume (`docker compose down -v`
+  afterwards).
 
 **v3 behaviors never to reproduce:** loading plugins in reverse dependency order, non-atomic JSON
 writes that reset corrupt files, recursive placeholder expansion, shared mutable placeholder
