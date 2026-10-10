@@ -33,7 +33,7 @@
 
 - [x] 6.1 xfail tests for "The guild and the owner are checked when the bot is ready" against a
       stub `check`
-- [ ] 6.2 Implement the check on ready and on a load into a ready bot; remove the markers
+- [x] 6.2 Implement the check on ready and on a load into a ready bot; remove the markers
 
 ## 7. Conventions and docs
 

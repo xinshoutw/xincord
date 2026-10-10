@@ -9,14 +9,14 @@ Kotlin:
 import logging
 from typing import TYPE_CHECKING
 
-import pytest
-
 import payloads
 from plugin_fakes import add_guild, dispatch, load_plugin
 from xincord.core.bot import Bot
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import pytest
 
     from conftest import Scene
     from xincord.core.storage import Store
@@ -41,11 +41,6 @@ async def load(store: Store, tmp_path: Path) -> Bot:
     return await load_plugin("TicketAwayNotice", tmp_path / "plugins", store, config=CONFIG)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The guild and the owner are checked when the bot is ready",
-)
 async def test_ready_without_the_guild(
     store: Store, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -59,11 +54,6 @@ async def test_ready_without_the_guild(
     assert plugin_warnings(caplog) == [NO_GUILD]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The guild and the owner are checked when the bot is ready",
-)
 async def test_ready_without_the_owner(
     store: Store, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -77,11 +67,6 @@ async def test_ready_without_the_owner(
     assert plugin_warnings(caplog) == [NO_OWNER]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The guild and the owner are checked when the bot is ready",
-)
 async def test_ready_with_both(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The guild and the owner are checked when the bot is ready."""
     with caplog.at_level(logging.WARNING):
@@ -90,7 +75,6 @@ async def test_ready_with_both(scene: Scene, caplog: pytest.LogCaptureFixture) -
     assert plugin_warnings(caplog) == []
 
 
-@pytest.mark.xfail(strict=True, reason="The guild and the owner are checked when the bot is ready")
 async def test_loaded_into_a_ready_bot(
     store: Store, tmp_path: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -108,11 +92,6 @@ async def test_loaded_into_a_ready_bot(
     assert plugin_warnings(caplog) == [NO_GUILD]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The guild and the owner are checked when the bot is ready",
-)
 async def test_unavailable_guild(
     store: Store, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:

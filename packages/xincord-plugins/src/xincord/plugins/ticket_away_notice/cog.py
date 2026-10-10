@@ -99,8 +99,21 @@ class TicketAwayNotice(commands.Cog):
         self.check()
 
     def check(self) -> None:
-        """Warn about a configured guild that the bot is not in and an owner who is not in it."""
-        raise NotImplementedError
+        """Warn about a configured guild that the bot is not in and an owner who is not in it.
+
+        With the members intent, discord.py fires ``on_ready`` once it cached the guilds' members;
+        an unavailable guild (an outage) has none to look at. v3 checked nothing, and with its
+        guild filter broken (B1), a wrong ``guild_id`` went unnoticed.
+        """
+        guild = self.bot.get_guild(self.config.guild_id)
+        if guild is None:
+            logger.warning(
+                "TicketAwayNotice watches no channels: the bot is not in guild %s",
+                self.config.guild_id,
+            )
+            return
+        if not guild.unavailable and guild.get_member(self.config.user_id) is None:
+            _not_a_member(guild, self.config.user_id)
 
     @commands.Cog.listener()
     async def on_guild_channel_create(self, channel: discord.abc.GuildChannel) -> None:
