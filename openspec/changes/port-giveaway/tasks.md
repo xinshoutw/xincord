@@ -140,7 +140,7 @@
       presses, state left behind); fix each finding xfail-first
 - [x] 25.3 xfail test for "Acknowledgement fails" (found during the review: a confirmation whose
       deferral Discord refused had already taken the draft, which was lost)
-- [ ] 25.4 Give the draft back whenever no giveaway was posted; remove the marker
+- [x] 25.4 Give the draft back whenever no giveaway was posted; remove the marker
 
 ## 26. Close
 

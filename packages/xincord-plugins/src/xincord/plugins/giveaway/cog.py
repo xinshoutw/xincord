@@ -482,24 +482,28 @@ class Giveaway(commands.Cog):
         stays, and ``create-failed`` tells the user why; v3 replaced the builder and kept an
         orphaned draft, or said nothing for the errors that JDA threw before sending.
         """
-        user_id, guild_id = interaction.user.id, cast("int", interaction.guild_id)
-        del self.drafts[user_id, guild_id]
-        await interaction.response.defer()  # v3's deferEdit: the builder stays for now
+        key = (interaction.user.id, cast("int", interaction.guild_id))
+        del self.drafts[key]
         try:
-            posted = await self._create(interaction, guild_id, session.draft)
+            await interaction.response.defer()  # v3's deferEdit: the builder stays for now
+            posted = await self._create(interaction, key[1], session.draft)
         except PostError as error:
+            self.drafts.setdefault(key, session)  # nothing was posted: the draft comes back
             logger.warning(
                 "Giveaway cannot post a giveaway in channel %s of guild %s: %s",
                 interaction.channel_id,
-                guild_id,
+                key[1],
                 error,
             )
-            self.drafts.setdefault((user_id, guild_id), session)
             failed = self._render(interaction, "create-failed", {"ga@error": str(error)})
             await interaction.followup.send(
                 content=failed.content, embeds=failed.embeds, ephemeral=True
             )
             return
+        except BaseException:
+            # Discord refused the acknowledgement, or the task was cancelled, before any post.
+            self.drafts.setdefault(key, session)
+            raise
         finished = self._render(interaction, "create-finished", {"ga@jump-url": posted.jump_url})
         await interaction.edit_original_response(
             content=finished.content,

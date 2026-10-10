@@ -289,7 +289,6 @@ async def test_post_cannot_be_deleted(
     assert "Giveaway cannot delete the post 500, which it did not store" in caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason="A giveaway that cannot be posted keeps the builder")
 async def test_acknowledgement_fails(scene: Scene, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: A giveaway that cannot be posted keeps the builder."""
     scene.keep(COMPLETE)
