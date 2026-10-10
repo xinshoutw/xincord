@@ -13,13 +13,16 @@ from typing import TYPE_CHECKING, Any, cast
 import discord
 import pytest
 
-from discord_fakes import FakeGuild, FakeInteraction, FakeMember, embed_dict
+from discord_fakes import FakeGuild, FakeInteraction, FakeMember, FakeMessage, buttons, embed_dict
 from plugin_fakes import golden
 from xincord.plugins.economy.cog import IDS
 from xincord.plugins.economy.store import NAMESPACE, change
 from xincord.plugins.economy.wallet import OPERATIONS
 
 if TYPE_CHECKING:
+    from discord.types.components import ActionRow as ActionRowPayload
+
+    from xincord.core.bot import Bot
     from xincord.core.storage import Store
     from xincord.plugins.economy.cog import Economy
 
@@ -106,3 +109,38 @@ async def test_select_menu_or_modal(cog: Economy) -> None:
     await cog.handle(modal.as_interaction(), IDS.parse(NEW_ID))
 
     assert select.sent == modal.sent == []
+
+
+def posted(custom_id: str, interaction: FakeInteraction) -> FakeMessage:
+    """A message of the bot with one button ``custom_id``, as an operator's template posts it."""
+    button = {"type": 2, "style": 1, "custom_id": custom_id, "label": "Pocket"}
+    payload = cast("ActionRowPayload", {"type": 1, "components": [button]})
+    return FakeMessage([discord.ActionRow(payload)], interaction.sent)
+
+
+@pytest.mark.xfail(strict=True, reason="Economy buttons show the presser's wallet")
+async def test_v3_button_routed(bot: Bot, store: Store) -> None:
+    """Requirement: Economy buttons show the presser's wallet."""
+    await give_bob(store)
+    interaction = press("economy@")
+    interaction.message = posted("economy@", interaction)
+
+    await bot.on_interaction(interaction.as_interaction())
+
+    assert shown(interaction) == [GOLDEN["balance"]["en-US"]]
+    method, fields = interaction.sent[2]  # the core's upgrade after the handler
+    assert method == "message.edit"
+    assert buttons(fields["view"]) == [("Pocket", "economy:1:")]
+
+
+@pytest.mark.xfail(strict=True, reason="Economy buttons show the presser's wallet")
+async def test_new_button_routed(bot: Bot, store: Store) -> None:
+    """Requirement: Economy buttons show the presser's wallet."""
+    await give_bob(store)
+    interaction = press()
+    interaction.message = posted(NEW_ID, interaction)
+
+    await bot.on_interaction(interaction.as_interaction())
+
+    assert shown(interaction) == [GOLDEN["balance"]["en-US"]]
+    assert len(interaction.sent) == 2  # a new ID needs no upgrade

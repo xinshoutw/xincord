@@ -170,3 +170,158 @@ boards:
       title: "☛ 總消費"
       footer: {text: "❖ ORDERLY SERVER ❖"}
       description: "1.\t<@3>\n9 元\n\n2.\t<@2>\n5 元\n\n3.\t<@4>\n1 元\n\n"
+
+# The translated payloads of the nine guild commands; keys that are not listed here are not
+# compared. 8 is the Administrator permission; option type 6 is a user and 4 an integer. The
+# texts come from v3's Register.kt and register.yaml.
+commands:
+  - type: 1
+    name: "balance"
+    description: "Get current money from member"
+    nsfw: false
+    default_member_permissions: null
+    options:
+      - type: 6
+        name: "member"
+        description: "Specify the member to query."
+        required: false
+        name_localizations: {"en-US": "member", "zh-TW": "成員"}
+        description_localizations: {"en-US": "who", "zh-TW": "誰"}
+    name_localizations: {"en-US": "balance", "zh-TW": "金錢"}
+    description_localizations: {"en-US": "get current balance detail from member", "zh-TW": "取得成員金錢紀錄"}
+  - type: 1
+    name: "top-money"
+    description: "Get leaderboard for money"
+    nsfw: false
+    default_member_permissions: 8
+    options: []
+    name_localizations: {"en-US": "top-money", "zh-TW": "餘額排行"}
+    description_localizations: {"en-US": "get board from money", "zh-TW": "取得餘額排行"}
+  - type: 1
+    name: "top-cost"
+    description: "Get leaderboard from log money"
+    nsfw: false
+    default_member_permissions: 8
+    options: []
+    name_localizations: {"en-US": "top-cost", "zh-TW": "消費紀錄排行"}
+    description_localizations: {"en-US": "get board from cost", "zh-TW": "取得消費紀錄排行"}
+  - type: 1
+    name: "add-money"
+    description: "Add money to member's balance"
+    nsfw: false
+    default_member_permissions: 8
+    options:
+      - type: 6
+        name: "member"
+        description: "Specify the member to modify."
+        required: true
+        name_localizations: {"en-US": "member", "zh-TW": "成員"}
+        description_localizations: {"en-US": "who", "zh-TW": "誰"}
+      - type: 4
+        name: "value"
+        description: "Specify the amount to add."
+        required: true
+        name_localizations: {"en-US": "value", "zh-TW": "金額"}
+        description_localizations: {"en-US": "how much", "zh-TW": "多少"}
+    name_localizations: {"en-US": "add-money", "zh-TW": "增加餘額"}
+    description_localizations: {"en-US": "add money to member", "zh-TW": "增加成員餘額"}
+  - type: 1
+    name: "remove-money"
+    description: "Remove money from member's balance"
+    nsfw: false
+    default_member_permissions: 8
+    options:
+      - type: 6
+        name: "member"
+        description: "Specify the member to modify."
+        required: true
+        name_localizations: {"en-US": "member", "zh-TW": "成員"}
+        description_localizations: {"en-US": "who", "zh-TW": "誰"}
+      - type: 4
+        name: "value"
+        description: "Specify the amount to remove."
+        required: true
+        name_localizations: {"en-US": "value", "zh-TW": "金額"}
+        description_localizations: {"en-US": "how much", "zh-TW": "多少"}
+    name_localizations: {"en-US": "remove-money", "zh-TW": "移除餘額"}
+    description_localizations: {"en-US": "remove money from member", "zh-TW": "移除成員餘額"}
+  - type: 1
+    name: "set-money"
+    description: "Set money to member's balance"
+    nsfw: false
+    default_member_permissions: 8
+    options:
+      - type: 6
+        name: "member"
+        description: "Specify the member to modify."
+        required: true
+        name_localizations: {"en-US": "member", "zh-TW": "成員"}
+        description_localizations: {"en-US": "who", "zh-TW": "誰"}
+      - type: 4
+        name: "value"
+        description: "Specify the new balance."
+        required: true
+        name_localizations: {"en-US": "value", "zh-TW": "金額"}
+        description_localizations: {"en-US": "how much", "zh-TW": "多少"}
+    name_localizations: {"en-US": "set-money", "zh-TW": "設定餘額"}
+    description_localizations: {"en-US": "set money to member", "zh-TW": "設定成員餘額"}
+  - type: 1
+    name: "add-cost"
+    description: "Add money log to member"
+    nsfw: false
+    default_member_permissions: 8
+    options:
+      - type: 6
+        name: "member"
+        description: "Specify the member to modify."
+        required: true
+        name_localizations: {"en-US": "member", "zh-TW": "成員"}
+        description_localizations: {"en-US": "who", "zh-TW": "誰"}
+      - type: 4
+        name: "value"
+        description: "Specify the amount to add."
+        required: true
+        name_localizations: {"en-US": "value", "zh-TW": "金額"}
+        description_localizations: {"en-US": "how much", "zh-TW": "多少"}
+    name_localizations: {"en-US": "add-cost", "zh-TW": "增加消費紀錄"}
+    description_localizations: {"en-US": "add cost to member", "zh-TW": "增加成員消費紀錄"}
+  - type: 1
+    name: "remove-cost"
+    description: "Remove money log to member"
+    nsfw: false
+    default_member_permissions: 8
+    options:
+      - type: 6
+        name: "member"
+        description: "Specify the member to modify."
+        required: true
+        name_localizations: {"en-US": "member", "zh-TW": "成員"}
+        description_localizations: {"en-US": "who", "zh-TW": "誰"}
+      - type: 4
+        name: "value"
+        description: "Specify the amount to remove."
+        required: true
+        name_localizations: {"en-US": "value", "zh-TW": "金額"}
+        description_localizations: {"en-US": "how much", "zh-TW": "多少"}
+    name_localizations: {"en-US": "remove-cost", "zh-TW": "移除消費紀錄"}
+    description_localizations: {"en-US": "remove cost from member", "zh-TW": "移除成員消費紀錄"}
+  - type: 1
+    name: "set-cost"
+    description: "Set money log to member"
+    nsfw: false
+    default_member_permissions: 8
+    options:
+      - type: 6
+        name: "member"
+        description: "Specify the member to modify."
+        required: true
+        name_localizations: {"en-US": "member", "zh-TW": "成員"}
+        description_localizations: {"en-US": "who", "zh-TW": "誰"}
+      - type: 4
+        name: "value"
+        description: "Specify the new balance."
+        required: true
+        name_localizations: {"en-US": "value", "zh-TW": "金額"}
+        description_localizations: {"en-US": "how much", "zh-TW": "多少"}
+    name_localizations: {"en-US": "set-cost", "zh-TW": "設定消費紀錄"}
+    description_localizations: {"en-US": "set cost to member", "zh-TW": "設定成員消費紀錄"}

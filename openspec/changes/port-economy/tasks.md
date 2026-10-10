@@ -56,7 +56,7 @@
 
 ## 11. Commands
 
-- [ ] 11.1 xfail tests for "The commands are localized guild commands"
+- [x] 11.1 xfail tests for "The commands are localized guild commands"
 - [ ] 11.2 Build the nine commands, register them and route `IDS` in `setup`; remove the markers
 
 ## 12. Conventions and docs
