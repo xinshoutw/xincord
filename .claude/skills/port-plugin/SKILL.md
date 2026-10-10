@@ -31,8 +31,9 @@ Names: `<Plugin>` is the v3 name (`AutoRole`, `_Example`), `<kebab>` its kebab c
    (`docs(plugin-<kebab>): propose port-<kebab>`).
 3. **Resources.** Copy v3's `config.yaml` and lang files into the package (fix missing final
    newlines and CRLF line endings), example values only: never real IDs, account numbers or
-   tokens. A list whose v3 default held real IDs ships empty, with placeholder IDs in a comment
-   (AutoRole's `guilds`); a template whose v3 text held a real account number gets an all-zero
+   tokens. A list whose v3 default held real IDs or pointed at the owner's servers ships empty,
+   with placeholder values in a comment (AutoRole's `guilds`, IntervalPusher's `listeners` on
+   `status.example.com`); a template whose v3 text held a real account number gets an all-zero
    example under a comment that asks the operator to put theirs (SimpleCommand). Copy such files
    with a script that replaces the value, and check that no real number remains, instead of
    reading the real values.
@@ -57,7 +58,9 @@ Names: `<Plugin>` is the v3 name (`AutoRole`, `_Example`), `<kebab>` its kebab c
    with `Interaction.edit_original_response` patched; for listeners, set `bot.loop`, add a guild
    with `state._add_guild_from_data(...)` and feed `state.parse_guild_member_add(...)` and the like.
    WelcomeByeGuild's probe found a core failure (threads with an uncached parent) that the fakes
-   hid.
+   hid. A plugin that calls Discord's REST API on its own (IntervalPusher's ping) logs in against a
+   local server: point `discord.http.Route.BASE` at it, call `bot.http.static_login(...)` inside
+   `async with bot`, run `setup_hook`, and set `bot._ready` for READY.
 8. **Document.** `docs/porting-guide.md`: differences rows, new pitfalls, convention changes. Audit
    the inventory: each behavior is a scenario with a test, or out of scope or a v3 difference in
    `design.md`, with the reason.
@@ -105,8 +108,9 @@ async def setup(bot: Bot) -> None:
   cache is empty. Work that needs guild data runs from an `on_ready` listener and from `cog_load`
   when `self.bot.is_ready()`, because a plugin reloaded into a running bot gets no `on_ready`
   (AutoRole's `check`); it skips guilds that are `unavailable` (an outage: no roles, `guild.me` is
-  None). A task awaiting `bot.wait_until_ready()` raises in tests, where the bot never logs in.
-  Stop loops in `cog_unload`.
+  None). Background loops are tasks that `cog_load` creates and that await
+  `bot.wait_until_ready()` first; `cog_unload` cancels and awaits them (see "Background loops and
+  HTTP").
 - Unloading and reloading remove the cog, the tree commands whose callback lives in the package and
   the routes; release anything else in `cog_unload`.
 - `DEFAULT_LOCALE` is v3's default locale (zh-TW in every v3 plugin so far). A plugin without text
@@ -201,6 +205,26 @@ async def setup(bot: Bot) -> None:
   `logging.getLogger(__name__)` that name the plugin; Discord errors on one item are logged and the
   others still handled.
 
+### Background loops and HTTP
+
+- One `asyncio` task per loop, created in `cog_load` and kept on the cog (IntervalPusher's
+  `tasks`), awaits `bot.wait_until_ready()` first: nothing runs before READY, `--no-online` (whose
+  `async with bot` creates a READY event that never fires) cancels the waiting tasks when it
+  unloads the plugin, and a plugin reloaded into a ready bot starts at once. `cog_unload` cancels
+  the tasks and awaits them, so their resources close before the bot's HTTP client.
+- v3's `delay(...)` after each iteration is a fixed delay: `while await step(): await
+  sleep(seconds)`. `discord.ext.tasks.loop` schedules from each start (a fixed rate). Pass the
+  loop's effects in (the request, the ping, `sleep`) so that tests drive it on a fake clock
+  (IntervalPusher's `Pusher`).
+- A failed step is logged and the loop goes on: catch the expected errors (`aiohttp.ClientError`,
+  `OSError`, timeouts included) without a traceback and any other `Exception` with
+  `logger.exception`. `asyncio.CancelledError` is no `Exception`, so cancellation stays quiet.
+- Outgoing HTTP uses aiohttp, which discord.py installs and `xincord-plugins` declares: one
+  `ClientSession` per loop, opened after READY with v3's limits as `ClientTimeout` and closed with
+  the loop (`async with`); `allow_redirects=False` matches Java's `HttpClient`.
+- A Discord REST call that JDA made without a discord.py counterpart goes through
+  `bot.http.request(discord.http.Route(method, path))` (IntervalPusher's `rest_ping`).
+
 ### Templates and placeholders
 
 - `Templates.load(lang)` in `setup`, so a broken template disables the plugin at load. Render with
@@ -267,6 +291,15 @@ async def setup(bot: Bot) -> None:
   logged in). For guild data, `monkeypatch.setattr(bot, "get_guild", guilds.get)`; for a load into a
   ready bot, patch `Bot.is_ready` and `Bot.get_guild` before `load_plugin` (AutoRole's
   `test_check.py`).
+- Loops (IntervalPusher's `conftest.py`): an autouse `ready` fixture builds
+  `plugin_fakes.Ready(monkeypatch)`, which patches `Bot.wait_until_ready` (discord.py's raises
+  before a login) and offers `set()`, `waiters(n)` and `close()`, which cancels the tasks left
+  running at teardown; an autouse fixture patches `discord.http.HTTPClient.request` to record REST
+  calls; `http_fakes.running_monitor()` runs `Monitor`, a local HTTP server that answers each path
+  with a status, can leave requests unanswered (answered when it closes, or its teardown waits for
+  the client's timeout) and records them. Never sleep in real time: inject the clock, and wait on
+  events (`monitor.received(n)`, `ready.waiters(n)`) under a timeout. `bot.remove_cog(name)` runs
+  `cog_unload` without unloading the plugin's modules.
 - `tests/fixtures/plugins/<package>/golden.yaml`, loaded with `plugin_fakes.golden("<package>")`:
   v3's text per locale. Compare rendered embeds and buttons, and the command payload from
   `CommandTree.payloads()`, with it; no CJK text is typed in Python.

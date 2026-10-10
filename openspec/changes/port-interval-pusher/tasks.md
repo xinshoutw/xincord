@@ -47,7 +47,7 @@
 
 - [x] 9.1 Check that the built wheel ships `config.yaml` and that `xincord --no-online` loads the
       plugin; drive it once through discord.py's own objects
-- [ ] 9.2 Porting guide rows and pitfalls, and skill corrections (background loops, outgoing HTTP,
+- [x] 9.2 Porting guide rows and pitfalls, and skill corrections (background loops, outgoing HTTP,
       the new test helpers)
 - [ ] 9.3 Audit the inventory against the scenarios and the design
 

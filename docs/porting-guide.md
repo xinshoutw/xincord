@@ -33,6 +33,10 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `GuildMemberRemoveEvent` / `GuildLeaveEvent` | `on_raw_member_remove` (also uncached members) / `on_guild_remove` | B3 |
 | kotlinx/Jackson YAML config | pydantic v2 models over PyYAML; unknown keys warn | B6 |
 | Coroutines, `launch`, scheduled executors | `asyncio` tasks, `discord.ext.tasks.loop` | |
+| A `CoroutineScope` job started in `load()` and cancelled in `unload()` | an `asyncio` task per loop created in `cog_load`, awaiting `bot.wait_until_ready()` first, cancelled and awaited in `cog_unload` (IntervalPusher) | B3 |
+| `delay(ms)` after each iteration (a fixed delay) | `while await step(): await sleep(seconds)` with `sleep` passed in; `tasks.loop` is a fixed rate | |
+| Java `HttpClient` | `aiohttp.ClientSession` (installed with discord.py, declared by `xincord-plugins`) with `ClientTimeout`; `allow_redirects=False` keeps Java's default | |
+| `jdaBot.restPing` | time `bot.http.request(discord.http.Route("GET", "/users/@me"))` (IntervalPusher's `rest_ping`); discord.py has no REST ping | |
 | JLine console (`JLineManager`, `JLineAppender`), `--ignore-update` | prompt_toolkit console (`xincord.core.console`; logs print above the prompt through `patch_stdout`), SIGHUP reload, `/xincord reload`; no version check | B15 |
 | `Server/start`: `java -jar` with the token on the command line | `compose.yaml` and the `Dockerfile` image; the token goes in `bot/config.yaml` | B16 |
 | `java -jar` with Clikt options | the `xincord` console script (`xincord.core.cli`, argparse); `--no-online` loads the plugins without connecting and exits | B15 |
@@ -137,6 +141,14 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - A runtime Administrator check (v3's `member.hasPermission(ADMINISTRATOR)`) reads
   `interaction.permissions.administrator`; replies v3 rendered in the guild's locale use
   `(interaction.guild_locale or interaction.locale).value` (WelcomeByeGuild).
+- A background loop is a task per loop that `cog_load` creates and that awaits
+  `bot.wait_until_ready()` first, so nothing runs before READY or under `--no-online`, and a
+  plugin reloaded into a ready bot starts at once; `cog_unload` cancels the tasks and awaits them.
+  The loop's effects (the request, the clock's `sleep`) are passed in, so that tests run it on a
+  fake clock; one failed step is logged and the loop goes on (IntervalPusher's `Pusher` and cog).
+- Outgoing HTTP goes through aiohttp, one `ClientSession` per loop opened after READY and closed
+  with the loop (IntervalPusher's `open_session`); tests send it to `http_fakes.Monitor`, a local
+  server.
 
 ## Pitfalls
 
@@ -172,6 +184,20 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   overwrites the way JDA does; merge them explicitly (Ticket).
 - **IntervalPusher.** `tasks.loop` schedules from each start, not after each completion as Kotlin
   did. discord.py has no REST ping; time `GET /users/@me` to keep `%ping%`.
+- **`wait_until_ready` before a login.** discord.py creates the READY event in `login` or
+  `async with bot`, and `wait_until_ready` raises before that, as in tests, which never log in:
+  `plugin_fakes.Ready` stands for READY there. `--no-online` enters `async with bot`, so a loop
+  waits for a READY that never comes until `close` unloads the plugin and cancels it.
+- **Cancellation.** `asyncio.CancelledError` is a `BaseException`: `except Exception` does not
+  catch it, so a cancelled loop ends quietly. Kotlin's `catch (e: Exception)` caught
+  `CancellationException` and logged a spurious failure (IntervalPusher).
+- **aiohttp test servers.** `RawTestServer.close()` waits for the requests still in flight, so a
+  request a test leaves unanswered holds the teardown until the client's timeout;
+  `http_fakes.Monitor` answers its silent requests when it closes. Autouse fixtures are torn down
+  last, after the fixtures a test requests.
+- **Logging in `except`.** ruff's TRY400 wants `logger.exception` instead of `logger.error` in an
+  `except` block (add `# noqa: TRY400` where a traceback is noise, such as a network error), and
+  TRY401 refuses the exception object in a `logger.exception` call: the traceback shows it.
 - **Exact decimals.** `decimal` defaults to 28 digits, and `Fraction` reduces with a gcd that costs
   75 to 180 ms per operation at 100,000 digits. BasicCalculator models Java's `BigDecimal` as an
   unscaled integer and a scale, which costs a few milliseconds there.
@@ -352,3 +378,10 @@ Every deliberate difference, added by the change that introduces it.
 | WelcomeByeGuild | a welcome or bye message that Discord refused surfaced as JDA's exception log | a warning names the guild and the channel | port-welcome-bye-guild |
 | WelcomeByeGuild | the commands needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers them | port-welcome-bye-guild |
 | WelcomeByeGuild | the zh-TW `welcome` and `bye` texts had typos | corrected in the bundled files | port-welcome-bye-guild |
+| IntervalPusher | an `interval` of 0 or less made the loop push without pause | the plugin does not load, and the error names `listeners.<n>.interval` | port-interval-pusher |
+| IntervalPusher | the URL was not checked, so a URL without a scheme, with another scheme or with a space failed at every push | the plugin does not load unless each `url` is an http or https URL with a host | port-interval-pusher |
+| IntervalPusher | stopping a pusher while it waited for the ping logged a spurious `Query URL ... failed` error | a cancelled loop logs nothing | port-interval-pusher |
+| IntervalPusher | the REST ping was requested at every push | only for URLs that contain `%ping%` | port-interval-pusher |
+| IntervalPusher | the bundled `config.yaml` held a listener on the owner's status domain | it lists no listeners and shows an example on `status.example.com` in a comment | port-interval-pusher |
+| IntervalPusher | a config without `listeners` or with an unknown key stopped the whole bot, even with the plugin disabled | only IntervalPusher is disabled, unknown keys warn, and the file is read only when `plugins` lists it | port-interval-pusher |
+| IntervalPusher | log lines did not say which listener (`Status Monitor refused the connection! (Code: 404)!`) | English lines that number the listener, at v3's levels | port-interval-pusher |
