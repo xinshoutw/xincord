@@ -85,7 +85,7 @@
 - [x] 14.4 xfail tests for "Status changes are posted in order from the current session" (found in
       the review: a change waiting for its entry was posted after a later one, and tracked statuses
       outlived sessions, outages and left guilds)
-- [ ] 14.5 Post each channel's status changes under a lock and forget the tracked statuses with
+- [x] 14.5 Post each channel's status changes under a lock and forget the tracked statuses with
       sessions, outages and left guilds; remove the markers
 - [ ] 14.6 xfail test for "A key that is not a guild ID" (found in the review: such a key stopped the
       checks and the load into a ready bot), and a test of the list check on that load

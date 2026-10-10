@@ -278,12 +278,6 @@ async def test_typed_text_stays(scene: Scene) -> None:
     assert posted["fields"][3]["value"] == typed
 
 
-SESSION = pytest.mark.xfail(
-    strict=True, reason="Status changes are posted in order from the current session"
-)
-
-
-@SESSION
 async def test_a_change_waits_for_its_entry(
     scene: Scene, cog: VoiceLogger, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -316,7 +310,6 @@ async def test_a_change_waits_for_its_entry(
     assert [post["title"] for post in scene.posts(5)] == [new, delete, new]
 
 
-@SESSION
 async def test_a_new_session_or_an_outage(scene: Scene) -> None:
     """Requirement: Status changes are posted in order from the current session."""
     # JDA rebuilt its cache from the new session's channels, which hold no status.
@@ -332,7 +325,6 @@ async def test_a_new_session_or_an_outage(scene: Scene) -> None:
     assert scene.posts(5) == [GOLDEN["status"]["en-US"]["new"]] * 3
 
 
-@SESSION
 async def test_the_bot_leaves(scene: Scene, cog: VoiceLogger) -> None:
     """Requirement: Status changes are posted in order from the current session."""
     await scene.listen(5, [30])

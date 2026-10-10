@@ -23,6 +23,7 @@ from .logs import UNKNOWN_MEMBER, Place, voice_change
 from .settings import list_text, targets
 from .status import ENTRIES, classify, find_actor, parse_update
 from .store import (
+    NAMESPACE,
     DataError,
     add_channels,
     forget,
@@ -86,9 +87,9 @@ class VoiceLogger(commands.Cog):
         self.store = store
         self.lang = lang
         self.templates = templates
-        # Each voice channel's status from Discord's updates, as JDA's cache kept it; empty ones
-        # are left out.
-        self.statuses: dict[int, str] = {}
+        # Each guild's voice channel statuses from Discord's updates in this session, as JDA's
+        # cache kept them; empty ones are left out.
+        self.statuses: dict[int, dict[int, str]] = {}
         self.sleep: Sleep = asyncio.sleep  # before the audit log is read again
 
     def command(self) -> app_commands.Group:
@@ -196,8 +197,9 @@ class VoiceLogger(commands.Cog):
 
         ``setup`` relays the gateway event, which discord.py does not parse. Statuses are tracked
         from these events, as JDA's channel cache did: Discord sends them in no channel object, so
-        a status not seen since the plugin loaded is empty. Only cached voice channels count, as
-        JDA's ``VoiceChannel`` lookup. The cache is read before anything awaits.
+        a status not seen in this session is empty. Only cached voice channels count, as JDA's
+        ``VoiceChannel`` lookup. The cache is read before anything awaits, and one channel's
+        changes are posted in the order they arrive, also when one waits for its audit log entry.
         """
         update = parse_update(payload)
         if update is None:
@@ -209,24 +211,38 @@ class VoiceLogger(commands.Cog):
         channel = None if guild is None else guild.get_channel(update.channel_id)
         if guild is None or channel is None or channel.type is not discord.ChannelType.voice:
             return
-        old = self.statuses.pop(channel.id, "")
+        known = self.statuses.setdefault(guild.id, {})
+        old = known.pop(channel.id, "")
         if update.status:
-            self.statuses[channel.id] = update.status
+            known[channel.id] = update.status
         name = classify(old, update.status)
         if name is None:
             return
         place, at = Place.of(channel), discord.utils.utcnow()
+        # The lock hands the channel's changes over in arrival order.
+        async with self.store.lock(f"{NAMESPACE}:status:{place.id}"):
+            await self._log_status(guild, place, name, (old, update.status), at)
+
+    async def _log_status(
+        self, guild: discord.Guild, place: Place, name: str, change: tuple[str, str], at: datetime
+    ) -> None:
+        """Post template ``name`` of a status change from ``change[0]`` to ``change[1]``.
+
+        The audit log and the member are read only when a listen channel detects the channel; v3
+        read them first, for nothing.
+        """
         listen = targets(await read_settings(self.store, guild.id), [(place.id, place.category_id)])
-        if not listen:  # v3 read the audit log and the member first, for nothing
+        if not listen:
             return
+        old, new = change
         values = {
             "vl_channel_mention": place.mention,
             "vl_channel_url": place.url,
             "vl_category_mention": place.category_mention,
             "vl_status_before": old,
-            "vl_status_after": update.status,
+            "vl_status_after": new,
         }
-        member = await self._status_member(guild, place.id, update.status, at)
+        member = await self._status_member(guild, place.id, new, at)
         bot = self.bot.user
         actor = (
             global_values(self.bot) | UNKNOWN_MEMBER
@@ -277,7 +293,11 @@ class VoiceLogger(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        """Check the guilds when the bot is ready; this fires for each session."""
+        """Forget the statuses and check the guilds when the bot is ready, for each session.
+
+        A new session's channels hold no status, so JDA's cache started empty again.
+        """
+        self.statuses.clear()
         await self.check_guilds()
 
     @commands.Cog.listener()
@@ -287,7 +307,13 @@ class VoiceLogger(commands.Cog):
         v3 handled no leave and deleted the guild's file at its next start. discord.py does not
         fire this during an outage (``on_guild_unavailable``).
         """
+        self.statuses.pop(guild.id, None)
         await forget(self.store, guild.id)
+
+    @commands.Cog.listener()
+    async def on_guild_unavailable(self, guild: discord.Guild) -> None:
+        """Forget the guild's statuses during an outage: its channels come back without them."""
+        self.statuses.pop(guild.id, None)
 
     async def check_guilds(self) -> None:
         """Delete the settings of the guilds that the bot left, and check the others' lists.
