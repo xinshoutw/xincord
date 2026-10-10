@@ -154,6 +154,9 @@
       refreshed kept Reroll disabled for good)
 - [x] 25.10 Defer each post press first, then show the stored giveaway in the post on every press
       from it, with replies and refusals as ephemeral follow-ups; remove the markers
+- [x] 25.11 xfail test for end times past 9999 in UTC (found in the cross-review: 9999-12-31 23:59
+      in a zone west of UTC was accepted, and showing it then failed every builder press)
+- [ ] 25.12 Refuse end times that cannot be shown; remove the marker
 
 ## 26. Close
 
