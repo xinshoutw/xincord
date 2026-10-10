@@ -10,6 +10,7 @@ Kotlin:
 import json
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -257,16 +258,11 @@ async def test_unchanged_writes_nothing(store: Store, monkeypatch: pytest.Monkey
     """Requirement: Giveaways are stored as v3's documents."""
     await store.put(NAMESPACE, str(GUILD), v3_document())
     giveaways = Giveaways(store)
-    writes: list[str] = []
-
-    async def put(namespace: str, key: str, value: JSON) -> None:
-        del value
-        writes.append(f"{namespace}:{key}")
-
+    put = AsyncMock(wraps=store.put)
     monkeypatch.setattr(store, "put", put)
 
     result = await giveaways.change(GUILD, RUNNING, lambda instance: ("same", instance))
 
     assert result is not None
     assert result[0] == "same"
-    assert writes == []
+    put.assert_not_awaited()
