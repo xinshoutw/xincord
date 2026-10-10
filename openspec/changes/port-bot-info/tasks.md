@@ -1,6 +1,6 @@
 ## 1. Resources
 
-- [ ] 1.1 Bundle `config.yaml` with `source_url`, and v3's en-US and zh-TW lang files with LF line
+- [x] 1.1 Bundle `config.yaml` with `source_url`, and v3's en-US and zh-TW lang files with LF line
       endings, final newlines and the source field in `message/bot-info.yaml`
 
 ## 2. Installation

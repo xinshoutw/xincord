@@ -1,0 +1,8 @@
+# BotInfo: list it under `plugins` in the core config.yaml to enable it. The bot then needs the
+# Server Members intent, allowed for it in the Discord developer portal, to keep the member count
+# of /bot-info up to date.
+
+# The link to the bot's source code that /bot-info shows (an http or https URL). The AGPL (section
+# 13) asks whoever runs a modified bot to offer its users the source of that version: point this
+# at it.
+source_url: "https://github.com/xinshoutw/xincord"

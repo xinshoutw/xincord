@@ -1,0 +1,20 @@
+embeds:
+  - author:
+      name: "Info Query"
+      icon_url: "https://i.imgur.com/a7z4ch2.png"
+    title:
+      text: "☛ ORDERLY BOT's INFORMATION"
+    footer:
+      text: "❖ ORDERLY SERVER ❖"
+
+    fields:
+      - name: "Server Counts"
+        value: "%guild_counts%"
+
+      - name: "Member Counts"
+        value: "%member_counts%"
+
+      - name: "Source Code"
+        value: "%source_url%"
+
+    color_code: "#00FFFF"

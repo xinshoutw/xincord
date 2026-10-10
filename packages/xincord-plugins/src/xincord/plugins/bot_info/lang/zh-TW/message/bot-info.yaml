@@ -1,0 +1,20 @@
+embeds:
+  - author:
+      name: "狀態查詢"
+      icon_url: "https://i.imgur.com/a7z4ch2.png"
+    title:
+      text: "☛ 序之徒的資訊"
+    footer:
+      text: "❖ ORDERLY SERVER ❖"
+
+    fields:
+      - name: "伺服器總數"
+        value: "%guild_counts%"
+
+      - name: "成員總數"
+        value: "%member_counts%"
+
+      - name: "原始碼"
+        value: "%source_url%"
+
+    color_code: "#00FFFF"
