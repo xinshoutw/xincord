@@ -55,3 +55,21 @@ delete:
     description: "刪除完成"
     footer: {text: "❖ ORDERLY SERVER ❖"}
     color: 65535
+
+# The translated payload of the guild command; keys that are not listed here are not compared. 8 is
+# the Administrator permission and option type 1 a subcommand. The texts come from v3's
+# Register.kt and register.yaml.
+commands:
+  - type: 1
+    name: "voice-logger"
+    description: "commands about voice logger"
+    default_member_permissions: 8
+    name_localizations: {"en-US": "voice-logger", "zh-TW": "語音紀錄"}
+    description_localizations: {"en-US": "commands about voice logger", "zh-TW": "有關語音紀錄的指令"}
+    options:
+      - type: 1
+        name: "setting"
+        description: "set voice log in this channel"
+        name_localizations: {"en-US": "setting", "zh-TW": "設定"}
+        description_localizations: {"en-US": "set voice log in this channel", "zh-TW": "設定語音紀錄在此頻道"}
+        options: []
