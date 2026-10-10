@@ -33,10 +33,6 @@ NOON = datetime(2026, 10, 11, 12, 0, 0, tzinfo=UTC)
 MIB = 1024 * 1024
 LONG = "x" * 4000  # about a page of a file
 FIRST = "messages-20261011T120005Z.db"  # the file of a first message created at 12:00:05
-FILES = "Stored messages live in the plugin's own files"
-SPLIT = "A new message file starts when the newest is full"
-OPEN = "The message files are open while the plugin is loaded"
-KEPT = "Stored messages are kept for the retention period"
 
 
 def at(seconds: float, sequence: int = 0) -> int:
@@ -99,7 +95,6 @@ async def open_files(directory: Path) -> AsyncGenerator[Opener]:
         await files.close()
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=FILES)
 async def test_no_message_no_file(open_files: Opener, directory: Path) -> None:
     """Requirement: Stored messages live in the plugin's own files."""
     files = await open_files()
@@ -111,7 +106,6 @@ async def test_no_message_no_file(open_files: Opener, directory: Path) -> None:
     assert not directory.exists()  # nothing is created before the first message
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=FILES)
 async def test_first_file(open_files: Opener, directory: Path) -> None:
     """Requirement: Stored messages live in the plugin's own files."""
     files = await open_files()
@@ -122,7 +116,6 @@ async def test_first_file(open_files: Opener, directory: Path) -> None:
     assert rows(directory) == {FIRST: [(message, 10, 30, 7, "hello", 0)]}
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=FILES)
 async def test_messages_of_older_files(open_files: Opener, directory: Path) -> None:
     """Requirement: Stored messages live in the plugin's own files."""
     files = await open_files(1)  # each message fills the newest file: a new one starts after it
@@ -147,7 +140,6 @@ async def test_messages_of_older_files(open_files: Opener, directory: Path) -> N
     assert ids(directory) == {FIRST: [], name(6): [], name(11): [], name(21): []}
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=FILES)
 async def test_late_message(open_files: Opener, directory: Path) -> None:
     """Requirement: Stored messages live in the plugin's own files."""
     files = await open_files(1)
@@ -164,7 +156,6 @@ async def test_late_message(open_files: Opener, directory: Path) -> None:
     assert await files.edit(older, "edited") == Edit(before="older", user_id=7, count=1)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=FILES)
 async def test_files_kept_across_loads(open_files: Opener, directory: Path) -> None:
     """Requirement: Stored messages live in the plugin's own files."""
     files = await open_files(1)
@@ -180,7 +171,6 @@ async def test_files_kept_across_loads(open_files: Opener, directory: Path) -> N
     assert list(rows(directory)) == names  # no file started
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=FILES)
 async def test_other_files(open_files: Opener, directory: Path) -> None:
     """Requirement: Stored messages live in the plugin's own files."""
     directory.mkdir(parents=True)
@@ -198,7 +188,6 @@ async def test_other_files(open_files: Opener, directory: Path) -> None:
     assert (directory / "messages-2026.db").read_bytes() == b"not a message file"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Guild messages are stored")
 async def test_add(open_files: Opener, directory: Path) -> None:
     """Requirement: Guild messages are stored."""
     files = await open_files()
@@ -210,9 +199,6 @@ async def test_add(open_files: Opener, directory: Path) -> None:
     assert rows(directory) == {FIRST: [(at(5), 10, 30, 7, "hello", 0), (at(6), 10, 41, 8, "", 0)]}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Edits of stored messages are logged"
-)
 async def test_edit(open_files: Opener, directory: Path) -> None:
     """Requirement: Edits of stored messages are logged."""
     files = await open_files()
@@ -225,9 +211,6 @@ async def test_edit(open_files: Opener, directory: Path) -> None:
     assert rows(directory) == {FIRST: [(at(5), 10, 30, 7, "hey", 2)]}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Deletions of stored messages are logged"
-)
 async def test_pop(open_files: Opener, directory: Path) -> None:
     """Requirement: Deletions of stored messages are logged."""
     files = await open_files()
@@ -239,9 +222,6 @@ async def test_pop(open_files: Opener, directory: Path) -> None:
     assert rows(directory) == {FIRST: []}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Data is forgotten with the guild"
-)
 async def test_forget(open_files: Opener, directory: Path) -> None:
     """Requirement: Data is forgotten with the guild."""
     files = await open_files(1)  # a file for each message
@@ -256,7 +236,6 @@ async def test_forget(open_files: Opener, directory: Path) -> None:
     assert ids(directory) == {FIRST: [], name(6): [at(10)], name(11): [], name(21): []}
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=KEPT)
 async def test_prune(open_files: Opener, directory: Path) -> None:
     """Requirement: Stored messages are kept for the retention period."""
 
@@ -275,7 +254,23 @@ async def test_prune(open_files: Opener, directory: Path) -> None:
     assert await files.prune(ago(30), batch=2) == 0
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=SPLIT)
+async def test_failed_work_keeps_nothing(open_files: Opener, directory: Path) -> None:
+    """Requirement: Stored messages live in the plugin's own files."""
+    files = await open_files()
+    await files.add(at(5), 10, 30, 7, "a")
+    [path] = directory.glob("messages-*.db")
+
+    def broken(db: sqlite3.Connection) -> None:
+        db.execute("DELETE FROM messages")
+        db.execute("SELECT * FROM missing")
+
+    # Each job's work in a file is one transaction: a failure keeps none of it.
+    with closing(messages.connect(path)) as db, pytest.raises(sqlite3.OperationalError):
+        messages.transaction(db, broken)
+
+    assert rows(directory) == {FIRST: [(at(5), 10, 30, 7, "a", 0)]}
+
+
 async def test_full_file(open_files: Opener, directory: Path) -> None:
     """Requirement: A new message file starts when the newest is full."""
     limit = 64 * 1024
@@ -298,7 +293,6 @@ async def test_full_file(open_files: Opener, directory: Path) -> None:
     assert ids(directory) == {full: [*stored, at(last + 0.9)], new: [at(last + 1)]}
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=SPLIT)
 async def test_new_file_fails(
     open_files: Opener,
     directory: Path,
@@ -329,7 +323,6 @@ async def test_new_file_fails(
     assert created == [FIRST, name(6), name(11)]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=OPEN)
 async def test_close_after_the_work_under_way(open_files: Opener, directory: Path) -> None:
     """Requirement: The message files are open while the plugin is loaded."""
     files = await open_files()
@@ -343,7 +336,6 @@ async def test_close_after_the_work_under_way(open_files: Opener, directory: Pat
     assert rows(directory) == {FIRST: [(at(5), 10, 30, 7, "a", 0)]}
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=OPEN)
 async def test_after_closing(open_files: Opener, directory: Path) -> None:
     """Requirement: The message files are open while the plugin is loaded."""
     files = await open_files()
@@ -359,7 +351,6 @@ async def test_after_closing(open_files: Opener, directory: Path) -> None:
     assert rows(directory) == {FIRST: [(at(5), 10, 30, 7, "a", 0)]}
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=OPEN)
 async def test_corrupt_file(open_files: Opener, directory: Path) -> None:
     """Requirement: The message files are open while the plugin is loaded."""
     files = await open_files()

@@ -25,7 +25,7 @@
       starts when the newest is full" and "The message files are open while the plugin is loaded"
       against a stub `MessageFiles` (first file, routing, splits, late messages, reopening, a
       failing split, closing)
-- [ ] 4.2 Implement `MessageFiles` (row-level retention only); remove the markers
+- [x] 4.2 Implement `MessageFiles` (row-level retention only); remove the markers
 
 ## 5. The plugin on its files
 
