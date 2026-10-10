@@ -262,3 +262,16 @@ async def test_not_detected(scene: Scene) -> None:
 
     assert scene.rest.sent == []
     assert scene.channels == {}
+
+
+async def test_typed_text_stays(scene: Scene) -> None:
+    """Requirement: Voice channel status changes are logged."""
+    # v3 expanded placeholders in statuses, and a status naming its own key made the log throw.
+    typed = "%vl_status_after% %user_mention%"
+    await scene.listen(5, [30])
+    scene.answer([entry(7, status=typed)])
+
+    await scene.update(typed)
+
+    [posted] = scene.posts(5)
+    assert posted["fields"][3]["value"] == typed

@@ -329,6 +329,75 @@ Discord sends them (v3's `HashSet` had none).
   up again (the data migration is deferred, B11).
 - No `plugins/VoiceLogger/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list.
 
+### Inventory audit
+
+Every section of `docs/porting/analysis/inventory/VoiceLogger.md` maps to this change:
+
+- Overview (1): the entry object, `info.yaml` and the name are "The plugin installs as VoiceLogger"
+  ("Discovered by name"); `component_prefix: voice-logger@` is `IDS`'s legacy prefix ("v3 IDs");
+  `GUILD_VOICE_STATES` is `INTENTS`, and `VOICE_STATE` and `VOICE` are discord.py's defaults with
+  it (Package); the listener flag is the cog's listeners.
+- Lifecycle (2): exporting the lang files is "First load creates the lang files"; `enabled` is the
+  core's `plugins` list; the localizers are the Translator and `Lang.text`; `reload()` is the
+  core's reload; `ComponentIdManager` is `IDS` and `MessageCreator` is `Templates.load` in `setup`;
+  `JsonManager`'s lazy start-up pruning is "Left while offline" and "Deleted channels" (deleted
+  listen channels are "Deleted listen channel" instead), and its `ConcurrentModificationException`
+  is a "v3 behaved differently" entry; no background jobs; the in-memory map is the store's
+  document; the shared placeholder caches are per-render values.
+- Slash command (3): the definition is "Command payload"; the core's defer is "Command callback";
+  the `fullCommandName` filter is the group's routing; the in-memory default is "Channel without
+  settings"; `Placeholder.get(event)` outside text channels is a "v3 behaved differently" entry;
+  the rendered menu in the user's locale is "Menu" (golden embeds and buttons).
+- Components (4): the ID format is `IDS`; `toggle_btn` is "Toggle"; `modify_allow_btn`,
+  `modify_block_btn` and both select menus (voice channels and categories, 1 to 25, their
+  placeholder) are "Modify a list"; `delete_btn` is "Delete" (the whole-file deletion fixed); the
+  union into the lists and the block-mode default are "First selection" and "Toggling and adding";
+  unknown buttons and select actions are "Other actions"; no removal of entries and no expiry are
+  kept (Non-Goals, Kept on purpose).
+- Events (5): the voice classification is "Join", "Leave without a category", "Switch", "Same
+  channel" and "Not detected"; the status classification is "New status", "Changed status",
+  "Cleared status" and "Nothing to log" (unchanged, stage and uncached channels); the variables are
+  the golden embeds, with the switch's join mention and the categories fixed; mutes, deafens and
+  streams are "Same channel"; bots are "Join"; a moderator's move naming the moved member is kept
+  (the listener gets the moved member); the status actor and its defects are "Status changes name
+  their member from the audit log"; JDA's status comparison is "Nothing to log"; `asVoiceChannel`
+  is the voice-only check; the unused computed `locale` is kept unused; the detected channels are
+  "Listen channels detect voice channels" (stage channels count like voice channels, as v3's
+  category expansion included them); `sendListenChannel` is "Logs reach every listen channel";
+  `GuildLeaveEvent` is "The bot leaves"; channel deletions stay unhandled (a deleted listen channel
+  is forgotten at its next log, deleted list entries at READY).
+- Configuration (6): `enabled` only, so no `config.yaml` ("First load creates the lang files").
+- Localization (7): en-US and zh-TW with the zh-TW default are `DEFAULT_LOCALE` and the bundled
+  files; `register.yaml` is "Command payload"; `placeholder.yaml` is `list_text` ("Menu", "Long
+  list"); the user's locale for the menu is "Menu" and "Modify a list", the guild's for the logs is
+  "Join" and "New status", the zh-TW fallback "Locale without templates"; a key missing in one
+  locale falls back per file (core-templates); the log templates are the golden embeds; the
+  placeholder sources are the values above; recursive substitution is gone ("Typed text stays" in
+  `test_status.py`).
+- Persistence (8): the settings files are "Settings are kept per guild in v3's documents" (shape,
+  order, Moshi's required fields with "Unreadable settings"); the `allow_mode` default and the
+  whole-file deletion are fixed; no log history; the migration is out of scope (B11).
+- External dependencies (9): none.
+- Discord requirements (10): the intent is "Discovered by name"; View Audit Log and the listen
+  channels' permissions are in the smoke checklist, and their refusals are "Audit log refused" and
+  "Refused listen channel"; one message per listen channel and event is kept; the audit log is read
+  once or twice per detected status change (Risks).
+- Concurrency (11): the shared substitutor is per-render values; the global map is the store under
+  the guild's lock ("Concurrent changes"); the REST callback chain is awaited in order.
+- Bugs (12): 1 is the store read per use; 2 is "First selection" and "Delete"; 3 is "Switch"; 4 is
+  "Leave without a category"; 5 is "Matching entry", "Cleared status", "No entry" and "Audit log
+  refused"; 6 is "Deleted listen channel" and "Refused listen channel"; 7 is the menu in every
+  channel (the core's `interaction_values` handles threads and voice chats); 8 is "Typed text
+  stays"; 9 is "Long list". The behavior to preserve is "Kept on purpose" and the scenarios above.
+- Testability (13): `classify_voice_update` is `logs.voice_change`; `classify_status` is
+  `status.classify`; `detected_channels` and `listen_targets` are `settings.detects` and `targets`;
+  the variable builders are `Place` and the listeners' values; the actor policy is `status.match`
+  and `find_actor`; the settings repository is `store.py` (ChatLogger has the same scheme); the
+  custom IDs are `IDS`.
+- Assessment (14): the listener compares channel IDs; the status event is relayed through the
+  core and the audit log read raw, as suggested; the group, the views and the channel select menus
+  come from the templates; sharing the settings with ChatLogger is left to that port.
+
 ## Risks / Trade-offs
 
 - The relay writes into discord.py's internal parser table and the audit log is read through the
