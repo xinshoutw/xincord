@@ -30,9 +30,6 @@ if TYPE_CHECKING:
     from xincord.core.storage import JSON, Store
 
 LOBBY = Binding(20, "Lobby", "A", "B")
-TRACKED = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Rooms are tracked per guild"
-)
 
 
 async def test_first_binding(store: Store) -> None:
@@ -185,7 +182,6 @@ async def test_unreadable_entry(store: Store, document: JSON) -> None:
     assert await store.get(NAMESPACE, "10") == document
 
 
-@TRACKED
 async def test_tracked_rooms(store: Store) -> None:
     """Requirement: Rooms are tracked per guild."""
     await track(store, 10, 30, 1)
@@ -195,14 +191,12 @@ async def test_tracked_rooms(store: Store) -> None:
     assert await read_rooms(store, 10) == {30: 1, 31: 2}
 
 
-@TRACKED
 async def test_guild_without_rooms(store: Store) -> None:
     """Requirement: Rooms are tracked per guild."""
     assert await read_rooms(store, 10) == {}
     assert await store.keys(ROOMS) == []
 
 
-@TRACKED
 async def test_forgotten_rooms(store: Store) -> None:
     """Requirement: Rooms are tracked per guild."""
     await track(store, 10, 30, 1)
@@ -216,7 +210,6 @@ async def test_forgotten_rooms(store: Store) -> None:
     assert await store.keys(ROOMS) == []  # nothing written for a room that is not tracked
 
 
-@TRACKED
 async def test_concurrent_tracks(store: Store) -> None:
     """Requirement: Rooms are tracked per guild."""
     rooms = range(30, 50)
@@ -226,7 +219,6 @@ async def test_concurrent_tracks(store: Store) -> None:
     assert await read_rooms(store, 10) == {room: room + 100 for room in rooms}
 
 
-@TRACKED
 @pytest.mark.parametrize(
     "document",
     [[30], {"30": "1"}, {"30": True}, {"30": None}, {"room": 1}, {"030": 1}, {"-30": 1}],

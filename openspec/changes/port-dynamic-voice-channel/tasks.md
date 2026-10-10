@@ -17,7 +17,7 @@
 ## 4. Rooms
 
 - [x] 4.1 xfail tests for "Rooms are tracked per guild" against stubs in `store.py`
-- [ ] 4.2 Implement `read_rooms`, `track` and `untrack`; remove the markers
+- [x] 4.2 Implement `read_rooms`, `track` and `untrack`; remove the markers
 
 ## 5. Room names
 

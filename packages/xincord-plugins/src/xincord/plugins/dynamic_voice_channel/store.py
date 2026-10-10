@@ -6,6 +6,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/json/JsonGuildFileManager.kt:7-40
 """
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -19,6 +20,7 @@ NAMESPACE = "DynamicVoiceChannel"  # the bindings: the plugin's name, keys are g
 # The rooms the plugin created, by guild ID; v3 kept them in MongoDB's
 # DynamicVoiceChannel.generated_cache.
 ROOMS = f"{NAMESPACE}.rooms"
+ROOM_ID = re.compile(r"[1-9][0-9]*")  # the keys of a rooms document: channel IDs in decimal
 
 type Key = tuple[int, str]  # a binding's category ID and lobby name, v3's DataContainer identity
 
@@ -112,18 +114,44 @@ async def _remove(store: Store, guild_id: int, keys: Collection[Key]) -> int:
 
 
 async def read_rooms(store: Store, guild_id: int) -> dict[int, int]:
-    """Return the guild's rooms, each with the member it was created for, and write nothing."""
-    raise NotImplementedError
+    """Return the guild's rooms, each with the member it was created for, and write nothing.
+
+    Raises:
+        DataError: The document is not an object of room IDs to member IDs.
+    """
+    return _rooms(await store.get(ROOMS, str(guild_id)), guild_id)
 
 
 async def track(store: Store, guild_id: int, room_id: int, owner_id: int) -> None:
-    """Record ``room_id`` as a room of the guild, created for ``owner_id``."""
-    raise NotImplementedError
+    """Record ``room_id`` as a room of the guild, created for ``owner_id``.
+
+    v3 kept the owner too, as the value of the room's MongoDB document, and never read it.
+
+    Raises:
+        DataError: The document is not an object of room IDs to member IDs; nothing is written.
+    """
+    async with _lock(store, guild_id):
+        rooms = await read_rooms(store, guild_id)
+        await store.put(ROOMS, str(guild_id), _rooms_document(rooms | {room_id: owner_id}))
 
 
 async def untrack(store: Store, guild_id: int, room_id: int) -> None:
-    """Forget ``room_id``; nothing is written when it is not a room of the guild."""
-    raise NotImplementedError
+    """Forget ``room_id``; nothing is written when it is not a room of the guild.
+
+    The document goes with the guild's last room.
+
+    Raises:
+        DataError: The document is not an object of room IDs to member IDs; nothing is written.
+    """
+    async with _lock(store, guild_id):
+        rooms = await read_rooms(store, guild_id)
+        if room_id not in rooms:
+            return
+        left = {room: owner for room, owner in rooms.items() if room != room_id}
+        if left:
+            await store.put(ROOMS, str(guild_id), _rooms_document(left))
+        else:
+            await store.delete(ROOMS, str(guild_id))
 
 
 def _lock(store: Store, guild_id: int) -> asyncio.Lock:
@@ -173,3 +201,24 @@ def _entry(binding: Binding) -> dict[str, JSON]:
         "formatName1": binding.format_name_1,
         "formatName2": binding.format_name_2,
     }
+
+
+def _rooms(document: JSON, guild_id: int) -> dict[int, int]:
+    """The rooms of a stored document: decimal room IDs, each with an integer member ID."""
+    if document is None:
+        return {}
+    entries = document.items() if isinstance(document, dict) else ()
+    rooms = {
+        int(room): owner
+        for room, owner in entries
+        if ROOM_ID.fullmatch(room) and type(owner) is int  # booleans are not IDs
+    }
+    if not isinstance(document, dict) or len(rooms) < len(document):
+        msg = f"guild {guild_id}: the rooms are not room IDs with member IDs: {document!r}"
+        raise DataError(msg)
+    return rooms
+
+
+def _rooms_document(rooms: dict[int, int]) -> dict[str, JSON]:
+    """The stored document of ``rooms``."""
+    return {str(room): owner for room, owner in rooms.items()}
