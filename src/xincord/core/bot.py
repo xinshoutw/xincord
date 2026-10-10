@@ -7,6 +7,7 @@ Kotlin:
 
 import asyncio
 import logging
+import sys
 from typing import TYPE_CHECKING, cast, override
 
 import discord
@@ -80,6 +81,8 @@ class Bot(commands.Bot):
         self._store = store
         self._force_lang = force_lang
         self._contexts: dict[str, PluginContext] = {}
+        # The previous version's context of each plugin being reloaded, replaying (see _reload).
+        self._previous: dict[str, PluginContext] = {}
         self._loaded: dict[str, PluginInfo] = {}
         self._routes: dict[str, list[tuple[ComponentIds, Handler]]] = {}
         self._reloading = asyncio.Lock()
@@ -151,14 +154,22 @@ class Bot(commands.Bot):
     def plugin_context(self, module: str) -> PluginContext:
         """Return the context of the plugin whose extension module is ``module``.
 
+        While discord.py sets up a plugin's previous version again after a failed reload, the
+        context replays what that version loaded (:meth:`PluginContext.replaying`).
+
         Raises:
             PluginError: No plugin with that module is being loaded or loaded.
         """
         try:
-            return self._contexts[module]
+            context = self._contexts[module]
         except KeyError:
             msg = f"no plugin loads from {module}"
             raise PluginError(msg) from None
+        # discord.py takes a failed reload's modules out of sys.modules before it sets up the
+        # previous version, and puts that version's modules back after it; every load's setup runs
+        # with its module in sys.modules.
+        previous = self._previous.get(module)
+        return previous if previous is not None and module not in sys.modules else context
 
     def relay_gateway_event(self, name: str) -> None:
         """Dispatch each gateway event ``name`` as ``gateway_<name in lower case>``.
@@ -323,12 +334,35 @@ class Bot(commands.Bot):
     async def _reload(self, info: PluginInfo) -> None:
         # Whichever setup runs next registers the routes again.
         self._routes.pop(info.name, None)
+        previous = self._contexts[info.module]
+        self._contexts[info.module] = PluginContext(
+            info, self._root / info.name, self._store, self._force_lang
+        )
+        # When the new version fails, discord.py sets up the previous one again; it gets the config
+        # and lang it loaded before, not the files that broke the new one.
+        self._previous[info.module] = previous.replaying()
         try:
-            # discord.py restores the previous module when the new one fails.
             await self.reload_extension(info.module)
-        except commands.ExtensionError as error:
-            msg = f"plugin {info.name} failed to reload: {error}"
+        except Exception as error:
+            if info.module in self.extensions:  # the previous version runs again
+                self._contexts[info.module] = previous
+                msg = f"plugin {info.name} failed to reload: {error}"
+                raise PluginError(msg) from error
+            await self._drop(info)
+            msg = f"plugin {info.name} failed to reload and is unloaded: {error}"
             raise PluginError(msg) from error
+        finally:
+            del self._previous[info.module]
+
+    async def _drop(self, info: PluginInfo) -> None:
+        """Forget a plugin whose previous version failed to set up again after a failed reload.
+
+        discord.py leaves what that setup added before it failed; it goes too.
+        """
+        await self._remove_module_references(info.module)
+        del self._loaded[info.name]
+        del self._contexts[info.module]
+        self._routes.pop(info.name, None)
 
     async def _unload(self, name: str) -> None:
         info = self._loaded.pop(name)

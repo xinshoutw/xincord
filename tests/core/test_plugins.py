@@ -326,7 +326,6 @@ BROKEN_FILES = [
 ]
 
 
-@pytest.mark.xfail(strict=True, reason="Hot reload follows dependencies and intents")
 @pytest.mark.parametrize("broken", BROKEN_FILES)
 async def test_broken_files_keep_the_previous_version(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path, broken: tuple[str, str, str]
@@ -348,7 +347,6 @@ async def test_broken_files_keep_the_previous_version(
     assert module in bot.extensions
 
 
-@pytest.mark.xfail(strict=True, reason="Hot reload follows dependencies and intents")
 async def test_previous_version_fails_too(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:

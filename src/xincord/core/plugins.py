@@ -9,7 +9,7 @@ Kotlin:
 import importlib
 import logging
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from graphlib import CycleError, TopologicalSorter
 from importlib import metadata
 from importlib.resources import files
@@ -53,13 +53,17 @@ class PluginInfo:
 class PluginContext:
     """What the core gives one plugin: its directory, its files and the shared store.
 
-    An extension's ``setup(bot)`` gets it with ``bot.plugin_context(__name__)``.
+    An extension's ``setup(bot)`` gets it with ``bot.plugin_context(__name__)``. It keeps what
+    :meth:`config` and :meth:`lang` returned in ``reads``, which a :meth:`replaying` copy hands
+    back instead of reading the files again.
     """
 
     info: PluginInfo
     directory: Path
     store: Store
     force_lang: bool = False
+    reads: dict[str, object] = field(default_factory=dict[str, object], compare=False, repr=False)
+    replay: bool = False
 
     def config[M: Model](self, model: type[M]) -> M:
         """Load ``config.yaml`` as ``model``, created from the plugin's bundled default.
@@ -68,8 +72,13 @@ class PluginContext:
             ConfigError: The file is invalid.
             OSError: The plugin bundles no ``config.yaml``.
         """
+        key = f"config:{model.__qualname__}"
+        if self.replay and key in self.reads:
+            return cast("M", self.reads[key])
         default = files(self.info.module).joinpath("config.yaml").read_text(encoding="utf-8")
-        return load_config(self.directory / "config.yaml", model, default)
+        loaded = load_config(self.directory / "config.yaml", model, default)
+        self.reads[key] = loaded
+        return loaded
 
     def lang(self, default_locale: str) -> Lang:
         """Export the plugin's bundled ``lang`` directory where files are missing, then load it.
@@ -77,9 +86,22 @@ class PluginContext:
         Raises:
             LangError: The lang files are invalid.
         """
+        key = f"lang:{default_locale}"
+        if self.replay and key in self.reads:
+            return cast("Lang", self.reads[key])
         target = self.directory / "lang"
         export_lang(files(self.info.module).joinpath("lang"), target, force=self.force_lang)
-        return Lang.load(self.info.name, target, default_locale)
+        loaded = Lang.load(self.info.name, target, default_locale)
+        self.reads[key] = loaded
+        return loaded
+
+    def replaying(self) -> PluginContext:
+        """Return a copy whose :meth:`config` and :meth:`lang` give back what they gave here.
+
+        The core hands it to a plugin's previous version, which discord.py sets up again when a
+        reload fails, so that the files that broke the new version cannot break it too.
+        """
+        return replace(self, replay=True)
 
 
 def discover(
