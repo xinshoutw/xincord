@@ -21,7 +21,7 @@
 
 ## 5. Detection
 
-- [ ] 5.1 xfail tests for "Listen channels detect message channels" (threads and their parents)
+- [x] 5.1 xfail tests for "Listen channels detect message channels" (threads and their parents)
 - [ ] 5.2 Let the shared `detects` and `targets` take the IDs that contain a channel; remove the
       markers
 
