@@ -28,12 +28,6 @@ if TYPE_CHECKING:
 
     from xincord.core.storage import JSON, Store
 
-XFAIL = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Settings are kept per guild in v3's documents",
-)
-
 
 def writes(store: Store, monkeypatch: pytest.MonkeyPatch) -> list[str]:
     """Record the store's writes from now on, which still happen."""
@@ -53,7 +47,6 @@ def writes(store: Store, monkeypatch: pytest.MonkeyPatch) -> list[str]:
     return recorded
 
 
-@XFAIL
 async def test_first_selection(store: Store) -> None:
     """Requirement: Settings are kept per guild in v3's documents."""
     setting = await add_channels(store, 10, 5, "allow", [30, 40])
@@ -69,7 +62,6 @@ async def test_first_selection(store: Store) -> None:
     assert await read_setting(store, 10, 5) == setting
 
 
-@XFAIL
 async def test_listen_channel_without_settings(store: Store) -> None:
     """Requirement: Settings are kept per guild in v3's documents."""
     assert await read_setting(store, 10, 5) == Setting(allow_mode=True, allow=(), block=())
@@ -77,7 +69,6 @@ async def test_listen_channel_without_settings(store: Store) -> None:
     assert await store.keys(NAMESPACE) == []
 
 
-@XFAIL
 async def test_toggling_and_adding(store: Store) -> None:
     """Requirement: Settings are kept per guild in v3's documents."""
     # v3's lists were sets: a duplicate reads once. Moshi ignored unknown fields.
@@ -103,7 +94,6 @@ async def test_toggling_and_adding(store: Store) -> None:
     }
 
 
-@XFAIL
 async def test_toggling_a_channel_without_settings(store: Store) -> None:
     """Requirement: Settings are kept per guild in v3's documents."""
     assert await toggle(store, 10, 5) == Setting(allow_mode=False)
@@ -113,7 +103,6 @@ async def test_toggling_a_channel_without_settings(store: Store) -> None:
     }
 
 
-@XFAIL
 async def test_nothing_to_change(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Settings are kept per guild in v3's documents."""
     await add_channels(store, 10, 5, "allow", [30, 40])
@@ -126,7 +115,6 @@ async def test_nothing_to_change(store: Store, monkeypatch: pytest.MonkeyPatch) 
     assert written == []
 
 
-@XFAIL
 async def test_removing(store: Store) -> None:
     """Requirement: Settings are kept per guild in v3's documents."""
     await add_channels(store, 10, 5, "allow", [30])
@@ -140,7 +128,6 @@ async def test_removing(store: Store) -> None:
     assert await store.keys(NAMESPACE) == []  # the last entry takes the document with it
 
 
-@XFAIL
 async def test_concurrent_changes(store: Store) -> None:
     """Requirement: Settings are kept per guild in v3's documents."""
     await asyncio.gather(
@@ -150,7 +137,6 @@ async def test_concurrent_changes(store: Store) -> None:
     assert sorted(await read_settings(store, 10)) == list(range(1, 21))
 
 
-@XFAIL
 @pytest.mark.parametrize(
     "document",
     [
