@@ -39,7 +39,7 @@
 - [x] 5.5 Implement `private_parts` and pass the listener's URLs to `redact`; remove the markers
 - [x] 5.6 xfail test for "The URL carries the REST ping": an unexpected ping error
 - [x] 5.7 Put `-1` in the URL after any ping error; remove the marker
-- [ ] 5.8 xfail tests for "A failure is logged when it starts, changes or ends": episodes in
+- [x] 5.8 xfail tests for "A failure is logged when it starts, changes or ends": episodes in
       `Failures` against stubs, alternating kinds, flapping, three pushes and pings in a row
 - [ ] 5.9 Implement the episodes and update the bundled `config.yaml` comment; remove the markers
 - [ ] 5.10 Let `test_independent_listeners` wait for the 404 listener's next sleep (the cog's

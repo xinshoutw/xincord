@@ -8,6 +8,7 @@ import pytest
 
 from xincord.plugins.uptime_heartbeat.logs import Failures, origin, private_parts, redact
 
+REPEATS = "A failure is logged when it starts, changes or ends"
 # A URL with a quote in its path: Python's repr, which aiohttp's texts use, then quotes it with ".
 QUOTED = "https://status.example.com/api/push/it's?ping=42"
 
@@ -164,3 +165,36 @@ def test_clear() -> None:
     assert failures.clear() == 2
     assert (failures.kind, failures.count) == (None, 0)
     assert failures.add(500)  # new again once the step worked
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REPEATS)
+def test_kinds_are_new_once_per_episode() -> None:
+    """Requirement: A failure is logged when it starts, changes or ends."""
+    failures = Failures()
+    kinds = (500, 500, 502, 504, 502, 504, TimeoutError)
+
+    assert [failures.fail(kind) for kind in kinds] == [True, False, True, True, False, False, True]
+    assert failures.count == len(kinds)
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REPEATS)
+def test_episode_ends_after_three_successes() -> None:
+    """Requirement: A failure is logged when it starts, changes or ends."""
+    failures = Failures()
+
+    assert failures.succeed() == 0  # no episode
+    failures.fail(500)
+    failures.fail(500)
+    assert [failures.succeed() for _ in range(3)] == [0, 0, 2]
+    assert failures.fail(500)  # new again: another episode
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REPEATS)
+def test_failure_before_three_successes_continues_the_episode() -> None:
+    """Requirement: A failure is logged when it starts, changes or ends."""
+    failures = Failures()
+    failures.fail(500)
+
+    assert [failures.succeed() for _ in range(2)] == [0, 0]
+    assert not failures.fail(500)  # the same episode
+    assert [failures.succeed() for _ in range(3)] == [0, 0, 2]

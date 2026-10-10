@@ -23,6 +23,8 @@ TOKEN = "xxxxxxxxxx"  # the push token: in the URL's path, never in a log line
 URL = f"https://status.example.com/api/push/{TOKEN}?status=up&msg=OK&ping=%ping%"
 PUSHED = URL.replace("%ping%", "42")
 ENDPOINT = "https://status.example.com"  # the URL's origin, all that the logs show of it
+PUSHED_LINE = f"UptimeHeartbeat listener 1 pushed to {ENDPOINT} (code 200)"
+REPEATS = "A failure is logged when it starts, changes or ends"
 
 
 class Stop(Exception):  # noqa: N818 - it ends the loop, it reports no error
@@ -402,12 +404,27 @@ async def test_another_kind_of_failure(caplog: pytest.LogCaptureFixture) -> None
     ]
 
 
+@pytest.mark.xfail(strict=True, reason=REPEATS)
+async def test_alternating_kinds(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: A failure is logged when it starts, changes or ends."""
+    answers = (502, 504, 502, 504)
+
+    await run_logged(Fakes(answers=answers, stop_after=len(answers)), caplog)
+
+    failed = f"UptimeHeartbeat listener 1: pushing to {ENDPOINT} failed"
+    assert above_debug(caplog) == [
+        (logging.ERROR, f"{failed} with code 502"),
+        (logging.ERROR, f"{failed} with code 504"),  # then neither again in the episode
+    ]
+
+
+@pytest.mark.xfail(strict=True, reason=REPEATS)
 @pytest.mark.parametrize(("failures", "count"), [(1, "1 failed push"), (2, "2 failed pushes")])
 async def test_pushing_works_again(
     failures: int, count: str, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: A failure is logged when it starts, changes or ends."""
-    answers = (*(500,) * failures, 200, 500)
+    answers = (*(500,) * failures, 200, 200, 200, 500)
 
     await run_logged(Fakes(answers=answers, stop_after=len(answers)), caplog)
 
@@ -416,21 +433,40 @@ async def test_pushing_works_again(
     assert above_debug(caplog) == [
         (logging.ERROR, failure),
         (logging.INFO, works),
-        (logging.ERROR, failure),  # a new failure once pushing worked
+        (logging.ERROR, failure),  # another episode
     ]
+    messages = [message for _, message in logged(caplog)]
+    works_at = messages.index(works)  # at the third push in a row that worked
+    assert messages[works_at - 2 : works_at + 2] == [PUSHED_LINE, PUSHED_LINE, works, PUSHED_LINE]
 
 
+@pytest.mark.xfail(strict=True, reason=REPEATS)
+async def test_flapping(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: A failure is logged when it starts, changes or ends."""
+    answers = (500, 200, 500, 200, 500, 200)
+
+    await run_logged(Fakes(answers=answers, stop_after=len(answers)), caplog)
+
+    failure = f"UptimeHeartbeat listener 1: pushing to {ENDPOINT} failed with code 500"
+    assert above_debug(caplog) == [(logging.ERROR, failure)]  # never three in a row
+
+
+@pytest.mark.xfail(strict=True, reason=REPEATS)
 async def test_ping_fails_repeatedly(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A failure is logged when it starts, changes or ends."""
-    fakes = Fakes(pings=(TimeoutError(), TimeoutError(), TimeoutError(), 42), stop_after=4)
+    pings = (TimeoutError(), TimeoutError(), TimeoutError(), 42, 42, 42)
+    fakes = Fakes(pings=pings, stop_after=len(pings))
 
     await run_logged(fakes, caplog)
 
     failure = "UptimeHeartbeat listener 1 could not measure the REST ping, so %ping% is -1: "
+    again = "UptimeHeartbeat listener 1 measures the REST ping again"
     assert above_debug(caplog) == [
         (logging.WARNING, f"{failure}TimeoutError"),
-        (logging.INFO, "UptimeHeartbeat listener 1 measures the REST ping again"),
+        (logging.INFO, again),
     ]
     assert logged(caplog).count((logging.DEBUG, f"{failure}TimeoutError")) == 2
+    messages = [message for _, message in logged(caplog)]
+    assert messages[messages.index(again) :] == [again, PUSHED_LINE]  # at the sixth push
     pushed = [call for call in fakes.calls if call.startswith("get ")]
-    assert pushed == [f"get {URL.replace('%ping%', '-1')}"] * 3 + [f"get {PUSHED}"]
+    assert pushed == [f"get {URL.replace('%ping%', '-1')}"] * 3 + [f"get {PUSHED}"] * 3

@@ -9,7 +9,7 @@ Kotlin:
 """
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from yarl import URL
 
@@ -19,6 +19,7 @@ AUTHORITY_END = re.compile(r"[/?#]")  # where the path, the query or the fragmen
 URL_IN_TEXT = re.compile(r"\bhttps?://\S+", re.IGNORECASE)
 QUOTES = "'\""
 HIDDEN = "..."  # what stands for a private part of a URL in an error's text
+STEADY = 3  # successes in a row that end a failure episode
 
 
 def origin(url: str) -> str:
@@ -93,6 +94,8 @@ class Failures:
 
     kind: object = None  # the previous failure's status code or error type; None while it works
     count: int = 0  # the failures since the step last worked
+    kinds: set[object] = field(default_factory=set[object])  # the kinds logged in the episode
+    streak: int = 0  # the successes in a row since the episode's last failure
 
     def add(self, kind: object) -> bool:
         """Count a failure of ``kind``; return whether it is new: the first, or another kind."""
@@ -100,6 +103,14 @@ class Failures:
         self.kind = kind
         self.count += 1
         return new
+
+    def fail(self, kind: object) -> bool:
+        """Count a failure of ``kind``; return whether its kind is new in the episode."""
+        raise NotImplementedError
+
+    def succeed(self) -> int:
+        """Count a success; return the episode's failures when it ends the episode, else 0."""
+        raise NotImplementedError
 
     def clear(self) -> int:
         """The step worked: forget its failures and return how many there were."""
