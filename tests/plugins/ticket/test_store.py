@@ -1,0 +1,171 @@
+"""Each guild's panels in the store, as v3's documents.
+
+Kotlin:
+    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/json/serializer/JsonData.kt:3-10
+    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:839-852
+    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:219-232
+    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:329-331
+"""
+
+import json
+from typing import TYPE_CHECKING
+
+import pytest
+
+from plugin_fakes import golden
+from xincord.plugins.ticket.model import DataError, Entry
+from xincord.plugins.ticket.store import NAMESPACE, Panels
+
+if TYPE_CHECKING:
+    from xincord.core.storage import JSON, Store
+
+GOLDEN = golden("ticket")
+GUILD = 10
+PANEL = "1290000000000000001"  # the panel of v3's example document
+
+
+async def keep(store: Store, document: JSON, guild: int = GUILD) -> None:
+    """Store a guild's document, as v3 left it."""
+    await store.put(NAMESPACE, str(guild), document)
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Panels are stored as v3's documents"
+)
+async def test_v3_document(store: Store) -> None:
+    """Requirement: Panels are stored as v3's documents."""
+    await keep(store, json.loads(GOLDEN["document"]))
+    panels = Panels(store)
+
+    first = await panels.entry(GUILD, PANEL, "0")
+    second = await panels.entry(GUILD, PANEL, "1")
+
+    assert first is not None
+    assert first.admin_ids == (1280000000000000002,)
+    assert first.category_id == 0
+    assert second == Entry(GOLDEN["refund"], (), 1270000000000000003)
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Panels are stored as v3's documents"
+)
+@pytest.mark.parametrize(
+    ("message", "index"),
+    [("1", "0"), (PANEL, "2"), (PANEL, "-1"), (PANEL, "x"), (PANEL, "")],
+)
+async def test_missing_entries(store: Store, message: str, index: str) -> None:
+    """Requirement: Panels are stored as v3's documents."""
+    await keep(store, json.loads(GOLDEN["document"]))
+    before = await store.get(NAMESPACE, str(GUILD))
+    panels = Panels(store)
+
+    assert await panels.entry(GUILD, message, index) is None
+    assert await panels.entry(11, PANEL, "0") is None
+    # Reading writes nothing: v3 created the guild's file there.
+    assert await store.get(NAMESPACE, "11") is None
+    assert await store.get(NAMESPACE, str(GUILD)) == before
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Panels are stored as v3's documents"
+)
+async def test_appending_keeps_the_others(store: Store) -> None:
+    """Requirement: Panels are stored as v3's documents."""
+    kept: JSON = {"reasonTitle": "a", "adminIds": [], "categoryId": 0, "extra": 1}
+    await keep(store, {"1": [kept], "2": []})
+
+    index = await Panels(store).add(GUILD, "1", Entry("b", (3, 4), 30))
+
+    document = await store.get(NAMESPACE, str(GUILD))
+    assert index == 1
+    assert document == {
+        "1": [kept, {"reasonTitle": "b", "adminIds": [3, 4], "categoryId": 30}],
+        "2": [],
+    }
+    assert isinstance(document, dict)
+    added = document["1"]
+    assert isinstance(added, list)
+    assert isinstance(added[1], dict)
+    assert list(added[1]) == ["reasonTitle", "adminIds", "categoryId"]  # Moshi's order
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Panels are stored as v3's documents"
+)
+async def test_placed_before_stored(store: Store) -> None:
+    """Requirement: Panels are stored as v3's documents."""
+    panels = Panels(store)
+    placed: list[int] = []
+
+    async def place(index: int) -> None:
+        placed.append(index)
+
+    async def refuse(index: int) -> None:
+        raise RuntimeError(index)
+
+    assert await panels.add(GUILD, "5", Entry("r", (), 0), place) == 0
+    with pytest.raises(RuntimeError, match="1"):
+        await panels.add(GUILD, "5", Entry("s", (), 0), refuse)
+
+    assert placed == [0]
+    assert await store.get(NAMESPACE, str(GUILD)) == {
+        "5": [{"reasonTitle": "r", "adminIds": [], "categoryId": 0}]
+    }
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Panels are stored as v3's documents"
+)
+@pytest.mark.parametrize(
+    "entry",
+    [
+        {"reasonTitle": "a", "adminIds": []},
+        {"reasonTitle": "a", "adminIds": ["3"], "categoryId": 0},
+        {"reasonTitle": "a", "adminIds": [True], "categoryId": 0},
+        {"reasonTitle": 1, "adminIds": [], "categoryId": 0},
+        {"reasonTitle": "a", "adminIds": [], "categoryId": False},
+        {"reasonTitle": "a", "adminIds": [], "categoryId": 1.5},
+        {"reasonTitle": "a", "adminIds": None, "categoryId": 0},
+        "text",
+    ],
+)
+async def test_broken_entries(store: Store, entry: JSON) -> None:
+    """Requirement: Panels are stored as v3's documents."""
+    await keep(store, {PANEL: [entry]})
+
+    with pytest.raises(DataError, match=f"guild {GUILD}, message {PANEL}"):
+        await Panels(store).entry(GUILD, PANEL, "0")
+
+    assert await store.get(NAMESPACE, str(GUILD)) == {PANEL: [entry]}
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Panels are stored as v3's documents"
+)
+@pytest.mark.parametrize("document", [[], "x", {PANEL: "x"}, {PANEL: {}}])
+async def test_broken_documents(store: Store, document: JSON) -> None:
+    """Requirement: Panels are stored as v3's documents."""
+    await keep(store, document)
+    panels = Panels(store)
+
+    with pytest.raises(DataError, match=f"guild {GUILD}"):
+        await panels.entry(GUILD, PANEL, "0")
+    with pytest.raises(DataError, match=f"guild {GUILD}"):
+        await panels.add(GUILD, PANEL, Entry("a", (), 0))
+
+    assert await store.get(NAMESPACE, str(GUILD)) == document
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Panels are stored as v3's documents"
+)
+async def test_forgotten_guilds(store: Store) -> None:
+    """Requirement: Panels are stored as v3's documents."""
+    await keep(store, {"1": []})
+    await keep(store, {"2": []}, guild=11)
+    panels = Panels(store)
+
+    assert sorted(await panels.guild_ids()) == ["10", "11"]
+    await panels.forget(GUILD)
+
+    assert await panels.guild_ids() == ["11"]
