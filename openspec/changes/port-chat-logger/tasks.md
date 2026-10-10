@@ -103,7 +103,7 @@
       marker
 - [x] 16.9 xfail test for the bulk deletion of "Logs reach every listen channel" (found in the
       review: a purge tried a gone or refusing listen channel once per message)
-- [ ] 16.10 Skip the listen channels that are gone or refuse for the rest of a bulk deletion;
+- [x] 16.10 Skip the listen channels that are gone or refuse for the rest of a bulk deletion;
       remove the marker
 
 ## 17. Close

@@ -238,22 +238,26 @@ class ChatLogger(commands.Cog):
         """Post v3's deletion embed of each message of ``deleted`` to the detecting channels.
 
         The members are fetched only when a listen channel detects the channel, once per author.
+        A listen channel that is gone or forbids the bot is not tried again for the other
+        messages of a bulk deletion.
         """
         guild = self.bot.get_guild(guild_id)
         if not deleted or guild is None:
             return
         listen = await self._targets(guild.id, place)
-        if not listen:
-            return
         authors: dict[int, dict[str, str]] = {}
         for stored in deleted:
+            if not listen:
+                return
             if stored.user_id not in authors:
                 authors[stored.user_id] = await self._author(guild, stored.user_id)
             values = place.values() | {
                 "cl_change_count": str(stored.count),
                 "cl_msg_before": fit(stored.text),
             }
-            await self.listen.post(guild, listen, "on-msg-delete", authors[stored.user_id] | values)
+            author = authors[stored.user_id]
+            failed = await self.listen.post(guild, listen, "on-msg-delete", author | values)
+            listen = [channel for channel in listen if channel not in failed]
 
     async def _author(self, guild: discord.Guild, user_id: int) -> dict[str, str]:
         """The keys of a stored author, fetched as the guild's member (v3's ``retrieveMemberById``).

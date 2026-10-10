@@ -8,20 +8,20 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 import payloads
-from discord_fakes import FakeChannel, forbidden, not_found
+from discord_fakes import FakeChannel, forbidden, not_found, server_error
 from plugin_fakes import golden
 from xincord.plugins.chat_logger.cog import NAMESPACE
 from xincord.plugins.listen_channels.settings import Setting
 from xincord.plugins.listen_channels.store import ListenSettings
 
 if TYPE_CHECKING:
+    import pytest
+
     from conftest import Scene
 
 GOLDEN = golden("chat_logger")
-REASON = "Logs reach every listen channel"
 
 
 async def test_locale_without_templates(scene: Scene) -> None:
@@ -67,7 +67,6 @@ async def test_refused_listen_channel(scene: Scene, caplog: pytest.LogCaptureFix
     assert "ChatLogger cannot post in the listen channel 5 of guild (10)" in caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 async def test_bulk_deletion(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Logs reach every listen channel."""
     scene.channels[5] = FakeChannel(id=5, error=not_found())
@@ -85,3 +84,19 @@ async def test_bulk_deletion(scene: Scene, caplog: pytest.LogCaptureFixture) -> 
     assert len(scene.posts(7)) == 3
     assert caplog.text.count("forgot the listen channel 5 ") == 1
     assert caplog.text.count("cannot post in the listen channel 6 ") == 1
+
+
+async def test_bulk_deletion_and_a_failing_listen_channel(
+    scene: Scene, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: Logs reach every listen channel."""
+    scene.channels[5] = FakeChannel(id=5, error=server_error())
+    await scene.listen(5, [30])
+    for message_id in (100, 101):
+        await scene.send(message_id, 30, f"spam {message_id}")
+    scene.rest.answers["GET /guilds/10/members/7"] = [payloads.member(7, "user7")]
+
+    await scene.delete_all([100, 101], 30)
+
+    # Discord's failure may pass: the next message tries the channel again.
+    assert caplog.text.count("cannot post in the listen channel 5 ") == 2

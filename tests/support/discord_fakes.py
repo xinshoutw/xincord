@@ -464,6 +464,12 @@ def forbidden() -> discord.Forbidden:
     return discord.Forbidden(response, "Missing Permissions")
 
 
+def server_error() -> discord.DiscordServerError:
+    """The error discord.py raises when Discord fails, after its own retries."""
+    response = cast("aiohttp.ClientResponse", SimpleNamespace(status=500, reason="Server Error"))
+    return discord.DiscordServerError(response, "Internal Server Error")
+
+
 def not_found() -> discord.NotFound:
     """The error discord.py raises for a message or channel that is gone."""
     response = cast("aiohttp.ClientResponse", SimpleNamespace(status=404, reason="Not Found"))

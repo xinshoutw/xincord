@@ -125,17 +125,19 @@ class ListenChannels:
 
     async def post(
         self, guild: discord.Guild, listen: Sequence[int], name: str, values: Mapping[str, str]
-    ) -> None:
+    ) -> set[int]:
         """Send template ``name`` to each listen channel of ``listen``, in the guild's locale.
 
         v3 used ``guild.locale``; the templates fall back to zh-TW. Each channel gets its own
         render, because discord.py closes a message's files once sent, and is reached without
         the cache. A channel that Discord no longer has loses its settings; a refusal is a
         warning; the other channels still get the log. v3 stopped at the first missing channel
-        and threw for channels other than text and voice channels.
+        and threw for channels other than text and voice channels. Return the channels that are
+        gone or forbid the bot, which further logs of the same event need not try.
         """
         template = self.menu.templates.message(name, guild.preferred_locale.value)
         plugin = self.settings.namespace
+        failed: set[int] = set()
         for channel_id in listen:
             partial = self.bot.get_partial_messageable(channel_id, guild_id=guild.id)
             channel = cast("Postable", partial)  # send's overloads never take a view union
@@ -148,6 +150,7 @@ class ListenChannels:
                     files=message.files,
                 )
             except discord.NotFound:
+                failed.add(channel_id)
                 await self.settings.remove(guild.id, channel_id)
                 logger.info(
                     "%s forgot the listen channel %s of %s (%s), which no longer exists",
@@ -157,6 +160,8 @@ class ListenChannels:
                     guild.id,
                 )
             except discord.HTTPException as error:
+                if isinstance(error, discord.Forbidden):
+                    failed.add(channel_id)
                 logger.warning(
                     "%s cannot post in the listen channel %s of %s (%s): %s",
                     plugin,
@@ -165,6 +170,7 @@ class ListenChannels:
                     guild.id,
                     error,
                 )
+        return failed
 
     async def check_guilds(self) -> None:
         """Delete the settings of the guilds that the bot left, and check the others' lists.
