@@ -262,7 +262,7 @@ bot is no longer in. Unavailable guilds SHALL keep their data.
 When the bot is ready, and when the plugin loads into a ready bot, the plugin SHALL, in each
 available guild, drop bindings whose category is gone or holds no voice channel with the lobby's
 name, with a warning each, delete tracked rooms that are empty, and forget tracked rooms that no
-longer exist.
+longer exist. A guild whose stored data cannot be read SHALL be skipped with an error.
 
 #### Scenario: Stale bindings
 - **WHEN** a guild has a binding whose category is gone, one whose category has no voice channel
@@ -277,3 +277,7 @@ longer exist.
 #### Scenario: Unavailable guild
 - **WHEN** a guild with bindings and rooms is unavailable when the bot becomes ready
 - **THEN** its bindings and rooms are left as they are
+
+#### Scenario: Unreadable data
+- **WHEN** one guild's stored bindings cannot be read when the bot becomes ready
+- **THEN** an error names that guild, and the other guilds are still checked

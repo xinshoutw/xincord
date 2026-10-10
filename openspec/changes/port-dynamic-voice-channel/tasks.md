@@ -57,6 +57,9 @@
 - [x] 11.1 xfail tests for "Bindings and rooms are checked when the bot is ready" (no stub: the
       tests load the plugin or run `on_ready`, which the left-guild tests also run)
 - [x] 11.2 Implement the binding and room checks; remove the markers
+- [x] 11.3 xfail test for "Unreadable data" (found in the review: a corrupt document stopped the
+      checks of every guild, and a load into a ready bot)
+- [ ] 11.4 Skip a guild whose data cannot be read, with an error; remove the marker
 
 ## 12. Conventions and docs
 

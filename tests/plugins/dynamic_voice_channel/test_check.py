@@ -10,12 +10,15 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
+import pytest
 
 from discord_fakes import FakeChannel, FakeGuild, FakeVoiceChannel, forbidden
 from plugin_fakes import dispatch, load_plugin
 from xincord.core.bot import Bot
 from xincord.plugins.dynamic_voice_channel.store import (
+    NAMESPACE,
     Binding,
+    DataError,
     bind,
     read_bindings,
     read_rooms,
@@ -24,8 +27,6 @@ from xincord.plugins.dynamic_voice_channel.store import (
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-    import pytest
 
     from discord_fakes import FakeRest, Sent
     from xincord.core.storage import Store
@@ -172,3 +173,31 @@ async def test_checked_when_loaded_into_a_ready_bot(
     assert bot.loaded == ("DynamicVoiceChannel",)
     assert await read_bindings(store, 10) == [VALID]
     assert await read_rooms(store, 10) == {51: 8}
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=DataError,
+    reason="Bindings and rooms are checked when the bot is ready",
+)
+async def test_unreadable_data(
+    bot: Bot,
+    store: Store,
+    rest: FakeRest,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Requirement: Bindings and rooms are checked when the bot is ready."""
+    # Guild 9's binding has no categoryId; guild 10's data is checked all the same.
+    await store.put(NAMESPACE, "9", [{"defaultName": "Lobby"}])
+    await store_guild(store, 10)
+    guilds = {9: FakeGuild(9, "broken"), 10: checked_guild(rest.sent)}
+    monkeypatch.setattr(bot, "get_guild", guilds.get)
+
+    with caplog.at_level(logging.ERROR):
+        await dispatch(bot, "ready")
+
+    assert await store.get(NAMESPACE, "9") == [{"defaultName": "Lobby"}]
+    assert await read_bindings(store, 10) == [VALID]
+    [error] = [record for record in caplog.records if record.levelno == logging.ERROR]
+    assert "guild 9" in error.getMessage()
