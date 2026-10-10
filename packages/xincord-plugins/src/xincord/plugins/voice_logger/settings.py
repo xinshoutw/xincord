@@ -5,10 +5,16 @@ Kotlin:
 """
 
 from dataclasses import dataclass
+from itertools import accumulate
 from typing import TYPE_CHECKING
+
+from xincord.core.placeholders import render
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping, Sequence
+
+FIELD_MAX = 1024  # the longest embed field value Discord takes
+MORE = "..."  # follows the lines of a list that do not all fit
 
 
 @dataclass(frozen=True)
@@ -58,7 +64,32 @@ def list_text(
 ) -> str:
     """v3's list field: ``line`` rendered for each ID, or ``empty`` for an empty list.
 
-    Raises:
-        NotImplementedError: Not implemented yet.
+    Each line gets ``<prefix>_channel_mention`` and ``<prefix>_channel_id`` (v3 replaced them
+    first) and ``values``, in one pass. Lines that do not fit in Discord's 1024 UTF-16 code units
+    are left out, and ``...`` follows the others: v3 threw there, after saving the list, so the
+    menu never opened again.
     """
-    raise NotImplementedError
+    if not ids:
+        return render(empty, values)
+    lines = [
+        render(
+            line,
+            {
+                **values,
+                f"{prefix}_channel_mention": f"<#{channel}>",
+                f"{prefix}_channel_id": str(channel),
+            },
+        )
+        for channel in ids
+    ]
+    if _units("".join(lines)) <= FIELD_MAX:
+        return "".join(lines)
+    # The running totals grow, so the lines that fit are the first ones.
+    room = FIELD_MAX - _units(MORE)
+    fitting = sum(1 for total in accumulate(map(_units, lines)) if total <= room)
+    return "".join(lines[:fitting]) + MORE
+
+
+def _units(text: str) -> int:
+    """The length of ``text`` in UTF-16 code units, as Discord counts it."""
+    return len(text.encode("utf-16-le")) // 2

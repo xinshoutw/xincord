@@ -24,11 +24,6 @@ if TYPE_CHECKING:
     from xincord.plugins.voice_logger.cog import VoiceLogger
 
 GOLDEN = golden("voice_logger")
-XFAIL = pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The settings menu shows the channel's settings",
-)
 LOCALES = {"en-US": discord.Locale.american_english, "zh-TW": discord.Locale.taiwan_chinese}
 LINE = "%allowlist_channel_mention% (`%allowlist_channel_id%`)\n"  # v3's allow_list_format
 LONG = [1290000000000000000 + index for index in range(40)]  # 19-digit IDs
@@ -62,7 +57,6 @@ def edited(interaction: FakeInteraction) -> tuple[dict[str, Any], list[list[obje
     return embed_dict(embed), buttons
 
 
-@XFAIL
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_menu(cog: VoiceLogger, store: Store, locale: str) -> None:
     """Requirement: The settings menu shows the channel's settings."""
@@ -76,7 +70,6 @@ async def test_menu(cog: VoiceLogger, store: Store, locale: str) -> None:
     assert buttons == GOLDEN["menu"][locale]["buttons"]
 
 
-@XFAIL
 async def test_channel_without_settings(cog: VoiceLogger, store: Store) -> None:
     """Requirement: The settings menu shows the channel's settings."""
     interaction = command(FakeChannel(id=6, name="other"))
@@ -88,7 +81,6 @@ async def test_channel_without_settings(cog: VoiceLogger, store: Store) -> None:
     assert await store.keys(NAMESPACE) == []  # v3 kept the default in memory only
 
 
-@XFAIL
 async def test_long_list_in_the_menu(cog: VoiceLogger, store: Store) -> None:
     """Requirement: The settings menu shows the channel's settings."""
     # v3 threw for a field over 1024 characters, after saving, so the menu never opened again.
@@ -104,7 +96,6 @@ async def test_long_list_in_the_menu(cog: VoiceLogger, store: Store) -> None:
     assert allowed.endswith("\n...")
 
 
-@XFAIL
 def test_list_text() -> None:
     """Requirement: The settings menu shows the channel's settings."""
     # v3 replaced the line's own keys, then expanded the others with the interaction's values.
@@ -118,7 +109,6 @@ def test_list_text() -> None:
     assert list_text([], line, "none for %user_name%", values, "allowlist") == "none for admin"
 
 
-@XFAIL
 def test_long_list() -> None:
     """Requirement: The settings menu shows the channel's settings."""
     text = list_text(LONG, LINE, "Empty", {}, "allowlist")
