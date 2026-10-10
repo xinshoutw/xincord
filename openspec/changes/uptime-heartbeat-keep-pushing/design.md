@@ -168,7 +168,10 @@ its old comment.
   `logs.py` with the other modules and `config.yaml`, and `docker compose run --rm -T bot
   --no-online` on a fresh image, with `plugins: [UptimeHeartbeat]` and one listener in a temporary
   `bot/`, exited 0 with `Plugins loaded: UptimeHeartbeat`, pushed nothing and printed no token;
-  `docker compose down -v` and removing `bot/` cleaned up.
+  `docker compose down -v` and removing `bot/` cleaned up. Rebuilt after the cross-review's fixes
+  (yarl declared): the same, and a listener whose password hides the port made it exit 1 with
+  `listeners.0.url: Value error, not a URL: its host or port cannot be read` and neither the token
+  nor the password in the output, tracebacks included.
 
 ### Cross-review
 
