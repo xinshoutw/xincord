@@ -8,12 +8,15 @@ Kotlin:
 
 from typing import TYPE_CHECKING
 
+import pytest
+
+from plugin_fakes import load_plugin
 from xincord.core.plugins import PluginInfo, discover
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from xincord.core.bot import Bot
+    from xincord.core.storage import Store
 
 LANG_FILES = (
     "zh-TW/register.yaml",
@@ -25,18 +28,21 @@ LANG_FILES = (
 )
 
 
+@pytest.mark.xfail(strict=True, reason="The plugin installs as CustomCommands")
 def test_discovered_by_name() -> None:
-    """Requirement: The plugin installs as SimpleCommand."""
-    assert discover(["SimpleCommand"]) == [
-        PluginInfo("SimpleCommand", "xincord.plugins.simple_command")
+    """Requirement: The plugin installs as CustomCommands."""
+    assert discover(["CustomCommands"]) == [
+        PluginInfo("CustomCommands", "xincord.plugins.custom_commands")
     ]
 
 
-async def test_first_load_creates_the_lang_files(bot: Bot, tmp_path: Path) -> None:
-    """Requirement: The plugin installs as SimpleCommand."""
-    directory = tmp_path / "plugins" / "SimpleCommand"
+@pytest.mark.xfail(strict=True, reason="The plugin installs as CustomCommands")
+async def test_first_load_creates_the_lang_files(store: Store, tmp_path: Path) -> None:
+    """Requirement: The plugin installs as CustomCommands."""
+    bot = await load_plugin("CustomCommands", tmp_path / "plugins", store)
+    directory = tmp_path / "plugins" / "CustomCommands"
 
-    assert bot.loaded == ("SimpleCommand",)
+    assert bot.loaded == ("CustomCommands",)
     for name in LANG_FILES:
         assert (directory / "lang" / name).is_file()
     assert not (directory / "config.yaml").exists()  # v3's only key, enabled, is gone
