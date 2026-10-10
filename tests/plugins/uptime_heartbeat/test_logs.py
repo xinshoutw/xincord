@@ -1,4 +1,4 @@
-"""What the logs show of a URL: its origin, without the push token.
+"""What the logs show: a URL's origin without the push token, and failures when they are new.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/IntervalPusher.kt:99-123
@@ -6,8 +6,9 @@ Kotlin:
 
 import pytest
 
-from xincord.plugins.uptime_heartbeat.logs import origin, redact
+from xincord.plugins.uptime_heartbeat.logs import Failures, origin, redact
 
+REPEATS = "A failure is logged when it starts, changes or ends"
 # A URL with a quote in its path: Python's repr, which aiohttp's texts use, then quotes it with ".
 QUOTED = "https://status.example.com/api/push/it's?ping=42"
 
@@ -77,3 +78,34 @@ def test_origin(url: str, expected: str) -> None:
 def test_redact(text: str, expected: str) -> None:
     """Requirement: Logs show only the URL's origin."""
     assert redact(text) == expected
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REPEATS)
+def test_repeated_failure_is_not_new() -> None:
+    """Requirement: A failure is logged when it starts, changes or ends."""
+    failures = Failures()
+
+    assert [failures.add(500) for _ in range(3)] == [True, False, False]
+    assert (failures.kind, failures.count) == (500, 3)
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REPEATS)
+def test_another_kind_is_new() -> None:
+    """Requirement: A failure is logged when it starts, changes or ends."""
+    failures = Failures()
+    kinds = (500, 500, TimeoutError, TimeoutError, 404, 500)
+
+    assert [failures.add(kind) for kind in kinds] == [True, False, True, False, True, True]
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REPEATS)
+def test_clear() -> None:
+    """Requirement: A failure is logged when it starts, changes or ends."""
+    failures = Failures()
+
+    assert failures.clear() == 0  # nothing failed
+    failures.add(500)
+    failures.add(500)
+    assert failures.clear() == 2
+    assert (failures.kind, failures.count) == (None, 0)
+    assert failures.add(500)  # new again once the step worked

@@ -23,6 +23,7 @@ TOKEN = "xxxxxxxxxx"  # the push token: in the URL's path, never in a log line
 URL = f"https://status.example.com/api/push/{TOKEN}?status=up&msg=OK&ping=%ping%"
 PUSHED = URL.replace("%ping%", "42")
 ENDPOINT = "https://status.example.com"  # the URL's origin, all that the logs show of it
+REPEATS = "A failure is logged when it starts, changes or ends"
 
 
 class Stop(Exception):  # noqa: N818 - it ends the loop, it reports no error
@@ -33,19 +34,20 @@ class Stop(Exception):  # noqa: N818 - it ends the loop, it reports no error
 class Fakes:
     """Stand in for the monitor, Discord's REST ping and the clock; record the loop's calls.
 
-    The monitor answers the pushes with ``answers`` in turn, repeating the last one; an exception
-    is raised instead. Each push takes ``push_seconds`` on the fake clock ``now``, and the sleep
-    after the ``stop_after``-th push raises :class:`Stop`.
+    The monitor answers the pushes with ``answers`` in turn, repeating the last one, and Discord
+    the pings with ``pings``; an exception is raised instead. Each push takes ``push_seconds`` on
+    the fake clock ``now``, and the sleep after the ``stop_after``-th push raises :class:`Stop`.
     """
 
     answers: tuple[int | Exception, ...] = (200,)
-    ping_ms: int | Exception = 42
+    pings: tuple[int | Exception, ...] = (42,)
     push_seconds: float = 0
     stop_after: int = 1
     calls: list[str] = field(default_factory=list[str])
     starts: list[float] = field(default_factory=list[float])  # the clock when each push began
     now: float = 0
     pushes: int = 0
+    measured: int = 0  # pings asked for
 
     async def get(self, url: str) -> int:
         self.calls.append(f"get {url}")
@@ -59,9 +61,11 @@ class Fakes:
 
     async def ping(self) -> int:
         self.calls.append("ping")
-        if isinstance(self.ping_ms, Exception):
-            raise self.ping_ms
-        return self.ping_ms
+        answer = self.pings[min(self.measured, len(self.pings) - 1)]
+        self.measured += 1
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
 
     async def sleep(self, seconds: float) -> None:
         self.calls.append(f"sleep {seconds}")
@@ -85,7 +89,7 @@ def test_every_placeholder_is_replaced() -> None:
 
 async def test_ping_in_the_url() -> None:
     """Requirement: The URL carries the REST ping."""
-    fakes = Fakes(ping_ms=42)
+    fakes = Fakes(pings=(42,))
 
     url = await fakes.pusher("https://status.example.com/%ping%/push?ping=%ping%").url()
 
@@ -103,7 +107,7 @@ async def test_ping_in_the_url() -> None:
 )
 async def test_failed_ping(error: Exception, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The URL carries the REST ping."""
-    fakes = Fakes(ping_ms=error)
+    fakes = Fakes(pings=(error,))
 
     with caplog.at_level(logging.WARNING):
         url = await fakes.pusher().url()
@@ -332,3 +336,88 @@ async def test_pushing_goes_on_after_a_404() -> None:
 
     assert fakes.pushes == 4
     assert [call for call in fakes.calls if call.startswith("sleep")] == ["sleep 60"] * 4
+
+
+def logged(caplog: pytest.LogCaptureFixture) -> list[tuple[int, str]]:
+    """The plugin's lines after its start line, as (level, message) pairs."""
+    return [
+        (record.levelno, record.getMessage())
+        for record in caplog.records
+        if record.name.startswith("xincord.plugins.uptime_heartbeat")
+        and not record.getMessage().startswith("UptimeHeartbeat listener 1 started")
+    ]
+
+
+def above_debug(caplog: pytest.LogCaptureFixture) -> list[tuple[int, str]]:
+    return [(level, message) for level, message in logged(caplog) if level > logging.DEBUG]
+
+
+async def run_logged(fakes: Fakes, caplog: pytest.LogCaptureFixture) -> None:
+    """Run listener 1 until the fake sleep stops it, with the plugin's debug lines captured."""
+    with caplog.at_level(logging.DEBUG, "xincord.plugins.uptime_heartbeat"), pytest.raises(Stop):
+        await fakes.pusher().run()
+
+
+@pytest.mark.xfail(strict=True, reason=REPEATS)
+async def test_repeated_failure(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: A failure is logged when it starts, changes or ends."""
+    await run_logged(Fakes(answers=(500,), stop_after=3), caplog)
+
+    failure = f"UptimeHeartbeat listener 1: pushing to {ENDPOINT} failed with code 500"
+    assert logged(caplog) == [
+        (logging.ERROR, failure),
+        (logging.DEBUG, failure),  # v3 logged an error at every push
+        (logging.DEBUG, failure),
+    ]
+
+
+@pytest.mark.xfail(strict=True, reason=REPEATS)
+async def test_another_kind_of_failure(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: A failure is logged when it starts, changes or ends."""
+    refused = aiohttp.ClientConnectionError("Cannot connect to host status.example.com:443")
+    answers = (500, 500, refused, 404, 404)
+
+    await run_logged(Fakes(answers=answers, stop_after=len(answers)), caplog)
+
+    failed = f"UptimeHeartbeat listener 1: pushing to {ENDPOINT} failed"
+    assert above_debug(caplog) == [
+        (logging.ERROR, f"{failed} with code 500"),
+        (logging.ERROR, f"{failed}: Cannot connect to host status.example.com:443"),
+        (logging.WARNING, f"{failed} with code 404 (the status monitor refused the push)"),
+    ]
+
+
+@pytest.mark.xfail(strict=True, reason=REPEATS)
+@pytest.mark.parametrize(("failures", "count"), [(1, "1 failed push"), (2, "2 failed pushes")])
+async def test_pushing_works_again(
+    failures: int, count: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: A failure is logged when it starts, changes or ends."""
+    answers = (*(500,) * failures, 200, 500)
+
+    await run_logged(Fakes(answers=answers, stop_after=len(answers)), caplog)
+
+    failure = f"UptimeHeartbeat listener 1: pushing to {ENDPOINT} failed with code 500"
+    works = f"UptimeHeartbeat listener 1: pushing to {ENDPOINT} works again after {count}"
+    assert above_debug(caplog) == [
+        (logging.ERROR, failure),
+        (logging.INFO, works),
+        (logging.ERROR, failure),  # a new failure once pushing worked
+    ]
+
+
+@pytest.mark.xfail(strict=True, reason=REPEATS)
+async def test_ping_fails_repeatedly(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: A failure is logged when it starts, changes or ends."""
+    fakes = Fakes(pings=(TimeoutError(), TimeoutError(), TimeoutError(), 42), stop_after=4)
+
+    await run_logged(fakes, caplog)
+
+    failure = "UptimeHeartbeat listener 1 could not measure the REST ping, so %ping% is -1: "
+    assert above_debug(caplog) == [
+        (logging.WARNING, f"{failure}TimeoutError"),
+        (logging.INFO, "UptimeHeartbeat listener 1 measures the REST ping again"),
+    ]
+    assert logged(caplog).count((logging.DEBUG, f"{failure}TimeoutError")) == 2
+    pushed = [call for call in fakes.calls if call.startswith("get ")]
+    assert pushed == [f"get {URL.replace('%ping%', '-1')}"] * 3 + [f"get {PUSHED}"]
