@@ -10,6 +10,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from xincord.core.placeholders import global_values
 from xincord.core.templates import render_message
 
 if TYPE_CHECKING:
@@ -66,7 +67,7 @@ class BotInfo(commands.Cog):
         this render only.
         """
         guild_count, member_count = counts(interaction.client.guilds)
-        values = _bot_values(interaction) | {
+        values = global_values(interaction.client) | {
             "guild_counts": str(guild_count),
             "member_counts": str(member_count),
             "source_url": self.config.source_url,
@@ -86,9 +87,3 @@ def counts(guilds: Collection[Counted]) -> tuple[int, int]:
     count (a guild unavailable since the bot connected) adds nothing.
     """
     return len(guilds), sum(guild.member_count or 0 for guild in guilds)
-
-
-def _bot_values(interaction: discord.Interaction) -> dict[str, str]:
-    """v3's global placeholders, the only ones its ``bot-info`` template had: the bot's keys."""
-    bot = interaction.client.user  # set once the bot has logged in
-    return {} if bot is None else {"bot_id": str(bot.id), "bot_name": bot.name}
