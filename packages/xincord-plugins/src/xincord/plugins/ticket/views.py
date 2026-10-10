@@ -13,7 +13,8 @@ import discord
 if TYPE_CHECKING:
     from xincord.core.templates import IdBuilder
 
-    from .model import Draft
+    from .model import Controls, Draft
+    from .texts import Texts
 
 
 def preview_embed(draft: Draft) -> discord.Embed:
@@ -52,3 +53,10 @@ def panel_button(
 ) -> discord.ui.Button[discord.ui.View]:
     """The panel's button ``index``, v3's ``buildTicketButton``: it opens the reason modal."""
     return _button(draft, build_id({"action": "press", "btn_index": str(index)}))
+
+
+def control_row(
+    controls: Controls, *, locked: bool, texts: Texts, build_id: IdBuilder
+) -> discord.ui.View:
+    """A ticket channel's control row, v3's ``buildTicketActionRow``, stopped for the router."""
+    raise NotImplementedError

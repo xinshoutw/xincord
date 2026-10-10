@@ -219,8 +219,11 @@ class Ticket(commands.Cog):
                 await self.ask(interaction, fields)
             elif kind in ENTITY_SELECTS and action == "create":
                 await self.choose(interaction, sub_action, _values(data))
-        elif interaction.type is discord.InteractionType.modal_submit and action == "create":
-            await self.submit(interaction, sub_action)
+        elif interaction.type is discord.InteractionType.modal_submit:
+            if action == "create":
+                await self.submit(interaction, sub_action)
+            elif action == "submit":
+                await self.open_ticket(interaction, fields)
 
     async def ask(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
         """Answer a panel button with the reason modal of its stored entry.
@@ -250,6 +253,12 @@ class Ticket(commands.Cog):
         }
         template = self.templates.modal("press-ticket", interaction.locale.value)
         await interaction.response.send_modal(render_modal(template, values, build_id=IDS.build))
+
+    async def open_ticket(
+        self, interaction: discord.Interaction, fields: Mapping[str, str]
+    ) -> None:
+        """Open a ticket channel for the member who submitted the reason modal."""
+        raise NotImplementedError
 
     async def press(
         self, interaction: discord.Interaction, sub_action: str, fields: Mapping[str, str]

@@ -53,3 +53,8 @@ def clip(text: str, limit: int) -> str:
         if used > limit:
             return text[:index]
     return text
+
+
+def chunks(text: str, limit: int) -> list[str]:
+    """``text`` in parts of at most ``limit`` UTF-16 code units each, characters kept whole."""
+    raise NotImplementedError

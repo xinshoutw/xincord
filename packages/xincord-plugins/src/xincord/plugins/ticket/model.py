@@ -57,6 +57,16 @@ class Draft:
         return Entry(self.reason_title, self.admin_ids, self.category_id)
 
 
+@dataclass(frozen=True)
+class Controls:
+    """What a ticket's control row carries: the ticket's member, and the panel button's message
+    and index, whose entry names the staff roles."""
+
+    user_id: int
+    message_id: str
+    index: str
+
+
 def hex_color(color: int) -> str:
     """A color as v3 showed it in its modal: ``String.format("#%06X", color and 0xFFFFFF)``."""
     return f"#{color & 0xFFFFFF:06X}"

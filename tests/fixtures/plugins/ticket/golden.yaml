@@ -9,6 +9,9 @@ texts:
   zh-TW:
     not-found: "錯誤 (找不到 Ticket 設定資料，可能已被刪除)"
     lock: "關閉"
+    unlock: "開啟"
+    save: "儲存對話"
+    delete: "刪除"
     # reply.go-to-channel with the channel `%tt@thread%`, inserted as written.
     go-to-placeholder: "請到此頻道 %tt@thread% 並等待人員回覆繼續!"
 

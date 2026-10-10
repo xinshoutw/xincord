@@ -167,11 +167,21 @@ class FakeChannel:
     message_error: Exception | None = None  # what editing the channel's messages raises
     # The channel's messages that fetch_message finds, the sent ones too.
     messages: dict[int, FakeMessage] = field(default_factory=dict[int, "FakeMessage"])
+    category: object = None  # the channel's category, if any
+    parent: object = None  # a thread's channel
+    delete_error: Exception | None = None  # what deleting the channel raises
 
     @property
     def mention(self) -> str:
         """The mention markup."""
         return f"<#{self.id}>"
+
+    async def delete(self, *, reason: str | None = None) -> None:
+        """Record the channel's deletion, or raise ``delete_error``."""
+        del reason
+        if self.delete_error is not None:
+            raise self.delete_error
+        self.sent.append(("channel.delete", {"id": self.id}))
 
     async def fetch_message(self, message_id: int, /) -> FakeMessage:
         """The channel's message ``message_id``, as Discord answers; NotFound otherwise."""
@@ -267,6 +277,50 @@ class FakeVoiceChannel(FakeChannel):
     def _fail(self, method: str) -> None:
         if (error := self.errors.get(method)) is not None:
             raise error
+
+
+@dataclass
+class FakeCategory(FakeChannel):
+    """A category that creates text channels in it, recording each into ``sent``.
+
+    ``overwrites`` are its permission overwrites; ``bot_permissions`` what ``permissions_for``
+    answers for the bot. A created channel records its messages into ``sent`` too, and fails its
+    sends with ``send_error``; ``create_error`` makes the creation fail.
+    """
+
+    type: discord.ChannelType = discord.ChannelType.category
+    overwrites: dict[object, discord.PermissionOverwrite] = field(
+        default_factory=dict[object, discord.PermissionOverwrite]
+    )
+    bot_permissions: discord.Permissions = field(default_factory=discord.Permissions.all)
+    create_error: Exception | None = None
+    send_error: Exception | None = None
+    created: list[FakeChannel] = field(default_factory=list[FakeChannel])
+    next_channel_id: int = 700
+
+    def permissions_for(self, target: object, /) -> discord.Permissions:
+        """The bot's permissions in the category."""
+        del target
+        return self.bot_permissions
+
+    async def create_text_channel(
+        self,
+        name: str,
+        *,
+        overwrites: dict[object, discord.PermissionOverwrite],
+        reason: str | None = None,
+    ) -> FakeChannel:
+        """Record the creation and return the channel."""
+        del reason
+        if self.create_error is not None:
+            raise self.create_error
+        self.sent.append(("category.create_text_channel", {"name": name, "overwrites": overwrites}))
+        channel = FakeChannel(
+            sent=self.sent, error=self.send_error, id=self.next_channel_id, name=name, category=self
+        )
+        self.next_channel_id += 1
+        self.created.append(channel)
+        return channel
 
 
 def voice_state(channel: FakeChannel | None) -> discord.VoiceState:
@@ -420,9 +474,14 @@ class FakeGuild:
     members: list[FakeMember] = field(default_factory=_no_members)  # as Discord has them
 
     @property
-    def me(self) -> SimpleNamespace | None:
-        """The bot's member in the guild, with its permissions only; None while unavailable."""
-        return None if self.unavailable else SimpleNamespace(guild_permissions=self.permissions)
+    def me(self) -> FakeMe | None:
+        """The bot's member in the guild, with its ID and permissions; None while unavailable."""
+        return None if self.unavailable else FakeMe(BOT_USER.id, self.permissions)
+
+    @property
+    def default_role(self) -> FakeRole:
+        """The guild's @everyone role, whose ID is the guild's."""
+        return FakeRole(self.id, "@everyone", default=True)
 
     def get_role(self, role_id: int, /) -> FakeRole | None:
         """The guild's role with that ID, if any."""
@@ -447,6 +506,14 @@ class FakeGuild:
     def as_guild(self) -> discord.Guild:
         """This fake, typed as the discord.py guild it stands for."""
         return cast("discord.Guild", self)
+
+
+@dataclass(frozen=True)
+class FakeMe:
+    """The bot's member in a guild: its ID and its guild-wide permissions."""
+
+    id: int
+    guild_permissions: discord.Permissions
 
 
 type RoleRequest = tuple[tuple[int, ...], bool]  # the role IDs and the atomic flag of add_roles
@@ -475,6 +542,10 @@ class FakeMember:
     roles: tuple[FakeRole, ...] = ()
     created_at: datetime = datetime(2021, 6, 1, tzinfo=UTC)
     joined_at: datetime | None = datetime(2022, 1, 1, tzinfo=UTC)
+
+    def __hash__(self) -> int:
+        """A member is a key of permission overwrites, by its ID."""
+        return hash(("member", self.id))
 
     @property
     def mention(self) -> str:

@@ -84,7 +84,7 @@
 
 ## 16. Tickets
 
-- [ ] 16.1 xfail tests for "Submitting the reason opens a ticket channel" and "Ticket channels get
+- [x] 16.1 xfail tests for "Submitting the reason opens a ticket channel" and "Ticket channels get
        v3's permissions and the bot's" against stubs `open_ticket` and `tickets.overwrites`
 - [ ] 16.2 Implement them, `opener` and `control_row`; remove the markers
 
