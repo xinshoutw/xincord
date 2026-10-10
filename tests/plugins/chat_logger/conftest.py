@@ -4,7 +4,7 @@ Discord's REST requests are recorded instead of sent, the bot has its user, as a
 READY waits for the tests, as the plugin's retention loop waits for it.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from xincord.core.storage import Store
+    from xincord.plugins.chat_logger.cog import ChatLogger
 
 
 @pytest.fixture(autouse=True)
@@ -48,3 +49,16 @@ async def bot(store: Store, tmp_path: Path) -> Bot:
     The plugin's settings and messages are in ``store``, the same store as the tests'.
     """
     return await load_plugin("ChatLogger", tmp_path / "plugins", store)
+
+
+@pytest.fixture
+def cog(bot: Bot) -> ChatLogger:
+    """The loaded plugin's cog.
+
+    No isinstance check: a load that fails, as with an invalid config, makes discord.py import the
+    plugin's modules again, so the class differs from the one imported when the tests were
+    collected.
+    """
+    found = bot.get_cog("ChatLogger")
+    assert found is not None
+    return cast("ChatLogger", found)

@@ -15,3 +15,8 @@ class Config(Model):
 
     # True: the messages of every channel are stored; false: those of the detected channels only.
     log_all: bool = True
+
+    @property
+    def retention_days(self) -> int:
+        """How many days a message's text is kept."""
+        raise NotImplementedError

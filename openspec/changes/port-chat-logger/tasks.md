@@ -16,7 +16,7 @@
 
 ## 4. Config
 
-- [ ] 4.1 xfail tests for "The config keeps v3's key and bounds the stored messages"
+- [x] 4.1 xfail tests for "The config keeps v3's key and bounds the stored messages"
 - [ ] 4.2 Implement `Config`; remove the markers
 
 ## 5. Detection
