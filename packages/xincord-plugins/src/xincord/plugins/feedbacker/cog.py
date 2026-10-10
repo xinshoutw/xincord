@@ -12,9 +12,9 @@ from discord.ext import commands
 
 from xincord.core.component_ids import ComponentIds
 from xincord.core.placeholders import MemberLike, actor_values, placeholder_values
-from xincord.core.templates import render_message, render_modal
+from xincord.core.templates import modal_values, render_message, render_modal
 
-from .form import highlight, star_count
+from .form import highlight, star_count, stars
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from discord import app_commands
 
     from xincord.core.i18n import Lang
-    from xincord.core.templates import Templates
+    from xincord.core.templates import Message, Templates
 
     from .config import Config
 
@@ -34,10 +34,11 @@ IDS = ComponentIds(
     ("action", "user_id", "star_count", "submit_channel_id"),
     legacy_prefix="feedbacker@",
 )
+FEEDBACK = "form"  # the custom ID of the modal's text input, v3's
 
 
 class FormError(Exception):
-    """A form cannot be posted; the message says why, for the log."""
+    """A form or a review cannot be posted; the message says why, for the log."""
 
 
 @runtime_checkable
@@ -119,17 +120,7 @@ class Feedbacker(commands.Cog):
             "fb_submit_channel_id": str(submit_channel.id)
         }
         template = self.templates.message("ask-message", interaction.locale.value)
-        message = render_message(template, values, build_id=IDS.build)
-        try:
-            await channel.send(
-                content=message.content or None,
-                embeds=message.embeds,
-                view=message.view,
-                files=message.files,
-            )
-        except discord.HTTPException as error:
-            msg = f"the channel {_name(interaction.channel)} refused it: {error}"
-            raise FormError(msg) from error
+        await _send(channel, render_message(template, values, build_id=IDS.build))
 
     async def press_star(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
         """Open the feedback modal for the rated member, then highlight the pressed star.
@@ -153,8 +144,69 @@ class Feedbacker(commands.Cog):
     async def submit_form(
         self, interaction: discord.Interaction, fields: Mapping[str, str]
     ) -> None:
-        """Post the submitted feedback in the submit channel, then delete the form."""
-        raise NotImplementedError
+        """Post the member's stars and feedback in the submit channel, then delete the form.
+
+        As in v3, the submission is acknowledged without a message and the review is rendered in
+        the guild's locale with the submitter's values; the feedback is shown as typed. Unlike v3,
+        the form is deleted only once the review is posted: otherwise it stays for another try,
+        the member gets ``form_submit_failure`` and the log says why.
+        """
+        rating = stars(star_count(fields["star_count"]))
+        channel_id = int(fields["submit_channel_id"])
+        feedback = modal_values(interaction.data).get(FEEDBACK, "")
+        await interaction.response.defer()  # v3's deferEdit: the modal closes, nothing is shown
+        try:
+            await self._post_review(interaction, channel_id, rating, feedback)
+        except FormError as error:
+            logger.warning(
+                "Feedbacker cannot post the review of %s in %s: %s",
+                _name(interaction.user),
+                _name(interaction.guild),
+                error,
+            )
+            await interaction.followup.send(self.config.form_submit_failure, ephemeral=True)
+            return
+        await _delete_form(interaction)
+
+    async def _post_review(
+        self, interaction: discord.Interaction, channel_id: int, rating: str, feedback: str
+    ) -> None:
+        """Post ``print-result`` in the guild's text channel ``channel_id``.
+
+        Raises:
+            FormError: The guild has no such text channel, or the channel refused the review.
+        """
+        channel = _text_channel(interaction.guild, channel_id)
+        if channel is None:
+            msg = f"channel {channel_id} is not one of its text channels"
+            raise FormError(msg)
+        bot = interaction.client.user
+        # v3's Placeholder.get(event.member) for the submitter.
+        values = ({} if bot is None else actor_values(interaction.user, bot)) | {
+            "fb_stars": rating,
+            "fb_content": feedback,
+        }
+        locale = (interaction.guild_locale or interaction.locale).value
+        template = self.templates.message("print-result", locale)
+        await _send(channel, render_message(template, values, build_id=IDS.build))
+
+
+async def _send(channel: Postable, message: Message) -> None:
+    """Post the whole rendered message in ``channel``.
+
+    Raises:
+        FormError: The channel refused it.
+    """
+    try:
+        await channel.send(
+            content=message.content or None,
+            embeds=message.embeds,
+            view=message.view,
+            files=message.files,
+        )
+    except discord.HTTPException as error:
+        msg = f"the channel {_name(channel)} refused it: {error}"
+        raise FormError(msg) from error
 
 
 async def _highlight(interaction: discord.Interaction) -> None:
@@ -171,6 +223,25 @@ async def _highlight(interaction: discord.Interaction) -> None:
         logger.warning(
             "Feedbacker cannot highlight the pressed star on message %s: %s", message.id, error
         )
+
+
+async def _delete_form(interaction: discord.Interaction) -> None:
+    """Delete the form whose review was posted, as v3 did; a failure is logged.
+
+    The second of two submissions from two clients finds the form gone, as in v3.
+    """
+    form = cast("discord.Message", interaction.message)  # the modal was opened from the form
+    try:
+        await form.delete()
+    except discord.HTTPException as error:
+        logger.warning("Feedbacker cannot delete form %s after its review: %s", form.id, error)
+
+
+def _text_channel(guild: discord.Guild | None, channel_id: int) -> Postable | None:
+    """The guild's cached text channel ``channel_id``, as v3's ``getTextChannelById``."""
+    channel = None if guild is None else guild.get_channel(channel_id)
+    is_text = getattr(channel, "type", None) == discord.ChannelType.text
+    return _postable(channel) if is_text else None
 
 
 def _postable(channel: object) -> Postable | None:

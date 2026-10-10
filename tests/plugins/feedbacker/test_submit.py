@@ -35,7 +35,6 @@ EN = discord.Locale.american_english
 ZH = discord.Locale.taiwan_chinese
 DEFERRED = ("response.defer", {"ephemeral": False, "thinking": False})
 DELETED: tuple[str, dict[str, object]] = ("message.delete", {})
-XFAIL = pytest.mark.xfail(strict=True, raises=NotImplementedError)
 
 
 def submission(
@@ -94,7 +93,6 @@ def failure() -> tuple[str, dict[str, object]]:
     return ("followup.send", {"content": REPLIES["form_submit_failure"], "ephemeral": True})
 
 
-@XFAIL(reason="A submitted feedback is posted")
 @pytest.mark.parametrize("locale", [EN, ZH])
 async def test_feedback_posted(cog: Feedbacker, locale: discord.Locale) -> None:
     """Requirement: A submitted feedback is posted."""
@@ -107,7 +105,6 @@ async def test_feedback_posted(cog: Feedbacker, locale: discord.Locale) -> None:
     assert (deferred, posted, deleted) == (DEFERRED, "channel.send", DELETED)
 
 
-@XFAIL(reason="A submitted feedback is posted")
 async def test_empty_feedback(cog: Feedbacker) -> None:
     """Requirement: A submitted feedback is posted."""
     interaction = submission("")
@@ -119,7 +116,6 @@ async def test_empty_feedback(cog: Feedbacker) -> None:
     assert interaction.sent[-1] == DELETED
 
 
-@XFAIL(reason="A submitted feedback is posted")
 async def test_placeholders_in_the_feedback(cog: Feedbacker) -> None:
     """Requirement: A submitted feedback is posted."""
     interaction = submission("%user_id% %fb_content%")
@@ -130,7 +126,6 @@ async def test_placeholders_in_the_feedback(cog: Feedbacker) -> None:
     assert fields[0]["value"] == "%user_id% %fb_content%"
 
 
-@XFAIL(reason="A submitted feedback is posted")
 async def test_form_already_gone(cog: Feedbacker, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A submitted feedback is posted."""
     interaction = submission()
@@ -146,7 +141,6 @@ async def test_form_already_gone(cog: Feedbacker, caplog: pytest.LogCaptureFixtu
     assert "Unknown Message" in caplog.text
 
 
-@XFAIL(reason="A feedback that cannot be posted keeps the form")
 @pytest.mark.parametrize(
     "channel_type", [None, discord.ChannelType.news, discord.ChannelType.voice]
 )
@@ -165,7 +159,6 @@ async def test_channel_gone(
     assert "channel 6" in caplog.text
 
 
-@XFAIL(reason="A feedback that cannot be posted keeps the form")
 async def test_channel_refuses_the_review(
     cog: Feedbacker, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -180,7 +173,6 @@ async def test_channel_refuses_the_review(
     assert "Missing Permissions" in caplog.text
 
 
-@XFAIL(reason="Stars follow v3's text")
 @pytest.mark.parametrize("count", ["6", "x"])
 async def test_invalid_star_count_fails_the_submission(cog: Feedbacker, count: str) -> None:
     """Requirement: Stars follow v3's text."""

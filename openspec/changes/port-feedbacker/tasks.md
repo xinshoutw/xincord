@@ -44,7 +44,7 @@
 
 - [x] 8.1 xfail tests for "A submitted feedback is posted" and "A feedback that cannot be posted
       keeps the form", against a stub `submit_form`
-- [ ] 8.2 Implement `submit_form`; remove the markers
+- [x] 8.2 Implement `submit_form`; remove the markers
 
 ## 9. Command and routes
 
