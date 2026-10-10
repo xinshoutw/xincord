@@ -77,3 +77,34 @@ commands:
         name_localizations: {"en-US": "setting", "zh-TW": "設定"}
         description_localizations: {"en-US": "set chat log in this channel", "zh-TW": "設定訊息紀錄在此頻道"}
         options: []
+
+# The update embed per locale: member 7 (no avatar: discord.py's default one) edits message 100
+# in channel 30 of category 20, guild 10, from "hello" to "hi". The core trims the change count's
+# newlines, as JDA did; #D0D000 is 13684736.
+update:
+  en-US:
+    title: "☛ Message Updated"
+    url: "https://discord.com/channels/10/30/100"
+    thumbnail: {url: "https://cdn.discordapp.com/embed/avatars/0.png"}
+    color: 13684736
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    fields:
+      - {name: "`Member`", value: "<@7>", inline: false}
+      - {name: "`Category`", value: "<#20>", inline: false}
+      - {name: "`Channel`", value: "<#30>", inline: false}
+      - {name: "`Change Count`", value: "1", inline: false}
+      - {name: "`--> Before <--`", value: "hello", inline: false}
+      - {name: "`==> After <==`", value: "hi", inline: false}
+  zh-TW:
+    title: "☛ 變更訊息"
+    url: "https://discord.com/channels/10/30/100"
+    thumbnail: {url: "https://cdn.discordapp.com/embed/avatars/0.png"}
+    color: 13684736
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    fields:
+      - {name: "`類別`", value: "<#20>", inline: false}
+      - {name: "`頻道`", value: "<#30>", inline: false}
+      - {name: "`使用者`", value: "<@7>", inline: false}
+      - {name: "`變更次數`", value: "1", inline: false}
+      - {name: "`--> 變更前 <--`", value: "hello", inline: false}
+      - {name: "`==> 變更後 <==`", value: "hi", inline: false}

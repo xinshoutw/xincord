@@ -95,6 +95,11 @@ class ChatLogger(commands.Cog):
             return
         await self.messages.add(message.id, guild.id, place.id, message.author.id, text)
 
+    @commands.Cog.listener()
+    async def on_raw_message_edit(self, payload: discord.RawMessageUpdateEvent) -> None:
+        """Log a stored message's new text to the listen channels that detect its channel."""
+        raise NotImplementedError
+
     def _own(self, author: discord.abc.Snowflake) -> bool:
         """Whether ``author`` is the bot, whose messages v3 did not store."""
         bot = self.bot.user
