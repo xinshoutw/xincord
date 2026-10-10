@@ -47,6 +47,16 @@ async def rest_ping(client: discord.Client, clock: Callable[[], float] = time.pe
     return round((clock() - start) * 1000)
 
 
+def open_session() -> aiohttp.ClientSession:
+    """An HTTP session for one listener's pushes."""
+    raise NotImplementedError
+
+
+async def get_status(session: aiohttp.ClientSession, url: str) -> int:
+    """Send one push to ``url`` and return the status code."""
+    raise NotImplementedError
+
+
 @dataclass(frozen=True)
 class Pusher:
     """One listener's loop, with the request, the ping and the delay passed in."""
