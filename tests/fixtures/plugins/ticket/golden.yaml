@@ -114,3 +114,221 @@ archive:
   start-by-id: "【Thread 開始】\n作者: 8\n名稱: question\n開始時間: 2026-02-28 01:00:00"
   end-by-id: "【Thread 結束】\n作者: 8\n名稱: question\n最後一則訊息時間: 2026-02-28 01:45:00"
   error: "【Thread 攤平失敗】\n作者: Bobby\n名稱: question\n錯誤: 403 Forbidden (error code: 0): Missing Permissions"
+
+# The other shipped message templates (lang/*/message/*.yaml; create-ticket and add-ticket are
+# under builder), rendered with a draft whose button reads "Open" (the models tt@embed-demo,
+# tt@btn-demo, tt@embed and tt@btn): each row's items, a button as [button, label, ID, style], a
+# select as [kind, placeholder, ID, min, max] and a channel select's types.
+messages:
+  confirm-create:
+    en-US: [[["button", "Open", "ticket:1:a=press;f=0", 3]]]
+    zh-TW: [[["button", "Open", "ticket:1:a=press;f=0", 3]]]
+  confirm-add:  # which v3 never used
+    en-US: [[["button", "Open", "ticket:1:a=press;f=0", 3]]]
+    zh-TW: [[["button", "Open", "ticket:1:a=press;f=0", 3]]]
+  modify-admin-role:
+    en-US:
+      - [["button", "Open", "ticket:1:a=create;b=prev", 3]]
+      - [["role-select", "Empty here to by default", "ticket:1:a=create;b=modify-admin", 1, 25]]
+      - [["button", "Back", "ticket:1:a=create;b=back", 2]]
+    zh-TW:
+      - [["button", "Open", "ticket:1:a=create;b=prev", 3]]
+      - [["role-select", "未設定則為預設", "ticket:1:a=create;b=modify-admin", 1, 25]]
+      - [["button", "返回", "ticket:1:a=create;b=back", 2]]
+  modify-category:
+    en-US:
+      - [["button", "Open", "ticket:1:a=create;b=prev", 3]]
+      - [["channel-select", "Empty here to by default", "ticket:1:a=create;b=modify-category", 1, 1, ["category"]]]
+      - [["button", "Back", "ticket:1:a=create;b=back", 2]]
+    zh-TW:
+      - [["button", "Open", "ticket:1:a=create;b=prev", 3]]
+      - [["channel-select", "未設定則為預設", "ticket:1:a=create;b=modify-category", 1, 1, ["category"]]]
+      - [["button", "返回", "ticket:1:a=create;b=back", 2]]
+  modify-btn-color:
+    en-US:
+      - [["button", "Open", "ticket:1:a=create;b=prev", 3]]
+      - - ["button", "BLUE", "ticket:1:a=create;b=modify-btn-color-submit;c=1", 1]
+        - ["button", "GRAY", "ticket:1:a=create;b=modify-btn-color-submit;c=2", 2]
+        - ["button", "GREEN", "ticket:1:a=create;b=modify-btn-color-submit;c=3", 3]
+        - ["button", "RED", "ticket:1:a=create;b=modify-btn-color-submit;c=4", 4]
+      - [["button", "Back", "ticket:1:a=create;b=back", 2]]
+    zh-TW:
+      - [["button", "Open", "ticket:1:a=create;b=prev", 3]]
+      - - ["button", "藍色", "ticket:1:a=create;b=modify-btn-color-submit;c=1", 1]
+        - ["button", "灰色", "ticket:1:a=create;b=modify-btn-color-submit;c=2", 2]
+        - ["button", "綠色", "ticket:1:a=create;b=modify-btn-color-submit;c=3", 3]
+        - ["button", "紅色", "ticket:1:a=create;b=modify-btn-color-submit;c=4", 4]
+      - [["button", "返回", "ticket:1:a=create;b=back", 2]]
+
+# Every shipped modal template (lang/*/modal/*.yaml), rendered with VALUES of test_golden.py: its
+# title, its ID and each input as [ID, label, style, value, placeholder, min, max, required]. The
+# zh-TW button modal's sub-action (B2) and press-ticket's titles (B13) are fixed.
+modals:
+  modify-author:
+    en-US:
+      title: "Create Ticket"
+      id: "ticket:1:a=create;b=modify-author"
+      inputs:
+        - ["author", "Modify author name", "short", "Alice", "Ticket Service", null, 256, false]
+        - ["image", "Modify Author Image", "paragraph", "https://cdn.example/a.png", "https://img .... 5_wh1200.png", null, 4000, false]
+    zh-TW:
+      title: "創建客服單"
+      id: "ticket:1:a=create;b=modify-author"
+      inputs:
+        - ["author", "設定作者名稱", "short", "Alice", "Ticket 服務", null, 256, false]
+        - ["image", "設定作者圖示", "paragraph", "https://cdn.example/a.png", "https://img .... 5_wh1200.png", null, 4000, false]
+  modify-content:
+    en-US:
+      title: "Create Ticket"
+      id: "ticket:1:a=create;b=modify-content"
+      inputs:
+        - ["title", "Modify title", "short", "Help", "🛠 Contact Us", null, 256, false]
+        - ["desc", "Modify description", "paragraph", "Ask us", "🛠 Contact Us", null, 4000, false]
+    zh-TW:
+      title: "創建客服單"
+      id: "ticket:1:a=create;b=modify-content"
+      inputs:
+        - ["title", "設定標題", "short", "Help", "🛠 聯絡我們", null, 256, false]
+        - ["desc", "設定內文", "paragraph", "Ask us", "🛠 聯絡我們", null, 4000, false]
+  modify-embed-color:
+    en-US:
+      title: "Create Ticket"
+      id: "ticket:1:a=create;b=modify-embed-color"
+      inputs:
+        - ["color", "Modify color", "short", "#00FFFF", "0x00FFFF", null, 8, true]
+    zh-TW:
+      title: "創建客服單"
+      id: "ticket:1:a=create;b=modify-embed-color"
+      inputs:
+        - ["color", "設定顏色", "short", "#00FFFF", "0x00FFFF", null, 8, true]
+  modify-btn-text:
+    en-US:
+      title: "Create Ticket"
+      id: "ticket:1:a=create;b=modify-btn-text"
+      inputs:
+        - ["btn-text", "Modify button text", "short", "Open", "Contact Us", null, 80, false]
+        - ["btn-emoji", "Modify button emoji", "short", null, "✉", null, null, false]
+    zh-TW:
+      title: "創建客服單"
+      id: "ticket:1:a=create;b=modify-btn-text"
+      inputs:
+        - ["btn-text", "設定按鈕文字", "short", "Open", "聯絡我們", null, 80, false]
+        - ["btn-emoji", "設定按鈕符號", "short", null, "✉", null, null, false]
+  modify-reason-title:
+    en-US:
+      title: "Create Ticket"
+      id: "ticket:1:a=create;b=modify-reason"
+      inputs:
+        - ["reason", "Modify reason", "paragraph", "Why?", "Do you have any questions we can help with?", null, 45, true]
+    zh-TW:
+      title: "創建客服單"
+      id: "ticket:1:a=create;b=modify-reason"
+      inputs:
+        - ["reason", "設定原因", "paragraph", "Why?", "有任何可以幫助的問題嗎~", null, 45, true]
+  press-ticket:
+    en-US:
+      title: "Create Ticket"
+      id: "ticket:1:a=submit;e=500;f=0"
+      inputs:
+        - ["reason", "Refund", "paragraph", null, null, null, null, true]
+    zh-TW:
+      title: "創建客服單"
+      id: "ticket:1:a=submit;e=500;f=0"
+      inputs:
+        - ["reason", "Refund", "paragraph", null, null, null, null, true]
+  preview-reason:
+    en-US:
+      title: "Why?"
+      id: "ticket:1:a=create;b=prev"
+      inputs:
+        - ["reason", "Reason", "paragraph", null, null, null, null, true]
+    zh-TW:
+      title: "Why?"
+      id: "ticket:1:a=create;b=prev"
+      inputs:
+        - ["reason", "原因", "paragraph", null, null, null, null, true]
+
+# v3's ID shapes (inventory section 4): the fields that IDS.parse reads and the new ID that the core
+# writes. v3 wrote user IDs in lowercase hex: 112210f47de98115 is 1234567890123456789.
+ids:
+  - v3: "ticket@a:create;b:modify-author"
+    fields: {action: "create", sub_action: "modify-author"}
+    new: "ticket:1:a=create;b=modify-author"
+  - v3: "ticket@a:create;b:back"
+    fields: {action: "create", sub_action: "back"}
+    new: "ticket:1:a=create;b=back"
+  - v3: "ticket@a:create;b:modify-btn-color-submit;c:3"
+    fields: {action: "create", sub_action: "modify-btn-color-submit", color_index: "3"}
+    new: "ticket:1:a=create;b=modify-btn-color-submit;c=3"
+  - v3: "ticket@a:create;b:modify-category"
+    fields: {action: "create", sub_action: "modify-category"}
+    new: "ticket:1:a=create;b=modify-category"
+  - v3: "ticket@a:create;b:modify-admin"
+    fields: {action: "create", sub_action: "modify-admin"}
+    new: "ticket:1:a=create;b=modify-admin"
+  - v3: "ticket@b:prev"  # v3's preview button, without an action (B1)
+    fields: {sub_action: "prev"}
+    new: "ticket:1:b=prev"
+  - v3: "ticket@a:create;b:modify-embed-color"
+    fields: {action: "create", sub_action: "modify-embed-color"}
+    new: "ticket:1:a=create;b=modify-embed-color"
+  - v3: "ticket@a:create;b:modify-btn-content"  # v3's zh-TW button modal (B2)
+    fields: {action: "create", sub_action: "modify-btn-content"}
+    new: "ticket:1:a=create;b=modify-btn-content"
+  - v3: "ticket@a:press;f:0"
+    fields: {action: "press", btn_index: "0"}
+    new: "ticket:1:a=press;f=0"
+  - v3: "ticket@a:press;e:1290000000000000001;f:1"
+    fields: {action: "press", msg_id: "1290000000000000001", btn_index: "1"}
+    new: "ticket:1:a=press;e=1290000000000000001;f=1"
+  - v3: "ticket@a:submit;e:1290000000000000001;f:0"
+    fields: {action: "submit", msg_id: "1290000000000000001", btn_index: "0"}
+    new: "ticket:1:a=submit;e=1290000000000000001;f=0"
+  - v3: "ticket@a:lock;d:112210f47de98115;e:1290000000000000001;f:0"
+    fields: {action: "lock", user_id: "1234567890123456789", msg_id: "1290000000000000001", btn_index: "0"}
+    new: "ticket:1:a=lock;d=1234567890123456789;e=1290000000000000001;f=0"
+  - v3: "ticket@a:unlock;d:112210f47de98115;e:1290000000000000001;f:0"
+    fields: {action: "unlock", user_id: "1234567890123456789", msg_id: "1290000000000000001", btn_index: "0"}
+    new: "ticket:1:a=unlock;d=1234567890123456789;e=1290000000000000001;f=0"
+  - v3: "ticket@a:save;d:112210f47de98115;e:1290000000000000001;f:0"
+    fields: {action: "save", user_id: "1234567890123456789", msg_id: "1290000000000000001", btn_index: "0"}
+    new: "ticket:1:a=save;d=1234567890123456789;e=1290000000000000001;f=0"
+  - v3: "ticket@a:delete;d:112210f47de98115;e:1290000000000000001;f:0"
+    fields: {action: "delete", user_id: "1234567890123456789", msg_id: "1290000000000000001", btn_index: "0"}
+    new: "ticket:1:a=delete;d=1234567890123456789;e=1290000000000000001;f=0"
+  - v3: "ticket@a:save;b:select-channel;d:112210f47de98115;e:1290000000000000001;f:0"
+    fields: {action: "save", sub_action: "select-channel", user_id: "1234567890123456789", msg_id: "1290000000000000001", btn_index: "0"}
+    new: "ticket:1:a=save;b=select-channel;d=1234567890123456789;e=1290000000000000001;f=0"
+  - v3: "ticket@f:0"  # before v3's b4d10e2: no action, no answer
+    fields: {btn_index: "0"}
+    new: "ticket:1:f=0"
+
+# The texts that v3 wrote in Ticket.kt (zh-TW) and StepManager.kt (English), by text.yaml key;
+# %tt@...% stands where v3 put a value. v3's "Cannot found the message by id" is fixed in en-US.
+v3-texts:
+  zh-TW:
+    error.not-found: "錯誤 (找不到 Ticket 設定資料，可能已被刪除)"
+    error.admin-only: "僅管理員可使用此功能"
+    reply.choose-channel: "請選擇要儲存對話的文字頻道"
+    error.no-category: "錯誤 (無法取得目錄)"
+    reply.go-to-channel: "請到此頻道 %tt@channel% 並等待人員回覆繼續!"
+    error.no-member: "錯誤 (無法取得成員資訊)"
+    error.not-text-channel: "錯誤 (目前頻道不是文字頻道)"
+    error.choose-text-channel: "請選擇一個文字頻道"
+    error.no-history-permission: "機器人缺少讀取 Ticket 訊息歷史的權限"
+    error.no-target-permission: "機器人缺少目標頻道權限 (VIEW_CHANNEL / MESSAGE_SEND / MESSAGE_SEND_IN_THREADS / CREATE_PUBLIC_THREADS / MANAGE_WEBHOOKS)"
+    reply.saving: "存檔中..."
+    reply.saved: "存檔完成，已建立 Thread：%tt@thread%"
+    error.save-failed: "存檔失敗：%tt@error%"
+    control.unlock: "開啟"
+    control.lock: "關閉"
+    control.save: "儲存對話"
+    control.delete: "刪除"
+    archive.start: "【Thread 開始】\n作者: %tt@owner%\n名稱: %tt@name%\n開始時間: %tt@time%"
+    archive.end: "【Thread 結束】\n作者: %tt@owner%\n名稱: %tt@name%\n最後一則訊息時間: %tt@time%"
+    archive.error: "【Thread 攤平失敗】\n作者: %tt@owner%\n名稱: %tt@name%\n錯誤: %tt@error%"
+    archive.no-message: "無訊息"
+  en-US:
+    error.message-full: "This message is full of buttons, please recreate a new message"
+    error.category-not-found: "Cannot find a category with the id %tt@category-id%!"
+    error.button-empty: "Either ButtonText or ButtonEmoji must be provided!"
