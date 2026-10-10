@@ -38,6 +38,23 @@ the bot's permissions in the submit channel; localized config replies; new comma
   `register.yaml` files had CRLF lines).
 - `config.yaml` holds v3's three replies without `enabled` and the two new failure replies, in
   zh-TW, with comments that say who sees each one.
+- uv_build ships every file in the package. Checked on 2026-10-10: the wheel from
+  `uv build --package xincord-plugins` lists the four modules, `config.yaml`, the eight lang files
+  and the `Feedbacker` entry point, and `xincord --no-online`, run from a scratch virtual
+  environment with both wheels and `plugins: [Feedbacker]`, loads the plugin, writes
+  `plugins/Feedbacker/config.yaml` (the bundled file) and the eight lang files, and exits with 0;
+  with v3's `config.yaml` it warns `unknown key enabled` and exits with 0; with a blank
+  `form_success` it exits with 1 and names the key.
+- A scratch probe drove the plugin through discord.py's own objects (`discord.Interaction` built
+  from gateway payloads, the tree's `_call` and `Bot.on_interaction`), with
+  `HTTPClient.request` and the webhook adapter's `request` recorded: the command deferred,
+  posted the prompt with the five star IDs and answered `form_success`; a user option that
+  Discord resolved without a member answered `form_failure`; a press by someone else got the
+  ephemeral `form_not_you`; the member's press sent the modal (a type 18 label around the type 4
+  input `form`) and then patched the form with the pressed star primary; the submission deferred
+  with type 6, posted the review (U+200E for an empty feedback) in channel 6 and deleted the form;
+  a refused review sent the ephemeral follow-up `form_submit_failure`; a v3 form's press opened
+  the modal, highlighted the star and was upgraded by the core to new IDs, styles kept.
 
 ### Config
 
@@ -169,11 +186,12 @@ the raw interaction instead.
   `test_create.py`, `test_press.py`, `test_submit.py`, `test_command.py` and `test_routes.py`;
   `conftest.py` loads the plugin through its entry point and finds the cog with `cast`, because
   `test_config.py` loads invalid configs. `tests/core/test_templates_render.py` and
-  `tests/core/test_templates_modal.py` cover the core changes.
+  `tests/core/test_templates_submission.py` cover the core changes.
 - `tests/fixtures/plugins/feedbacker/golden.yaml`: the bundled replies, v3's prompt, modal and
   review per locale, the star texts and the translated command payload.
-- `discord_fakes` gains `FakeMessage` (components, flags, edits and deletion into `sent`),
-  `FakeResponse.send_message` and `send_modal`, and `FakeInteraction.followup`.
+- `discord_fakes` gains `FakeMessage` (components, flags, edits and deletion into `sent`, fetched
+  by its channel until deleted), `FakeResponse.send_message` and `send_modal`,
+  `FakeInteraction.followup` and `not_found()`.
 
 ### v3 behaved differently
 
