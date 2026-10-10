@@ -194,6 +194,8 @@ deafens and streams.
   is dropped with a warning, as v3's startup validation did; a tracked room that no longer exists is
   forgotten; a tracked room without members is deleted as on a leave. v3 never looked at its rooms
   again: rooms that emptied while it was away stayed, and their documents too.
+- a guild whose documents cannot be read (`DataError`) is skipped with an error that names it, so
+  that the other guilds are still checked and the plugin still loads into a ready bot.
 
 `on_guild_remove` deletes the guild's bindings and rooms (v3 deleted the binding file only, and its
 in-memory predicate removed nothing).
@@ -319,7 +321,8 @@ Every section of `docs/porting/analysis/inventory/DynamicVoiceChannel.md` maps t
   the bundled files; the four templates per locale are the golden embeds, with the en-US
   `unbind-fail` correction; the channel-name placeholders are "Room names follow format 1".
 - Persistence (8): the binding files are "Bindings are kept per guild in v3's documents" (shape,
-  Moshi defaults, duplicates, corrupt files); the MongoDB tracker is "Rooms are tracked per guild";
+  Moshi defaults, duplicates, corrupt files, with "Unreadable data" at READY); the MongoDB tracker
+  is "Rooms are tracked per guild";
   the owner ID is kept and not read; no TTL, and stale documents are "Rooms after a restart"; the
   migration of both is out of scope (B11).
 - External dependencies (9): MongoDB and SQLiteAPI are gone; no HTTP, no credentials.
@@ -364,6 +367,9 @@ Every section of `docs/porting/analysis/inventory/DynamicVoiceChannel.md` maps t
   documents do not hold.
 - An unavailable guild is checked again only at the next READY; empty rooms there wait until a
   member leaves them.
+- An unreadable document (a hand edit or a faulty migration) is never overwritten: `bind` and
+  `unbind` leave their response "thinking" with the error logged, the guild's voice changes log the
+  error and do nothing, and the checks at READY skip the guild with an error.
 
 ## Manual smoke checklist
 
