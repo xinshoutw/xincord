@@ -11,12 +11,13 @@ from discord import app_commands
 from discord.ext import commands
 
 from xincord.core.component_ids import ComponentIds
+from xincord.core.placeholders import global_values
 from xincord.plugins.listen_channels.menu import ListenChannels, Menu
 from xincord.plugins.listen_channels.settings import targets
 from xincord.plugins.listen_channels.store import ListenSettings
 
-from .logs import Place, author_values, message_url
-from .messages import MessageLog
+from .logs import Place, author_values, message_url, unknown_author
+from .messages import MessageLog, Stored
 from .text import fit, message_text
 
 if TYPE_CHECKING:
@@ -128,13 +129,69 @@ class ChatLogger(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent) -> None:
-        """Log a deleted stored message to the listen channels that detect its channel."""
-        raise NotImplementedError
+        """Log a deleted stored message to the listen channels that detect its channel.
+
+        The message leaves the store either way: v3 kept the text of deleted messages, which
+        nothing needs once the deletion is handled.
+        """
+        if payload.guild_id is None:
+            return
+        place = self._place(payload.guild_id, payload.channel_id)
+        stored = await self.messages.pop(payload.message_id)
+        await self._log_deletions(payload.guild_id, place, [] if stored is None else [stored])
 
     @commands.Cog.listener()
     async def on_raw_bulk_message_delete(self, payload: discord.RawBulkMessageDeleteEvent) -> None:
-        """Log each stored message of a bulk deletion, as a deletion of its own."""
-        raise NotImplementedError
+        """Log each stored message of a bulk deletion, oldest first, as a deletion of its own.
+
+        v3 never logged them: its core turned JDA's splitting of bulk deletions off, and the
+        plugin ignored ``MessageBulkDeleteEvent``.
+        """
+        if payload.guild_id is None:
+            return
+        place = self._place(payload.guild_id, payload.channel_id)
+        taken = await self.messages.pop_all(payload.message_ids)
+        await self._log_deletions(payload.guild_id, place, [stored for _, stored in taken])
+
+    def _place(self, guild_id: int, channel_id: int) -> Place:
+        """The place of a channel of the guild, from discord.py's cache, read before any await."""
+        guild = self.bot.get_guild(guild_id)
+        channel = None if guild is None else guild.get_channel_or_thread(channel_id)
+        return Place.of(channel_id, channel)
+
+    async def _log_deletions(self, guild_id: int, place: Place, deleted: list[Stored]) -> None:
+        """Post v3's deletion embed of each message of ``deleted`` to the detecting channels.
+
+        The members are fetched only when a listen channel detects the channel, once per author.
+        """
+        guild = self.bot.get_guild(guild_id)
+        if not deleted or guild is None:
+            return
+        listen = await self._targets(guild.id, place)
+        if not listen:
+            return
+        authors: dict[int, dict[str, str]] = {}
+        for stored in deleted:
+            if stored.user_id not in authors:
+                authors[stored.user_id] = await self._author(guild, stored.user_id)
+            values = place.values() | {
+                "cl_change_count": str(stored.count),
+                "cl_msg_before": fit(stored.text),
+            }
+            await self.listen.post(guild, listen, "on-msg-delete", authors[stored.user_id] | values)
+
+    async def _author(self, guild: discord.Guild, user_id: int) -> dict[str, str]:
+        """The keys of a stored author, fetched as the guild's member (v3's ``retrieveMemberById``).
+
+        A user who left, a webhook or a refusal gives the stored ID's mention and ``-``: v3 posted
+        nothing then.
+        """
+        bot = self.bot.user
+        try:
+            member = await guild.fetch_member(user_id)
+        except discord.HTTPException:
+            return global_values(self.bot) | unknown_author(user_id)
+        return {} if bot is None else author_values(member, bot)
 
     def _own(self, author: discord.abc.Snowflake) -> bool:
         """Whether ``author`` is the bot, whose messages v3 did not store."""

@@ -21,7 +21,6 @@ if TYPE_CHECKING:
     from conftest import Scene
 
 GOLDEN = golden("chat_logger")
-REASON = "Deletions of stored messages are logged"
 MEMBER_REQUEST = "GET /guilds/10/members/7"
 
 
@@ -42,7 +41,6 @@ def member_answers(scene: Scene, count: int = 1) -> None:
     scene.rest.answers[MEMBER_REQUEST] = [payloads.member(7, "user7") for _ in range(count)]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_delete(scene: Scene, locale: str) -> None:
     """Requirement: Deletions of stored messages are logged."""
@@ -59,7 +57,6 @@ async def test_delete(scene: Scene, locale: str) -> None:
     assert await scene.rows() == []  # v3 kept the text of deleted messages
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_author_gone(scene: Scene) -> None:
     """Requirement: Deletions of stored messages are logged."""
     await scene.listen(5, [30])
@@ -74,7 +71,6 @@ async def test_author_gone(scene: Scene) -> None:
     assert "thumbnail" not in post
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_not_stored(scene: Scene) -> None:
     """Requirement: Deletions of stored messages are logged."""
     await scene.listen(5, [30])
@@ -85,7 +81,6 @@ async def test_not_stored(scene: Scene) -> None:
     assert fetched(scene) == []
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_not_detected(scene: Scene) -> None:
     """Requirement: Deletions of stored messages are logged."""
     await scene.listen(5, [32])
@@ -98,7 +93,6 @@ async def test_not_detected(scene: Scene) -> None:
     assert await scene.rows() == []
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_bulk_deletion(scene: Scene) -> None:
     """Requirement: Deletions of stored messages are logged."""
     await scene.listen(5, [20])
@@ -119,11 +113,6 @@ async def test_bulk_deletion(scene: Scene) -> None:
     assert [row[0] for row in await scene.rows()] == [200]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Logged texts are shown as written and fit an embed field",
-)
 async def test_long_text(scene: Scene) -> None:
     """Requirement: Logged texts are shown as written and fit an embed field."""
     await scene.listen(5, [30])
@@ -138,3 +127,16 @@ async def test_long_text(scene: Scene) -> None:
     content = str(values(post)[4])
     assert len(content) == 1024
     assert content == text[:1021] + "..."
+
+
+async def test_outside_a_guild(scene: Scene) -> None:
+    """Requirement: Deletions of stored messages are logged."""
+    await scene.listen(5, [30])
+    await scene.send(100, 30, "hello")
+
+    # Deletions without a guild are direct messages', which are never stored.
+    await scene.parse("MESSAGE_DELETE", {"id": "100", "channel_id": "50"})
+    await scene.parse("MESSAGE_DELETE_BULK", {"ids": ["100"], "channel_id": "50"})
+
+    assert scene.posts(5) == []
+    assert [row[0] for row in await scene.rows()] == [100]

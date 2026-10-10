@@ -63,7 +63,7 @@
 
 - [x] 12.1 xfail tests for "Deletions of stored messages are logged" and "Long text" against stub
       listeners
-- [ ] 12.2 Implement `on_raw_message_delete` and `on_raw_bulk_message_delete`; remove the markers
+- [x] 12.2 Implement `on_raw_message_delete` and `on_raw_bulk_message_delete`; remove the markers
 
 ## 13. Retention
 

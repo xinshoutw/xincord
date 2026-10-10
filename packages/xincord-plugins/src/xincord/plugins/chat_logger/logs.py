@@ -74,6 +74,20 @@ def author_values(author: UserLike, bot: UserLike) -> dict[str, str]:
     return NO_MEMBER | actor_values(author, bot)
 
 
+def unknown_author(user_id: int) -> dict[str, str]:
+    """The user and member keys of a stored author whom Discord no longer knows as a member.
+
+    The mention of the stored ID still names them, a webhook too; the names show ``-`` and there
+    is no avatar, so the templates show no thumbnail. v3 posted nothing then.
+    """
+    return NO_MEMBER | {
+        "user_id": str(user_id),
+        "user_mention": f"<@{user_id}>",
+        "user_name": NONE,
+        "user_avatar_url": "",
+    }
+
+
 def message_url(guild_id: int, channel_id: int, message_id: int) -> str:
     """A message's link, as JDA's ``jumpUrl`` and discord.py's ``jump_url`` build it."""
     return f"https://discord.com/channels/{guild_id}/{channel_id}/{message_id}"
