@@ -42,6 +42,24 @@ Dashboard (B13).
   had none). The en-US `unbind-fail` title reads "Unbind fail, the channel was not found in
   settings" (v3: "is not be found").
 - No `config.yaml`: v3's only key was `enabled`, which the core's `plugins` list replaces.
+- uv_build ships every file in the package. Checked on 2026-10-10: the wheel from
+  `uv build --package xincord-plugins` lists the five modules, the ten lang files and the
+  `DynamicVoiceChannel` entry point; `xincord --no-online`, run from a scratch virtual environment
+  with both wheels and `plugins: [DynamicVoiceChannel]`, writes the ten lang files and no
+  `config.yaml`, loads the plugin and exits with 0.
+- A scratch probe drove the plugin through discord.py's own objects (a guild added with
+  `_add_guild_from_data`, `discord.Interaction` built from gateway payloads, the tree's `_call` and
+  `state.parse_voice_state_update`), with `HTTPClient.request` and the webhook adapter's `request`
+  recorded: `bind` deferred with type 5 and the ephemeral flag and then edited `@original` into the
+  en-US or zh-TW embed, storing v3's document; `unbind` of a channel without a parent answered
+  `must-under-category`; a member joining the lobby alone sent `POST /guilds/10/channels` (name,
+  category, bitrate, user limit, slowmode, NSFW, video quality and the lobby's overwrites), then
+  `PATCH` of the copy with `{"position": 0}`, `PATCH` of the room with its name and
+  `{"position": 1}`, and `PUT /channels/<room>/permissions/<member>` with `allow` 268435472 and
+  type 1; a mute sent nothing; a move into a stage channel named like the lobby created nothing and
+  deleted the emptied room; a join and a leave parsed before the listeners ran created nothing; a
+  move from a room into the newest lobby created the new room and then deleted the old one; and the
+  checks dropped a binding of a missing category and forgot a missing room.
 
 ### Storage
 
