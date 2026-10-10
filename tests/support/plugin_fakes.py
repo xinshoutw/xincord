@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from importlib.metadata import EntryPoint
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
+from unittest.mock import patch
 
 import yaml
 
@@ -99,6 +100,31 @@ async def dispatch(bot: Bot, event: str, *args: object) -> None:
     """
     for listener in bot.extra_events.get(f"on_{event}", []):
         await listener(*args)
+
+
+def parsers(bot: Bot) -> dict[str, Callable[[Any], None]]:
+    """discord.py's table of gateway event parsers, which its gateway calls with each payload.
+
+    Every connection of the client looks events up in this same dictionary.
+    """
+    return bot._connection.parsers  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
+
+
+async def gateway(bot: Bot, event: str, payload: dict[str, object]) -> None:
+    """Hand ``payload`` to the bot's parser of ``event``, as discord.py's gateway does.
+
+    The events that the parser dispatches through ``bot.dispatch`` are recorded instead of
+    scheduled, then their listeners run one after the other, as :func:`dispatch` runs them.
+    """
+    dispatched: list[tuple[str, tuple[object, ...]]] = []
+
+    def record(name: str, *args: object) -> None:
+        dispatched.append((name, args))
+
+    with patch.object(bot, "dispatch", record):
+        parsers(bot)[event](payload)
+    for name, args in dispatched:
+        await dispatch(bot, name, *args)
 
 
 WAIT = 5  # seconds before until() gives up

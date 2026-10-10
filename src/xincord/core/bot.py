@@ -159,6 +159,14 @@ class Bot(commands.Bot):
             msg = f"no plugin loads from {module}"
             raise PluginError(msg) from None
 
+    def relay_gateway_event(self, name: str) -> None:
+        """Dispatch each gateway event ``name`` as ``gateway_<name in lower case>``.
+
+        Raises:
+            NotImplementedError: Not implemented yet.
+        """
+        raise NotImplementedError
+
     def route(self, module: str, ids: ComponentIds, handler: Handler) -> None:
         """Send the component and modal interactions whose IDs ``ids`` owns to ``handler``.
 

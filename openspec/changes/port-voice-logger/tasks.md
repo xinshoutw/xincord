@@ -1,6 +1,6 @@
 ## 1. Core gateway relay
 
-- [ ] 1.1 xfail tests for "Plugins receive gateway events that discord.py does not parse" against a
+- [x] 1.1 xfail tests for "Plugins receive gateway events that discord.py does not parse" against a
       stub `Bot.relay_gateway_event`
 - [ ] 1.2 Implement `relay_gateway_event`; remove the markers
 
