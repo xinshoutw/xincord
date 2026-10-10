@@ -43,3 +43,47 @@ messages:
       - {name: "請配合三方驗證", value: "在明細寫您的 Discord ID 以及 storA 商城，然後拍照上傳明細", inline: false}
       - {name: "銀行代號", value: "`700`", inline: false}
       - {name: "銀行帳號", value: "`000000000000`", inline: false}
+
+# The translated payloads of the five guild commands; keys that are not listed here are not
+# compared. v3 had zh-TW localizations only, and 8 is the Administrator permission.
+commands:
+  - type: 1
+    name: "cub-none-card"
+    description: "generate message"
+    nsfw: false
+    default_member_permissions: 8
+    options: []
+    name_localizations: {zh-TW: "國泰世華-無卡"}
+    description_localizations: {zh-TW: "取得訊息"}
+  - type: 1
+    name: "tsib-none-card"
+    description: "generate message"
+    nsfw: false
+    default_member_permissions: 8
+    options: []
+    name_localizations: {zh-TW: "台新銀行-無卡"}
+    description_localizations: {zh-TW: "取得訊息"}
+  - type: 1
+    name: "ctcb-none-card"
+    description: "generate message"
+    nsfw: false
+    default_member_permissions: 8
+    options: []
+    name_localizations: {zh-TW: "中國信託-無卡"}
+    description_localizations: {zh-TW: "取得訊息"}
+  - type: 1
+    name: "ctcb-remit"
+    description: "generate message"
+    nsfw: false
+    default_member_permissions: 8
+    options: []
+    name_localizations: {zh-TW: "中國信託-匯款"}
+    description_localizations: {zh-TW: "取得訊息"}
+  - type: 1
+    name: "chpytwtp-remit"
+    description: "generate message"
+    nsfw: false
+    default_member_permissions: 8
+    options: []
+    name_localizations: {zh-TW: "郵局-匯款"}
+    description_localizations: {zh-TW: "取得訊息"}

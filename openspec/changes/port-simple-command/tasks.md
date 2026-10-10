@@ -16,7 +16,7 @@
 
 ## 4. Commands
 
-- [ ] 4.1 xfail tests for "The commands are localized administrator guild commands"
+- [x] 4.1 xfail tests for "The commands are localized administrator guild commands"
 - [ ] 4.2 Build the five commands from the lang files with the administrator default permission and
       register them in `setup`; remove the markers
 
