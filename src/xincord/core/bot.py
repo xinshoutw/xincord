@@ -125,6 +125,7 @@ class Bot(commands.Bot):
             A one-line summary, also logged. Failures are logged and summarized, not raised.
         """
         async with self._reloading:
+            before = self.loaded
             try:
                 if plugin is None:
                     config = load_config(CORE_CONFIG, CoreConfig, default_core_config())
@@ -134,6 +135,9 @@ class Bot(commands.Bot):
                     reloaded, failed = await self.reload_plugin(plugin), []
             except (ConfigError, PluginError) as error:
                 logger.exception("Reload failed")
+                if self.is_ready() and self.loaded != before:
+                    # The plugins that the failed reload unloaded take their commands along.
+                    await self._sync_commands(force=True)
                 return f"Reload failed: {error}"
             if self.is_ready():
                 # A manual reload also repairs the commands on Discord.
@@ -332,9 +336,12 @@ class Bot(commands.Bot):
         return [name for name in self.loaded if name not in failed], failed
 
     async def _reload(self, info: PluginInfo) -> None:
+        previous = self._contexts.get(info.module)
+        if previous is None:  # the entry point names another module, after an upgrade in place
+            msg = f"plugin {info.name} now loads from {info.module}: restart the bot to load it"
+            raise PluginError(msg)
         # Whichever setup runs next registers the routes again.
         self._routes.pop(info.name, None)
-        previous = self._contexts[info.module]
         self._contexts[info.module] = PluginContext(
             info, self._root / info.name, self._store, self._force_lang
         )
@@ -348,21 +355,39 @@ class Bot(commands.Bot):
                 self._contexts[info.module] = previous
                 msg = f"plugin {info.name} failed to reload: {error}"
                 raise PluginError(msg) from error
-            await self._drop(info)
-            msg = f"plugin {info.name} failed to reload and is unloaded: {error}"
+            dependents = await self._drop(info)
+            also = f", with {', '.join(dependents)}," if dependents else ""
+            msg = (
+                f"plugin {info.name} failed to reload and is unloaded{also} until a full reload: "
+                f"{error}"
+            )
             raise PluginError(msg) from error
         finally:
             del self._previous[info.module]
 
-    async def _drop(self, info: PluginInfo) -> None:
+    async def _drop(self, info: PluginInfo) -> list[str]:
         """Forget a plugin whose previous version failed to set up again after a failed reload.
 
-        discord.py leaves what that setup added before it failed; it goes too.
+        What that setup added before it failed goes too, as do the plugin's modules, so that the
+        next load imports them again, and the loaded plugins that depend on it, last loaded first.
+
+        Returns:
+            The names of those dependents, in load order.
         """
         await self._remove_module_references(info.module)
+        for name in [name for name in sys.modules if _is_part(name, info.module)]:
+            del sys.modules[name]
         del self._loaded[info.name]
         del self._contexts[info.module]
         self._routes.pop(info.name, None)
+        gone = {info.name}
+        for loaded in self._loaded.values():  # dependencies first
+            if gone.intersection(loaded.depends):
+                gone.add(loaded.name)
+        dependents = [name for name in self.loaded if name in gone]
+        for name in reversed(dependents):
+            await self._unload(name)
+        return dependents
 
     async def _unload(self, name: str) -> None:
         info = self._loaded.pop(name)
@@ -395,3 +420,8 @@ class Bot(commands.Bot):
             msg = f"plugin {info.name} failed to load: {error}"
             raise PluginError(msg) from error
         self._loaded[info.name] = info
+
+
+def _is_part(name: str, module: str) -> bool:
+    """Whether the module ``name`` is ``module`` or one of its submodules."""
+    return name == module or name.startswith(f"{module}.")

@@ -52,11 +52,18 @@ class Templates:
 
     @classmethod
     def load(cls, lang: Lang) -> Self:
-        """Load every template of every locale in ``lang``.
+        """Load every template of every locale in ``lang``, once per ``Lang``.
+
+        The templates are kept with ``lang`` (``Lang.parsed``), and a second call returns them:
+        when a reload fails, the core sets the plugin's previous version up again with the
+        ``Lang`` that version loaded, whose files may have broken since.
 
         Raises:
             TemplateError: A template is malformed.
         """
+        loaded = lang.parsed.get("templates")
+        if isinstance(loaded, cls):
+            return loaded
         messages: dict[Path, MessageTemplate] = {}
         modals: dict[Path, ModalTemplate] = {}
         for table in lang.templates.values():
@@ -65,7 +72,9 @@ class Templates:
                     messages[path] = load_message(path)
                 else:
                     modals[path] = load_modal(path)
-        return cls(lang, messages, modals)
+        templates = cls(lang, messages, modals)
+        lang.parsed["templates"] = templates
+        return templates
 
     def message(self, name: str, locale: str) -> MessageTemplate:
         """Return message template ``name`` in ``locale``, else in the default locale."""

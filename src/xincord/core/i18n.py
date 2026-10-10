@@ -2,7 +2,7 @@
 
 import logging
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Self, cast, override
 
 import discord
@@ -35,6 +35,8 @@ class Lang:
     registers: Mapping[str, Mapping[str, str]]
     texts: Mapping[str, Mapping[str, str]]
     templates: Mapping[str, Mapping[str, Path]]
+    # What is parsed from these files once and kept with them, such as their Templates.
+    parsed: dict[str, object] = field(default_factory=dict[str, object], init=False, repr=False)
 
     @property
     def locales(self) -> tuple[str, ...]:

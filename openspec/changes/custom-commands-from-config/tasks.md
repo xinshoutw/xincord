@@ -65,7 +65,7 @@
 - [x] 11.1 xfail tests for "Hot reload follows dependencies and intents" and "Reloads upload the
       commands and never overlap": broken templates, dependents, modules, the upload, a moved
       entry point
-- [ ] 11.2 Replay the templates, unload dependents and modules, upload after an unloading reload,
+- [x] 11.2 Replay the templates, unload dependents and modules, upload after an unloading reload,
       guard a moved entry point; remove the markers
 - [ ] 11.3 xfail tests for "Lang files are validated at load" (combining marks, line breaks) and
       "The config is validated at load" (a trailing line break, templates that fail to render, a

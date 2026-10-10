@@ -191,7 +191,6 @@ async def test_concurrent_reloads(installed: FakePlugins, store: Store) -> None:
     assert installed.calls() == ["start", "end", "start", "end"]
 
 
-@pytest.mark.xfail(strict=True, reason="Hot reload follows dependencies and intents")
 async def test_full_reload_after_a_drop(installed: FakePlugins, store: Store) -> None:
     """Requirement: Hot reload follows dependencies and intents."""
     installed.add("Alpha", NEEDS_DATA)
@@ -212,7 +211,6 @@ async def test_full_reload_after_a_drop(installed: FakePlugins, store: Store) ->
     assert bot.loaded == ("Alpha", "Beta")
 
 
-@pytest.mark.xfail(strict=True, reason="Reloads upload the commands and never overlap")
 async def test_upload_after_a_reload_that_unloads(
     installed: FakePlugins, store: Store, monkeypatch: pytest.MonkeyPatch
 ) -> None:

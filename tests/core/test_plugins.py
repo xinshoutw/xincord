@@ -380,7 +380,6 @@ from .missing import NOTHING
 """
 
 
-@pytest.mark.xfail(strict=True, reason="Hot reload follows dependencies and intents")
 async def test_broken_templates_keep_the_previous_version(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:
@@ -400,7 +399,6 @@ async def test_broken_templates_keep_the_previous_version(
     assert module in bot.extensions
 
 
-@pytest.mark.xfail(strict=True, reason="Hot reload follows dependencies and intents")
 async def test_previous_version_fails_too(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:
@@ -427,7 +425,6 @@ async def test_previous_version_fails_too(
         bot.plugin_context(alpha)
 
 
-@pytest.mark.xfail(strict=True, reason="Hot reload follows dependencies and intents")
 async def test_dropped_plugin_leaves_no_modules(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:
@@ -447,7 +444,6 @@ async def test_dropped_plugin_leaves_no_modules(
     assert not [name for name in sys.modules if name == module or name.startswith(f"{module}.")]
 
 
-@pytest.mark.xfail(strict=True, reason="Hot reload follows dependencies and intents")
 async def test_moved_plugin(installed: FakePlugins, store: Store) -> None:
     """Requirement: Hot reload follows dependencies and intents."""
     module = installed.add("Ticket", TICKET)
