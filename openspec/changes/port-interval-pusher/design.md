@@ -42,6 +42,13 @@ following redirects, reading the response body, commands to manage listeners.
   unloads, and a plugin missing from `plugins` is never imported.
 - `xincord-plugins` declares `aiohttp>=3.14.4`, the version installed with discord.py 2.7.1 (which
   requires `aiohttp>=3.7.4,<4`), because the plugin imports it; no new package is installed.
+- uv_build ships every file in the package. Checked on 2026-10-10: the wheel from
+  `uv build --package xincord-plugins` lists the four modules, `config.yaml`, the `IntervalPusher`
+  entry point and `Requires-Dist: aiohttp>=3.14.4`, and `xincord --no-online`, run from a scratch
+  virtual environment with both wheels and `plugins: [IntervalPusher]`, loads the plugin, writes
+  `plugins/IntervalPusher/config.yaml` and no `lang/`, and exits with 0. With a listener configured
+  it exits with 0 in 0.3 seconds without a request; with `interval: 0` and a URL without a scheme,
+  it exits with 1 and names both keys.
 
 ### Config
 
@@ -142,6 +149,14 @@ passes `get_status` on the listener's session, `rest_ping` on the bot and `async
 - No test sleeps in real time: the loop's delay goes through a fake `sleep`, and the cog tests wait
   for the monitor's requests (with a 5-second safety limit) and never reach the real delay.
 - No golden data: v3 had no text, templates or component IDs.
+- A scratch probe (not committed) drove the plugin through discord.py's own objects on
+  2026-10-10: a local server stood for Discord's REST API (`Route.BASE`) and for the monitor; the
+  bot logged in with `HTTPClient.static_login`, loaded the plugin, got READY, reloaded it through
+  `reload_extension` with a new config and closed. Before READY only the login request arrived.
+  After it, the `%ping%` listener timed a real `GET /users/@me` (26 to 29 ms against the server's
+  20) and pushed at once, then about one second after each attempt; the 404 listener stopped with
+  one warning; the reload ended the old loop and pushed the new URL at once; nothing was sent
+  after `close`, and no unclosed session was reported.
 
 ### v3 behaved differently
 
