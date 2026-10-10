@@ -10,7 +10,6 @@ from importlib.resources import files
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 from xincord.core.plugins import PluginInfo, discover
 
@@ -38,7 +37,6 @@ LANG_FILES = tuple(
 )
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as ChatLogger")
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as ChatLogger."""
     # v3's GUILD_MESSAGES and MESSAGE_CONTENT; v3's SQLiteAPI dependency is the core's store.
@@ -51,7 +49,6 @@ def test_discovered_by_name() -> None:
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as ChatLogger")
 async def test_the_bot_requests_the_message_intents(bot: Bot) -> None:
     """Requirement: The plugin installs as ChatLogger."""
     assert bot.loaded == ("ChatLogger",)
@@ -59,7 +56,6 @@ async def test_the_bot_requests_the_message_intents(bot: Bot) -> None:
     assert bot.intents.message_content  # privileged: the developer portal must allow it
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as ChatLogger")
 async def test_first_load_creates_the_files(bot: Bot, tmp_path: Path) -> None:
     """Requirement: The plugin installs as ChatLogger."""
     directory = tmp_path / "plugins" / "ChatLogger"
