@@ -171,3 +171,32 @@ here; delete a section once it is empty.
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-interval-pusher/design.md` (needs a token and an Uptime Kuma push monitor or another endpoint that shows its requests).
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `IntervalPusher` enabled, with and without a listener); an image build with the plugin enabled is still open.
 - After a discord.py upgrade, check that pushes carry a real ping and not `-1`: the ping uses discord.py's undocumented `HTTPClient.request` and `Route`.
+
+## Feedbacker (`port-feedbacker`)
+
+### User-visible changes
+- New reply `form_failure` (bundled `建立失敗`): the administrator gets it when the form cannot be created (a `member` who is not in the server, a channel where the bot cannot post, a non-text submit channel), and the log says why (v3: "thinking" forever, or the hard-coded `SubmitChannel must be TextChannel`).
+- New reply `form_submit_failure` (bundled `送出失敗`): the member gets it, ephemerally, when the review cannot be posted (submit channel deleted or refusing the bot); the form stays for another try and the log says why (v3: a failed modal, or the feedback lost with the form deleted).
+- The form is deleted only after its review is posted.
+- The pressed star turns blue through an edit of the bot's own message after the modal opens (v3 queued it on the interaction hook before acknowledging the press).
+- Feedback text is shown as typed (v3 expanded `%...%` in it, and `%fb_content%` made the modal fail).
+- A star count outside 0 to 5 in an operator's template fails the press at once (v3: after the member typed a feedback).
+- A v3 `config.yaml` loads unchanged and warns `unknown key enabled`; there the two new replies are English (`Failed to create the form`, `Failed to submit the feedback`) until added; a blank reply or one over 2000 characters disables the plugin with the key named.
+- The command always answers (v3 needed the core's auto-defer switch).
+- Core, every plugin: embed field names and values are trimmed and an empty one becomes U+200E, as v3 did through JDA (xincord sent them as rendered, and Discord refuses an empty field).
+### Choices made without the owner
+- New failure replies: implemented two generic config keys per audience next to v3's three (the log names the cause); alternative: one specific text per cause, or localized message templates in `lang/`.
+- Their copy: implemented `建立失敗` and `送出失敗` in the bundled file (mirroring `建立成功`) and English defaults for v3 files; alternative: other wording, or zh-TW defaults through the migration script.
+- A `member` option naming a user outside the server: implemented `form_failure`; alternative: post the form anyway (only that user could press it, after joining).
+- A refused review: implemented keeping the form and telling the member; alternative: v3's deletion regardless.
+- Star counts: implemented whole numbers 0 to 5 (where v3 did not throw), checked at the press; alternative: clamp them, or allow any count.
+- Double submission from two clients: kept v3's two reviews (the second deletion is a logged warning); alternative: a per-form lock that posts only the first.
+- The highlight: implemented after the modal, with the bot's token; alternative: through the interaction webhook, as v3 tried.
+- Core: JDA's field trimming in the renderer for every plugin (VoiceLogger and ChatLogger rely on it too); alternative: U+200E for the empty feedback in this plugin only.
+- Core: `modal_values` in `xincord.core.templates` for every plugin with modals; alternative: a parser in this plugin.
+- `TextChannelOption` copied from WelcomeByeGuild (no other v3 command restricts a channel option); alternative: move it into the core.
+### Manual checks
+- Smoke checklist in `openspec/changes/archive/2026-10-10-port-feedbacker/design.md` (needs a token, a test guild and a second account).
+- This is the first modal xincord sends (a label around the text input, as discord.py builds it): check that it opens in both languages.
+- At cutover, add `form_failure` and `form_submit_failure` to the existing `plugins/Feedbacker/config.yaml` for zh-TW texts, and press one star of a v3 form if any remains.
+- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `Feedbacker` enabled, with the bundled and v3's config); an image build with the plugin enabled is still open.

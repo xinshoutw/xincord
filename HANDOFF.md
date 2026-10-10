@@ -1,6 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after `port-interval-pusher`, the seventh plugin port. Core is complete. Read
+Updated 2026-10-10 after `port-feedbacker`, the eighth plugin port. Core is complete. Read
 this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and
 binding; do not re-open them unless you find a serious problem, and then ask the owner.
 
@@ -80,7 +80,11 @@ starting with Core. Motivation: easier maintenance and faster iteration.
     `__init__`): v1 message templates, Components V2 and modal templates, validated at load
     (`load_message`, `load_modal`, `Templates.load`) and rendered to
     `Message(content, embeds, view, files)` and `discord.ui.Modal`. V2 mode renders a
-    `discord.ui.LayoutView`; `files` carries the uploads that `file_path` media need.
+    `discord.ui.LayoutView`; `files` carries the uploads that `file_path` media need. Embed fields
+    are trimmed as JDA did (Java's `trim`) and an empty name or value becomes U+200E, which Discord
+    would refuse otherwise; `modal_values(data)` reads a submitted modal's text inputs by custom ID
+    (inside labels or action rows), since discord.py parses submissions only for modals it
+    dispatches.
   - `xincord.core.component_ids`: `ComponentIds(namespace, fields, legacy_prefix=, legacy_hex=)`
     builds `{namespace}:1:{letter}={value};...` (percent-encoded, 100 characters max; `build` is
     the templates' `build_id`), parses new and v3 IDs into text fields (`ParsedId.legacy`), and
@@ -209,7 +213,22 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   server), patching `discord.http.HTTPClient.request` to record REST calls, an injected `sleep`
   with a fake clock, `bot.remove_cog` to run `cog_unload` without unloading the modules, and the
   REST probe through `Route.BASE` and `http.static_login` (skill step 7).
-- **Still to build:** the plugins after IntervalPusher (section 5).
+- **Feedbacker** (`xincord.plugins.feedbacker`, no intents, en-US and zh-TW, five config replies):
+  the first port with v3 component IDs and a modal. `cog.py` has `IDS = ComponentIds("feedbacker",
+  (action, user_id, star_count, submit_channel_id), legacy_prefix="feedbacker@")` routed to
+  `handle`, which dispatches on the interaction type and the action; `create_form` (the command,
+  with `member: discord.Member | discord.User` checked against `MemberLike` and a copy of
+  WelcomeByeGuild's `TextChannelOption`), `press_star` (`form_not_you`, the `fill-form` modal
+  through `render_modal` and `send_modal`, then `form.highlight` and the bot's own
+  `message.edit`) and `submit_form` (`modal_values`, `response.defer()`, the review in the guild's
+  locale, the form deleted only after the post, `followup.send(..., ephemeral=True)` on failure).
+  `config.py` keeps v3's three required replies and adds `form_failure` and `form_submit_failure`
+  (English defaults, zh-TW in the bundled file), each non-blank and at most 2000 characters.
+  Reuse: `discord_fakes.FakeMessage` (edits and deletion into `sent`, fetched until deleted),
+  `FakeResponse.send_message` and `send_modal`, `FakeInteraction.followup`, `not_found()`, route
+  tests through `bot.on_interaction` with v3 IDs (`tests/plugins/feedbacker/test_routes.py`), and
+  the HTTP-recording probe for interactions (skill step 7).
+- **Still to build:** the plugins after Feedbacker (section 5).
 
 ## 5. Status and next steps
 
@@ -220,20 +239,20 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `core-command-tree`, `core-component-routing`, `core-interaction-values`, `core-startup`,
 `core-reload`, `core-console`, `core-status-log`, `container`, `port-example`,
 `port-basic-calculator`, `port-auto-role`, `port-bot-info`, `port-simple-command`,
-`port-welcome-bye-guild`, `port-interval-pusher`. Each one's
+`port-welcome-bye-guild`, `port-interval-pusher`, `port-feedbacker`. Each one's
 `design.md` in `openspec/changes/archive/` records its decisions and "v3 behaved differently"
 notes; `docs/porting-guide.md` has the differences table.
 
 ### Next: the plugins
 
 Core is complete; _Example (the template), BasicCalculator, AutoRole, BotInfo, SimpleCommand,
-WelcomeByeGuild and IntervalPusher are ported. Next: **Feedbacker** (`port-feedbacker`). Port the
-plugins in C1 order with the `port-plugin` skill (`.claude/skills/port-plugin/SKILL.md`), one
-OpenSpec change each (`port-<plugin-kebab>`): _Example (done), BasicCalculator (done), AutoRole
-(done), BotInfo (done, with the configurable AGPL source link of C3), SimpleCommand (done),
-WelcomeByeGuild (done), IntervalPusher (done), then Feedbacker, Economy, DynamicVoiceChannel,
-VoiceLogger, ChatLogger, Giveaway, Ticket, TicketAddons, NtustManager, NtustCourse, MusicPlayer
-(with Lavalink in `compose.yaml`).
+WelcomeByeGuild, IntervalPusher and Feedbacker are ported. Next: **Economy** (`port-economy`).
+Port the plugins in C1 order with the `port-plugin` skill (`.claude/skills/port-plugin/SKILL.md`),
+one OpenSpec change each (`port-<plugin-kebab>`): _Example (done), BasicCalculator (done),
+AutoRole (done), BotInfo (done, with the configurable AGPL source link of C3), SimpleCommand
+(done), WelcomeByeGuild (done), IntervalPusher (done), Feedbacker (done), then Economy,
+DynamicVoiceChannel, VoiceLogger, ChatLogger, Giveaway, Ticket, TicketAddons, NtustManager,
+NtustCourse, MusicPlayer (with Lavalink in `compose.yaml`).
 Update `docs/porting-guide.md` after each one.
 
 ### Working tips from this session
@@ -338,6 +357,10 @@ setup-uv v10.2.0, setup-node v7.1.0.
   torn down after the fixtures a test requests.
 - `asyncio.CancelledError` is a `BaseException`: `except Exception` leaves cancellation alone.
   Kotlin's `catch (e: Exception)` caught `CancellationException`.
+- An interaction probe records HTTP by replacing `discord.http.HTTPClient.request` and
+  `discord.webhook.async_.AsyncWebhookAdapter.request` (callbacks must return
+  `{"interaction": {"id": ...}}`); `discord.Interaction(data=...)` needs `attachment_size_limit`
+  in the payload; `await bot.tree._call(interaction)` runs a command's whole path.
 
 **discord.py 2.7.1 facts**
 - Decorators evaluate app-command annotations at import time; keep those imports at runtime
@@ -412,6 +435,17 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - `HTTPClient.request(Route(...))` is the REST call behind discord.py's methods; it retries a 500,
   502, 504 or 524 (and a reset connection) up to five times, sleeping 1 + 2 x tries seconds, then
   raises `DiscordServerError`.
+- A `discord.Member` option annotation raises a `TransformerError` before the callback when
+  Discord resolved no member (a user outside the guild), leaving the deferred response
+  "thinking"; `discord.Member | discord.User` passes the user instead.
+- `defer()` on a modal submission sends a deferred message update (type 6); `followup.send(...,
+  ephemeral=True)` still reaches the user afterwards. discord.py sends a text input inside a
+  `Label` with `"label": null`.
+- Discord refuses an embed field with an empty name or value; JDA sent U+200E (the core does now).
+- `View.from_message` raises `ValueError` for a Components V2 message: use
+  `LayoutView.from_message` when `message.flags.components_v2`.
+- After a handler deletes the message of a v3 ID, the core's legacy upgrade cannot fetch it and
+  logs an error (a v3-opened Feedbacker modal submitted after the switch).
 - A probe can log in offline: point `discord.http.Route.BASE` at a local server and call
   `bot.http.static_login(token)` inside `async with bot`; set `bot._ready` for READY.
 - A scratch probe can drive real discord.py objects offline: set `bot._connection.user` to a
