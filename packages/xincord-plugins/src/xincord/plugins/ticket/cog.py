@@ -10,7 +10,7 @@ import re
 import sqlite3
 import time
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, cast, override, runtime_checkable
 
 import discord
 from discord import app_commands
@@ -117,6 +117,26 @@ class Ticket(ControlRow, commands.Cog):
         self.drafts: dict[tuple[int, int], Session] = {}
         self.clock = time.time
         self.zone = None  # the host's, as v3's ZoneId.systemDefault()
+
+    @override
+    async def cog_load(self) -> None:
+        """Forget the left guilds at once when the plugin loads into a ready bot, as on a reload."""
+        if self.bot.is_ready():
+            await self.forget_left_guilds()
+
+    @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        """Forget the guilds that the bot left while offline; this fires for each session."""
+        await self.forget_left_guilds()
+
+    @commands.Cog.listener()
+    async def on_guild_remove(self, guild: discord.Guild) -> None:
+        """Delete the panels and drop the drafts of a guild that the bot left."""
+        raise NotImplementedError
+
+    async def forget_left_guilds(self) -> None:
+        """Delete the panels of the guilds that the bot is no longer in."""
+        raise NotImplementedError
 
     def commands(self) -> tuple[app_commands.Command[Any, ..., None], ...]:
         """Build v3's ``/create-ticket`` and ``/add-ticket``, localized from ``register.yaml``.

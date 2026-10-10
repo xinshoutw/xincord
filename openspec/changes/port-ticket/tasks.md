@@ -121,7 +121,7 @@
 
 ## 22. Left guilds
 
-- [ ] 22.1 xfail tests for "Leaving a guild forgets its panels" against stub listeners
+- [x] 22.1 xfail tests for "Leaving a guild forgets its panels" against stub listeners
 - [ ] 22.2 Implement `on_guild_remove` and the READY check; remove the markers
 
 ## 23. Conventions and docs
