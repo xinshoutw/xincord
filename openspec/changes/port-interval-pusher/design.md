@@ -185,6 +185,54 @@ failed ping, no redirects, v3's timeouts, a 404 stopping only its listener until
 restart, 521 and other statuses continuing, URLs in the logs, `listeners` required, independent
 listeners.
 
+### Inventory audit
+
+Every section of `docs/porting/analysis/inventory/IntervalPusher.md` maps to this change:
+
+- Overview (1) and Discord requirements (10): "The plugin installs as IntervalPusher" (entry point,
+  no intents, `config.yaml`, no lang files). v3's `listener=true` registered no handler, so the
+  plugin declares no intents and adds no listener; `component_prefix` had no components. The
+  default URL is the bundled config's example; `%ping%` is "The URL carries the REST ping". The
+  REST ping's share of the rate limit is under Risks.
+- Lifecycle (2): `load()` reading the config is "The config lists the URLs to push"; starting one
+  pusher per listener is the Lifecycle decision and the "Ready" and "Loaded into a ready bot"
+  scenarios; `reload()` is the "Reload" scenario; `unload()` is "Unloaded during a push" and
+  "Unloaded during a ping"; the cancelled scope that could not launch again does not apply, since
+  each load builds a new cog. `start()`'s already-running check has no counterpart: a cog starts its
+  loops once, in `cog_load`. The loop body is the ping, request, status and loop requirements; the
+  immediate first push and the fixed delay are "First push at once" and "Fixed delay"; the REST
+  ping and its `-1` are "Measured round trip" and "Failed ping". The `disabled`, `loaded`,
+  `started`, `stopped` and `unloaded` log lines are the core's load and unload lines and the
+  listener's start line (a "v3 behaved differently" entry). Nothing is persisted, as in v3.
+- Commands (3), components (4), events (5), localization (7) and persistence (8): none, so no
+  commands, component IDs, listeners, lang files, storage or golden data.
+- Configuration (6): `listeners` required is "Invalid entries" (no listeners); the unchecked `url`
+  and `interval` are fixed there ("v3 behaved differently"); kaml's strict mode and the whole-bot
+  failure are the core's warnings for unknown keys and the per-plugin failure; `enabled` is the
+  core's `plugins` list, and a disabled plugin is not imported, so it sends nothing.
+- External dependencies (9): one GET per listener and interval, v3's timeouts, no headers or
+  authentication, no redirects and the ignored body are "Each push is one GET request" and the Push
+  request decision; the REST ping at every push, even without `%ping%`, is "No placeholder" (a "v3
+  behaved differently" entry).
+- Concurrency (11): the `SupervisorJob` is "Independent listeners"; cancelling the request and the
+  ping is "Unloaded during a push" and "Unloaded during a ping"; the unsynchronized list has no
+  counterpart (a new cog per load, and the core serializes reloads); the cancellation quirk is a
+  "v3 behaved differently" entry.
+- Bugs and quirks (12): behaviors to preserve 1 to 5 are "First push at once" and "Fixed delay",
+  "Ping in the URL" and "Failed ping", "Not found" and "Independent listeners", the other status
+  scenarios, and "Reload". Probable bugs 1 to 3 are "v3 behaved differently" entries with the
+  "Invalid entries" and unload scenarios; 4 (`listener=true`) is the plugin's empty `INTENTS` and
+  missing listeners; 5 (a stopped pusher kept in the list) stays harmless: the finished task stays
+  in `tasks` until the unload. The hard-coded timeouts and status table are kept ("Limits" and the
+  status scenarios).
+- Testability (13): `build_url`, the status table (`Pusher.follow`) and the config checks are
+  tested directly; the fake HTTP server is `http_fakes.Monitor`; the fake ping and clock are the
+  `Fakes` of `test_pusher.py`.
+- Assessment (14): a task per listener started at load and cancelled and awaited at unload, the
+  untouched `CancelledError`, aiohttp with v3's limits and no redirects, and the timed
+  `GET /users/@me` are the Lifecycle, Status handling, Push request and REST ping decisions; the
+  gateway latency was not taken (REST ping), and the fixed delay is kept (Loop).
+
 ## Risks / Trade-offs
 
 - The ping uses `discord.http.Route` and `HTTPClient.request`, which discord.py does not document as
