@@ -353,6 +353,50 @@ async def test_new_file_fails(
     assert created == [FIRST, name(6), name(11)]
 
 
+@pytest.mark.xfail(strict=True, reason="A new message file starts when the newest is full")
+async def test_leftover_temporary_file(open_files: Opener, directory: Path) -> None:
+    """Requirement: A new message file starts when the newest is full."""
+    directory.mkdir(parents=True)
+    leftover = directory / f"{FIRST}.tmp"
+    leftover.write_bytes(b"left by an attempt that failed")
+    files = await open_files()
+
+    await files.add(at(5), 10, 30, 7, "a")
+
+    assert rows(directory) == {FIRST: [(at(5), 10, 30, 7, "a", 0)]}
+    assert not leftover.exists()
+
+
+@pytest.mark.xfail(strict=True, reason="A new message file starts when the newest is full")
+async def test_new_file_fails_after_its_rename(
+    open_files: Opener,
+    directory: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Requirement: A new message file starts when the newest is full."""
+    real = messages.connect
+
+    def connect(path: Path) -> sqlite3.Connection:
+        if path.name == name(6):  # the new file, once renamed
+            message = "unable to open database file"
+            raise sqlite3.OperationalError(message)
+        return real(path)
+
+    monkeypatch.setattr(messages, "connect", connect)
+    files = await open_files(1)
+
+    with caplog.at_level(logging.ERROR):
+        await files.add(at(5), 10, 30, 7, "a")
+
+    # A file that the open files leave out would hold this range at the next start, away from
+    # the messages that the full file takes meanwhile.
+    assert ids(directory) == {FIRST: [at(5)]}
+    assert f"ChatLogger cannot start the message file {name(6)}" in caplog.text
+    await files.add(at(10), 10, 30, 7, "b")
+    assert ids(directory) == {FIRST: [at(5), at(10)], name(11): []}
+
+
 async def test_close_after_the_work_under_way(open_files: Opener, directory: Path) -> None:
     """Requirement: The message files are open while the plugin is loaded."""
     files = await open_files()
