@@ -15,7 +15,7 @@
 
 ## 4. Settings store
 
-- [ ] 4.1 xfail tests for "Settings are kept per guild in v3's documents" against stubs in
+- [x] 4.1 xfail tests for "Settings are kept per guild in v3's documents" against stubs in
       `store.py`
 - [ ] 4.2 Implement `read_settings`, `read_setting`, `toggle`, `add_channels` and `remove`; remove
       the markers
