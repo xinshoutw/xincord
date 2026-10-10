@@ -59,3 +59,21 @@ delete:
     description: "刪除完成"
     footer: {text: "❖ ORDERLY SERVER ❖"}
     color: 65535
+
+# The translated payload of the guild command; keys that are not listed here are not compared. 8 is
+# the Administrator permission and option type 1 a subcommand. The texts come from v3's
+# Register.kt and register.yaml.
+commands:
+  - type: 1
+    name: "chat-logger"
+    description: "commands about chat logger"
+    default_member_permissions: 8
+    name_localizations: {"en-US": "chat-logger", "zh-TW": "訊息紀錄"}
+    description_localizations: {"en-US": "commands about chat logger", "zh-TW": "有關訊息紀錄的指令"}
+    options:
+      - type: 1
+        name: "setting"
+        description: "set chat log in this channel"
+        name_localizations: {"en-US": "setting", "zh-TW": "設定"}
+        description_localizations: {"en-US": "set chat log in this channel", "zh-TW": "設定訊息紀錄在此頻道"}
+        options: []

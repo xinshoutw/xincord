@@ -34,7 +34,7 @@
 
 ## 7. Command
 
-- [ ] 7.1 xfail tests for "The command is a localized administrator guild command"
+- [x] 7.1 xfail tests for "The command is a localized administrator guild command"
 - [ ] 7.2 Build the group and its subcommand and register it in `setup`; remove the markers
 
 ## 8. Message texts
