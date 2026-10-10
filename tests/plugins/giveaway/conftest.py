@@ -4,7 +4,7 @@ The bot has its user, as after a login, and READY waits for the tests, as the pl
 draw waits for it.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from xincord.core.storage import Store
+    from xincord.plugins.giveaway.cog import Giveaway
 
 
 @pytest.fixture(autouse=True)
@@ -46,3 +47,16 @@ async def bot(store: Store, tmp_path: Path, config: str | None) -> Bot:
     The plugin's giveaways are in ``store``, the same store as the tests'.
     """
     return await load_plugin("Giveaway", tmp_path / "plugins", store, config=config)
+
+
+@pytest.fixture
+def cog(bot: Bot) -> Giveaway:
+    """The loaded plugin's cog.
+
+    No isinstance check: test_config.py loads invalid files, after which discord.py imports the
+    plugin's modules again, so the class differs from the one imported when the tests were
+    collected.
+    """
+    found = bot.get_cog("Giveaway")
+    assert found is not None
+    return cast("Giveaway", found)

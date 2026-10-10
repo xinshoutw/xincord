@@ -102,6 +102,8 @@ class FakeInteraction:
     guild_locale: discord.Locale | None = None  # the guild's preferred locale, in a guild
     # The permissions Discord resolved for the member in the channel.
     permissions: discord.Permissions = field(default_factory=discord.Permissions.none)
+    # The message that the deferred response is, which edit_original_response returns.
+    original: FakeMessage = field(default_factory=lambda: FakeMessage(id=43))
 
     @property
     def guild_id(self) -> int | None:
@@ -123,9 +125,10 @@ class FakeInteraction:
         """The follow-up webhook, recording into ``sent``."""
         return FakeFollowup(self.sent)
 
-    async def edit_original_response(self, **fields: object) -> None:
-        """Record an edit of the deferred response."""
+    async def edit_original_response(self, **fields: object) -> FakeMessage:
+        """Record an edit of the deferred response; return its message, as discord.py does."""
         self.sent.append(("edit_original_response", fields))
+        return self.original
 
     async def delete_original_response(self) -> None:
         """Record the deletion of the deferred response."""
