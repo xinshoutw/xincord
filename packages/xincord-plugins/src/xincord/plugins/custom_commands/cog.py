@@ -1,7 +1,8 @@
-"""The five payment commands and their messages.
+"""The commands of the config and their messages.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/SimpleCommand.kt:8-58
+    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/command/Register.kt:39-60
 """
 
 import logging
@@ -11,20 +12,19 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from xincord.core.i18n import localized
 from xincord.core.placeholders import global_values
 from xincord.core.templates import render_message
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Iterable, Sequence
 
     from xincord.core.i18n import Lang
     from xincord.core.templates import Message, Templates
 
-logger = logging.getLogger(__name__)
+    from .config import CommandSpec, Config
 
-# v3's commands, in v3's order; each one posts the message template of the same name.
-COMMANDS = ("cub-none-card", "tsib-none-card", "ctcb-none-card", "ctcb-remit", "chpytwtp-remit")
-DESCRIPTION = "generate message"  # v3's description of every command
+logger = logging.getLogger(__name__)
 
 
 @runtime_checkable
@@ -46,24 +46,36 @@ class Postable(Protocol):
 class CustomCommands(commands.Cog):
     """The plugin's state and handlers; ``setup`` registers them."""
 
-    def __init__(self, lang: Lang, templates: Templates) -> None:
-        """Keep what ``setup`` loaded."""
+    def __init__(self, config: Config, lang: Lang, templates: Templates) -> None:
+        """Keep what ``setup`` loaded; the config's commands by name, for the callback."""
+        self.config = config
+        self.specs = {spec.name: spec for spec in config.commands}
         self.lang = lang
         self.templates = templates
 
-    def command(self, name: str) -> app_commands.Command[Any, ..., None]:
-        """Build the guild command ``name``, localized from ``register.yaml``.
+    def command(self, spec: CommandSpec) -> app_commands.Command[Any, ..., None]:
+        """Build the guild command of the config's entry ``spec``, localized from the entry.
 
-        As in v3, only administrators see it by default; Discord enforces that, and a guild's
-        administrators can change it in the server's integration settings.
+        Only members with the entry's permissions see it by default (administrators, as in v3,
+        unless the entry says otherwise); Discord enforces that, and a guild's administrators can
+        change it in the server's integration settings. An entry that lists guilds is uploaded
+        to those guilds only.
         """
-        lang = self.lang
+        names = {key: value.name for key, value in spec.localizations.items() if value.name}
+        descriptions = {
+            key: value.description for key, value in spec.localizations.items() if value.description
+        }
+        extras: dict[str, object] = {}
+        if spec.guilds:
+            extras["guilds"] = frozenset(spec.guilds)
         command: app_commands.Command[Any, ..., None] = app_commands.Command(
-            name=lang.command(name, f"{name}.name"),
-            description=lang.command(DESCRIPTION, f"{name}.description"),
+            name=localized(spec.name, names),
+            description=localized(spec.description, descriptions),
             callback=self.post_message,
+            extras=extras,
         )
-        return app_commands.default_permissions(administrator=True)(command)
+        command.default_permissions = _permissions(spec.permissions)
+        return command
 
     async def post_message(self, interaction: discord.Interaction) -> None:
         """Post the message named after the command in its channel, then delete the response.
@@ -95,6 +107,14 @@ class CustomCommands(commands.Cog):
             view=reply.view,
             attachments=reply.files,
         )
+
+
+def _permissions(names: Iterable[str]) -> discord.Permissions | None:
+    """The default member permissions of discord.py's permission ``names``; None for none."""
+    value = 0
+    for name in names:
+        value |= discord.Permissions.VALID_FLAGS[name]
+    return discord.Permissions(value) if value else None
 
 
 def _postable(channel: object) -> Postable | None:

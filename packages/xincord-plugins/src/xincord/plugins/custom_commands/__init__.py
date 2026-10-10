@@ -1,4 +1,7 @@
-"""CustomCommands: five admin commands post a shop's bank payment instructions in the channel.
+"""CustomCommands: the commands of the config post message templates.
+
+The bundled config lists v3's five administrator commands, which post a shop's bank payment
+instructions in the channel.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/Event.kt:14-62
@@ -10,7 +13,8 @@ import discord
 
 from xincord.core.templates import Templates
 
-from .cog import COMMANDS, CustomCommands
+from .cog import CustomCommands
+from .config import Config
 
 if TYPE_CHECKING:
     from xincord.core.bot import Bot
@@ -23,14 +27,16 @@ DEFAULT_LOCALE = "zh-TW"
 
 
 async def setup(bot: Bot) -> None:
-    """Load the lang files and the templates, then add the cog and its commands.
+    """Load the lang files, the templates and the config, then add the cog and its commands.
 
-    The plugin has no config: v3's only key was ``enabled``.
+    The lang files load first, so that the templates are written even when the config is broken.
     """
     context = bot.plugin_context(__name__)
     lang = context.lang(DEFAULT_LOCALE)
-    cog = CustomCommands(lang, Templates.load(lang))
+    templates = Templates.load(lang)
+    cog = CustomCommands(context.config(Config), lang, templates)
     await bot.add_cog(cog)
-    # Guild commands, as in v3. discord.py removes them when the plugin unloads.
-    for name in COMMANDS:
-        bot.tree.add_command(cog.command(name))
+    # Guild commands, as in v3, in the config's order. discord.py removes them when the plugin
+    # unloads.
+    for spec in cog.config.commands:
+        bot.tree.add_command(cog.command(spec))

@@ -7,12 +7,12 @@ Kotlin:
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast
 
-import pytest
-
 from plugin_fakes import watch_syncs
 from xincord.core.bot import Bot
 
 if TYPE_CHECKING:
+    import pytest
+
     from conftest import Operator
     from xincord.core.command_tree import CommandTree
 
@@ -34,7 +34,6 @@ async def names(bot: Bot) -> list[str]:
     return [entry["name"] for entry in guild_payload]
 
 
-@pytest.mark.xfail(strict=True, reason="Config changes apply on reload")
 async def test_edited_config(operator: Operator, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Config changes apply on reload."""
     bot = await operator.load()
@@ -55,7 +54,6 @@ async def test_edited_config(operator: Operator, monkeypatch: pytest.MonkeyPatch
     assert syncs == [("global", True), (1, True)]
 
 
-@pytest.mark.xfail(strict=True, reason="Config changes apply on reload")
 async def test_broken_edit(operator: Operator) -> None:
     """Requirement: Config changes apply on reload."""
     bot = await operator.load()

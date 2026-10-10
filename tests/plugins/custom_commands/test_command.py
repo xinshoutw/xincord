@@ -95,7 +95,6 @@ async def test_command_callback(bot: Bot, cog: CustomCommands, name: str) -> Non
     assert [embed_dict(embed) for embed in embeds] == [GOLDEN["messages"][name]]
 
 
-@pytest.mark.xfail(strict=True, reason="Commands come from the config")
 async def test_operators_command(operator: Operator) -> None:
     """Requirement: Commands come from the config."""
     operator.template("rules", 'content: "Be nice"\n')
@@ -106,7 +105,6 @@ async def test_operators_command(operator: Operator) -> None:
     assert [listed(entry, RULES_PAYLOAD) for entry in guild_payload] == [RULES_PAYLOAD]
 
 
-@pytest.mark.xfail(strict=True, reason="Commands come from the config")
 async def test_every_member(operator: Operator) -> None:
     """Requirement: Commands come from the config."""
     operator.template("help", 'content: "Ask in #help"\n')
@@ -119,7 +117,6 @@ async def test_every_member(operator: Operator) -> None:
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="Commands come from the config")
 async def test_some_guilds(operator: Operator) -> None:
     """Requirement: Commands come from the config."""
     operator.template("shop", 'content: "Welcome"\n')

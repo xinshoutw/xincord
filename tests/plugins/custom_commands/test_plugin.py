@@ -9,8 +9,6 @@ Kotlin:
 from importlib.resources import files
 from typing import TYPE_CHECKING
 
-import pytest
-
 from xincord.core.plugins import PluginInfo, discover
 
 if TYPE_CHECKING:
@@ -34,7 +32,6 @@ def test_discovered_by_name() -> None:
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as CustomCommands")
 async def test_first_load_creates_the_lang_files(bot: Bot, tmp_path: Path) -> None:
     """Requirement: The plugin installs as CustomCommands."""
     directory = tmp_path / "plugins" / "CustomCommands"
