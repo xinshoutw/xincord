@@ -22,10 +22,6 @@ from discord_fakes import (
 from xincord.plugins.welcome_bye_guild.store import Bindings
 from xincord.plugins.welcome_bye_guild.values import command_values, member_event_values
 
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Templates get v3's wbg@ placeholders"
-)
-
 # v3's keys (inventory section 7), before the wbg@ prefix.
 GUILD_KEYS = (
     "guild_id",
@@ -148,7 +144,6 @@ def bind(guild: FakeGuild, user: FakeMember) -> FakeInteraction:
     return FakeInteraction(data, user=user, channel=guild.get_channel(5), guild=guild)
 
 
-@XFAIL
 def test_command_values() -> None:
     """Requirement: Templates get v3's wbg@ placeholders."""
     guild = make_guild()
@@ -202,7 +197,6 @@ def test_command_values() -> None:
     assert subset(values, expected) == expected
 
 
-@XFAIL
 def test_bound_channels_no_longer_cached() -> None:
     """Requirement: Templates get v3's wbg@ placeholders."""
     guild = make_guild()
@@ -225,7 +219,6 @@ def test_bound_channels_no_longer_cached() -> None:
     assert subset(values, expected) == expected
 
 
-@XFAIL
 def test_unbound_channels_and_no_previous_channel() -> None:
     """Requirement: Templates get v3's wbg@ placeholders."""
     guild = make_guild()
@@ -251,7 +244,6 @@ def test_unbound_channels_and_no_previous_channel() -> None:
     assert subset(values, expected) == expected
 
 
-@XFAIL
 @pytest.mark.parametrize(
     ("previous", "expected"),
     [
@@ -272,7 +264,6 @@ def test_previous_channel(previous: int, expected: dict[str, str]) -> None:
     assert subset(values, old) == old
 
 
-@XFAIL
 def test_member_event_values() -> None:
     """Requirement: Templates get v3's wbg@ placeholders."""
     guild = make_guild()
@@ -300,7 +291,6 @@ def test_member_event_values() -> None:
     assert subset(values, expected) == expected
 
 
-@XFAIL
 def test_departed_user() -> None:
     """Requirement: Templates get v3's wbg@ placeholders."""
     guild = make_guild()
