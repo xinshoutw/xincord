@@ -1,6 +1,6 @@
 ## 1. Resources
 
-- [ ] 1.1 Bundle `config.yaml` with no listeners and a commented example on `status.example.com`
+- [x] 1.1 Bundle `config.yaml` with no listeners and a commented example on `status.example.com`
       (v3's file pushed to the owner's status domain)
 
 ## 2. Installation
