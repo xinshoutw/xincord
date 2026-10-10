@@ -5,11 +5,15 @@ Kotlin:
 """
 
 import asyncio
-from typing import TYPE_CHECKING, Any
+import logging
+import sqlite3
+from datetime import timedelta
+from typing import TYPE_CHECKING, Any, override
 
 import discord
 from discord import app_commands
 from discord.ext import commands
+from discord.utils import time_snowflake, utcnow
 
 from xincord.core.component_ids import ComponentIds
 from xincord.core.placeholders import global_values
@@ -30,6 +34,8 @@ if TYPE_CHECKING:
     from xincord.core.templates import Templates
 
     from .config import Config
+
+logger = logging.getLogger(__name__)
 
 NAMESPACE = "ChatLogger"  # the plugin's name: its settings in the store
 # v3's only field, in v3's prefix, so that v3's menus keep working.
@@ -59,9 +65,46 @@ class ChatLogger(commands.Cog):
         self.tasks: tuple[asyncio.Task[None], ...] = ()  # the retention loop once loaded
         self.sleep: Sleep = asyncio.sleep  # between the retention's deletions
 
+    @override
+    async def cog_load(self) -> None:
+        """Start the retention loop, which waits until the bot is ready.
+
+        ``setup`` runs before the gateway connects, and ``--no-online`` never connects, so nothing
+        is deleted before READY; in a ready bot, as after a reload, the loop deletes at once.
+        """
+        self.tasks = (asyncio.create_task(self._retain(), name="ChatLogger retention"),)
+
+    @override
+    async def cog_unload(self) -> None:
+        """Cancel the retention loop and wait for it, before the store closes."""
+        for task in self.tasks:
+            task.cancel()
+        await asyncio.gather(*self.tasks, return_exceptions=True)
+
+    async def _retain(self) -> None:
+        """Delete the old messages when the bot is ready, then every hour.
+
+        v3 kept every message forever; the retention keeps the store from growing without limit.
+        """
+        await self.bot.wait_until_ready()
+        while True:
+            await self.prune()
+            await self.sleep(HOUR)
+
     async def prune(self) -> None:
-        """Delete the stored messages older than the retention."""
-        raise NotImplementedError
+        """Delete the stored messages created more than ``retention_days`` days ago.
+
+        A message's ID tells when it was created. A failure is logged, and the next hour tries
+        again.
+        """
+        days = self.config.retention_days
+        before = time_snowflake(utcnow() - timedelta(days=days))
+        try:
+            deleted = await self.messages.prune(before)
+        except sqlite3.Error:
+            logger.exception("ChatLogger cannot delete the messages older than %s days", days)
+            return
+        logger.debug("ChatLogger deleted %s messages older than %s days", deleted, days)
 
     def command(self) -> app_commands.Group:
         """Build v3's ``/chat-logger`` with its subcommand ``setting``, from ``register.yaml``.

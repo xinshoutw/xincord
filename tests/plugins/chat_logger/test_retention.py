@@ -12,16 +12,15 @@ import sqlite3
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
-import pytest
 from discord.utils import time_snowflake, utcnow
 
 from plugin_fakes import WAIT
 
 if TYPE_CHECKING:
+    import pytest
+
     from conftest import Scene
     from plugin_fakes import Ready
-
-REASON = "Stored messages are kept for the retention period"
 
 
 class Hours:
@@ -66,7 +65,6 @@ async def stored(scene: Scene) -> list[int]:
     return [row[0] for row in await scene.rows()]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_old_messages(scene: Scene) -> None:
     """Requirement: Stored messages are kept for the retention period."""
     old, recent = ago(31), ago(29)
@@ -77,7 +75,6 @@ async def test_old_messages(scene: Scene) -> None:
     assert await stored(scene) == [recent]
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 async def test_every_hour(scene: Scene, ready: Ready) -> None:
     """Requirement: Stored messages are kept for the retention period."""
     hours = Hours()
@@ -100,7 +97,6 @@ async def test_every_hour(scene: Scene, ready: Ready) -> None:
     assert not loop.done()
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 async def test_failure(
     scene: Scene, ready: Ready, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -127,7 +123,6 @@ async def test_failure(
     assert not loop.done()
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 async def test_unload(scene: Scene, ready: Ready) -> None:
     """Requirement: Stored messages are kept for the retention period."""
     hours = Hours()

@@ -68,7 +68,7 @@
 ## 13. Retention
 
 - [x] 13.1 xfail tests for "Stored messages are kept for the retention period"
-- [ ] 13.2 Implement the retention loop; remove the markers
+- [x] 13.2 Implement the retention loop; remove the markers
 
 ## 14. Left guilds and checks at READY
 
