@@ -96,7 +96,9 @@ see v3's base names and description.
 - `tests/fixtures/plugins/simple_command/golden.yaml`: v3's text, as the five embeds with the
   example account numbers and the five translated command payloads.
 - The posting tests call `post_message` with a `FakeInteraction` whose `command` names the template
-  and whose channel is a `FakeChannel` sharing its `sent` list.
+  and whose channel is a `FakeChannel` sharing its `sent` list. `ClosingChannel` closes the
+  message's files and refuses it, as discord.py's `send` does when Discord refuses a message, and
+  the tests close every file they receive.
 
 ### v3 behaved differently
 
@@ -117,6 +119,58 @@ for the owner to decide); zh-TW for every user; zh-TW localizations only; the ad
 permission without a runtime check, which guild administrators can change in the server's
 integration settings as in v3; the third-party thumbnails and the tutorial link, which operators
 change in `plugins/SimpleCommand/lang/`.
+
+### Inventory audit
+
+Every section of `docs/porting/analysis/inventory/SimpleCommand.md` maps to this change:
+
+- Overview (1): the five commands and their embeds are the posting and command requirements; the
+  entry object, `info.yaml` and the plugin name are "The plugin installs as SimpleCommand"; the
+  hard-coded command set is kept on purpose (out of scope: a data-driven one).
+- Lifecycle (2): exporting the lang files is "First load creates the lang files"; the `enabled`
+  check and its warning are the core's `plugins` list, and no `config.yaml` is written; the
+  localizer is `lang.command`; the lazily built message creator is `Templates.load` in `setup`, so
+  a broken template fails the load; `reload()` is the core's reload, which replaces the whole cog;
+  `guildCommands()` returning nothing when disabled is a plugin that is not loaded. No background
+  jobs.
+- Slash commands (3): the guild scope, names, description, zh-TW localizations, missing options and
+  flags and the Administrator default permission are "Command payload"; the uploads to every guild
+  and at guild joins are the core's `sync_guild` (core-command-tree, core-startup); en-US clients
+  seeing the base names follows from zh-TW-only localizations (the payload has no en-US entries).
+  The table of embeds, the colour `0x9bd9d5` (10213845), the fields that are not inline, the
+  missing author, footer, timestamp and content, and the block scalar's newline are the golden
+  embeds of "Every command". Behavior steps: the name filter is the tree's routing; deleting the
+  deferral and posting publicly in zh-TW are "Message", "Default locale" and "Command callback";
+  the global substitutor is "Bot placeholders"; the concurrent delete and the lost failures are
+  "Channel refuses the message" and a "v3 behaved differently" entry, as is the auto-defer switch.
+  The core's interaction log covers v3's `[CMD]` line.
+- Components (4) and events (5): none besides the commands, so no component IDs, listeners or
+  component golden data.
+- Configuration (6): `enabled` is replaced by the core's `plugins` list; there is no config model.
+- Localization and templates (7): zh-TW only and the default-locale rendering are the bundled lang
+  files and "Default locale"; `register.yaml` is "Command payload"; the legacy `embeds` schema is
+  the core's v1 templates (the golden embeds); operator edits are kept because only missing lang
+  files are exported, and operator templates are covered by "Bot placeholders" and "Components and
+  files".
+- Persistence (8): none. External dependencies (9): the hot-linked thumbnails and the tutorial link
+  stay in the templates (golden embeds).
+- Discord requirements (10): no intents ("Discovered by name"); missing channel permissions are
+  "Channel refuses the message"; threads are in the smoke checklist.
+- Concurrency (11): the post and the deletion run one after the other; a reload replaces the whole
+  cog instead of swapping the creator.
+- Bugs and quirks (12): B1 is "Channel refuses the message" and a "v3 behaved differently" entry;
+  B2 is the shared callback ("Every command", "Command callback"); B3 is kept on purpose and listed
+  for the owner; the bundled account numbers are example values (a "v3 behaved differently" entry,
+  checked by the golden embeds). The behaviors to preserve are scenarios: Administrator only
+  ("Command payload"), the deleted deferral and the public post ("Message", "Command callback"),
+  zh-TW ("Default locale") and the exact embeds ("Every command").
+- Testability (13): the identity mapping from command to template is `post_message` reading the
+  invoked command's name; the template-to-embed goldens and the localized payloads are in
+  `golden.yaml`; the doubles are `FakeInteraction` and `FakeChannel`.
+- Assessment (14): the commands come from the `COMMANDS` table and `command(name)` with
+  `app_commands.default_permissions(administrator=True)`; the translator, the command tree's defer,
+  and the post followed by `delete_original_response` are the Commands and Posting decisions; the
+  data-driven variant is left to the owner.
 
 ## Risks / Trade-offs
 

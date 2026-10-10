@@ -31,7 +31,10 @@ Names: `<Plugin>` is the v3 name (`AutoRole`, `_Example`), `<kebab>` its kebab c
 3. **Resources.** Copy v3's `config.yaml` and lang files into the package (fix missing final
    newlines and CRLF line endings), example values only: never real IDs, account numbers or
    tokens. A list whose v3 default held real IDs ships empty, with placeholder IDs in a comment
-   (AutoRole's `guilds`).
+   (AutoRole's `guilds`); a template whose v3 text held a real account number gets an all-zero
+   example under a comment that asks the operator to put theirs (SimpleCommand). Copy such files
+   with a script that replaces the value, and check that no real number remains, instead of
+   reading the real values.
 4. **Per requirement, xfail-first.** Test (fails for the expected reason; check with
    `pytest --runxfail`) -> commit with `xfail(strict=True)` -> implement and remove the marker ->
    commit. Tick `tasks.md` in the same commits. The project's Claude Code hooks (ruff on each edit,
@@ -131,10 +134,22 @@ async def setup(bot: Bot) -> None:
   user=False)` (BotInfo). A command that opens a modal sets `extras={"defer": False}`. The tree
   defers the others ephemerally before the callback runs: answer with
   `interaction.edit_original_response(...)` or `interaction.followup.send(...)`.
+- v3's `setDefaultPermissions(DefaultMemberPermissions.enabledFor(ADMINISTRATOR))` is
+  `app_commands.default_permissions(administrator=True)(command)` on the built command; the payload
+  then holds `default_member_permissions` 8 (SimpleCommand).
+- v3 commands that only differ by the template they show share one callback, the cog's bound
+  method, which reads the base name from `interaction.command.name`; `setup` adds one command per
+  name of a module-level table (SimpleCommand's `COMMANDS` and `command(name)`).
 - A v3 reply posted with `event.channel.sendMessage(...)` after the defer: send it to
   `interaction.channel` when that has `send` (a `runtime_checkable` Protocol, so fakes need no
   discord base class; forums and categories have none), then `delete_original_response()`; on
   `discord.HTTPException`, edit the deferred response into it instead (BasicCalculator's `_post`).
+  When the reply is a whole operator template (v3 sent the built message: components and files
+  too), send `content`, `embeds`, `view` and `files`, check the channel as `object` against a
+  Protocol that takes them (discord.py's `send` overloads take a `View` or a `LayoutView`, never
+  their union), and render again for the fallback, with the files as `attachments`: discord.py
+  closes a message's files once it sent them, even when Discord refused it (SimpleCommand's
+  `_postable` and `_send`).
 
 ### Listeners and intents
 
@@ -160,6 +175,11 @@ async def setup(bot: Bot) -> None:
   `placeholder_values`, move it to `xincord.core.placeholders` (core change with a spec delta)
   instead of copying it again.
 - Plugin keys keep v3's names (`_Example@option1`, `ga@title`) so operators' templates keep working.
+- A template that v3 rendered with `getCreateBuilder(key)` and no locale, such as a public message,
+  renders in `lang.default_locale` for every user (SimpleCommand); one rendered with the user's
+  locale uses `interaction.locale.value`. Without a substitutor, v3 used only its global keys:
+  `bot_id` and `bot_name` (`_bot_values` in BotInfo and SimpleCommand; a third plugin that needs
+  them moves the helper into `xincord.core.placeholders`).
 
 ### Components
 
@@ -194,6 +214,9 @@ async def setup(bot: Bot) -> None:
   `as_member()`. Extend it instead of writing new fakes. pytest runs in importlib mode, so a test
   module cannot import another one: tests that share helpers stay in one module (BasicCalculator's
   `test_replies.py`) or become fixtures in `conftest.py` (AutoRole's `guild`).
+  A callback that reads the invoked command gets `FakeInteraction(command=SimpleNamespace(
+  name=...))`. Close the `discord.File`s that a test receives (Components V2 templates with a
+  `file_path`), or the unclosed files fail the run.
   Call cog methods directly (`cog.example_command(...)`), check a command's wiring through
   `bot.tree.get_command(...)` (its `binding` is the cog), send components through
   `bot.on_interaction(...)`, which includes the routing, and run listeners with

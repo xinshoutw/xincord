@@ -106,6 +106,17 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   (BotInfo).
 - A config value that Discord would refuse at send time (a URL, a length) is validated in the
   model, so that the plugin fails at load with the key named (BotInfo's `source_url`).
+- v3 commands that differ only by their template share one callback that reads
+  `interaction.command.name`; `setup` adds one command per name of a table, and
+  `app_commands.default_permissions(administrator=True)` stands for v3's
+  `DefaultMemberPermissions.enabledFor(ADMINISTRATOR)` (SimpleCommand).
+- A public message that v3 rendered with `getCreateBuilder(key)` and no locale renders in the
+  default locale for every user, with v3's global keys `bot_id` and `bot_name` (SimpleCommand).
+- A whole operator template posted to the channel carries its `view` and `files` too; the fallback
+  into the deferred response renders it again (SimpleCommand's `_postable` and `_send`).
+- Bundled text that held a real account number in v3 ships an all-zero example under a comment
+  (SimpleCommand); operators' files under `plugins/<Name>/lang/` keep their values, because only
+  missing lang files are exported.
 
 ## Pitfalls
 
@@ -186,6 +197,14 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   `cast` (BotInfo's `conftest.py`).
 - **Stopped views.** A discord.py view created outside a running event loop never reports
   `is_finished()`; tests that check rendered views must be `async`.
+- **Sent files are closed.** discord.py closes a message's `File` objects once `send` or an edit
+  used them, even when Discord refused the request; a fallback that sends the message elsewhere
+  renders it again. A test that receives `File` objects closes them: an unclosed file fails the
+  run (`PytestUnraisableExceptionWarning`).
+- **`send` overloads.** `Messageable.send` takes a `View` with content and embeds, or a
+  `LayoutView` without them, never `View | LayoutView | None`; an `isinstance` check against a
+  Protocol keeps a channel union's own overloads. Pass the channel as `object` before the check
+  (SimpleCommand's `_postable`).
 - **Global `core.hooksPath`.** prek refuses to install while a global `core.hooksPath` is set; use
   `git config --local core.hooksPath .git/hooks`.
 
@@ -277,3 +296,7 @@ Every deliberate difference, added by the change that introduces it.
 | BotInfo | the reply needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers the command | port-bot-info |
 | BotInfo | guilds that became unavailable during an outage were left out of both counts | they count as guilds, with the members discord.py knew | port-bot-info |
 | BotInfo | no source link; the bundled `config.yaml` held only `enabled: false` | a Source Code field shows `source_url` (decision C3), by default the xincord repository, checked when the plugin loads | port-bot-info |
+| SimpleCommand | the deferred response was deleted together with the post, so a post the channel refused left the administrator with nothing | the message is posted first; when the channel takes no messages or refuses it, it replaces the deferred response and a warning is logged | port-simple-command |
+| SimpleCommand | the commands needed the core's auto-defer; with `--no-auto-defer-interactions` the user saw "The application did not respond" | the command tree always defers the commands | port-simple-command |
+| SimpleCommand | the bundled templates held real bank account numbers | they hold the example `000000000000`; operators' files keep theirs | port-simple-command |
+| SimpleCommand | messages were rendered with the shared global substitutor, with the keys other plugins had written into it | each render gets `bot_id` and `bot_name` only | port-simple-command |
