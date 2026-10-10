@@ -92,6 +92,9 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `Message.startedThread` | `Message.thread`, built from the REST payload's `thread` | |
 | `attachment.proxy.downloadAsFileUpload(fileName)` | `await attachment.to_file()`; a file over `guild.filesize_limit` cannot be uploaded again | |
 | `BreakIterator.getCharacterInstance(Locale.ROOT)` | no grapheme segmentation in the standard library: cut at code points, never inside a surrogate pair and never before a combining mark, a variation selector, an emoji modifier or around a zero-width joiner (Ticket's `thread_name`) | |
+| `ChannelCreateEvent` (every channel kind, threads too) | `on_guild_channel_create(channel)` and `on_thread_create(thread)`, which discord.py dispatches for newly created threads only (`on_thread_join` otherwise); a `runtime_checkable` Protocol with `send` keeps the channels that take messages (TicketAwayNotice's `watch`) | B3 |
+| `member.onlineStatus` with `GUILD_PRESENCES` and the `ONLINE_STATUS` cache flag | `member.status` with `discord.Intents(members=True, presences=True)`: the members intent keeps the members, the presences intent their statuses; a member from `fetch_member` has no presence and is `Status.offline`, as JDA's default (TicketAwayNotice) | B4 |
+| `RestAction.queueAfter(delay, unit)` (nothing cancels it) | a task per message, started by the listener and kept in a set on the cog, that awaits the cog's injected `sleep`, checks the state again and then sends; `cog_unload` cancels the tasks (TicketAwayNotice's notices) | |
 | Ktor Web-Dashboard | not ported | B13 |
 
 ## Intents kept from the v4 attempt (A3)
@@ -132,7 +135,7 @@ prefixes keep the v3 names. The other plugins keep their names.
 | WelcomeByeGuild | WelcomeGoodbye | `welcome_goodbye` |
 | IntervalPusher | UptimeHeartbeat | `uptime_heartbeat` |
 | Feedbacker | Feedback | `feedback` |
-| TicketAddons | TicketAwayNotice | not ported yet |
+| TicketAddons | TicketAwayNotice | `ticket_away_notice` |
 | NtustManager | NtustAnnouncements | not ported yet |
 | NtustCourse | NtustCourseWatch | not ported yet |
 
@@ -338,6 +341,16 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   (Giveaway's `Giveaways.change`); the automatic draw takes the same lock, so a draw happens once.
 - Values drawn at random come from `random.SystemRandom()` kept on the cog, which tests replace
   with a seeded `random.Random`; the pure draw takes the generator as an argument.
+- Work that an event starts and that waits (TicketAwayNotice's notice, v3's `queueAfter`) is an
+  `asyncio` task that the listener creates after the checks that need no await, kept in a set on
+  the cog (`add_done_callback(set.discard)`) and cancelled and awaited in `cog_unload`; it waits on
+  the cog's `sleep`, which tests replace, checks the cache again when the wait ends (the channel,
+  the guild, the member's status), and logs any failure that it does not handle with
+  `logger.exception`, because nothing awaits it. The listener returns at once, so the wait holds no
+  other event up.
+- A plugin that reads members' statuses declares `discord.Intents(members=True, presences=True)`:
+  both are privileged, and the smoke checklist says to allow them in the developer portal
+  (TicketAwayNotice).
 
 ## Pitfalls
 
@@ -674,13 +687,31 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   the whole URL: cut URLs in error texts to their origin before showing or logging them
   (`xincord.plugins.redaction.redact`, shared since port-ticket).
 
+- **Presences.** The presences intent is privileged: without the developer portal's permission,
+  Discord closes the gateway (4014) and the bot does not connect. With it, discord.py takes a small
+  guild's members and their statuses from `GUILD_CREATE` instead of chunking it, and chunks large
+  guilds without presences (their online members' statuses come with `GUILD_CREATE`);
+  `PRESENCE_UPDATE` updates cached members only, so the members intent is needed too. A member from
+  `fetch_member` (REST) has no presence: `member.status` is `Status.offline`, as JDA's default.
+- **New threads.** discord.py dispatches `on_thread_create` only for a `THREAD_CREATE` marked
+  `newly_created`, and `on_thread_join` when the bot gets a thread that it did not cache (it is
+  added to a private thread, or a thread is unarchived).
+- **Tasks that nothing awaits.** An exception left in a task that nothing awaits surfaces only as
+  asyncio's "Task exception was never retrieved" when the task is collected: log it inside the task
+  (TicketAwayNotice's `_notice`). `asyncio.CancelledError` is no `Exception`, so a cancelled task
+  stays quiet.
+- **Mentions in embed titles.** Discord shows a channel or user mention in an embed's title,
+  author or footer as raw `<#...>` text; it renders mentions in the description and in field
+  values (TicketAwayNotice's bundled notice moved v3's text into the description).
+
 v3 behaviors never to reproduce: loading plugins in reverse dependency order, non-atomic JSON
 writes that silently reset corrupt files, recursive placeholder expansion, shared mutable
 placeholder caches, `asTextChannel()` failures in threads, voice chat and announcement channels,
 allow-all mentions, naming the member of an event after the guild's newest audit log entry,
 keeping message content forever, rendering a builder through an expired interaction token,
-drawing a giveaway twice, pinging what a user typed into a ticket, and losing an error thrown in a
-callback (Ticket's archive hung).
+drawing a giveaway twice, pinging what a user typed into a ticket, losing an error thrown in a
+callback (Ticket's archive hung), a guild filter that never applied, and a delayed message that
+nothing could cancel or check again (TicketAddons).
 
 ## Differences from v3
 
@@ -894,3 +925,11 @@ Every deliberate difference, added by the change that introduces it.
 | Ticket | an archive failure thrown in a callback (a 4000-character message, a refused webhook name, an upload over the limit) hung the archive and leaked the webhook (B12); a failed webhook left an empty thread | long texts are split, names fall back, large files are linked, every failure is reported and the webhook deleted, an empty thread is deleted | port-ticket |
 | Ticket | en-US users got Chinese replies, zh-TW users four English errors | replies follow the user's locale (zh-TW where the plugin has no files); public texts stay zh-TW | port-ticket |
 | Ticket | a guild's panels were deleted only on a leave seen while the plugin was enabled | also at READY for guilds the bot left while offline | port-ticket |
+| Plugin names | `TicketAddons`, with its files in `plugins/TicketAddons/` | `TicketAwayNotice` under `plugins:` and as `plugins/TicketAwayNotice/`; `migrate_v3` maps the name and moves the directory | rename-plugins, port-ticket-away-notice |
+| TicketAwayNotice | the guild filter never applied, so the notice was posted in every guild where the owner was a member and offline (B1) | only `guild_id` is watched; a warning at READY names a guild the bot is not in | port-ticket-away-notice |
+| TicketAwayNotice | a matching thread, announcement, voice, stage, forum or category channel threw, logged by JDA (B2) | threads and every channel that takes messages get the notice; categories and forums are skipped quietly | port-ticket-away-notice |
+| TicketAwayNotice | the owner was read without a member cache, so JDA reported offline and the notice was posted almost always (B3) | the members and presences intents keep the owner's status; only an offline owner gets a notice | port-ticket-away-notice |
+| TicketAwayNotice | the notice was queued after one check and posted after the delay whatever happened, into a deleted channel or after the owner came online; nothing cancelled it | the channel and the owner are checked again when the wait ends; unloading cancels the waiting notices | port-ticket-away-notice |
+| TicketAwayNotice | an invalid config stopped the bot even while disabled (B4), unknown keys failed the load, and the IDs took any text | only the plugin is disabled, unknown keys warn, and both IDs must be positive integers | port-ticket-away-notice |
+| TicketAwayNotice | the bundled files held the shop's guild and owner IDs, its name and two channel IDs, and the text sat in the embed title, where channel mentions show as raw text | 0 for both IDs (the plugin waits for them), example values, the text in the description; operators' files keep theirs | port-ticket-away-notice |
+| TicketAwayNotice | a template that could not be sent failed at each notice; a refused notice or a missing owner showed only as JDA's failure log | the template is checked at load, with the file named; warnings name the guild and the channel or the user | port-ticket-away-notice |

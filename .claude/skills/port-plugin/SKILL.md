@@ -14,10 +14,11 @@ Names: `<Plugin>` is the plugin's xincord name (`AutoRole`, `Example`), `<kebab>
 (`auto-role`, `example`) for the change, the capability `plugin-<kebab>` and the commit scope,
 `<package>` the Python package (`auto_role`, `example`). The owner renamed nine plugins
 (`docs/porting/decisions.md`, Amendment 1; the table in `docs/porting-guide.md`, "Plugin names"):
-the three not ported yet are TicketAddons (TicketAwayNotice), NtustManager (NtustAnnouncements) and
-NtustCourse (NtustCourseWatch). Their inventories, Kotlin sources and legacy component ID prefixes
-keep the v3 name; everything else, the store namespace and the new ID namespace included, uses the
-new one, and `xincord.core.migrate_v3.RENAMED` already maps the v3 name.
+the two not ported yet are NtustManager (NtustAnnouncements) and NtustCourse (NtustCourseWatch).
+Their inventories, Kotlin sources and legacy component ID prefixes keep the v3 name; everything
+else, the store namespace and the new ID namespace included, uses the new one, and
+`xincord.core.migrate_v3.RENAMED` already maps the v3 name (TicketAwayNotice, v3 TicketAddons, was
+the first port of a plugin renamed before its port).
 
 ## Steps
 
@@ -58,7 +59,10 @@ new one, and `xincord.core.migrate_v3.RENAMED` already maps the v3 name.
    templates or components (AutoRole) has no golden data.
 7. **Check the package.** `uv build --package xincord-plugins -o <scratch dir>` lists `config.yaml`
    and `lang/` in the wheel. Stronger: install both wheels in a scratch venv and run
-   `xincord --no-online` in an empty directory whose `config.yaml` enables the plugin. Then drive the
+   `xincord --no-online` in an empty directory whose `config.yaml` enables the plugin (a plugin
+   whose bundled config waits for the operator, as Economy's `admin_id` and TicketAwayNotice's
+   `guild_id` and `user_id`, needs example values in `plugins/<Plugin>/config.yaml` there and in
+   the image check's `bot/`). Then drive the
    plugin once through discord.py's own objects in a scratch script (not committed): set
    `bot._connection.user` to a `discord.ClientUser`, build `discord.Interaction(data=<payload>,
    state=bot._connection)` and call `command._invoke_with_namespace(interaction, Namespace(...))`
@@ -359,6 +363,12 @@ async def setup(bot: Bot) -> None:
 - Problems the operator must fix (a missing role or permission) are `logger.warning` lines from
   `logging.getLogger(__name__)` that name the plugin; Discord errors on one item are logged and the
   others still handled.
+- New channels (v3's `ChannelCreateEvent`, every kind, threads too): `on_guild_channel_create` and
+  `on_thread_create` (discord.py dispatches it for newly created threads only); keep the channels
+  that take messages with a `runtime_checkable` Protocol that has `send` (categories and forums have
+  none). Members' statuses (v3's `onlineStatus`) need `discord.Intents(members=True,
+  presences=True)`: both privileged, both in the smoke checklist; a member from `fetch_member` has
+  no presence and reads `Status.offline` (TicketAwayNotice).
 - Voice: `on_voice_state_update(member, before, after)` also fires for mutes, deafens and streams,
   where JDA's `GuildVoiceUpdateEvent` fired for channel changes only: compare the channels' IDs.
   Count a channel's members with `channel.voice_states` (no member cache needed), and read it at
@@ -413,6 +423,12 @@ async def setup(bot: Bot) -> None:
   changes before it posts, and posts through `bot.get_partial_messageable(c, guild_id=g)`
   (`get_partial_message(m).edit(...)` needs no fetch), cast to a Protocol that takes the view
   union.
+- Work that an event starts and that waits (v3's `queueAfter`, TicketAwayNotice's notice): the
+  listener checks what needs no await, then creates a task, kept in a set on the cog with
+  `task.add_done_callback(self.<set>.discard)`; the task waits on the cog's `sleep`, checks the
+  cache again when the wait ends (the channel and guild still there, the member's status) and logs
+  what it does not handle with `logger.exception`, since nothing awaits it; `cog_unload` cancels
+  and awaits the set. The listener returns at once, so the wait holds no other event up.
 - A Discord REST call that JDA made without a discord.py counterpart goes through
   `bot.http.request(discord.http.Route(method, path))` (UptimeHeartbeat's `rest_ping`).
 
@@ -646,6 +662,14 @@ async def setup(bot: Bot) -> None:
   and `button_rows(view)`.
 - Keep each xfail reason a literal string in its decorator: a script then strips the markers of
   one requirement at once.
+- TicketAwayNotice's `scene` (`tests/plugins/ticket_away_notice/conftest.py`) feeds
+  `CHANNEL_CREATE`, `THREAD_CREATE` (with `newly_created`), `PRESENCE_UPDATE`, `CHANNEL_DELETE`,
+  `GUILD_DELETE` and `GUILD_MEMBER_REMOVE` to discord.py's parsers and lets `FakeRest` answer each
+  new channel's `POST /channels/{id}/messages` with a message payload, which `Messageable.send`
+  needs; its `Clock` is the injected `sleep`: each wait is recorded and lasts until the test wakes
+  it (`asleep(n)` waits for n waits), so a test changes the cache during the wait. `payloads.guild`
+  takes `members` and `presences` (`payloads.presence`), `payloads.channel` a `guild_id`, and
+  `FakeRest` keeps a multipart upload's parts as `form`.
 - A loop with a first delay and a period runs on `Ticks` (Giveaway's `test_auto_draw.py`): each
   sleep is recorded, waits for the test, and moves the injected clock. A press that must be caught
   in the middle (a double confirmation) uses a fake whose `send` waits on a gate; wait with
