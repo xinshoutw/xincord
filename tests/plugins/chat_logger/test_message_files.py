@@ -301,7 +301,6 @@ async def test_expired_files(
     assert ids(directory) == {third: []}
 
 
-@pytest.mark.xfail(strict=True, reason="Stored messages live in the plugin's own files")
 async def test_failed_commit(
     open_files: Opener, directory: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

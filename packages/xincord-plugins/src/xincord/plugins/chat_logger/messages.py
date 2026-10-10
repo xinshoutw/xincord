@@ -123,13 +123,17 @@ def connect(path: Path) -> sqlite3.Connection:
 
 
 def transaction[T](connection: sqlite3.Connection, work: Callable[[sqlite3.Connection], T]) -> T:
-    """Run ``work`` as one transaction of ``connection``: committed, or rolled back if it raises."""
+    """Run ``work`` as one transaction of ``connection``: committed, or rolled back if it raises.
+
+    A commit that fails, as when another program holds a lock on the file past ``BUSY_TIMEOUT``,
+    rolls back too: left open, the transaction would be committed by the next work.
+    """
     try:
         result = work(connection)
+        connection.commit()
     except BaseException:
         connection.rollback()
         raise
-    connection.commit()
     return result
 
 

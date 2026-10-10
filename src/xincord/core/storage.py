@@ -74,17 +74,19 @@ class Store:
     async def run[T](self, fn: Callable[[sqlite3.Connection], T]) -> T:
         """Run ``fn`` with the connection on the database thread, as one transaction.
 
-        The transaction is committed when ``fn`` returns and rolled back when it raises. Plugins
-        use this for their own tables, named ``<plugin>_<table>``.
+        The transaction is committed when ``fn`` returns and rolled back when it raises or when
+        the commit fails, as when another connection holds a lock on the file past
+        ``BUSY_TIMEOUT``, so that no later call commits its writes. Plugins use this for their own
+        tables, named ``<plugin>_<table>``.
         """
 
         def transaction() -> T:
             try:
                 result = fn(self._connection)
+                self._connection.commit()
             except BaseException:
                 self._connection.rollback()
                 raise
-            self._connection.commit()
             return result
 
         return await asyncio.get_running_loop().run_in_executor(self._executor, transaction)

@@ -173,7 +173,6 @@ async def test_same_key_same_lock() -> None:
         assert store.lock("guild:1") is not store.lock("guild:2")
 
 
-@pytest.mark.xfail(strict=True, reason="Plugins can use their own tables")
 async def test_failed_commit_rolls_back(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Plugins can use their own tables."""
     monkeypatch.setattr(storage, "BUSY_TIMEOUT", 0.05)  # the wait for another connection's lock
