@@ -10,7 +10,6 @@ Kotlin:
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 from xincord.core.plugins import PluginInfo, discover
 
@@ -19,7 +18,6 @@ if TYPE_CHECKING:
 
     from xincord.core.bot import Bot
 
-XFAIL = pytest.mark.xfail(strict=True, reason="The plugin installs as VoiceLogger")
 MESSAGES = (
     "voice-logger@setting",
     "delete",
@@ -43,7 +41,6 @@ LANG_FILES = tuple(
 )
 
 
-@XFAIL
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as VoiceLogger."""
     # The voice states intent is v3's GUILD_VOICE_STATES; discord.py's defaults hold it too, and
@@ -57,7 +54,6 @@ def test_discovered_by_name() -> None:
     ]
 
 
-@XFAIL
 async def test_the_bot_requests_the_voice_states_intent(bot: Bot) -> None:
     """Requirement: The plugin installs as VoiceLogger."""
     assert bot.loaded == ("VoiceLogger",)
@@ -65,7 +61,6 @@ async def test_the_bot_requests_the_voice_states_intent(bot: Bot) -> None:
     assert bot.intents.guilds
 
 
-@XFAIL
 async def test_first_load_creates_the_lang_files(bot: Bot, tmp_path: Path) -> None:
     """Requirement: The plugin installs as VoiceLogger."""
     directory = tmp_path / "plugins" / "VoiceLogger"
