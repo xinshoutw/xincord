@@ -113,7 +113,7 @@ MODIFIED. `core-config` modifies the migration's requirement and adds one for th
 ### Tests (xfail-first)
 
 Per plugin, the tests whose expectations the rename changes (the entry point and directory, and
-WelcomeGoodbye's namespace, a UptimeHeartbeat log line, `/feedback` and the `feedback:1:` IDs)
+WelcomeGoodbye's namespace, an UptimeHeartbeat log line, `/feedback` and the `feedback:1:` IDs)
 are committed first with the new names, marked `xfail(strict=True)` without `raises` (no stub can
 stand for a missing entry point); the rename commit removes the markers and updates the remaining
 tests. The migration's tests follow the same pattern.
@@ -143,11 +143,18 @@ Not applicable: the change ports no v3 behavior and fixes no v3 defect.
    `docker compose down -v` and removing `bot/` cleaned up. Before that, the wheel from
    `uv build --package xincord-plugins` listed the six packages under their new names with their
    `config.yaml` and `lang/` files, and the new entry points.
-2. At cutover, after `python -m xincord.core.migrate_v3 <dir>`: `plugins:` lists the new names and
-   the renamed plugins' directories moved; delete `plugins/Feedback/lang/*/register.yaml` (v3's,
-   with the `feedbacker` key) so that the bundled files are exported.
+2. At cutover, run `python -m xincord.core.migrate_v3 <dir>` on a copy of the stopped v3
+   directory (restoring `config.v3.yaml` alone no longer brings v3 back, since the renamed
+   plugins' directories moved): `plugins:` lists the new names, but only of plugins whose v3
+   config says `enabled: true`, a key v3 added in 3.3.0 (`ea14fbf`), so check the list; the
+   renamed plugins' directories moved; delete `plugins/Feedback/lang/*/register.yaml` (v3's, with
+   the `feedbacker` key) so that the bundled files are exported.
 3. In a test guild: after the first start, `/feedback` is there and `/feedbacker` gone; a star of a
-   form posted by v3 still opens the modal.
+   form posted by v3 still opens the modal; permission overrides that a guild set for
+   `/feedbacker` must be set again for `/feedback`, which has a new command ID.
+
+The archived smoke checklists of the earlier ports use the v3 names; follow them with the new ones
+(the table in "Names").
 
 ## Risks / Trade-offs
 
@@ -156,3 +163,13 @@ Not applicable: the change ports no v3 behavior and fixes no v3 defect.
   Kotlin citations comes up empty.
 - An operator's v3 `register.yaml` for Feedback loses its localizations until it is renewed (see
   `/feedback`); keeping the `feedbacker` key instead would keep `/feedbacker` for en-US clients.
+- Failures during the migration: a failed move leaves the v3 config, and a second run lists the
+  moved plugins under their new names and finishes the moves. A failure while writing
+  `config.yaml` after `config.v3.yaml` was written makes every rerun stop at the backup, as before
+  this change: copy `config.v3.yaml` back over `config.yaml`, delete it and run again; the
+  directories that moved stay moved.
+- Cross-review (a subagent, 2026-10-10): no missed or wrongly renamed reference, the deltas restate
+  the old requirements, and a trial archive retires the five specs. Its findings on the migration's
+  failure paths, the rollback, permission overrides and the `enabled` switch are recorded above and
+  in the review queue; it also suggested naming the new plugin when an operator lists a v3 name by
+  hand (left as a choice in the review queue).

@@ -58,6 +58,6 @@
 
 ## 10. Close
 
-- [ ] 10.1 Gate passes, push, CI green
+- [x] 10.1 Gate passes, push, CI green
 - [ ] 10.2 Archive the change and run `openspec validate --all --strict`
 - [ ] 10.3 Update `HANDOFF.md`; push; CI green

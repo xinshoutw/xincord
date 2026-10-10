@@ -43,15 +43,15 @@ load, and the error SHALL name the key.
 - **THEN** the plugin does not load and the error names the key
 
 ### Requirement: The command is a localized guild command
-The plugin SHALL register `feedback` as a guild command that every member sees, with v3's
-description and localizations and two required options: `member`, a user, and `submit-channel`,
-which offers text channels only. The command tree SHALL defer it ephemerally before its callback
-runs.
+The plugin SHALL register `feedback` (v3: `feedbacker`) as a guild command that every member sees,
+with v3's description and localizations, except the en-US name `feedback`, and two required
+options: `member`, a user, and `submit-channel`, which offers text channels only. The command tree
+SHALL defer it ephemerally before its callback runs.
 
 #### Scenario: Command payload
 - **WHEN** the guild command payload is built
-- **THEN** `feedback` has v3's description, its en-US and zh-TW localizations, no default member
-  permissions, the user option `member` and the channel option `submit-channel` with the channel
+- **THEN** `feedback` has v3's description, its en-US (name `feedback`) and zh-TW localizations,
+  no default member permissions, the user option `member` and the channel option `submit-channel` with the channel
   type 0
 
 #### Scenario: Command callback

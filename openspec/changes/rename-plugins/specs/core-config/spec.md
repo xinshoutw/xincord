@@ -24,7 +24,8 @@ as amended on 2026-10-10), sorted by name, and report them.
 Migrating a v3 directory SHALL move each renamed plugin's directory, `plugins/<v3 name>/`, to
 `plugins/<new name>/` with its files, so that the plugin finds v3's config and lang files there,
 and report each move. When `plugins/<new name>/` exists already, both directories SHALL stay as
-they are and the report SHALL say so. Nothing SHALL move when the core config is not migrated.
+they are and the report SHALL say so. Nothing SHALL move when the core config is already in the
+new schema or backed up.
 
 #### Scenario: Directory moved
 - **WHEN** a v3 directory with `plugins/Feedbacker/config.yaml` is migrated

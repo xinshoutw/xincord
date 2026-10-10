@@ -62,7 +62,8 @@ review:
     fields: [{name: "評價內容", value: "great", inline: false}]
 
 # The guild command payload, with v3's description and the localizations of register.yaml; no
-# default member permissions, as v3 checked Administrator when the command ran.
+# default member permissions, as v3 checked Administrator when the command ran. The name and its
+# en-US localization are xincord's `feedback` (v3: `feedbacker`, renamed in rename-plugins).
 command:
   type: 1
   name: "feedback"

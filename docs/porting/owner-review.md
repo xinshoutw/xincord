@@ -16,13 +16,13 @@ here; delete a section once it is empty.
 ## Example (v3 _Example, `port-example`)
 
 ### User-visible changes
-- `/example-command` replies with a third embed field, `Config value`, showing `example_key` from `plugins/_Example/config.yaml` (zh-TW name in the plugin's `lang/zh-TW/message/example.yaml`).
+- `/example-command` replies with a third embed field, `Config value`, showing `example_key` from `plugins/Example/config.yaml` (zh-TW name in the plugin's `lang/zh-TW/message/example.yaml`).
 - A new `Count: 0` button under the reply counts presses (zh-TW label in `lang/zh-TW/message/counter.yaml`).
 - `option1` accepts at most 1024 characters; v3 gave no reply above that.
 - Option text is shown as typed (v3 expanded `%...%`), and the command answers in threads, voice channel chats and announcement channels (v3 gave no reply there).
 - `example_key` is optional (default `example_value`); a v3 config's `enabled` key now logs an unknown-key warning.
 ### Choices made without the owner
-- Whether _Example gets an entry point: implemented yes (`_Example = "xincord.plugins.example"`), inert unless `plugins` lists it, as v3 shipped it disabled; alternative: copy-only code that operators cannot enable.
+- Whether Example gets an entry point: implemented yes (`Example = "xincord.plugins.example"`), inert unless `plugins` lists it, as v3 shipped it disabled; alternative: copy-only code that operators cannot enable.
 - What the template adds to v3's sample: implemented a used config value (`example_key` in the reply) and a counter button whose count lives in its component ID; alternative: v3's unused `example_key` and no component.
 - v3 plugin config files: implemented keeping v3's YAML keys so v3 files load, with `enabled` only warning; alternative: make `migrate_v3` strip `enabled` from every plugin config.
 - Where v3's `Placeholder.get(event)` lives: implemented `placeholder_values` in the plugin, to move into `xincord.core.placeholders` when a second plugin needs it; alternative: a core helper now.
@@ -39,8 +39,8 @@ here; delete a section once it is empty.
 - `%...%` in a failing formula is shown as typed (v3 expanded it, and `%bc_question%` gave no reply).
 - When the bot cannot post in the channel, the answer replaces the ephemeral "thinking" response (v3: "thinking..." forever).
 - `%bc_answer_round%` is the part before the decimal point (v3: the whole answer); the shipped templates do not use it.
-- The en-US `formula` description says the multiplication sign can be omitted (v3: "bracket is ignorable"); existing `plugins/BasicCalculator/lang/` files keep v3's text unless renewed with `--force-renew-lang-resources`.
-- No `plugins/BasicCalculator/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list.
+- The en-US `formula` description says the multiplication sign can be omitted (v3: "bracket is ignorable"); existing `plugins/Calculator/lang/` files keep v3's text unless renewed with `--force-renew-lang-resources`.
+- No `plugins/Calculator/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list.
 ### Choices made without the owner
 - Size limit: implemented 50,000 digits per value (admits `(1+1/1000)^1000`, refuses `(1+1/10000)^10000`) and a worker thread; alternative: a larger limit or a timeout.
 - Error messages: kept English in every locale, as v3's; alternative: localized texts in the lang files.
@@ -91,11 +91,11 @@ here; delete a section once it is empty.
 ### User-visible changes
 - When the bot cannot post in the channel (missing permissions, or a channel that takes no messages), the administrator gets the message as the ephemeral response and the log has a warning (v3: the "thinking" message vanished and nothing was posted).
 - The commands always answer (v3 needed the core's auto-defer switch).
-- No `plugins/SimpleCommand/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list.
+- No `plugins/CustomCommands/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list.
 - Placeholders that other plugins left in v3's shared global substitutor no longer expand in these templates; `%bot_id%` and `%bot_name%` still do.
 ### Choices made without the owner
-- A channel that refuses the message: implemented the message in the deferred ephemeral response, as BasicCalculator; alternative: an error text telling the administrator that the bot cannot post there.
-- What is posted: implemented the whole template, as v3 posted the built message (an operator's link buttons, Components V2 layouts and their uploaded files too); alternative: content and embeds only, as BasicCalculator posts.
+- A channel that refuses the message: implemented the message in the deferred ephemeral response, as Calculator; alternative: an error text telling the administrator that the bot cannot post there.
+- What is posted: implemented the whole template, as v3 posted the built message (an operator's link buttons, Components V2 layouts and their uploaded files too); alternative: content and embeds only, as Calculator posts.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-simple-command/design.md` (needs a token, a test guild and a member without Administrator).
 
@@ -108,14 +108,14 @@ here; delete a section once it is empty.
 - Bindings of guilds the bot left while it was offline or while the plugin was off are deleted when the bot is ready, with one log line per guild (v3 kept their files).
 - A welcome or bye message that Discord refuses logs a warning that names the guild and the channel (v3: JDA's exception log).
 - `invalid-channel`, `*-bind-already` and `*-unbind-empty` no longer create data; the commands always answer (v3 needed the core's auto-defer switch).
-- No `plugins/WelcomeByeGuild/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list.
+- No `plugins/WelcomeGoodbye/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list.
 ### Choices made without the owner
-- Where the bindings live: implemented v3's document per guild in the store's key-value table (namespace `WelcomeByeGuild`, key = guild ID), so that a later migration can copy v3's files; alternative: a plugin table with one column per channel.
+- Where the bindings live: implemented v3's document per guild in the store's key-value table (namespace `WelcomeGoodbye`, key = guild ID), so that a later migration can copy v3's files; alternative: a plugin table with one column per channel.
 - Bye message keys: implemented the member keys when discord.py still knew the member; alternative: v3's user-only keys.
 - Bindings of guilds left while offline or disabled: implemented their deletion when the bot is ready; alternative: keep them until the bot leaves that guild again, as v3.
 - A channel where the bot cannot post: implemented v3's unchecked bind, with a log warning at each refused message; alternative: check View Channel, Send Messages and Embed Links when binding and tell the administrator (new copy).
 - `guild-only`: kept as a guard that guild commands never reach, rendered with the interaction's placeholders like `no-permission` (v3: global ones only); alternative: drop the check and its two templates.
-- Core API: implemented `placeholder_values(interaction)` (Protocols `EventLike`, `ClientLike`) in `xincord.core.placeholders`, moved from _Example, which now imports it; alternative: a copy per plugin.
+- Core API: implemented `placeholder_values(interaction)` (Protocols `EventLike`, `ClientLike`) in `xincord.core.placeholders`, moved from Example, which now imports it; alternative: a copy per plugin.
 - Core fix: `interaction_values` gives no `channel_category_name` for a thread whose parent channel discord.py has not cached, where it raised and left the command unanswered (found by a probe through discord.py's own objects); alternative: none.
 - Core gap found in the audit, unchanged: v3's commons-text read `%key:-fallback%` as a fallback for a missing key, while the core's `render` leaves it as written (no shipped template uses it); alternative: support the syntax in `render`.
 ### Manual checks
@@ -124,12 +124,12 @@ here; delete a section once it is empty.
 ## UptimeHeartbeat (v3 IntervalPusher, `port-interval-pusher`)
 
 ### User-visible changes
-- The plugin shows nothing in Discord: the changes are in `plugins/IntervalPusher/config.yaml` and the log.
+- The plugin shows nothing in Discord: the changes are in `plugins/UptimeHeartbeat/config.yaml` and the log.
 - The bundled `config.yaml` lists no listeners and shows an example on `status.example.com` in a comment (v3 shipped one listener on `status.xinshou.tw` with a placeholder token, disabled); a v3 file loads unchanged and warns `unknown key enabled`.
 - An `interval` below 1 (v3: a busy loop) or a `url` that is not an http or https URL with a host (v3: an error at every push) disables the plugin at load, with the key named.
 - `%ping%` is measured only for URLs that contain it (v3 asked Discord at every push).
 - Stopping or reloading the plugin no longer logs a spurious error.
-- New English log lines number the listener (`IntervalPusher listener 1 started (every 60 s)`, `IntervalPusher listener 2 stopped: the status monitor refused the push (code 404)`), at v3's levels.
+- New English log lines number the listener (`UptimeHeartbeat listener 1 started (every 60 s)`, `UptimeHeartbeat listener 2 stopped: the status monitor refused the push (code 404)`), at v3's levels.
 ### Choices made without the owner
 - Bundled config: implemented no listeners and a commented example on `status.example.com`; alternative: v3's sample listener on the owner's status domain with a placeholder token.
 - `%ping%`: implemented v3's REST ping, a timed `GET /users/@me` through discord.py's undocumented `HTTPClient.request` and `Route`; alternative: discord.py's public gateway latency (`bot.latency`), a different quantity.
@@ -160,11 +160,11 @@ here; delete a section once it is empty.
 - The highlight: implemented after the modal, with the bot's token; alternative: through the interaction webhook, as v3 tried.
 - Core: JDA's field trimming in the renderer for every plugin (VoiceLogger and ChatLogger rely on it too); alternative: U+200E for the empty feedback in this plugin only.
 - Core: `modal_values` in `xincord.core.templates` for every plugin with modals; alternative: a parser in this plugin.
-- `TextChannelOption` copied from WelcomeByeGuild (no other v3 command restricts a channel option); alternative: move it into the core.
+- `TextChannelOption` copied from WelcomeGoodbye (no other v3 command restricts a channel option); alternative: move it into the core.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-feedbacker/design.md` (needs a token, a test guild and a second account).
 - This is the first modal xincord sends (a label around the text input, as discord.py builds it): check that it opens in both languages.
-- At cutover, add `form_failure` and `form_submit_failure` to the existing `plugins/Feedbacker/config.yaml` for zh-TW texts, and press one star of a v3 form if any remains.
+- At cutover, add `form_failure` and `form_submit_failure` to the existing `plugins/Feedback/config.yaml` for zh-TW texts, and press one star of a v3 form if any remains.
 
 ## Economy (`port-economy`)
 
@@ -187,10 +187,10 @@ here; delete a section once it is empty.
 - Board ties: implemented the lowest user ID first; alternative: the order in which the wallets were first changed.
 - Reads: implemented no write for `/balance`, the button and the boards; alternative: v3's zero wallet on the first read, which put the member on the boards.
 - Before values: implemented both in every change reply; alternative: only those of the amounts the command changes, as v3 set them.
-- Wallets of guilds the bot left: kept, as v3 did; alternative: delete them on leave and at startup, as WelcomeByeGuild does.
+- Wallets of guilds the bot left: kept, as v3 did; alternative: delete them on leave and at startup, as WelcomeGoodbye does.
 - Unreadable stored entries: implemented a logged error, the command left "thinking" and nothing overwritten; alternative: read them as 0, which the next change would write over.
 - The `economy@` button (no producer in v3's templates or the production copy): kept for IDs the core's v3 decoder reads, any fields ignored; alternative: drop it.
-- Core: `global_values(client)` in `xincord.core.placeholders`, now used by BotInfo, SimpleCommand and Economy's `no-permission` (v3 rendered it with its global keys only); alternative: render `no-permission` with the user's values, without a core change.
+- Core: `global_values(client)` in `xincord.core.placeholders`, now used by BotInfo, CustomCommands and Economy's `no-permission` (v3 rendered it with its global keys only); alternative: render `no-permission` with the user's values, without a core change.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-economy/design.md` (needs a token, a test guild and a second account).
 - At cutover, keep the existing `plugins/Economy/config.yaml` (it lists the administrators); its `enabled` and Google Sheets keys can be deleted to silence the warnings.
@@ -221,7 +221,7 @@ here; delete a section once it is empty.
 - A guild's voice changes: implemented one after another under a per-guild lock, so a room's creation that Discord rate-limits delays the guild's other joins and leaves; alternative: no lock, with v3's orphan rooms.
 - A join handled after the member already left the lobby creates no room; alternative: v3's room regardless, deleted right after.
 - Copy: implemented the grammar fix above; alternative: keep v3's text.
-- `VoiceChannelOption`: a third copy of the channel transformer (WelcomeByeGuild and Feedbacker have text ones); alternative: a core `ChannelOption(types)`.
+- `VoiceChannelOption`: a third copy of the channel transformer (WelcomeGoodbye and Feedback have text ones); alternative: a core `ChannelOption(types)`.
 - Unreadable stored documents: implemented an error without overwriting them (the commands stay "thinking", READY skips the guild); alternative: read them as empty, which the next change would overwrite.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-dynamic-voice-channel/design.md` (needs a token, a test guild and a second account).
@@ -349,7 +349,12 @@ here; delete a section once it is empty.
 - The migration already maps the three plugins not ported yet (TicketAwayNotice, NtustAnnouncements, NtustCourseWatch); alternative: add each with its port.
 - `/feedback`'s `register.yaml` key: implemented `feedback`, so a `register.yaml` copied from v3 gives the base names (`feedback`, English descriptions) until it is renewed; alternative: v3's `feedbacker` key, which keeps v3's localizations and `/feedbacker` for en-US clients.
 - Cog classes take the new names too (`bot.get_cog("Calculator")`); alternative: v3's class names.
+- A v3 name listed by hand under `plugins:` gets `Plugin Feedbacker is not installed`; alternative: name the new plugin in that error (a core change).
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-rename-plugins/design.md`.
 - Done: `docker compose build`, then `docker compose run --rm -T bot --no-online` with all thirteen ported plugins enabled, exited 0 with every one loaded; this settles the image checks of the earlier sections.
-- At cutover, after `migrate_v3`, delete `plugins/Feedback/lang/*/register.yaml` (v3's, with the `feedbacker` key) so that the bundled files with `/feedback` are exported.
+- At cutover, after `migrate_v3`, delete `plugins/Feedback/lang/*/register.yaml` (v3's, with the `feedbacker` key) so that the bundled files with `/feedback` are exported; until then `/feedback` shows English descriptions to zh-TW users too.
+- The archived smoke checklists, and the earlier sections' links to them, use the v3 names: follow them with the new ones (`plugins: [Feedback]`, `/feedback`), as mapped in `docs/porting-guide.md`, "Plugin names".
+- Migrate a copy of the stopped v3 directory: `migrate_v3` now moves the renamed plugins' directories, so restoring `config.v3.yaml` alone no longer brings v3 back (the report lists the moves to reverse), and a running v3 would recreate the old directories.
+- A guild's permission overrides for `/feedbacker` (Server Settings, Integrations) do not carry over to `/feedback`, which gets a new command ID: set them again where they were used.
+- Found in this change's review, unchanged: `migrate_v3` counts a plugin as enabled only with `enabled: true`, a key v3 added in 3.3.0 (`ea14fbf`); on a 3.2.x directory, as the local copy in `XsDiscordBotKt/Server/` may be, it lists almost nothing, so check the `plugins` list after migrating.
