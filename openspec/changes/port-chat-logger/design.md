@@ -75,11 +75,11 @@ allowed; in the block mode none may be blocked. `targets(settings, places)` take
   holds v3's `log_all` and the new `retention_days`, with comments that name the Message Content
   intent.
 - uv_build ships every file in the package. Checked on 2026-10-10: the wheel from
-  `uv build --package xincord-plugins` lists the six modules, `config.yaml`, the 16 lang files, the
-  shared `listen_channels` package and the `ChatLogger` entry point; `xincord --no-online`, run from
-  a scratch virtual environment with both wheels and `plugins: [ChatLogger, VoiceLogger]`, writes
-  `plugins/ChatLogger/config.yaml` and the lang files of both, creates `ChatLogger_messages` and its
-  index in `data/xincord.db`, loads both plugins and exits with 0.
+  `uv build --package xincord-plugins` lists the seven modules, `config.yaml`, the 16 lang files,
+  the shared `listen_channels` package and the `ChatLogger` entry point; `xincord --no-online`, run
+  from a scratch virtual environment with both wheels and `plugins: [ChatLogger, VoiceLogger]`,
+  writes `plugins/ChatLogger/config.yaml` and the lang files of both, creates `ChatLogger_messages`
+  and its index in `data/xincord.db`, loads both plugins and exits with 0.
 - A scratch probe drove the plugin through discord.py's own objects (a zh-TW guild added with
   `_add_guild_from_data`, `discord.Interaction` built from gateway payloads, the tree's `_call`,
   `bot.on_interaction` and `DiscordWebSocket.received_message`), with `HTTPClient.request` and the

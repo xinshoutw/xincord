@@ -8,8 +8,9 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
+import pytest
 
-from discord_fakes import FakeChannel, FakeGuild, FakeVoiceChannel
+from discord_fakes import FakeChannel, FakeGuild, FakeRest, FakeVoiceChannel, not_found
 from plugin_fakes import dispatch, load_plugin
 from xincord.core.bot import Bot
 from xincord.plugins.listen_channels.settings import Setting
@@ -19,14 +20,22 @@ from xincord.plugins.voice_logger.cog import NAMESPACE
 if TYPE_CHECKING:
     from pathlib import Path
 
-    import pytest
-
     from xincord.core.storage import JSON, Store
 
 
 def settings(store: Store) -> ListenSettings:
     """VoiceLogger's listen channel settings in ``store``."""
     return ListenSettings(store, NAMESPACE)
+
+
+@pytest.fixture(autouse=True)
+def deleted(rest: FakeRest) -> None:
+    """Discord no longer has channel 31 and category 21, the deleted ones of these tests.
+
+    The check asks Discord about the listed IDs that discord.py has not cached.
+    """
+    rest.errors["GET /channels/31"] = not_found()
+    rest.errors["GET /channels/21"] = not_found()
 
 
 def available(guild_id: int) -> FakeGuild:

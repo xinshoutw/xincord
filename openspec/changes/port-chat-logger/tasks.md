@@ -96,6 +96,11 @@
 - [x] 16.5 xfail test for "Failed load" (found during the review: `cog_load` started the retention
       loop before the checks, so a failing check left it running for a plugin that never loaded)
 - [x] 16.6 Check the guilds before the loop starts; remove the marker
+- [x] 16.7 xfail test for "Archived threads" (found in the review: the READY check dropped every
+      listed thread that discord.py had not cached, archived ones included, which unblocked a
+      blocked thread or stopped an allowed one)
+- [ ] 16.8 Ask Discord about the uncached IDs and drop only those it does not have; remove the
+      marker
 
 ## 17. Close
 
