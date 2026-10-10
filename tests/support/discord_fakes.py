@@ -5,17 +5,20 @@ writing another one. ``FakeInteraction.as_interaction()`` casts it for code type
 ``discord.Interaction``.
 """
 
+import asyncio
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast
 
 import discord
+from discord.http import HTTPClient, Route
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
     import aiohttp
+    import pytest
 
 type Sent = tuple[str, dict[str, object]]  # the method and the keyword arguments of a response
 
@@ -149,6 +152,103 @@ class FakeChannel:
 
 
 @dataclass
+class FakeVoiceChannel(FakeChannel):
+    """A voice channel of ``guild``, with the voice states of the members in it.
+
+    ``clone``, ``delete`` and ``set_permissions`` record into ``sent``, or raise the error that
+    ``errors`` holds under their name. ``clone`` sets ``cloning`` and then waits for ``gate`` when
+    it is set. The copy has the ID ``id + 1000`` and joins ``guild.channels``, as discord.py caches
+    it; a deleted channel leaves them.
+    """
+
+    type: discord.ChannelType = discord.ChannelType.voice
+    guild: FakeGuild | None = None
+    category_id: int | None = None
+    voice_states: dict[int, object] = field(default_factory=dict[int, object])
+    errors: dict[str, Exception] = field(default_factory=dict[str, Exception])
+    gate: asyncio.Event | None = None
+    cloning: asyncio.Event = field(default_factory=asyncio.Event)
+
+    async def clone(
+        self, *, name: str | None = None, reason: str | None = None
+    ) -> FakeVoiceChannel:
+        """Record the copy and return it, empty."""
+        del reason
+        self.cloning.set()
+        if self.gate is not None:
+            await self.gate.wait()
+        self._fail("clone")
+        self.sent.append(("channel.clone", {"id": self.id}))
+        copy = FakeVoiceChannel(
+            sent=self.sent,
+            id=self.id + 1000,
+            name=name or self.name,
+            type=self.type,
+            guild=self.guild,
+            category_id=self.category_id,
+        )
+        if self.guild is not None:
+            self.guild.channels.append(copy)
+        return copy
+
+    async def delete(self, *, reason: str | None = None) -> None:
+        """Record the deletion."""
+        del reason
+        self._fail("delete")
+        self.sent.append(("channel.delete", {"id": self.id}))
+        if self.guild is not None and self in self.guild.channels:
+            self.guild.channels.remove(self)
+
+    async def set_permissions(
+        self,
+        target: FakeMember,
+        *,
+        overwrite: discord.PermissionOverwrite | None = None,
+        reason: str | None = None,
+    ) -> None:
+        """Record the overwrite of ``target``."""
+        del reason
+        self._fail("set_permissions")
+        fields: dict[str, object] = {"id": self.id, "target": target.id, "overwrite": overwrite}
+        self.sent.append(("channel.set_permissions", fields))
+
+    def _fail(self, method: str) -> None:
+        if (error := self.errors.get(method)) is not None:
+            raise error
+
+
+def voice_state(channel: FakeChannel | None) -> discord.VoiceState:
+    """A member's voice state: in ``channel``, or in no voice channel."""
+    return cast("discord.VoiceState", SimpleNamespace(channel=channel))
+
+
+@dataclass
+class FakeRest:
+    """The REST requests of discord.py's HTTP client, recorded instead of sent.
+
+    Each is recorded in ``sent`` as ``("<method> <path>", {"json": <body>})`` and answers ``{}``
+    at once; one whose ``"<method> <path>"`` is in ``errors`` raises that error instead. Pass
+    ``sent`` to the fake channels to see their calls in order with the requests.
+    """
+
+    sent: list[Sent] = field(default_factory=list[Sent])
+    errors: dict[str, Exception] = field(default_factory=dict[str, Exception])
+
+    def install(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Replace ``HTTPClient.request`` with the recorder for the test."""
+        recorded = self
+
+        async def request(_http: HTTPClient, route: Route, **fields: object) -> object:
+            key = f"{route.method} {route.url.removeprefix(Route.BASE)}"
+            if (error := recorded.errors.get(key)) is not None:
+                raise error
+            recorded.sent.append((key, {"json": fields.get("json")}))
+            return {}
+
+        monkeypatch.setattr(HTTPClient, "request", request)
+
+
+@dataclass
 class FakeMessage:
     """A message with components that records its edits and its deletion into ``sent``.
 
@@ -256,6 +356,11 @@ class FakeGuild:
     def get_channel(self, channel_id: int, /) -> FakeChannel | None:
         """The guild's cached channel with that ID, if any."""
         return next((channel for channel in self.channels if channel.id == channel_id), None)
+
+    @property
+    def voice_channels(self) -> list[FakeChannel]:
+        """The guild's cached voice channels, stage channels excluded."""
+        return [channel for channel in self.channels if channel.type is discord.ChannelType.voice]
 
     def as_guild(self) -> discord.Guild:
         """This fake, typed as the discord.py guild it stands for."""

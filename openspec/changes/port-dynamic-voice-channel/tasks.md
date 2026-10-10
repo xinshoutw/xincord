@@ -37,7 +37,7 @@
 
 ## 8. Room creation
 
-- [ ] 8.1 xfail tests for "Joining an empty lobby creates a room" and "Failures leave a lobby"
+- [x] 8.1 xfail tests for "Joining an empty lobby creates a room" and "Failures leave a lobby"
       against a stub listener
 - [ ] 8.2 Implement the voice listener's creation path; remove the markers
 

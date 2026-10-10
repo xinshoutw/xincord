@@ -1,17 +1,35 @@
-"""Fixtures for the DynamicVoiceChannel tests: the plugin loads through its real entry point."""
+"""Fixtures for the DynamicVoiceChannel tests: the plugin loads through its real entry point.
+
+Discord's REST requests are recorded instead of sent, and the bot has its user, as after a login.
+"""
 
 from typing import TYPE_CHECKING
 
 import pytest
 
+from discord_fakes import BOT_USER, FakeRest
 from plugin_fakes import load_plugin
+from xincord.core.bot import Bot
 from xincord.plugins.dynamic_voice_channel.cog import DynamicVoiceChannel
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from xincord.core.bot import Bot
     from xincord.core.storage import Store
+
+
+@pytest.fixture(autouse=True)
+def rest(monkeypatch: pytest.MonkeyPatch) -> FakeRest:
+    """Discord's REST requests, recorded instead of sent; each answers at once."""
+    recorded = FakeRest()
+    recorded.install(monkeypatch)
+    return recorded
+
+
+@pytest.fixture(autouse=True)
+def logged_in(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The bot's user, which discord.py sets at the login, for v3's ``bot_*`` values."""
+    monkeypatch.setattr(Bot, "user", property(lambda _bot: BOT_USER))
 
 
 @pytest.fixture

@@ -184,6 +184,13 @@ class DynamicVoiceChannel(commands.Cog):
             )
         await self._reply(interaction, "unbind-success" if removed else "unbind-fail")
 
+    @commands.Cog.listener()
+    async def on_voice_state_update(
+        self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState
+    ) -> None:
+        """Give a member who joins a lobby alone a room of their own (v3's voice update)."""
+        raise NotImplementedError
+
     async def _reply(self, interaction: discord.Interaction, key: str) -> None:
         """Edit the deferred response into the message ``key``, in the user's locale, as v3.
 
