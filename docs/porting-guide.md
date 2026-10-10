@@ -445,7 +445,12 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - **Uncached guilds, channels and parents.** A message from a guild that discord.py has not cached
   has no `guild`, and one from an uncached channel a `PartialMessageable`; `Thread.category_id`
   raises without the cached parent channel, so read `thread.parent`. `guild.channels` leaves
-  threads out; `guild.threads` holds the active ones (ChatLogger's `Place.of`).
+  threads out; `guild.threads` holds the active ones (ChatLogger's `Place.of`), and archived
+  threads are not cached at all: ask Discord (`bot.http.get_channel`) before taking an uncached ID
+  for a deleted channel (the shared READY check).
+- **Members' embeds.** Members cannot send embeds: the embeds of a member's message are link
+  previews, and some sites' previews are typed `rich` (ChatLogger takes a member's text from the
+  content only).
 - **Embed types.** `Embed.from_dict` leaves `type` None when the payload has none; Discord's
   default is `rich`.
 - **The cached message changes in place.** discord.py parses the gateway frames that arrived

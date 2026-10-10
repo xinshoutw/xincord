@@ -86,8 +86,9 @@
 ## 16. Review
 
 - [x] 16.1 Gate passes, push, CI green (before the review)
-- [ ] 16.2 Cross-review the change (other paths into the features, repeated events, state left
-      behind); fix each finding xfail-first
+- [x] 16.2 Cross-review the change (other paths into the features, repeated events, state left
+      behind); fix each finding xfail-first (16.3 to 16.12; text beyond the field limit in an
+      operator's template is a recorded risk)
 - [x] 16.3 xfail tests for "Edited at once" and "Deleted at once" (found during the review: the
       cached message that `on_message` gets took an edit parsed before the listener ran, and with
       `log_all` false a deletion reached the store before the insert)

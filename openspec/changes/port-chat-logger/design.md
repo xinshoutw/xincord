@@ -183,7 +183,8 @@ arrives at once, as a ghost ping's does.
 by blank lines and the empty ones left out. Embeds of other types (link previews, images, videos)
 are left out: Discord adds them to a message after it is sent, from the links in its content, so
 they would count as edits; bots' and webhooks' embeds are rich, and an embed without a type counts
-as rich, Discord's default.
+as rich, Discord's default. A member's message takes its content only: members cannot send embeds,
+so theirs are previews, and some sites' previews are typed `rich` too.
 
 ### Edits
 
@@ -206,7 +207,9 @@ channel, or `-`), `cl_change_count`, `cl_msg_before` and `cl_msg_after`.
 the channel. The author is fetched as the guild's member (`guild.fetch_member`, v3's
 `retrieveMemberById`), once per author in a bulk deletion. Without a member (the author left, a
 webhook, a refusal), the values are the stored ID's mention and `-`, with no avatar URL, so the
-templates show no thumbnail; v3 posted nothing.
+templates show no thumbnail; v3 posted nothing. `ListenChannels.post` returns the listen channels
+that are gone or forbid the bot, and the rest of a bulk deletion skips them, so a purge does not
+try them once per message; a failure that may pass (Discord's 5xx) is tried again.
 
 ### Texts in the logs
 
@@ -238,9 +241,13 @@ intent; its deletion used the wrong key). `on_ready`, and `cog_load` in a ready 
 channels are dropped from the lists of available guilds) and, with `log_all` false, delete the
 stored messages of every guild the bot is no longer in, as v3's start did with their files. With
 `log_all` true the messages of left guilds stay until the retention removes them, as v3 kept them.
-The list check counts the guild's active threads as existing channels (`guild.threads`): JDA's
-`getGuildChannelById` found cached threads, and ChatLogger's lists can hold threads; VoiceLogger's
-lists hold voice channels and categories only, so its check is unchanged.
+The list check keeps the channels and active threads that discord.py caches and asks Discord about
+each other listed ID (`GET /channels/{id}` through `bot.http.get_channel`): only a 404 drops it, so
+an archived thread, which discord.py does not cache, stays, and so does a private thread that
+Discord refuses to show. v3 dropped every uncached ID, archived threads included, which changed
+nothing there because v3 never logged threads; here it would unblock a blocked thread or stop an
+allowed one after each restart. VoiceLogger's lists hold voice channels and categories, all cached,
+so only its deleted entries are asked about (and dropped).
 
 ### Tests
 
@@ -263,7 +270,8 @@ lists hold voice channels and categories only, so its check is unchanged.
   test ends the hour.
 - `plugin_fakes.burst(bot, events)` parses several gateway events before any listener runs and
   then runs the listeners as concurrent tasks, as discord.py does with frames that arrived
-  together ("Edited at once", "Deleted at once").
+  together ("Edited at once", "Deleted at once"); `discord_fakes.server_error()` stands for
+  Discord's 5xx.
 - `tests/fixtures/plugins/chat_logger/golden.yaml`: v3's embeds per locale for the menu, `delete`,
   the select menus and the two logs, and the translated command payload.
 - VoiceLogger's tests follow the moved code: `ListenSettings(store, NAMESPACE)` replaces the store
@@ -311,8 +319,8 @@ lists hold voice channels and categories only, so its check is unchanged.
   member's shared substitutor (the global one for webhooks), so other channels showed an earlier
   event's category or the placeholder; it shows `-`, and each log renders with its own values.
 - v3 behaved differently: a message with embeds was stored without its content, and a missing embed
-  title or description was stored as `null`; the text is the content and the rich embeds, without
-  missing parts.
+  title or description was stored as `null`; the text is the content and, for bots and webhooks,
+  the rich embeds, without missing parts (a member's embeds are link previews).
 - v3 behaved differently: `/chat-logger setting` gave no reply outside plain text channels
   (`Placeholder.get(event)` threw); the menu works in every channel, which can then be a listen
   channel.
@@ -359,7 +367,8 @@ keeps the messages of a guild the bot left (until the retention).
 - Bulk deletions are logged, one embed per stored message.
 - Deletions by authors who left, and by webhooks, are logged with the author's mention and `-`.
 - Updates that keep the text (pins, link previews) are no longer logged as edits; the text of a
-  message with embeds keeps its content and loses `null`.
+  message with embeds keeps its content and loses `null`, and a member's message is its content
+  only (its embeds are previews).
 - Long texts are cut with `...` instead of losing the log; long lists end with `...`.
 - A missing category shows `-`; texts are shown as written.
 - The menu answers in every channel, and logs reach listen channels of every kind; a deleted
@@ -461,8 +470,15 @@ Every section of `docs/porting/analysis/inventory/ChatLogger.md` maps to this ch
   over time (about one per second per listen channel).
 - The message log shares the store's worker thread with the other plugins (see the storage
   decision); a guild with a very high message rate would delay their store calls.
-- Edits are detected by comparing texts: an edit that only changes attachments, or a link preview's
-  text, is not logged.
+- Edits are detected by comparing texts: an edit that only changes attachments is not logged, and
+  a rich-typed preview of a link in a bot's or a webhook's message is logged as an edit. Updates
+  without `edited_timestamp` could tell previews apart; members' messages need no such check.
+- `fit` bounds the bare `cl_msg_before` and `cl_msg_after`, which the shipped templates show alone
+  in a field: an operator template that adds text around them (`Before: %cl_msg_before%`), or puts
+  them in a title or the content, can exceed Discord's limits, and Discord then refuses the log (a
+  warning). Clamping every rendered text in the core's renderer would cover every plugin.
+- The READY check asks Discord once per listed ID that discord.py has not cached (archived threads,
+  deleted channels until they are dropped).
 
 ## Manual smoke checklist
 

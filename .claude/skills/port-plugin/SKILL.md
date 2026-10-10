@@ -284,7 +284,10 @@ async def setup(bot: Bot) -> None:
   and `on_raw_bulk_message_delete` wait for the message's handling under way (ChatLogger's
   `inserting`). Read the channel's place before the first await: a thread's parent and that
   channel's category come from `thread.parent`, since `Thread.category_id` raises without it
-  (ChatLogger's `Place.of`). Test frames that arrive together with `plugin_fakes.burst`. `INTENTS = discord.Intents(guild_messages=True,
+  (ChatLogger's `Place.of`). Test frames that arrive together with `plugin_fakes.burst`. A
+  member's embeds are link previews (members cannot send embeds): leave them out of a member's
+  text. A listed ID that discord.py has not cached (an archived thread) is asked of Discord before
+  it counts as deleted (the shared READY check). `INTENTS = discord.Intents(guild_messages=True,
   message_content=True)`: the message content intent is privileged, and Discord refuses the bot's
   connection unless the developer portal allows it; the smoke checklist says so.
 - State that mirrors Discord's (VoiceLogger's tracked voice statuses) is forgotten at each READY
