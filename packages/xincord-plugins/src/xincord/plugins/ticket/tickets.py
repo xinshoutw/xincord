@@ -13,6 +13,8 @@ from .texts import chunks
 if TYPE_CHECKING:
     from collections.abc import Hashable, Iterable, Mapping, Sequence
 
+    from .model import Entry
+
 MESSAGE_MAX = 2000  # Discord's limit of a message's text
 THREADS = frozenset(
     (
@@ -88,6 +90,12 @@ def viewing(
     changed = discord.PermissionOverwrite.from_pair(allow, deny)
     changed.view_channel = allowed
     return changed
+
+
+def is_staff(role_ids: Iterable[int], entry: Entry, *, administrator: bool) -> bool:
+    """Whether a member may delete or save a ticket: they hold one of its entry's staff roles, or
+    Administrator (v3's ``hasTicketAdminPermission``)."""
+    return administrator or not set(entry.admin_ids).isdisjoint(role_ids)
 
 
 def opener(admin_ids: Sequence[int], reason: str) -> list[str]:

@@ -35,9 +35,6 @@ async def stored(scene: Scene) -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Administrators delete the ticket"
-)
 @pytest.mark.parametrize(
     ("roles", "admin"), [((3,), False), ((), True)], ids=["staff-role", "administrator"]
 )
@@ -52,9 +49,6 @@ async def test_deletion(scene: Scene, roles: tuple[int, ...], admin: bool) -> No
     assert scene.channel.sent == [DELETED]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Administrators delete the ticket"
-)
 async def test_not_a_staff_member(scene: Scene) -> None:
     """Requirement: Administrators delete the ticket."""
     await stored(scene)
@@ -67,9 +61,6 @@ async def test_not_a_staff_member(scene: Scene) -> None:
     assert scene.channel.sent == []
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Administrators delete the ticket"
-)
 async def test_not_a_member(scene: Scene) -> None:
     """Requirement: Administrators delete the ticket."""
     await stored(scene)
@@ -82,9 +73,6 @@ async def test_not_a_member(scene: Scene) -> None:
     assert scene.channel.sent == []
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Administrators delete the ticket"
-)
 @pytest.mark.parametrize(
     "fields",
     [{"msg_id": "501", "btn_index": "0"}, {"msg_id": PANEL, "btn_index": "1"}, {}],
@@ -101,9 +89,6 @@ async def test_no_entry(scene: Scene, fields: dict[str, str]) -> None:
     assert scene.channel.sent == []
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Administrators delete the ticket"
-)
 async def test_refused_deletion(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Administrators delete the ticket."""
     await stored(scene)
@@ -117,9 +102,6 @@ async def test_refused_deletion(scene: Scene, caplog: pytest.LogCaptureFixture) 
     assert "Ticket cannot delete the ticket channel 5" in caplog.text
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Administrators delete the ticket"
-)
 async def test_channel_that_cannot_be_deleted(scene: Scene) -> None:
     """Requirement: Administrators delete the ticket."""
     await stored(scene)

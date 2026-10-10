@@ -14,15 +14,18 @@ import discord
 
 from .ids import IDS
 from .model import Controls
-from .texts import Texts, readable_error
-from .tickets import viewing
+from .texts import Texts, readable_error, tell
+from .tickets import is_staff, viewing
 from .views import control_row
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Mapping, Sequence
+
+    from discord.abc import Snowflake
 
     from xincord.core.i18n import Lang
 
+    from .model import Entry
     from .store import Panels
 
 logger = logging.getLogger(__name__)
@@ -59,6 +62,25 @@ class Overwritten(Protocol):
         overwrite: discord.PermissionOverwrite | None,
     ) -> None:
         """Replace the overwrite of ``target``."""
+        ...
+
+
+@runtime_checkable
+class Removable(Protocol):
+    """A channel that can be deleted."""
+
+    async def delete(self) -> None:
+        """Delete the channel."""
+        ...
+
+
+@runtime_checkable
+class HasRoles(Protocol):
+    """A guild member, whose roles may make them a ticket's staff."""
+
+    @property
+    def roles(self) -> Sequence[Snowflake]:
+        """The member's roles."""
         ...
 
 
@@ -111,17 +133,63 @@ class ControlRow:
                 controls.user_id,
                 error,
             )
-            failed = self.texts(interaction).get(
-                "error.lock-failed", {"tt@error": readable_error(error)}
-            )
-            await interaction.followup.send(failed, ephemeral=True)
+            await self._failed(interaction, "error.lock-failed", error)
             return
         row = control_row(controls, locked=locked, texts=self.public, build_id=IDS.build)
         await interaction.edit_original_response(view=row)
 
     async def delete(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
-        """Delete the ticket channel for its staff; anyone else gets an acknowledgement only."""
-        raise NotImplementedError
+        """Delete the ticket channel for its staff; anyone else gets an acknowledgement only.
+
+        The entry of the row's panel button names the staff roles (v3's not-found text without
+        one). As in v3, every press is acknowledged first, and nothing else happens for those who
+        are no staff or no members; a refused deletion is told to the user.
+        """
+        found = await self._staff_entry(interaction, fields)
+        if found == "error.not-found":
+            await tell(interaction, self.texts(interaction).get("error.not-found"))
+            return
+        await interaction.response.defer()  # v3's deferEdit
+        if isinstance(found, str):  # no member, or no staff
+            return
+        try:
+            await _remove(interaction)
+        except (discord.HTTPException, ChannelError) as error:
+            logger.warning(
+                "Ticket cannot delete the ticket channel %s: %s", interaction.channel_id, error
+            )
+            await self._failed(interaction, "error.delete-failed", error)
+
+    async def _staff_entry(
+        self, interaction: discord.Interaction, fields: Mapping[str, str]
+    ) -> Entry | str:
+        """The entry of the row's panel button when one of its staff acted, else the error key
+        that refuses: ``error.no-member``, ``error.not-found`` or ``error.admin-only``, in v3's
+        order.
+
+        Staff hold one of the entry's roles, or Administrator (v3's ``hasTicketAdminPermission``).
+        """
+        roles = _role_ids(interaction.user)
+        if roles is None:
+            return "error.no-member"
+        guild_id = cast("int", interaction.guild_id)  # members act in guilds
+        message_id, index = fields.get("msg_id", ""), fields.get("btn_index", "")
+        entry = await self.panels.entry(guild_id, message_id, index)
+        if entry is None:
+            return "error.not-found"
+        if not is_staff(roles, entry, administrator=interaction.permissions.administrator):
+            return "error.admin-only"
+        return entry
+
+    async def _failed(self, interaction: discord.Interaction, key: str, error: Exception) -> None:
+        """Tell the user, after the acknowledgement, the text ``key`` with ``error``."""
+        failed = self.texts(interaction).get(key, {"tt@error": readable_error(error)})
+        await interaction.followup.send(failed, ephemeral=True)
+
+
+def _role_ids(user: object) -> frozenset[int] | None:
+    """The IDs of a member's roles; None for a user who is no member (v3's ``event.member``)."""
+    return frozenset(role.id for role in user.roles) if isinstance(user, HasRoles) else None
 
 
 def _controls(fields: Mapping[str, str]) -> Controls | None:
@@ -154,3 +222,17 @@ async def _permit(interaction: discord.Interaction, user_id: int, *, allowed: bo
     await channel.set_permissions(
         member, overwrite=viewing(channel.overwrites_for(member), allowed=allowed)
     )
+
+
+async def _remove(interaction: discord.Interaction) -> None:
+    """Delete the interaction's channel.
+
+    Raises:
+        discord.HTTPException: Discord refused.
+        ChannelError: The channel cannot be deleted.
+    """
+    channel = cast("object", interaction.channel)
+    if not isinstance(channel, Removable):
+        msg = "this channel cannot be deleted"
+        raise ChannelError(msg)
+    await channel.delete()

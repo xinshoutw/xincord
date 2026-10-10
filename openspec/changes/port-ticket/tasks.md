@@ -96,7 +96,7 @@
 ## 18. Delete
 
 - [x] 18.1 xfail tests for "Administrators delete the ticket" against a stub `delete`
-- [ ] 18.2 Implement `delete`; remove the markers
+- [x] 18.2 Implement `delete`; remove the markers
 
 ## 19. Save
 
