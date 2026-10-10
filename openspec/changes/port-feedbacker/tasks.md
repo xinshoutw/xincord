@@ -18,7 +18,7 @@
 
 ## 4. Config
 
-- [ ] 4.1 xfail tests for "The config holds the replies"
+- [x] 4.1 xfail tests for "The config holds the replies"
 - [ ] 4.2 Add the replies with v3's keys, the new defaults and the length check; remove the
       markers
 

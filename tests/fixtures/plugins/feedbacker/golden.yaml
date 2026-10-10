@@ -1,0 +1,13 @@
+# Golden data for the Feedbacker tests. The text is v3's, from
+# XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/resources/, unless noted.
+
+# v3's bundled config.yaml, as written (without a final newline).
+v3_config: "enabled: false\n\nform_no_permission: \"您沒有權限！\"\nform_not_you: \"這個表單不是為你建立的！\"\nform_success: \"建立成功\""
+
+# The replies of the bundled config.yaml: v3's three and the two new failure replies.
+config:
+  form_no_permission: "您沒有權限！"
+  form_not_you: "這個表單不是為你建立的！"
+  form_success: "建立成功"
+  form_failure: "建立失敗"
+  form_submit_failure: "送出失敗"
