@@ -10,7 +10,6 @@ Kotlin:
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast
 
-import pytest
 from discord import app_commands
 
 from discord_fakes import BOT_USER, FakeGuild, FakeInteraction
@@ -28,7 +27,6 @@ if TYPE_CHECKING:
     # discord.py calls a cog command's function with the cog, its binding.
     type Callback = Callable[[BotInfo, discord.Interaction], Awaitable[None]]
 
-XFAIL = pytest.mark.xfail(strict=True, reason="The command is a localized global command")
 GOLDEN = golden("bot_info")
 
 
@@ -37,7 +35,6 @@ def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
     return {key: actual.get(key) for key in expected}
 
 
-@XFAIL
 async def test_command_payload(bot: Bot) -> None:
     """Requirement: The command is a localized global command."""
     global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
@@ -48,7 +45,6 @@ async def test_command_payload(bot: Bot) -> None:
     assert listed(payload, expected) == expected
 
 
-@XFAIL
 async def test_command_callback(bot: Bot, cog: BotInfo) -> None:
     """Requirement: The command is a localized global command."""
     command = bot.tree.get_command("bot-info")

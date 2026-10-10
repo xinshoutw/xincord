@@ -26,7 +26,10 @@ DEFAULT_LOCALE = "zh-TW"
 
 
 async def setup(bot: Bot) -> None:
-    """Load the config, the lang files and the templates, then add the cog."""
+    """Load the config, the lang files and the templates, then add the cog and its command."""
     context = bot.plugin_context(__name__)
     lang = context.lang(DEFAULT_LOCALE)
-    await bot.add_cog(BotInfo(context.config(Config), lang, Templates.load(lang)))
+    cog = BotInfo(context.config(Config), lang, Templates.load(lang))
+    await bot.add_cog(cog)
+    # A global command, as in v3. discord.py removes it when the plugin unloads.
+    bot.tree.add_command(cog.command())

@@ -4,16 +4,16 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/BotInfo/src/main/kotlin/botinfo/BotInfo.kt:10-37
 """
 
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
+import discord
+from discord import app_commands
 from discord.ext import commands
 
 from xincord.core.templates import render_message
 
 if TYPE_CHECKING:
     from collections.abc import Collection
-
-    import discord
 
     from xincord.core.i18n import Lang
     from xincord.core.templates import Templates
@@ -38,6 +38,26 @@ class BotInfo(commands.Cog):
         self.config = config
         self.lang = lang
         self.templates = templates
+
+    def command(self) -> app_commands.Command[Any, ..., None]:
+        """Build the global ``/bot-info``, localized from ``register.yaml``.
+
+        v3's command had JDA's defaults: usable in guilds and in the bot's DMs, and installed with
+        guilds. discord.py sends no contexts or install types unless they are set, which would
+        leave them to Discord, so the command sets JDA's.
+        """
+        lang = self.lang
+        command: app_commands.Command[Any, ..., None] = app_commands.Command(
+            name=lang.command("bot-info", "bot-info.name"),
+            description=lang.command("show about the bot data", "bot-info.description"),
+            callback=self.bot_info,
+            allowed_contexts=app_commands.AppCommandContext(
+                guild=True, dm_channel=True, private_channel=False
+            ),
+            allowed_installs=app_commands.AppInstallationType(guild=True, user=False),
+            extras={"global": True},  # v3's globalCommands()
+        )
+        return command
 
     async def bot_info(self, interaction: discord.Interaction) -> None:
         """Turn the deferred response into the ``bot-info`` embed, with the counts as they are now.

@@ -27,7 +27,7 @@
 ## 6. Command
 
 - [x] 6.1 xfail tests for "The command is a localized global command"
-- [ ] 6.2 Build the global command from the lang files with v3's contexts and register it in
+- [x] 6.2 Build the global command from the lang files with v3's contexts and register it in
       `setup`; remove the markers
 
 ## 7. Conventions and docs
