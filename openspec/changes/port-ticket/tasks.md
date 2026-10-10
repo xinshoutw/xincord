@@ -130,8 +130,8 @@
        locale
 - [ ] 23.2 Check that the built wheel ships `lang/` and that `xincord --no-online` loads the plugin;
        drive it once through discord.py's own objects
-- [ ] 23.3 Porting guide rows and pitfalls, and skill corrections
-- [ ] 23.4 Audit the inventory against the scenarios and the design
+- [x] 23.3 Porting guide rows and pitfalls, and skill corrections
+- [x] 23.4 Audit the inventory against the scenarios and the design
 
 ## 24. Close
 

@@ -277,9 +277,11 @@ request at a time, over Protocols that discord.py's objects satisfy:
 4. A top-level message whose `thread` is set and not yet flattened is followed by
    `archive.start`, the thread's messages forwarded the same way (threads in threads are not
    flattened), and `archive.end` with the time of the thread's last message, or
-   `archive.no-message`; a failure of the start marker or the thread's history sends
-   `archive.error` with the error and `archive.end` without a time, and the archive goes on (a
-   failed error marker is logged); a failed end marker stops it, as in v3. The markers use the
+   `archive.no-message`; Discord refusing the start marker, the thread's history or one of its
+   messages (`discord.HTTPException`) sends `archive.error` with the error and `archive.end`
+   without a time, and the archive goes on (a refused error marker is logged); a refused end
+   marker stops it, as in v3. Other errors (a lost connection) stop the archive like any failure
+   outside a thread; v3 caught every error there. The markers use the
    webhook's own name; the owner is the thread owner's display name when cached, else its ID; times
    are `yyyy-MM-dd HH:mm:ss` in the host's zone, the thread's start being its ID's time (JDA's
    `timeCreated`).
@@ -320,6 +322,44 @@ fires once per ticket), before it sends the opener.
 The thread names and the markers use the host's zone, as v3 (`datetime.now().astimezone()`), with
 no config key; in the compose container that is UTC unless `TZ` is set. The cog keeps `clock` and
 `zone` (None for the host's) so that tests fix them.
+
+### Choices made while building
+
+- A channel that has no permission overwrites or cannot be deleted (not a guild channel) answers
+  `lock-failed` or `delete-failed` with a fixed English reason; v3's handlers threw before
+  answering.
+- A control row or save select whose member ID is not a number gets no response, as v3 threw
+  before answering.
+- A failed archive is logged with its redacted error text, and with a redacted traceback when it
+  is not a Discord refusal.
+
+## Inventory audit
+
+Each behavior of `docs/porting/analysis/inventory/Ticket.md` is a requirement with tests, or is
+listed here:
+
+| Inventory | Where |
+|---|---|
+| 1 Overview, info.yaml, `component_prefix` | "The plugin installs as Ticket"; `IDS` (legacy prefix `ticket@`) |
+| 2 Lifecycle: `enabled`, reload, lazy init, in-memory steps | no config (the core's `plugins` list); a reload rebuilds the cog, so drafts go ("Only the latest builder of a draft works"); the store is read at each use |
+| 3 Slash commands, auto-defer, localizations | "The commands are localized administrator guild commands" |
+| 3.1 `/create-ticket` and the defaults | "The create command opens the builder" |
+| 3.2 `/add-ticket` (B7, B8, B9, B16) | "The add command opens the builder for a message" |
+| 3.3 Wizard buttons, sub-screens, selects, modals, render failures (B1, B2, B5, B14) | "Builder buttons open pre-filled modals", "Builder buttons switch screens", "Submitted modals change the draft", "Selections change the draft", "A change that Discord refuses keeps the draft", "Only the latest builder of a draft works" |
+| 3.4 Preview and defaults | "The preview shows the draft", "The create command opens the builder" |
+| 3.5 Confirm (B6, B15, B17) | "Confirming posts a new panel", "Confirming adds a button to the message", "A panel that cannot be posted keeps the builder" |
+| 3.6 press, submit (B3, B4, B10, B11, S1), control row, lock, unlock, delete, save | "Pressing a panel button asks for the reason", "Submitting the reason opens a ticket channel", "Ticket channels get v3's permissions and the bot's", "The control row locks and unlocks the ticket", "Administrators delete the ticket", "Administrators choose where to save the conversation" |
+| 3.7 Archive engine (B12) | "The archive copies the conversation into a thread", "Threads started in the ticket are flattened", "A failed archive is reported and cleans up" |
+| 4 Component IDs, legacy IDs before `b4d10e2` | "v3's panels and tickets keep working"; golden tests decode every ID shape; IDs without an action get no response |
+| 5 Events, guild leave | `handle`'s dispatch; "Leaving a guild forgets its panels" |
+| 6 Configuration (`enabled`, strict KAML) | no config: out of scope, the core's `plugins` list replaces it |
+| 7 Localization, templates, model keys, placeholders, fallback | "Texts follow the reader"; golden tests render every template; recursive substitution is gone in the core (B10 of the decisions) |
+| 8 Persistence, corrupt files, migration | "Panels are stored as v3's documents"; reading v3's files is the v3 data import's (out of scope); stale panels of deleted messages stay (out of scope, as v3) |
+| 9 External dependencies (the lovepik icon) | the default icon URL is v3's, in `text.yaml` |
+| 10 Discord requirements (Message Content, permissions, rate limits, 15 webhooks) | "Risks" and the smoke checklist; discord.py handles rate limits; a refused webhook is a reported failure |
+| 11 Concurrency (steps, lost updates, double confirmation, archive hangs) | per-guild lock for appends; the draft taken before the first await; archive failures reported |
+| 12 Bugs B1 to B17 and S1, dead code (`confirm-add.yaml`, the ignored prefix check, the TODO) | "v3 behaved differently" below; `confirm-add.yaml` ships unused; the prefix check is the core's routing |
+| 13 Testability, 14 assessment | the module split above |
 
 ## v3 behaved differently
 

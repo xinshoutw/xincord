@@ -109,8 +109,10 @@ packages/xincord-plugins/src/xincord/plugins/<package>/
   lang/<locale>/register.yaml, message/*.yaml, modal/*.yaml (if the plugin has text)
 ```
 
-- Import the plugin's own modules relatively (`from .cog import Example`). Split `cog.py` when it
-  grows: pure logic in its own module (tested without discord.py, as
+- Import the plugin's own modules relatively (`from .cog import Example`). Keep every file under
+  800 lines: a cog with many handlers moves a group of them into a base class of its own module
+  (Ticket's `controls.ControlRow`) and `IDS` into `ids.py` when several modules build IDs. Split
+  `cog.py` when it grows: pure logic in its own module (tested without discord.py, as
   `calculator/calculator.py`), storage in `store.py`. Run CPU-bound work with
   `asyncio.to_thread`.
 - Entry point: `<Plugin> = "xincord.plugins.<package>"` under
@@ -120,7 +122,8 @@ packages/xincord-plugins/src/xincord/plugins/<package>/
 - `uv_build` ships every file in the package, so bundled YAML reaches the image.
 - Code that two plugins share is a package under `xincord.plugins` without an entry point, which
   both import absolutely (`xincord.plugins.listen_channels`, VoiceLogger's and ChatLogger's listen
-  channels: `ListenSettings`, `ListenChannels`, `Menu`). Neither plugin needs the other; discord.py
+  channels: `ListenSettings`, `ListenChannels`, `Menu`; `xincord.plugins.redaction`, UptimeHeartbeat's
+  and Ticket's URL redaction). Neither plugin needs the other; discord.py
   leaves the package imported when a plugin unloads, so it holds no state, and what differs is
   passed in. Each plugin builds its command group in its own module, so that unloading removes it.
 
@@ -395,7 +398,8 @@ async def setup(bot: Bot) -> None:
   (UptimeHeartbeat's `Failures`, one per step on the loop's object): steady, alternating and
   flapping failures stay quiet.
 - A URL that carries a secret (a push token in its path or query) appears in logs as its origin
-  (UptimeHeartbeat's `logs.origin`). Redact error texts too (`logs.redact(text, *urls)`: URLs cut
+  (`xincord.plugins.redaction.origin`, moved there from UptimeHeartbeat's `logs.py` by
+  port-ticket). Redact error texts too (`xincord.plugins.redaction.redact(text, *urls)`: URLs cut
   to their origin and the secret URL's parts removed, since aiohttp's connect timeout names the
   whole URL and a malformed answer can quote the request line), log an unexpected error's
   traceback as redacted text (`format_traceback`), since `logger.exception` prints it as it is,
@@ -411,6 +415,22 @@ async def setup(bot: Bot) -> None:
   union.
 - A Discord REST call that JDA made without a discord.py counterpart goes through
   `bot.http.request(discord.http.Route(method, path))` (UptimeHeartbeat's `rest_ping`).
+
+### Channels, overwrites and webhooks
+
+- A channel created for a member (Ticket's tickets) gets the whole overwrite map, since
+  `create_text_channel(overwrites=...)` copies nothing from the category: the category's
+  overwrites when the bot is an administrator or holds every permission they allow or deny there
+  (JDA's `trySync`), `Object(type=Role)` keys left out (discord.py sends them as member
+  overwrites), then the channel's own, and the bot's View Channel on top of its copied overwrite.
+  Overwrite one member with `overwrites_for(member)`, the bit changed, and `set_permissions`.
+- Messages sent as other users go through a webhook made in the target channel: `send(...,
+  username=..., avatar_url=..., thread=..., wait=True, allowed_mentions=AllowedMentions.none())`,
+  usernames that Discord takes (`forwarded_name`), texts in parts of 2000 UTF-16 code units, files
+  over `guild.filesize_limit` linked, and the webhook deleted whatever happened; its URL holds its
+  token, so error texts pass `xincord.plugins.redaction.redact` (Ticket's `archive.py`).
+- A user's text posted publicly pings only what the plugin means to (Ticket's opener: the staff
+  roles through `AllowedMentions(roles=[...])`).
 
 ### Templates and placeholders
 
@@ -434,6 +454,12 @@ async def setup(bot: Bot) -> None:
   (CustomCommands).
 - A template whose first embed's description is the template of rows (Economy's boards) is checked
   for every locale in `setup`, so that a broken one fails at load with the file named.
+- Texts that v3 hard-coded in one language for every user (Ticket's replies, errors, control row
+  and archive markers) also go in `text.yaml`: zh-TW holds v3's, en-US English ones, and v3's
+  English-only strings get zh-TW translations (listed in the review queue). Replies to one user
+  pass `interaction.locale.value`, which `Lang.text` falls back from to the default locale per
+  key, as v3's templates did; public messages use `lang.default_locale` (Ticket's `texts` and
+  `public`).
 - Texts that v3 hard-coded in Kotlin (Giveaway's field names, statuses, replies, errors) go in a
   new `lang/<locale>/text.yaml` with `%ga@...%` placeholders, read with
   `Lang.text("text.<key>", locale)` and rendered in one pass (`texts.Texts`). v3 chose them by a
@@ -479,6 +505,11 @@ async def setup(bot: Bot) -> None:
   included, so that a stale message repairs itself, and tells the user with
   `followup.send(..., ephemeral=True)`; v3 edited through the REST API and replied. A burst on a
   large document otherwise runs past Discord's three seconds.
+- A builder keeps a changed draft only once Discord took the edit that shows it:
+  `response.edit_message` marks the response done only after Discord answered, so on
+  `discord.HTTPException` the interaction is still open and `response.send_message(...,
+  ephemeral=True)` gives Discord's error (Ticket's `_screen` and `_update`); Discord checks emojis,
+  URLs and empty embeds that discord.py sends unchecked.
 - State that a builder keeps between interactions (Giveaway's drafts) lives on the cog, keyed by
   user and guild, with the ID of the message that shows it (the message that
   `edit_original_response` returns); presses and modal submissions from another message answer
@@ -603,6 +634,14 @@ async def setup(bot: Bot) -> None:
   (`scene.who(locale="zh-TW")`). `discord_fakes`: `FakeInteraction.original` is what
   `edit_original_response` returns; `FakeChannel.send` returns a `FakeMessage` (with `jump_url`)
   and `get_partial_message` gives its messages, whose edits raise `message_error`.
+- Ticket's `scene` (`tests/plugins/ticket/conftest.py`) adds `click(action, who, **fields)` for a
+  plugin's own buttons and `refuse_edit` for refused builder edits; `discord_fakes` has
+  `FakeCategory` (overwrites, `permissions_for`, `create_text_channel` recording into `sent`),
+  hashable `FakeMember`s (overwrite keys), `FakeGuild.default_role`, `get_member` and
+  `filesize_limit`, `FakeChannel.delete`, `overwrites_for` and `set_permissions`, `bad_request()`
+  and `button_rows(view)`.
+- Keep each xfail reason a literal string in its decorator: a script then strips the markers of
+  one requirement at once.
 - A loop with a first delay and a period runs on `Ticks` (Giveaway's `test_auto_draw.py`): each
   sleep is recorded, waits for the test, and moves the injected clock. A press that must be caught
   in the middle (a double confirmation) uses a fake whose `send` waits on a gate; wait with

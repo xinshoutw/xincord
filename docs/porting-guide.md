@@ -84,6 +84,14 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | User-facing texts hard-coded in Kotlin, chosen by a `zh` locale prefix | `lang/<locale>/text.yaml`, read with `Lang.text("text.<key>", locale)` and `%ga@...%` values in one pass; one locale for a message's texts and templates (Giveaway's `texts.language` and `Texts`) | B7 |
 | Moshi data classes with defaults, `JsonGuildFileManager` | frozen dataclasses with `parse_*` (v3's defaults, `DataError` for anything else) and `*_json` in Moshi's field order; each operation parses only the entries it needs (Giveaway's `model.py`) | B8, B11 |
 | camelCase keys in a v3 `config.yaml` | pydantic `Field(alias="camelCase")` on snake_case fields; validation errors name the alias (Giveaway's `Config`) | B6 |
+| `category.createTextChannel(name)` and `addPermissionOverride(...)` (JDA copied the category's overrides first, `CategoryImpl.trySync`) | `category.create_text_channel(name, overwrites=...)` with the whole map: the category's overwrites when the bot is an administrator or holds every permission they set, then the channel's own; `Object(type=Role)` keys (uncached roles) left out, since discord.py would send them as member overwrites (Ticket's `tickets.overwrites`) | |
+| `channel.upsertPermissionOverride(member).deny(VIEW_CHANNEL)` / `.grant(...)` | `channel.overwrites_for(member)`, change `view_channel`, `channel.set_permissions(member, overwrite=...)`: the other bits stay (Ticket's lock) | |
+| `textChannel.createThreadChannel(name)` (public, no starter message) | `channel.create_thread(name=..., type=discord.ChannelType.public_thread)`: without a message and a type, discord.py creates a private thread | |
+| `channel.createWebhook(name)`, `webhook.sendMessage(...).setThread(t).setUsername(...).setAvatarUrl(...)` | `channel.create_webhook(name=...)`, `webhook.send(content, files=..., username=..., avatar_url=..., thread=t, wait=True, allowed_mentions=AllowedMentions.none())`, `webhook.delete()` (Ticket's archive) | |
+| `iterableHistory.order(FORWARD).cache(false)` and `takeAsync(100)` | `channel.history(limit=None, oldest_first=True)`, pages of 100 | |
+| `Message.startedThread` | `Message.thread`, built from the REST payload's `thread` | |
+| `attachment.proxy.downloadAsFileUpload(fileName)` | `await attachment.to_file()`; a file over `guild.filesize_limit` cannot be uploaded again | |
+| `BreakIterator.getCharacterInstance(Locale.ROOT)` | no grapheme segmentation in the standard library: cut at code points, never inside a surrogate pair and never before a combining mark, a variation selector, an emoji modifier or around a zero-width joiner (Ticket's `thread_name`) | |
 | Ktor Web-Dashboard | not ported | B13 |
 
 ## Intents kept from the v4 attempt (A3)
@@ -362,7 +370,9 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - **Events in tests.** `bot.dispatch` schedules listeners on the loop of a bot that logged in (a
   sentinel before that); tests await the listeners with `plugin_fakes.dispatch`.
 - **Channel overwrites.** `create_text_channel(overwrites=...)` does not inherit the category's
-  overwrites the way JDA does; merge them explicitly (Ticket).
+  overwrites the way JDA does; merge them explicitly: copy `category.overwrites` when the bot may
+  set them (Administrator, or every permission they allow or deny held in the category, JDA's
+  `trySync`), drop `Object(type=Role)` keys, then set the channel's own (Ticket).
 - **UptimeHeartbeat.** `tasks.loop` schedules from each start, not after each completion as Kotlin
   did. discord.py has no REST ping; time `GET /users/@me` to keep `%ping%`.
 - **`wait_until_ready` before a login.** discord.py creates the READY event in `login` or
@@ -628,12 +638,31 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   return_when=FIRST_COMPLETED)` and `result()` on what finished, so a stub's `NotImplementedError`
   surfaces at once instead of a timeout.
 
+- **Threads without a message.** `TextChannel.create_thread(name=...)` without `message` creates a
+  private thread unless `type=discord.ChannelType.public_thread` is given; JDA's
+  `createThreadChannel(name)` made a public one (Ticket's archive).
+- **Refused interaction responses.** `InteractionResponse.edit_message` marks the response done
+  only after Discord took it: when it raises `HTTPException`, the interaction is still open and
+  `response.send_message(..., ephemeral=True)` can explain (Ticket's refused drafts).
+- **Views rebuilt from a message.** `View.from_message` gives each item its row; `add_item` appends
+  to `children`, and `to_components` sorts by row when sending: check the payload, not `children`,
+  for the order (Ticket's added button).
+- **Hashable fakes.** A `@dataclass` with the default `eq=True` is unhashable; a fake that is a key
+  of a permission overwrite map needs its own `__hash__` (`discord_fakes.FakeMember`).
+- **Webhook names.** Discord refuses a webhook message's username with `@`, `#`, `:`, three
+  backticks, `discord` or `clyde`, or one that is `everyone` or `here`, or over 80 characters; JDA's
+  archive then failed. Fall back to the username, then the ID (Ticket's `forwarded_name`).
+- **Webhook URLs in errors.** A webhook's URL holds its token, and aiohttp's connect timeout names
+  the whole URL: cut URLs in error texts to their origin before showing or logging them
+  (`xincord.plugins.redaction.redact`, shared since port-ticket).
+
 v3 behaviors never to reproduce: loading plugins in reverse dependency order, non-atomic JSON
 writes that silently reset corrupt files, recursive placeholder expansion, shared mutable
 placeholder caches, `asTextChannel()` failures in threads, voice chat and announcement channels,
 allow-all mentions, naming the member of an event after the guild's newest audit log entry,
-keeping message content forever, rendering a builder through an expired interaction token, and
-drawing a giveaway twice.
+keeping message content forever, rendering a builder through an expired interaction token,
+drawing a giveaway twice, pinging what a user typed into a ticket, and losing an error thrown in a
+callback (Ticket's archive hung).
 
 ## Differences from v3
 
@@ -829,3 +858,21 @@ Every deliberate difference, added by the change that introduces it.
 | Giveaway | a drawn giveaway whose post was not refreshed (a crash after the draw, a refused edit) kept Reroll disabled for good; joins answered after the REST edit, which a burst delayed | every press is acknowledged at once and shows the stored giveaway in the post | port-giveaway |
 | Plugin names | plugins named `_Example`, `BasicCalculator`, `SimpleCommand`, `WelcomeByeGuild`, `IntervalPusher` and `Feedbacker`, with their files in `plugins/<name>/` | `Example`, `Calculator`, `CustomCommands`, `WelcomeGoodbye`, `UptimeHeartbeat` and `Feedback` (decision B18 as amended) under `plugins:` and as `plugins/<Name>/`; `migrate_v3` maps the names and moves the v3 directories | rename-plugins |
 | Feedback | the command was `/feedbacker` | `/feedback`; the zh-TW localized name is unchanged | rename-plugins |
+| Ticket | panels in `plugins/Ticket/data/<guildId>.json`, rewritten at every load and created when read; a corrupt file was reset | v3's documents in the store (namespace `Ticket`), read without writing, a broken entry reported and kept; v3's files are read only by the planned v3 data import | port-ticket |
+| Ticket | the preview button had no action and failed; `preview-reason` was unreachable (B1) | it opens `preview-reason`, titled with the reason title | port-ticket |
+| Ticket | the zh-TW button modal's ID said `modify-btn-content`, so zh-TW users could not change the button's text or emoji (B2) | the bundled file says `modify-btn-text`, and the old ID is accepted | port-ticket |
+| Ticket | `press-ticket`'s titles were swapped between zh-TW and en-US (B13) | each locale's own title in the bundled files | port-ticket |
+| Ticket | the builder edited through the command's 15-minute hook (B14); a user's step served any guild and any of their builders | each interaction answers itself; drafts are per user and guild, only the newest builder works, older ones answer that the session expired | port-ticket |
+| Ticket | colors were read after their first character: `0x00FFFF` failed, `FFFFFF` became `0x0FFFFF` (B5) | `#RRGGBB`, `0xRRGGBB` and `RRGGBB` with one to six hex digits; anything else is refused | port-ticket |
+| Ticket | an invalid value (an empty title or icon URL, an invalid emoji) stayed in the draft and every later render failed silently | empty texts unset their part; a value Discord refuses answers its error and leaves the draft | port-ticket |
+| Ticket | `/add-ticket` with a non-numeric ID, an unknown message or one without an embed stayed "thinking" or stored a broken draft (B7, B8, B9); a first row with a select passed the full check (B16); another user's message failed at the confirmation | each answers its error at once | port-ticket |
+| Ticket | confirming deleted the builder first and never acknowledged, so failures were invisible (B15) | failures answer `create-failed` and keep the builder and the draft | port-ticket |
+| Ticket | an added button's index was its row's size (B6); the edit kept the first embed and the first row only (B17), and a message without rows threw | the stored list's length; only the view changes; a message without rows gets a new row | port-ticket |
+| Ticket | a missing category or panel after the reason left the member "thinking" (B3, B4) | v3's error texts arrive | port-ticket |
+| Ticket | a reason that made the opener exceed 2000 characters left the channel without controls (B10) | the opener is split; a channel whose opener is refused is deleted | port-ticket |
+| Ticket | the ticket channel had no overwrite for the bot, which needed Administrator or a staff role (B11) | the bot allows itself View Channel | port-ticket |
+| Ticket | the opener and the archive used JDA's default mentions, so a typed `@everyone` pinged (S1) | the opener pings the staff roles only, the archive nobody | port-ticket |
+| Ticket | lock and unlock answered after two REST calls, and a member who had left made the press fail | acknowledged at once; failures answer `lock-failed` | port-ticket |
+| Ticket | an archive failure thrown in a callback (a 4000-character message, a refused webhook name, an upload over the limit) hung the archive and leaked the webhook (B12); a failed webhook left an empty thread | long texts are split, names fall back, large files are linked, every failure is reported and the webhook deleted, an empty thread is deleted | port-ticket |
+| Ticket | en-US users got Chinese replies, zh-TW users four English errors | replies follow the user's locale (zh-TW where the plugin has no files); public texts stay zh-TW | port-ticket |
+| Ticket | a guild's panels were deleted only on a leave seen while the plugin was enabled | also at READY for guilds the bot left while offline | port-ticket |
