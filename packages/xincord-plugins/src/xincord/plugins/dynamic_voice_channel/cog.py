@@ -17,7 +17,7 @@ from xincord.core.templates import render_message
 
 from .rooms import create as create_room
 from .rooms import delete as delete_room
-from .store import NAMESPACE, Binding, bind, forget, unbind
+from .store import NAMESPACE, Binding, bind, forget, guild_ids, unbind
 
 if TYPE_CHECKING:
     import asyncio
@@ -232,8 +232,19 @@ class DynamicVoiceChannel(commands.Cog):
         await forget(self.store, guild.id)
 
     async def check_guilds(self) -> None:
-        """Delete the data of the guilds that the bot is no longer in."""
-        raise NotImplementedError
+        """Delete the data of the guilds that the bot is no longer in.
+
+        By ``on_ready``, discord.py knows every guild of the session, unavailable ones included.
+        v3's ``JsonManager`` deleted the file of a guild it did not know when it first loaded,
+        unavailable ones included, inside a loop that then threw.
+        """
+        for guild_id in await guild_ids(self.store):
+            if self.bot.get_guild(guild_id) is None:
+                await forget(self.store, guild_id)
+                logger.info(
+                    "DynamicVoiceChannel deleted the data of guild %s, which the bot left",
+                    guild_id,
+                )
 
     def _voice_lock(self, guild_id: int) -> asyncio.Lock:
         """The lock of the guild's voice changes; the store keeps it across reloads."""

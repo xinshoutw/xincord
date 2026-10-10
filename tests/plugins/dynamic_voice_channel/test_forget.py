@@ -12,7 +12,6 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 from discord_fakes import FakeChannel, FakeGuild, FakeVoiceChannel
 from plugin_fakes import dispatch, load_plugin
@@ -30,12 +29,10 @@ from xincord.plugins.dynamic_voice_channel.store import (
 if TYPE_CHECKING:
     from pathlib import Path
 
+    import pytest
+
     from discord_fakes import FakeRest, Sent
     from xincord.core.storage import Store
-
-FORGETS = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Data is forgotten with the guild"
-)
 
 
 def available_guild(sent: list[Sent]) -> FakeGuild:
@@ -61,7 +58,6 @@ async def kept(store: Store) -> tuple[list[str], list[str]]:
     return await store.keys(NAMESPACE), await store.keys(ROOMS)
 
 
-@FORGETS
 async def test_forget(store: Store) -> None:
     """Requirement: Data is forgotten with the guild."""
     await store_three(store)
@@ -73,7 +69,6 @@ async def test_forget(store: Store) -> None:
     assert await kept(store) == (["20", "30"], ["20", "30"])
 
 
-@FORGETS
 async def test_guild_ids(store: Store) -> None:
     """Requirement: Data is forgotten with the guild."""
     await bind(store, 12, Binding(20, "Lobby"))
@@ -84,7 +79,6 @@ async def test_guild_ids(store: Store) -> None:
     assert await guild_ids(store) == [9, 10, 12]
 
 
-@FORGETS
 async def test_the_bot_leaves(bot: Bot, store: Store) -> None:
     """Requirement: Data is forgotten with the guild."""
     await store_three(store)
@@ -95,7 +89,6 @@ async def test_the_bot_leaves(bot: Bot, store: Store) -> None:
     assert await kept(store) == (["20", "30"], ["20", "30"])
 
 
-@FORGETS
 async def test_left_while_offline(
     bot: Bot,
     store: Store,
@@ -117,7 +110,6 @@ async def test_left_while_offline(
     assert rest.sent == []
 
 
-@pytest.mark.xfail(strict=True, reason="Data is forgotten with the guild")
 async def test_loaded_into_a_ready_bot(
     store: Store, rest: FakeRest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

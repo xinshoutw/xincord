@@ -155,13 +155,19 @@ async def untrack(store: Store, guild_id: int, room_id: int) -> None:
 
 
 async def forget(store: Store, guild_id: int) -> None:
-    """Delete the guild's bindings and rooms."""
-    raise NotImplementedError
+    """Delete the guild's bindings and rooms.
+
+    v3 deleted the guild's binding file only, and left its rooms in MongoDB.
+    """
+    async with _lock(store, guild_id):
+        await store.delete(NAMESPACE, str(guild_id))
+        await store.delete(ROOMS, str(guild_id))
 
 
 async def guild_ids(store: Store) -> list[int]:
     """Return the guilds with bindings or rooms, in order."""
-    raise NotImplementedError
+    keys = {*await store.keys(NAMESPACE), *await store.keys(ROOMS)}
+    return sorted(int(key) for key in keys)
 
 
 def _lock(store: Store, guild_id: int) -> asyncio.Lock:
