@@ -52,6 +52,37 @@ async def setup(bot):
 """
 
 
+NEEDS_DATA = """
+from discord import app_commands
+from discord.ext import commands
+
+from .. import calls
+
+
+class Probe(commands.Cog):
+    pass
+
+
+async def probe(interaction):
+    pass
+
+
+async def setup(bot):
+    await bot.add_cog(Probe())
+    bot.tree.add_command(app_commands.Command(name="probe", description="Probe", callback=probe))
+    (bot.plugin_context(__name__).directory / "data.txt").read_text(encoding="utf-8")
+    calls.append(("setup", "alpha"))
+"""
+
+
+def alpha_data() -> Path:
+    """Write ``plugins/Alpha/data.txt``, which ``NEEDS_DATA`` reads; return it."""
+    data = Path("plugins") / "Alpha" / "data.txt"
+    data.parent.mkdir(parents=True, exist_ok=True)
+    data.write_text("data", encoding="utf-8")
+    return data
+
+
 async def started(installed: FakePlugins, store: Store, enabled: list[str]) -> Bot:
     """A bot that loaded ``enabled``, with the same list in ``config.yaml``."""
     write_config(f"plugins: [{', '.join(enabled)}]\n")
@@ -158,3 +189,48 @@ async def test_concurrent_reloads(installed: FakePlugins, store: Store) -> None:
     await asyncio.gather(bot.reload(), bot.reload())
 
     assert installed.calls() == ["start", "end", "start", "end"]
+
+
+@pytest.mark.xfail(strict=True, reason="Hot reload follows dependencies and intents")
+async def test_full_reload_after_a_drop(installed: FakePlugins, store: Store) -> None:
+    """Requirement: Hot reload follows dependencies and intents."""
+    installed.add("Alpha", NEEDS_DATA)
+    installed.add("Beta", NEEDS_ALPHA)
+    data = alpha_data()
+    bot = await started(installed, store, ["Alpha", "Beta"])
+    data.unlink()
+
+    failed = await bot.reload("Alpha")
+    data.write_text("data", encoding="utf-8")
+    again = await bot.reload()
+
+    assert failed.startswith(
+        "Reload failed: plugin Alpha failed to reload and is unloaded, with Beta, until a full "
+        "reload: "
+    )
+    assert again == "Reloaded: Alpha, Beta."
+    assert bot.loaded == ("Alpha", "Beta")
+
+
+@pytest.mark.xfail(strict=True, reason="Reloads upload the commands and never overlap")
+async def test_upload_after_a_reload_that_unloads(
+    installed: FakePlugins, store: Store, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Requirement: Reloads upload the commands and never overlap."""
+    installed.add("Alpha", NEEDS_DATA)
+    data = alpha_data()
+    bot = await started(installed, store, ["Alpha"])
+    syncs = watch_syncs(bot, store, monkeypatch)
+
+    def is_ready(_: Bot) -> bool:
+        return True
+
+    monkeypatch.setattr(Bot, "is_ready", is_ready)
+    monkeypatch.setattr(Bot, "guilds", property(lambda _: [SimpleNamespace(id=1, name="One")]))
+    data.unlink()
+
+    summary = await bot.reload("Alpha")
+
+    assert summary.startswith("Reload failed: ")
+    assert bot.tree.get_command("probe") is None
+    assert syncs == [("global", True), (1, True)]

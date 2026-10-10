@@ -6,20 +6,22 @@ Kotlin:
 """
 
 import logging
+import sys
 from dataclasses import dataclass, field
 from importlib.metadata import EntryPoint
+from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast
 
 import discord
 import pytest
 
+from plugin_fakes import write_config
 from xincord.core.bot import Bot
 from xincord.core.plugins import GROUP, PluginError, PluginInfo, discover, required_intents
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-    from pathlib import Path
 
     from aiohttp import ClientResponse
     from discord.types.components import ActionRow as ActionRowPayload
@@ -347,30 +349,121 @@ async def test_broken_files_keep_the_previous_version(
     assert module in bot.extensions
 
 
+TEMPLATED = """
+from xincord.core.templates import Templates
+
+from .. import calls
+
+
+async def setup(bot):
+    templates = Templates.load(bot.plugin_context(__name__).lang("en-US"))
+    calls.append(templates.message("hello", "en-US").content)
+"""
+TEMPLATES = {"lang/en-US/message/hello.yaml": 'content: "Hello"\n'}
+NEEDS_ALPHA = """
+from discord.ext import commands
+
+DEPENDS = ("Alpha",)
+
+
+class BetaProbe(commands.Cog):
+    pass
+
+
+async def setup(bot):
+    await bot.add_cog(BetaProbe())
+"""
+# An upgrade that fails at import, after importing a module of its own.
+HALF_IMPORTED = """
+from .helper import VALUE
+from .missing import NOTHING
+"""
+
+
+@pytest.mark.xfail(strict=True, reason="Hot reload follows dependencies and intents")
+async def test_broken_templates_keep_the_previous_version(
+    fake_plugins: FakePlugins, store: Store, tmp_path: Path
+) -> None:
+    """Requirement: Hot reload follows dependencies and intents."""
+    module = fake_plugins.add("Alpha", TEMPLATED, TEMPLATES)
+    bot = fake_plugins.bot(["Alpha"], tmp_path, store)
+    await bot.load_plugins()
+    template = tmp_path / "Alpha" / "lang" / "en-US" / "message" / "hello.yaml"
+    template.write_text("content: [unclosed\n", encoding="utf-8")
+
+    with pytest.raises(PluginError, match=r"Alpha failed to reload: .*hello\.yaml"):
+        await bot.reload_plugin("Alpha")
+
+    # The previous version ran its setup again, with the templates it had.
+    assert fake_plugins.calls() == ["Hello", "Hello"]
+    assert bot.loaded == ("Alpha",)
+    assert module in bot.extensions
+
+
+@pytest.mark.xfail(strict=True, reason="Hot reload follows dependencies and intents")
 async def test_previous_version_fails_too(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:
     """Requirement: Hot reload follows dependencies and intents."""
-    module = fake_plugins.add("Alpha", READS_A_FILE)
+    alpha = fake_plugins.add("Alpha", READS_A_FILE)
+    beta = fake_plugins.add("Beta", NEEDS_ALPHA)
+    (tmp_path / "Alpha").mkdir()
+    data = tmp_path / "Alpha" / "data.txt"
+    data.write_text("data", encoding="utf-8")
+    bot = fake_plugins.bot(["Alpha", "Beta"], tmp_path, store)
+    await bot.load_plugins()
+    data.unlink()
+
+    with pytest.raises(
+        PluginError,
+        match=r"Alpha failed to reload and is unloaded, with Beta, until a full reload: .*data",
+    ):
+        await bot.reload_plugin("Alpha")
+
+    assert bot.loaded == ()
+    assert not {alpha, beta} & set(bot.extensions)
+    assert (bot.get_cog("Probe"), bot.get_cog("BetaProbe")) == (None, None)
+    with pytest.raises(PluginError, match="no plugin loads from"):
+        bot.plugin_context(alpha)
+
+
+@pytest.mark.xfail(strict=True, reason="Hot reload follows dependencies and intents")
+async def test_dropped_plugin_leaves_no_modules(
+    fake_plugins: FakePlugins, store: Store, tmp_path: Path
+) -> None:
+    """Requirement: Hot reload follows dependencies and intents."""
+    module = fake_plugins.add("Alpha", READS_A_FILE, {"helper.py": "VALUE = 1\n"})
     (tmp_path / "Alpha").mkdir()
     data = tmp_path / "Alpha" / "data.txt"
     data.write_text("data", encoding="utf-8")
     bot = fake_plugins.bot(["Alpha"], tmp_path, store)
     await bot.load_plugins()
-    data.unlink()
+    fake_plugins.replace("Alpha", HALF_IMPORTED)  # an upgrade that fails at import ...
+    data.unlink()  # ... while the previous version fails too
 
-    with pytest.raises(PluginError, match=r"Alpha failed to reload and is unloaded: .*data\.txt"):
+    with pytest.raises(PluginError, match="is unloaded"):
         await bot.reload_plugin("Alpha")
 
-    assert bot.loaded == ()
-    assert module not in bot.extensions
-    assert bot.get_cog("Probe") is None
-    with pytest.raises(PluginError, match="no plugin loads from"):
-        bot.plugin_context(module)
-    data.write_text("data", encoding="utf-8")
-    await bot.load_plugin(discover(["Alpha"], fake_plugins.entry_points)[0])
-    assert bot.loaded == ("Alpha",)
-    assert bot.get_cog("Probe") is not None
+    assert not [name for name in sys.modules if name == module or name.startswith(f"{module}.")]
+
+
+@pytest.mark.xfail(strict=True, reason="Hot reload follows dependencies and intents")
+async def test_moved_plugin(installed: FakePlugins, store: Store) -> None:
+    """Requirement: Hot reload follows dependencies and intents."""
+    module = installed.add("Ticket", TICKET)
+    moved = installed.add("TicketMoved", TICKET)
+    write_config("plugins: [Ticket]\n")
+    bot = installed.bot(["Ticket"], Path("plugins"), store)
+    await bot.load_plugins()
+    # An upgrade in place moved the plugin to another module, and the bot reloads.
+    installed.entry_points[:] = [EntryPoint(name="Ticket", value=moved, group=GROUP)]
+
+    summary = await bot.reload()
+    await bot.on_interaction(interaction("ticket:1:a=press"))
+
+    assert summary == "Reloaded: none. Failed: Ticket (see the log)."
+    assert module in bot.extensions
+    assert len(installed.calls()) == 1  # the previous version still gets its route
 
 
 async def test_hot_load_needs_the_intents(

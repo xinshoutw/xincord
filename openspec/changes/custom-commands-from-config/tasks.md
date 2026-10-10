@@ -62,7 +62,7 @@
 
 ## 11. Cross-review fixes
 
-- [ ] 11.1 xfail tests for "Hot reload follows dependencies and intents" and "Reloads upload the
+- [x] 11.1 xfail tests for "Hot reload follows dependencies and intents" and "Reloads upload the
       commands and never overlap": broken templates, dependents, modules, the upload, a moved
       entry point
 - [ ] 11.2 Replay the templates, unload dependents and modules, upload after an unloading reload,
