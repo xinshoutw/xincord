@@ -34,7 +34,7 @@
 ## 7. Winners
 
 - [x] 7.1 xfail tests for "Winners are drawn per prize" against a stub `model.draw_winners`
-- [ ] 7.2 Implement `draw_winners` and the cog's `SystemRandom`; remove the markers
+- [x] 7.2 Implement `draw_winners` and the cog's `SystemRandom`; remove the markers
 
 ## 8. Stored giveaways
 

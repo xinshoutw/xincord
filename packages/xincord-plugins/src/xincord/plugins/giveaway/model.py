@@ -72,5 +72,19 @@ class Instance:
 def draw_winners(
     prizes: Sequence[Prize], policy: Policy, participants: Iterable[int], rng: random.Random
 ) -> tuple[Winners, ...]:
-    """Draw each prize's winners from ``participants``, as v3's ``drawPrizeWinners``."""
-    raise NotImplementedError
+    """Draw each prize's winners from ``participants``, as v3's ``drawPrizeWinners``.
+
+    In prize order, each prize draws the smaller of its winner count (at least 1) and its pool's
+    size, distinct and uniformly at random: from every participant when duplicates are allowed,
+    else from those that no earlier prize drew. ``rng.sample`` draws the same distribution as v3's
+    ``shuffled(random).take(k)``; the winners keep the order they were drawn in.
+    """
+    everyone = tuple(participants)
+    left = everyone  # under unique winners, the participants that no earlier prize drew
+    results: list[Winners] = []
+    for prize in prizes:
+        pool = everyone if policy is Policy.ALLOW_DUPLICATE else left
+        picked = tuple(rng.sample(pool, min(max(prize.winner_count, 1), len(pool))))
+        results.append(Winners(prize.name, picked))
+        left = tuple(participant for participant in left if participant not in picked)
+    return tuple(results)

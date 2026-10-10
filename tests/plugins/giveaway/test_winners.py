@@ -26,7 +26,6 @@ def seeded(seed: int) -> random.Random:
     return random.Random(seed)  # noqa: S311 - reproducible draws, not secrets
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 def test_duplicates_allowed() -> None:
     """Requirement: Winners are drawn per prize."""
     prizes = (Prize("Nitro", 2), Prize("Sticker", 2))
@@ -43,7 +42,6 @@ def test_duplicates_allowed() -> None:
     assert overlapping == len(SEEDS)  # two of three twice always share someone
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 def test_unique_across_prizes() -> None:
     """Requirement: Winners are drawn per prize."""
     prizes = (Prize("Nitro", 2), Prize("Sticker", 2), Prize("Badge", 1))
@@ -58,7 +56,6 @@ def test_unique_across_prizes() -> None:
         assert sorted(drawn) == sorted(PARTICIPANTS)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("policy", list(Policy))
 def test_no_participants(policy: Policy) -> None:
     """Requirement: Winners are drawn per prize."""
@@ -69,14 +66,12 @@ def test_no_participants(policy: Policy) -> None:
     assert results == (Winners("Nitro", ()), Winners("Sticker", ()))
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("policy", list(Policy))
 def test_no_prizes(policy: Policy) -> None:
     """Requirement: Winners are drawn per prize."""
     assert draw_winners((), policy, PARTICIPANTS, seeded(1)) == ()
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 def test_short_pool_and_counts_below_one() -> None:
     """Requirement: Winners are drawn per prize."""
     prizes = (Prize("Nitro", 5), Prize("Sticker", 0), Prize("Badge", -3))
@@ -87,7 +82,6 @@ def test_short_pool_and_counts_below_one() -> None:
     assert len(sticker.winner_ids) == len(badge.winner_ids) == 1  # v3's coerceAtLeast(1)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 def test_reproducible() -> None:
     """Requirement: Winners are drawn per prize."""
     prizes = (Prize("Nitro", 2), Prize("Sticker", 1))
@@ -98,7 +92,6 @@ def test_reproducible() -> None:
     assert first == again
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 def test_uniform_draw() -> None:
     """Requirement: Winners are drawn per prize."""
     rng = seeded(2026)
@@ -115,9 +108,8 @@ def test_uniform_draw() -> None:
     assert all(abs(count - draws / 4) < 5 * (draws * 0.25 * 0.75) ** 0.5 for count in wins.values())
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 async def test_system_random(bot: Bot) -> None:
     """Requirement: Winners are drawn per prize."""
     cog = cast("Giveaway", bot.get_cog("Giveaway"))
 
-    assert isinstance(getattr(cog, "random", None), random.SystemRandom)
+    assert isinstance(cog.random, random.SystemRandom)

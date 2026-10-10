@@ -5,6 +5,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:16-380
 """
 
+import random
 from typing import TYPE_CHECKING
 
 from discord.ext import commands
@@ -29,3 +30,5 @@ class Giveaway(commands.Cog):
         self.store = store
         self.lang = lang
         self.templates = templates
+        # The winners' draws: the operating system's randomness, never a seeded generator.
+        self.random: random.Random = random.SystemRandom()
