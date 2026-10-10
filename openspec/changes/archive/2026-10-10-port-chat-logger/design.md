@@ -502,7 +502,8 @@ Messages and Embed Links in the log channels.
    `Message Updated` embed with the member, the category, `#general`, `1`, `hello` and `hi`, whose
    title links to the message. Edit it into `hey`: `2`, `hi` and `hey`.
 5. Send a message with a link and wait for its preview, then pin and unpin it: nothing is posted
-   (record whether Discord sent the updates at all).
+   (record whether Discord sent the updates at all). Do the same with an X (Twitter) link, whose
+   preview Discord may type `rich`, and with a bot's message holding a link.
 6. Delete the message: a red `Message Deleted` embed with `hey` and `2`. Send and delete a message
    in the thread: the embed names the thread and `Chats`.
 7. Send three messages in `#general` and purge them with a moderation bot (a bulk deletion): three
@@ -523,3 +524,6 @@ Messages and Embed Links in the log channels.
     ChatLogger_messages GROUP BY channel_id"`), and a day later the older messages are gone.
 14. Remove the bot from a second guild with `log_all: false`: its settings and stored messages are
     deleted.
+15. Allow the thread of `#general` in a listen channel's list, archive the thread and restart the
+    bot: the menu still lists it, and a message sent in it (which unarchives it) is logged when
+    edited.

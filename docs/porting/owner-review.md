@@ -302,3 +302,40 @@ here; delete a section once it is empty.
 - After a discord.py upgrade, check the relay (discord.py's internal `ConnectionState.parsers`) and the audit log request (`HTTPClient.request` and `Route`); if discord.py starts parsing the event, the relay still runs after its parser.
 - At cutover, set the listen channels up again in each guild listed in v3's `plugins/VoiceLogger/setting/`, or build the deferred migration first.
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `VoiceLogger` enabled); an image build with the plugin enabled is still open.
+
+## ChatLogger (`port-chat-logger`)
+
+### User-visible changes
+- New config key `retention_days` (30 by default, 1 to 3650): a message's text is kept that long, and edits and deletions of older messages are not logged (v3 kept every message forever).
+- A deleted message's text leaves the store once its deletion is handled (v3 kept it).
+- `log_all: false` stores the messages of the channels that a listen channel detects (v3: only the channels that had a table already, a set no setting changed); with it, a guild's stored messages are deleted when the bot leaves the guild.
+- Edits and deletions in threads are logged (v3: never); a thread is detected through its parent channel and that channel's category, or by its own ID, in both modes (v3's block mode never detected threads). Archived threads stay in the lists after a restart.
+- Bulk deletions (purges) are logged, one embed per stored message, oldest first (v3: not at all); a listen channel that is gone or refuses is tried once per purge.
+- Deletions of messages whose author left, and of webhooks' messages, are logged with the stored author's mention, `-` and no thumbnail (v3: not logged).
+- Updates that keep the text (a pin, a link preview, rich previews of members' links included, suppressed embeds) are no longer logged or counted as edits; an edit that arrives together with its message is logged with the text the message was sent with.
+- A message's text keeps its content when it has embeds and no longer holds `null`; a member's message is its content only (its embeds are link previews), a bot's or a webhook's adds its rich embeds.
+- Texts longer than 1024 characters are cut with `...` (v3 lost the log); texts are shown as written (v3 expanded `%...%`, and `%cl_msg_after%` in a message made its log fail).
+- A webhook's edit shows the webhook's mention (v3: the placeholders themselves); a channel without a category shows `-`.
+- As in VoiceLogger: the menu answers in every channel, and logs reach listen channels of every kind; a deleted listen channel is forgotten and a refusing one no longer stops the others; a first selection keeps the allow mode; "Delete" deletes only that channel's settings; long lists end with `...`; settings of a guild the bot leaves are deleted at once.
+- v3's `plugins/ChatLogger/setting/*.json` and `data/*.db` are not read: listen channels must be set up again (the data migration is deferred, B11).
+- The bundled `config.yaml` explains both keys and the Message Content intent (English comments).
+### Choices made without the owner
+- Where the message log lives (B8): implemented a plugin table, `ChatLogger_messages`, in the shared `data/xincord.db` through `Store.run` (bounded volume, point operations by message ID, one volume and backup, no core change); alternative: an own file `data/ChatLogger.db` with its own connection and WAL, which keeps the log's writes away from the other plugins' store calls and can be purged alone, but needs a core API for the data path.
+- The bound: implemented `retention_days`, 30 days by default, applied at READY and every hour from the message IDs' time; alternative: a longer default (90 days), or a cap on the rows per guild.
+- Deleted messages: implemented removing their text once the deletion is handled; alternative: keeping it until the retention, as v3 kept it.
+- Threads: implemented detection through the parent channel and its category, or the thread's own ID; alternative: the thread's own ID only, as v3's allow mode.
+- Bulk deletions: implemented one embed per stored message; alternative: one summary embed per purge (a new template and new copy).
+- Edits: implemented logging only a change of the text, a member's text being its content; alternative: every update, as v3, or telling previews apart by `edited_timestamp`.
+- Reading new messages: implemented the relayed `MESSAGE_CREATE` payload (`bot.relay_gateway_event`), because discord.py's `on_message` object takes an edit parsed together with it in place, and the edit's log was lost; alternative: `on_message`, losing such edits.
+- Authors who are no members: implemented the stored ID's mention, `-` and no thumbnail; alternative: fetching the user (`fetch_user`) for the name and the avatar, one more request.
+- Left guilds with `log_all: true`: implemented keeping their messages until the retention, as v3 kept them; alternative: deleting them at the leave whatever `log_all` says.
+- Shared code: implemented `xincord.plugins.listen_channels` (settings, store, menu, posts, checks) for VoiceLogger and ChatLogger; alternative: two copies, as v3 had.
+- The READY check of the lists (both plugins): implemented asking Discord about each listed ID that discord.py has not cached and dropping it only on a 404, so archived threads stay; alternative: v3's dropping of every uncached ID, which unblocks a blocked thread after a restart.
+- Operator templates that put text around `%cl_msg_before%` or `%cl_msg_after%` (or move them into a title or the content) can exceed Discord's limits, and the log is then refused with a warning: implemented fitting the bare values only, as the shipped templates show them; alternative: clamping every rendered text in the core's renderer, for every plugin.
+### Manual checks
+- Smoke checklist in `openspec/changes/archive/2026-10-10-port-chat-logger/design.md` (needs a token, a test guild and a second account).
+- Turn the Message Content intent on for the bot in the Discord developer portal (Bot, Privileged Gateway Intents) before enabling ChatLogger: without it, Discord refuses the bot's connection.
+- The bot needs View Channel and Read Message History in the logged channels, and View Channel, Send Messages and Embed Links in the listen channels.
+- Unverified without a real guild: whether Discord sends `MESSAGE_UPDATE` for pins and link previews and which previews it types `rich` (members' are never logged either way; a bot's rich preview would log an edit), and how long a large purge takes to post.
+- At cutover, set the listen channels up again in each guild listed in v3's `plugins/ChatLogger/setting/`; messages stored by v3 are not migrated (B11).
+- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `ChatLogger` and `VoiceLogger` enabled); an image build with the plugin enabled is still open.

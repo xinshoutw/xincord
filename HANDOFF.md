@@ -1,6 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after `port-voice-logger`, the eleventh plugin port. Core is complete. Read
+Updated 2026-10-10 after `port-chat-logger`, the twelfth plugin port. Core is complete. Read
 this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and
 binding; do not re-open them unless you find a serious problem, and then ask the owner.
 
@@ -287,8 +287,32 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   `FakeGuild.members` and `fetch_member`, `FakeInteraction.guild_id` and `channel_id`,
   `FakeVoiceChannel.jump_url`, the `channels` fixture (partial messageables), a dataclass fixture
   (`Scene`) when a test needs more than five fixtures, and the gateway probe (skill step 7).
-  ChatLogger has v3's same settings scheme: reuse `settings.py` and `store.py`.
-- **Still to build:** the plugins after VoiceLogger (section 5).
+  Its settings, store, menu, posts and READY checks moved into `xincord.plugins.listen_channels`
+  with port-chat-logger.
+- **ChatLogger** (`xincord.plugins.chat_logger`, `INTENTS = discord.Intents(guild_messages=True,
+  message_content=True)`, the second privileged, en-US and zh-TW, config `log_all` and
+  `retention_days`): the first plugin that stores message content and the first with a plugin
+  table. The listen channel code it shares with VoiceLogger is `xincord.plugins.listen_channels`,
+  a package without an entry point: `settings.py` (`Setting`, `detects(setting, channel_id,
+  *parents)`, `targets`, `list_text`, `units`), `store.py` (`ListenSettings(store, namespace)`) and
+  `menu.py` (`Menu`, `ListenChannels`: `show`, `handle`, `post`, `check_guilds`); both cogs keep
+  their command group, `show_settings` and `handle`. `messages.py` keeps `ChatLogger_messages` in
+  the core store through `Store.run` (B8 settled: one table in `data/xincord.db`, v3's columns plus
+  the guild and the channel); `text.py` (`message_text`: the content and the rich embeds; `fit`:
+  1024 UTF-16 code units; a member's embeds are previews and left out); `created.py`
+  (`parse_created`: a new message from the `MESSAGE_CREATE` payload that `setup` relays, because
+  `on_message`'s cached `Message` takes later edits in place); `logs.py` (`Place.of`,
+  `author_values`, `unknown_author`, `message_url`); `cog.py`: `on_gateway_message_create` (its
+  insert registers in `inserting`, and the edits and deletions of that message wait for it),
+  `on_raw_message_edit`, `on_raw_message_delete`, `on_raw_bulk_message_delete` (a gone or
+  refusing listen channel is tried once per purge: `ListenChannels.post` returns it), the
+  retention loop (started after the checks of a ready bot; `prune` at READY and hourly, `sleep`),
+  `on_guild_remove` and `check_guilds` (the shared check asks Discord about uncached IDs, so
+  archived threads stay). Reuse: `tests/support/payloads.py`, `plugin_fakes.add_guild`, `gateway`
+  and `burst` (frames parsed together, listeners as concurrent tasks), the `scene` fixture, a
+  `config` fixture that tests parametrize by name, `Hours` for a loop's sleep and
+  `discord_fakes.server_error()`.
+- **Still to build:** the plugins after ChatLogger (section 5).
 
 ## 5. Status and next steps
 
@@ -300,21 +324,21 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `core-reload`, `core-console`, `core-status-log`, `container`, `port-example`,
 `port-basic-calculator`, `port-auto-role`, `port-bot-info`, `port-simple-command`,
 `port-welcome-bye-guild`, `port-interval-pusher`, `port-feedbacker`, `port-economy`,
-`port-dynamic-voice-channel`, `port-voice-logger`. Each one's `design.md` in
+`port-dynamic-voice-channel`, `port-voice-logger`, `port-chat-logger`. Each one's `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
 ### Next: the plugins
 
 Core is complete; _Example (the template), BasicCalculator, AutoRole, BotInfo, SimpleCommand,
-WelcomeByeGuild, IntervalPusher, Feedbacker, Economy, DynamicVoiceChannel and VoiceLogger are
-ported. Next: **ChatLogger** (`port-chat-logger`).
+WelcomeByeGuild, IntervalPusher, Feedbacker, Economy, DynamicVoiceChannel, VoiceLogger and
+ChatLogger are ported. Next: **Giveaway** (`port-giveaway`).
 Port the plugins in C1 order with the `port-plugin` skill (`.claude/skills/port-plugin/SKILL.md`),
 one OpenSpec change each (`port-<plugin-kebab>`): _Example (done), BasicCalculator (done),
 AutoRole (done), BotInfo (done, with the configurable AGPL source link of C3), SimpleCommand
 (done), WelcomeByeGuild (done), IntervalPusher (done), Feedbacker (done), Economy (done),
-DynamicVoiceChannel (done), VoiceLogger (done), then ChatLogger, Giveaway, Ticket, TicketAddons,
-NtustManager, NtustCourse, MusicPlayer (with Lavalink in `compose.yaml`).
+DynamicVoiceChannel (done), VoiceLogger (done), ChatLogger (done), then Giveaway, Ticket,
+TicketAddons, NtustManager, NtustCourse, MusicPlayer (with Lavalink in `compose.yaml`).
 Update `docs/porting-guide.md` after each one.
 
 ### Working tips from this session
@@ -367,7 +391,10 @@ its user-visible changes, the choices made without the owner and the manual chec
 2. **Production version (F1)** is unknown; it matters only if a data migration is ever needed.
    The local copy (`XsDiscordBotKt/Server/`) runs Economy 3.2.1, whose wallets are the legacy
    single `plugins/Economy/data/data.json`; Economy reads no v3 file until that migration exists.
-3. **Lavalink image** (arm64, compose details): verify when MusicPlayer starts. **VoiceLogger
+3. **ChatLogger** needs the Message Content intent turned on in the developer portal before the
+   operator enables it, or Discord refuses the bot's connection; B8 was settled as one table in
+   the shared store (see `docs/porting/owner-review.md`).
+4. **Lavalink image** (arm64, compose details): verify when MusicPlayer starts. **VoiceLogger
    status events** were built in port-voice-logger (the core relays the gateway event; the audit
    log is read raw); what needs a real guild is in `docs/porting/owner-review.md`.
 
@@ -434,6 +461,14 @@ setup-uv v10.2.0, setup-node v7.1.0.
   torn down after the fixtures a test requests.
 - `asyncio.CancelledError` is a `BaseException`: `except Exception` leaves cancellation alone.
   Kotlin's `catch (e: Exception)` caught `CancellationException`.
+- Remove xfail markers with a script that matches the decorator's parentheses: a `sed` range
+  from `@pytest.mark.xfail(` to the next `^)$` also swallowed a following `parametrize`.
+- ruff's S608 refuses SQL built with f-strings: keep plugin SQL in module constants; SQLite's
+  `DELETE` takes no `LIMIT` (not compiled in), so delete a batch through a subquery of IDs.
+- `pytest.mark.parametrize` with a fixture's name overrides that fixture for the test, also where
+  other fixtures request it (ChatLogger's `config` fixture, read by `bot`).
+- A task's output file under the session's `tasks/` directory is a symlink: watch it with
+  `stat -L`.
 - An interaction probe records HTTP by replacing `discord.http.HTTPClient.request` and
   `discord.webhook.async_.AsyncWebhookAdapter.request` (callbacks must return
   `{"interaction": {"id": ...}}`); `discord.Interaction(data=...)` needs `attachment_size_limit`
@@ -564,6 +599,28 @@ setup-uv v10.2.0, setup-node v7.1.0.
   `command._invoke_with_namespace(...)` (patch `Interaction.edit_original_response`); set
   `bot.loop`, add a guild with `state._add_guild_from_data(...)` and call `state.parse_*` for
   gateway events (patch `Messageable.send`).
+
+- discord.py makes a message's author a `Member` only when the payload's `member` has every field
+  that `Member` reads, `flags` included; `Message.__init__` swallows the `KeyError` and keeps a
+  `User`.
+- discord.py's own parsers dispatch through the connection state's `dispatch`, bound when the
+  client was created; patching `bot.dispatch` does not catch them (`plugin_fakes.gateway` patches
+  both). `ConnectionState._add_guild_from_data` caches a guild from a `GUILD_CREATE` payload
+  (`plugin_fakes.add_guild`).
+- A message of a guild that discord.py has not cached has no `guild`; one of an uncached channel
+  has a `PartialMessageable` channel. `Embed.from_dict` gives `type` None when the payload has none.
+- `on_message` gets discord.py's cached `Message`, and a `MESSAGE_UPDATE` parsed before the
+  listener runs changes it in place: discord.py parses the frames that arrived together without
+  yielding (a scratch probe stored the edited text and lost the edit's log). Read a new message
+  from the relayed `MESSAGE_CREATE` payload (`relay_gateway_event` works for events that
+  discord.py parses too), and let a message's later events wait for its handling.
+- discord.py drops archived threads from its cache: an uncached ID is not proof that a channel
+  was deleted (`bot.http.get_channel` answers 404 for deleted ones).
+- `git worktree add --detach` gives a scratch checkout for work that must not disturb a reviewer
+  reading the main tree; the project's hooks do not run there (`core.hooksPath` is relative), so
+  run the gate and `scripts/check_commit_msg.py` by hand, and fast-forward `main` afterwards.
+- Requesting the privileged message content intent without the developer portal's permission makes
+  Discord close the gateway (4014); the bot does not connect.
 
 **v3 behaviors never to reproduce:** loading plugins in reverse dependency order, non-atomic JSON
 writes that reset corrupt files, recursive placeholder expansion, shared mutable placeholder
