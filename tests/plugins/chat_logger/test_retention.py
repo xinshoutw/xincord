@@ -12,15 +12,18 @@ import sqlite3
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
+import pytest
 from discord.utils import time_snowflake, utcnow
 
-from plugin_fakes import WAIT
+from plugin_fakes import WAIT, load_plugin
+from xincord.core.bot import Bot
 
 if TYPE_CHECKING:
-    import pytest
+    from pathlib import Path
 
     from conftest import Scene
     from plugin_fakes import Ready
+    from xincord.core.storage import Store
 
 
 class Hours:
@@ -134,3 +137,23 @@ async def test_unload(scene: Scene, ready: Ready) -> None:
     await scene.bot.remove_cog("ChatLogger")  # runs cog_unload, as an unload or a reload does
 
     assert loop.cancelled()
+
+
+@pytest.mark.xfail(strict=True, reason="Stored messages are kept for the retention period")
+async def test_failed_load(store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Requirement: Stored messages are kept for the retention period."""
+
+    def is_ready(_bot: Bot) -> bool:
+        return True
+
+    async def failing(namespace: str) -> list[str]:
+        message = f"cannot read {namespace}"
+        raise sqlite3.OperationalError(message)
+
+    monkeypatch.setattr(Bot, "is_ready", is_ready)  # a reload: the guilds are checked at once
+    monkeypatch.setattr(store, "keys", failing)
+
+    bot = await load_plugin("ChatLogger", tmp_path / "plugins", store)
+
+    assert bot.loaded == ()
+    assert [task for task in asyncio.all_tasks() if task.get_name() == "ChatLogger retention"] == []

@@ -285,7 +285,7 @@ the other listen channels still get theirs.
 ### Requirement: Stored messages are kept for the retention period
 When the bot is ready, and every hour after, the plugin SHALL delete the stored messages created
 more than `retention_days` days ago, as their IDs tell. A failure SHALL be logged and the next hour
-SHALL try again; unloading the plugin SHALL stop this.
+SHALL try again; unloading the plugin SHALL stop this, and a load that fails SHALL not start it.
 
 #### Scenario: Old messages
 - **WHEN** with 30 days, messages created 31 and 29 days ago are stored and the bot becomes ready
@@ -302,6 +302,10 @@ SHALL try again; unloading the plugin SHALL stop this.
 #### Scenario: Unload
 - **WHEN** the plugin unloads
 - **THEN** the hourly deletion stops
+
+#### Scenario: Failed load
+- **WHEN** the plugin loads into a ready bot and its checks of the guilds fail
+- **THEN** the plugin is not loaded and no hourly deletion runs
 
 ### Requirement: Data is forgotten with the guild
 When the bot leaves a guild, the plugin SHALL delete the guild's settings, and its stored messages
