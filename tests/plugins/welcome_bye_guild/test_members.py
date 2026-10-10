@@ -36,12 +36,6 @@ if TYPE_CHECKING:
     from discord_fakes import Sent
     from xincord.core.storage import Store
 
-JOIN = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members who join are welcomed"
-)
-LEAVE = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members who leave are seen off"
-)
 GOLDEN = golden("welcome_bye_guild")
 AVATAR = FakeAsset("https://cdn.example/alice.png")
 
@@ -105,7 +99,6 @@ def know(bot: Bot, monkeypatch: pytest.MonkeyPatch, *guilds: FakeGuild) -> None:
     monkeypatch.setattr(Bot, "user", property(lambda _bot: BOT_USER))
 
 
-@JOIN
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_welcome(bot: Bot, store: Store, locale: str) -> None:
     """Requirement: Members who join are welcomed."""
@@ -119,7 +112,6 @@ async def test_welcome(bot: Bot, store: Store, locale: str) -> None:
     assert len(messages(guild)) == 1
 
 
-@JOIN
 async def test_other_locale(bot: Bot, store: Store) -> None:
     """Requirement: Members who join are welcomed."""
     guild = make_guild("ja")
@@ -130,7 +122,6 @@ async def test_other_locale(bot: Bot, store: Store) -> None:
     assert embeds(guild, 5) == [GOLDEN["welcome"]["zh-TW"]]
 
 
-@JOIN
 async def test_bots_are_welcomed(bot: Bot, store: Store) -> None:
     """Requirement: Members who join are welcomed."""
     guild = make_guild()
@@ -141,7 +132,6 @@ async def test_bots_are_welcomed(bot: Bot, store: Store) -> None:
     assert embeds(guild, 5) == [GOLDEN["welcome"]["en-US"]]
 
 
-@JOIN
 async def test_nothing_bound(bot: Bot, store: Store) -> None:
     """Requirement: Members who join are welcomed."""
     guild = make_guild()
@@ -152,7 +142,6 @@ async def test_nothing_bound(bot: Bot, store: Store) -> None:
     assert messages(guild) == []
 
 
-@JOIN
 @pytest.mark.parametrize("channel_id", [9, 8])  # deleted, then an announcement channel
 async def test_channel_gone_or_not_a_text_channel(bot: Bot, store: Store, channel_id: int) -> None:
     """Requirement: Members who join are welcomed."""
@@ -164,7 +153,6 @@ async def test_channel_gone_or_not_a_text_channel(bot: Bot, store: Store, channe
     assert messages(guild) == []
 
 
-@JOIN
 async def test_welcome_refused(bot: Bot, store: Store, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Members who join are welcomed."""
     guild = make_guild(refused=True)
@@ -178,7 +166,6 @@ async def test_welcome_refused(bot: Bot, store: Store, caplog: pytest.LogCapture
     )
 
 
-@LEAVE
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_bye(bot: Bot, store: Store, monkeypatch: pytest.MonkeyPatch, locale: str) -> None:
     """Requirement: Members who leave are seen off."""
@@ -193,7 +180,6 @@ async def test_bye(bot: Bot, store: Store, monkeypatch: pytest.MonkeyPatch, loca
     assert len(messages(guild)) == 1
 
 
-@LEAVE
 async def test_uncached_user(bot: Bot, store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Members who leave are seen off."""
     guild = make_guild()
@@ -206,7 +192,6 @@ async def test_uncached_user(bot: Bot, store: Store, monkeypatch: pytest.MonkeyP
     assert embeds(guild, 7) == [GOLDEN["bye"]["en-US"]]
 
 
-@LEAVE
 async def test_bot_removed(bot: Bot, store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Members who leave are seen off."""
     guild = make_guild()
@@ -218,7 +203,6 @@ async def test_bot_removed(bot: Bot, store: Store, monkeypatch: pytest.MonkeyPat
     assert messages(guild) == []
 
 
-@LEAVE
 @pytest.mark.parametrize("guild_id", [10, 20])  # without a bye channel, then unknown
 async def test_nothing_to_send(
     bot: Bot, store: Store, monkeypatch: pytest.MonkeyPatch, guild_id: int
@@ -234,7 +218,6 @@ async def test_nothing_to_send(
     assert messages(guild) == []
 
 
-@LEAVE
 async def test_bye_refused(
     bot: Bot, store: Store, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:

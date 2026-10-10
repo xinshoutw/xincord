@@ -5,18 +5,21 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/command/Register.kt:12-75
 """
 
-from typing import TYPE_CHECKING, NamedTuple
+import logging
+from typing import TYPE_CHECKING, NamedTuple, Protocol, runtime_checkable
 
+import discord
 from discord.ext import commands
 
 from xincord.core.placeholders import placeholder_values
 from xincord.core.templates import render_message
 
 from .store import read, set_channel
-from .values import command_values, text_channel
+from .values import TextChannelLike, command_values, member_event_values, text_channel
 
 if TYPE_CHECKING:
-    import discord
+    from collections.abc import Sequence
+
     from discord import app_commands
 
     from xincord.core.i18n import Lang
@@ -24,6 +27,25 @@ if TYPE_CHECKING:
     from xincord.core.templates import Templates
 
     from .store import Kind
+
+
+logger = logging.getLogger(__name__)
+
+
+@runtime_checkable
+class Postable(TextChannelLike, Protocol):
+    """A text channel that takes messages, as the plugin calls it."""
+
+    async def send(
+        self,
+        *,
+        content: str | None = None,
+        embeds: Sequence[discord.Embed] = (),
+        view: discord.ui.View | discord.ui.LayoutView | None = None,
+        files: Sequence[discord.File] = (),
+    ) -> object:
+        """Send a message to the channel."""
+        ...
 
 
 class CommandSpec(NamedTuple):
@@ -57,13 +79,63 @@ class WelcomeByeGuild(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
-        """Stub until the welcome message exists."""
-        raise NotImplementedError
+        """Welcome a member, bots too as in v3, in the guild's welcome channel.
+
+        discord.py builds the member from the event and counts it in the guild beforehand, as JDA
+        did, so ``%wbg@guild_member_count%`` includes it.
+        """
+        await self._greet(member.guild, member, "welcome", "join")
 
     @commands.Cog.listener()
     async def on_raw_member_remove(self, payload: discord.RawMemberRemoveEvent) -> None:
-        """Stub until the bye message exists."""
-        raise NotImplementedError
+        """See off a member who left, was kicked or banned, in the guild's bye channel.
+
+        ``on_member_remove`` fires only for cached members; the raw event has the member when
+        discord.py had it, else the user. JDA ignored the bot's own removal, and so does this.
+        """
+        bot = self.bot.user
+        guild = self.bot.get_guild(payload.guild_id)
+        if guild is None or (bot is not None and payload.user.id == bot.id):
+            return
+        await self._greet(guild, payload.user, "bye", "leave")
+
+    async def _greet(
+        self,
+        guild: discord.Guild,
+        user: discord.User | discord.Member,
+        kind: Kind,
+        event_type: str,
+    ) -> None:
+        """Send the ``kind`` message to the guild's ``kind`` channel, in the guild's locale.
+
+        As in v3, nothing is sent when the channel is unbound, gone or not a text channel. When
+        Discord refuses the message, a warning names the guild and the channel.
+        """
+        bindings = await read(self.store, guild.id)
+        channel_id = bindings.channel(kind)
+        channel = _postable(guild.get_channel(channel_id)) if channel_id else None
+        if channel is None:
+            return
+        values = member_event_values(self.bot.user, user, guild, bindings, event_type)
+        template = self.templates.message(kind, guild.preferred_locale.value)
+        message = render_message(template, values)
+        try:
+            await channel.send(
+                content=message.content or None,
+                embeds=message.embeds,
+                view=message.view,
+                files=message.files,
+            )
+        except discord.HTTPException as error:
+            logger.warning(
+                "WelcomeByeGuild cannot post the %s message in %s (%s) of %s (%s): %s",
+                kind,
+                channel.name,
+                channel.id,
+                guild.name,
+                guild.id,
+                error,
+            )
 
     async def bind_channel(
         self,
@@ -136,3 +208,12 @@ def _kind(interaction: discord.Interaction) -> Kind:
     """The kind of channel that the invoked command changes."""
     name = interaction.command.name if interaction.command else ""
     return COMMANDS[name].kind
+
+
+def _postable(channel: object) -> Postable | None:
+    """``channel`` if it is a text channel, typed by the call that the plugin makes.
+
+    discord.py's ``send`` overloads take a ``View`` or a ``LayoutView``, never their union.
+    """
+    text = text_channel(channel)
+    return text if isinstance(text, Postable) else None

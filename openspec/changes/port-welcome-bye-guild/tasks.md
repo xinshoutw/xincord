@@ -37,7 +37,7 @@
 
 - [x] 7.1 xfail tests for "Members who join are welcomed" and "Members who leave are seen off",
       against stub listeners
-- [ ] 7.2 Implement `on_member_join` and `on_raw_member_remove`; remove the markers
+- [x] 7.2 Implement `on_member_join` and `on_raw_member_remove`; remove the markers
 
 ## 8. Forgetting guilds
 
