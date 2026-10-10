@@ -21,10 +21,11 @@ from xincord.core.templates import modal_values, render_message, render_modal
 
 from .channels import Postable
 from .drafts import defaults, select_roles, select_style, submit
-from .model import DataError, hex_color
+from .model import Controls, DataError, hex_color
 from .store import Panels
 from .texts import Texts, clip, readable_error
-from .views import panel_button, preview_button, preview_embed
+from .tickets import can_copy, category_of, opener, overwrites
+from .views import control_row, panel_button, preview_button, preview_embed
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -34,8 +35,8 @@ if TYPE_CHECKING:
     from xincord.core.storage import Store
     from xincord.core.templates import Message, Templates
 
-    from .channels import Posted
-    from .model import Draft
+    from .channels import Category, Posted, TicketChannel
+    from .model import Draft, Entry
 
 logger = logging.getLogger(__name__)
 
@@ -257,8 +258,115 @@ class Ticket(commands.Cog):
     async def open_ticket(
         self, interaction: discord.Interaction, fields: Mapping[str, str]
     ) -> None:
-        """Open a ticket channel for the member who submitted the reason modal."""
-        raise NotImplementedError
+        """Open a ticket channel for the member who submitted the reason modal.
+
+        Deferred ephemerally (v3's ``deferReply(true)``), then the entry and its category (v3's
+        replies after the deferral never arrived, B3, and a missing entry threw, B4), the channel,
+        named after the member's username, and its opener; the member is told where to go. A
+        refusal answers ``ticket-failed``; a channel whose opener was refused is deleted.
+        """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        texts = self.texts(interaction)
+        controls = Controls(
+            interaction.user.id, fields.get("msg_id", ""), fields.get("btn_index", "")
+        )
+        guild_id = interaction.guild_id
+        entry = (
+            None
+            if guild_id is None
+            else await self.panels.entry(guild_id, controls.message_id, controls.index)
+        )
+        if entry is None:
+            await interaction.edit_original_response(content=texts.get("error.not-found"))
+            return
+        category = self._category(interaction, entry.category_id)
+        if category is None:
+            await interaction.edit_original_response(content=texts.get("error.no-category"))
+            return
+        reason = modal_values(interaction.data).get("reason", "")
+        try:
+            channel = await self._create(interaction, category, entry)
+            await self._send_opener(channel, entry, reason, controls)
+        except discord.HTTPException as error:
+            logger.warning(
+                "Ticket cannot open a ticket for member %s in guild %s: %s",
+                interaction.user.id,
+                guild_id,
+                error,
+            )
+            failed = texts.get("error.ticket-failed", {"tt@error": readable_error(error)})
+            await interaction.edit_original_response(content=failed)
+            return
+        going = texts.get("reply.go-to-channel", {"tt@channel": channel.mention})
+        await interaction.edit_original_response(content=going)
+
+    def _category(self, interaction: discord.Interaction, category_id: int) -> Category | None:
+        """The entry's category: the panel channel's for 0, else the guild's cached one."""
+        if category_id == 0:
+            found = category_of(interaction.channel)
+        else:
+            guild = cast("object", interaction.guild)
+            found = guild.get_channel(category_id) if isinstance(guild, Guild) else None
+        if getattr(found, "type", None) is not discord.ChannelType.category:
+            return None
+        return cast("Category", found)
+
+    async def _create(
+        self, interaction: discord.Interaction, category: Category, entry: Entry
+    ) -> TicketChannel:
+        """Create the ticket's text channel in ``category``, named after the member's username.
+
+        discord.py's ``create_text_channel(overwrites=...)`` does not copy the category's
+        overwrites as JDA's did, so the whole map is built.
+        """
+        guild = cast("discord.Guild", interaction.guild)
+        me = guild.me
+        copied = {
+            target: overwrite
+            for target, overwrite in category.overwrites.items()
+            # discord.py would send an uncached role's overwrite as a member's
+            if not (isinstance(target, discord.Object) and target.type is discord.Role)
+        }
+        if not can_copy(
+            copied.values(),
+            category.permissions_for(me),
+            administrator=me.guild_permissions.administrator,
+        ):
+            copied = {}
+        roles = [
+            role for role_id in entry.admin_ids if (role := guild.get_role(role_id)) is not None
+        ]
+        built = overwrites(
+            copied,
+            everyone=cast("object", guild.default_role),
+            member=cast("object", interaction.user),
+            roles=roles,
+            me=cast("object", me),
+        )
+        return await category.create_text_channel(interaction.user.name, overwrites=built)
+
+    async def _send_opener(
+        self, channel: TicketChannel, entry: Entry, reason: str, controls: Controls
+    ) -> None:
+        """Send v3's opener with the unlocked control row; delete the channel when it is refused.
+
+        The staff roles ping and nothing else does (v3 pinged everything, S1).
+
+        Raises:
+            discord.HTTPException: Discord refused a message.
+        """
+        mentions = discord.AllowedMentions(
+            everyone=False, users=True, roles=[discord.Object(role) for role in entry.admin_ids]
+        )
+        *parts, last = opener(entry.admin_ids, reason)
+        row = control_row(controls, locked=False, texts=self.public, build_id=IDS.build)
+        try:
+            for part in parts:
+                await channel.send(content=part, allowed_mentions=mentions)
+            await channel.send(content=last, allowed_mentions=mentions, view=row)
+        except discord.HTTPException:
+            await _delete_channel(channel)
+            raise
 
     async def press(
         self, interaction: discord.Interaction, sub_action: str, fields: Mapping[str, str]
@@ -567,6 +675,14 @@ class Ticket(commands.Cog):
     def public(self) -> Texts:
         """The texts of public messages (the control row, the archive's markers): zh-TW, as v3."""
         return Texts(self.lang, self.lang.default_locale)
+
+
+async def _delete_channel(channel: TicketChannel) -> None:
+    """Delete a ticket channel whose opener was refused; a failure is logged."""
+    try:
+        await channel.delete()
+    except discord.HTTPException as error:
+        logger.warning("Ticket cannot delete the channel %s: %s", channel.id, error)
 
 
 async def _delete(posted: Posted) -> None:

@@ -57,4 +57,9 @@ def clip(text: str, limit: int) -> str:
 
 def chunks(text: str, limit: int) -> list[str]:
     """``text`` in parts of at most ``limit`` UTF-16 code units each, characters kept whole."""
-    raise NotImplementedError
+    parts: list[str] = []
+    while units(text) > limit:
+        part = clip(text, limit)
+        parts.append(part)
+        text = text[len(part) :]
+    return [*parts, text]

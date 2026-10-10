@@ -77,9 +77,6 @@ VIEW = discord.Permissions(view_channel=True).value
 SEND = discord.Permissions(send_messages=True).value
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Submitting the reason opens a ticket channel"
-)
 async def test_ticket(scene: Scene) -> None:
     """Requirement: Submitting the reason opens a ticket channel."""
     ticket = await open_ticket(scene)
@@ -114,7 +111,6 @@ async def test_ticket(scene: Scene) -> None:
     assert [role.id for role in cast("list[discord.Object]", mentions.roles)] == [3, 4]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Texts follow the reader")
 async def test_public_texts_in_the_default_locale(scene: Scene) -> None:
     """Requirement: Texts follow the reader."""
     ticket = await open_ticket(scene)  # member 8's client is en-US
@@ -125,9 +121,6 @@ async def test_public_texts_in_the_default_locale(scene: Scene) -> None:
     assert labels == [zh["lock"], zh["save"], zh["delete"]]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Submitting the reason opens a ticket channel"
-)
 async def test_configured_category(scene: Scene) -> None:
     """Requirement: Submitting the reason opens a ticket channel."""
     other = FakeCategory(id=31)
@@ -139,9 +132,6 @@ async def test_configured_category(scene: Scene) -> None:
     assert ticket.category.sent == []
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Submitting the reason opens a ticket channel"
-)
 async def test_panel_in_a_thread(scene: Scene) -> None:
     """Requirement: Submitting the reason opens a ticket channel."""
     category = FakeCategory(id=CATEGORY)
@@ -162,9 +152,6 @@ async def test_panel_in_a_thread(scene: Scene) -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Submitting the reason opens a ticket channel"
-)
 @pytest.mark.parametrize(
     ("missing", "reply"),
     [
@@ -194,9 +181,6 @@ async def test_missing_entry_or_category(scene: Scene, missing: str, reply: str)
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Submitting the reason opens a ticket channel"
-)
 async def test_long_reason(scene: Scene) -> None:
     """Requirement: Submitting the reason opens a ticket channel."""
     ticket = await open_ticket(scene, reason="x" * 2100)
@@ -210,9 +194,6 @@ async def test_long_reason(scene: Scene) -> None:
     assert [fields.get("view") is not None for fields in parts] == [False, True]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Submitting the reason opens a ticket channel"
-)
 @pytest.mark.parametrize("refused", ["channel", "opener"])
 async def test_refused_creation(scene: Scene, refused: str) -> None:
     """Requirement: Submitting the reason opens a ticket channel."""
@@ -238,11 +219,6 @@ async def test_refused_creation(scene: Scene, refused: str) -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Ticket channels get v3's permissions and the bot's",
-)
 async def test_overwrites(scene: Scene) -> None:
     """Requirement: Ticket channels get v3's permissions and the bot's."""
     role5, everyone = FakeRole(5), scene.guild.default_role
@@ -270,11 +246,6 @@ async def test_overwrites(scene: Scene) -> None:
     }
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Ticket channels get v3's permissions and the bot's",
-)
 @pytest.mark.parametrize("administrator", [False, True])
 async def test_overwrites_the_bot_cannot_copy(scene: Scene, administrator: bool) -> None:  # noqa: FBT001
     """Requirement: Ticket channels get v3's permissions and the bot's."""
@@ -300,9 +271,6 @@ async def test_overwrites_the_bot_cannot_copy(scene: Scene, administrator: bool)
     assert created == expected
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Submitting the reason opens a ticket channel"
-)
 @pytest.mark.parametrize(
     ("text", "parts"),
     [
@@ -316,3 +284,18 @@ async def test_overwrites_the_bot_cannot_copy(scene: Scene, administrator: bool)
 def test_chunks(text: str, parts: list[str]) -> None:
     """Requirement: Submitting the reason opens a ticket channel."""
     assert chunks(text, 2000) == parts
+
+
+async def test_undeletable_channel(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Submitting the reason opens a ticket channel."""
+    category = FakeCategory(id=CATEGORY, send_error=forbidden(), channel_delete_error=forbidden())
+    scene.channel.category = category
+    await scene.store.put(
+        NAMESPACE, "10", {PANEL: [{"reasonTitle": "Why?", "adminIds": [], "categoryId": 0}]}
+    )
+    custom_id = IDS.build({"action": "submit", "msg_id": PANEL, "btn_index": "0"})
+
+    interaction = await scene.submit_id(custom_id, {"reason": "x"}, scene.who(user=MEMBER))
+
+    assert interaction.sent[-1][0] == "edit_original_response"
+    assert "cannot delete the channel 700" in caplog.text

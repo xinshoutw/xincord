@@ -295,6 +295,7 @@ class FakeCategory(FakeChannel):
     bot_permissions: discord.Permissions = field(default_factory=discord.Permissions.all)
     create_error: Exception | None = None
     send_error: Exception | None = None
+    channel_delete_error: Exception | None = None  # what deleting a created channel raises
     created: list[FakeChannel] = field(default_factory=list[FakeChannel])
     next_channel_id: int = 700
 
@@ -316,7 +317,12 @@ class FakeCategory(FakeChannel):
             raise self.create_error
         self.sent.append(("category.create_text_channel", {"name": name, "overwrites": overwrites}))
         channel = FakeChannel(
-            sent=self.sent, error=self.send_error, id=self.next_channel_id, name=name, category=self
+            sent=self.sent,
+            error=self.send_error,
+            id=self.next_channel_id,
+            name=name,
+            category=self,
+            delete_error=self.channel_delete_error,
         )
         self.next_channel_id += 1
         self.created.append(channel)
