@@ -28,7 +28,7 @@
 
 ## 6. Status codes
 
-- [ ] 6.1 xfail tests for "The status code decides what follows" against a stub `Pusher.push`
+- [x] 6.1 xfail tests for "The status code decides what follows" against a stub `Pusher.push`
 - [ ] 6.2 Implement `Pusher.push`; remove the markers
 
 ## 7. Loop

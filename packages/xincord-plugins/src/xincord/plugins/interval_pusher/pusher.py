@@ -92,6 +92,10 @@ class Pusher:
             ping = NO_PING
         return build_url(template, ping)
 
+    async def push(self) -> bool:
+        """Push once and log the outcome; return whether the listener keeps pushing."""
+        raise NotImplementedError
+
 
 def describe(error: BaseException) -> str:
     """The error's message, or its type when it has none (aiohttp's timeouts may have none)."""
