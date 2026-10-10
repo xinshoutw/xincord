@@ -28,3 +28,10 @@ class Texts:
     def get(self, key: str, values: Mapping[str, str] | None = None) -> str:
         """The text ``key`` of ``text.yaml`` with its ``%tt@...%`` values, inserted as written."""
         return render(self.lang.text(f"{TEXT}.{key}", self.locale), values or {})
+
+
+def readable_error(error: BaseException) -> str:
+    """An error as v3 showed it to users: its text on one line, at most 200 UTF-16 code units, or
+    its class name; URLs are cut to their origin, since a webhook's URL holds its token.
+    """
+    raise NotImplementedError

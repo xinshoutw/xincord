@@ -109,6 +109,7 @@ class Scene:
     store: Store
     guild: FakeGuild = field(default_factory=lambda: FakeGuild(GUILD))
     channel: FakeChannel = field(default_factory=lambda: FakeChannel(id=CHANNEL))
+    refuse_edit: Exception | None = None  # what Discord answers to the builder's edits
 
     @property
     def cog(self) -> Ticket:
@@ -140,6 +141,7 @@ class Scene:
         )
         interaction.message = FakeMessage(sent=interaction.sent, id=who.message_id)
         interaction.channel = self.channel
+        interaction.refuse_edit = self.refuse_edit
         return interaction
 
     def keep(self, draft: Draft, who: Who = ME, target: Target | None = None) -> None:

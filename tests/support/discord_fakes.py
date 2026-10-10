@@ -56,13 +56,19 @@ class FakeResponse:
     """``Interaction.response``: appends each response to the interaction's ``sent`` list."""
 
     sent: list[Sent]
+    edit_error: Exception | None = None  # what edit_message raises, as when Discord refuses it
 
     async def defer(self, *, ephemeral: bool = False, thinking: bool = False) -> None:
         """Record a deferral, such as the command tree's before a command runs."""
         self.sent.append(("response.defer", {"ephemeral": ephemeral, "thinking": thinking}))
 
     async def edit_message(self, **fields: object) -> None:
-        """Record an edit of the component's message."""
+        """Record an edit of the component's message, or raise ``edit_error``.
+
+        A refused response leaves the interaction unanswered, as discord.py does.
+        """
+        if self.edit_error is not None:
+            raise self.edit_error
         self.sent.append(("response.edit_message", fields))
 
     async def send_message(self, content: str | None = None, **fields: object) -> None:
@@ -106,6 +112,8 @@ class FakeInteraction:
     original: FakeMessage = field(default_factory=lambda: FakeMessage(id=43))
     # What edit_original_response raises once it recorded the edit, as when Discord refuses it.
     edit_error: Exception | None = None
+    # What response.edit_message raises, as when Discord refuses the edited message.
+    refuse_edit: Exception | None = None
 
     @property
     def guild_id(self) -> int | None:
@@ -120,7 +128,7 @@ class FakeInteraction:
     @property
     def response(self) -> FakeResponse:
         """The response, recording into ``sent``."""
-        return FakeResponse(self.sent)
+        return FakeResponse(self.sent, self.refuse_edit)
 
     @property
     def followup(self) -> FakeFollowup:
@@ -511,6 +519,15 @@ def not_found() -> discord.NotFound:
     """The error discord.py raises for a message or channel that is gone."""
     response = cast("aiohttp.ClientResponse", SimpleNamespace(status=404, reason="Not Found"))
     return discord.NotFound(response, "Unknown Message")
+
+
+def bad_request(text: str) -> discord.HTTPException:
+    """The error discord.py raises when Discord refuses a request's body, naming ``text``."""
+    response = cast("aiohttp.ClientResponse", SimpleNamespace(status=400, reason="Bad Request"))
+    errors = {"components": {"_errors": [{"code": "INVALID", "message": text}]}}
+    return discord.HTTPException(
+        response, {"code": 50035, "message": "Invalid Form Body", "errors": errors}
+    )
 
 
 def embed_dict(embed: discord.Embed) -> dict[str, Any]:
