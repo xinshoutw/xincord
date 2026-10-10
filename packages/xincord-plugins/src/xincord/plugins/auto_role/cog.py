@@ -17,11 +17,10 @@ class AutoRole(commands.Cog):
     """The plugin's state and listeners; ``setup`` adds them."""
 
     def __init__(self, bot: commands.Bot, config: Config) -> None:
-        """Keep the bot and what ``setup`` loaded."""
-        self.bot = bot
-        self.config = config
+        """Keep the bot and each configured guild's role IDs.
 
-    @property
-    def roles(self) -> dict[int, tuple[int, ...]]:
-        """Stub until the config lists guilds."""
-        raise NotImplementedError
+        A reload builds a new cog, so the guilds and their roles change together (v3 replaced
+        them one after the other).
+        """
+        self.bot = bot
+        self.roles = config.roles_by_guild()

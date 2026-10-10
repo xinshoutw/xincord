@@ -21,7 +21,6 @@ if TYPE_CHECKING:
     from xincord.core.bot import Bot
     from xincord.core.storage import Store
 
-REQUIREMENT = "The config lists guilds and their roles"
 # v3's shape with 64-bit IDs; the values are placeholders.
 V3_CONFIG = """\
 enabled: true
@@ -40,7 +39,6 @@ def loaded_cog(bot: Bot) -> AutoRole:
     return cog
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REQUIREMENT)
 async def test_v3_config_file(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -53,7 +51,6 @@ async def test_v3_config_file(
     assert "unknown key guilds" not in caplog.text
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REQUIREMENT)
 async def test_default_config(tmp_path: Path, store: Store) -> None:
     """Requirement: The config lists guilds and their roles."""
     bot = await load_plugin("AutoRole", tmp_path / "plugins", store)
@@ -61,8 +58,6 @@ async def test_default_config(tmp_path: Path, store: Store) -> None:
     assert loaded_cog(bot).roles == {}
 
 
-# The stub accepts every file, so the plugin loads: no NotImplementedError to expect.
-@pytest.mark.xfail(strict=True, reason=REQUIREMENT)
 @pytest.mark.parametrize(
     ("config", "error"),
     [
@@ -87,7 +82,6 @@ async def test_invalid_entries(
     assert error in caplog.text
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REQUIREMENT)
 def test_guild_listed_twice() -> None:
     """Requirement: The config lists guilds and their roles."""
     config = Config.model_validate(
