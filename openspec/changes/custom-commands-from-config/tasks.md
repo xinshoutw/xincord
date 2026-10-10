@@ -8,7 +8,7 @@
 ## 2. Core: guild lists
 
 - [x] 2.1 xfail tests for "Commands are split into guild and global scopes": a guild list
-- [ ] 2.2 Build each guild's payload without the commands of other guilds; remove the markers
+- [x] 2.2 Build each guild's payload without the commands of other guilds; remove the markers
 
 ## 3. Bundled config
 

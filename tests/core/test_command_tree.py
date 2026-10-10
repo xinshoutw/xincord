@@ -166,11 +166,6 @@ async def test_scopes_and_translation(tmp_path: Path, monkeypatch: pytest.Monkey
     assert guild_payload[0]["name_localizations"]["zh-TW"] == "pong-tw"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Commands are split into guild and global scopes",
-)
 async def test_guild_list_payloads(monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Commands are split into guild and global scopes."""
     tree, _ = tree_with(monkeypatch, ping, shop, info)
@@ -187,7 +182,6 @@ async def test_guild_list_payloads(monkeypatch: pytest.MonkeyPatch) -> None:
     assert [command["name"] for command in every[1]] == ["ping", "shop"]
 
 
-@pytest.mark.xfail(strict=True, reason="Commands are split into guild and global scopes")
 async def test_guild_list(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Commands are split into guild and global scopes."""
     tree, http = tree_with(monkeypatch, ping, shop)

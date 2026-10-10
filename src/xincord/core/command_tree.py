@@ -14,7 +14,7 @@ import discord
 from discord import app_commands
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
+    from collections.abc import Awaitable, Callable, Collection
 
     from xincord.core.storage import Store
 
@@ -41,18 +41,27 @@ class CommandTree(app_commands.CommandTree[discord.Client]):
         return True
 
     async def payloads(self, guild_id: int | None = None) -> tuple[list[Payload], list[Payload]]:
-        """Return the payloads of the global commands and of the guild commands, translated."""
-        if guild_id is not None:
-            raise NotImplementedError
+        """Return the payloads of the global commands and of the guild commands, translated.
+
+        Args:
+            guild_id: The guild whose commands the guild payload holds: every guild command but
+                those whose ``extras["guilds"]`` lists other guilds only. None for every guild
+                command.
+        """
         global_payload: list[Payload] = []
         guild_payload: list[Payload] = []
         for command in self.get_commands():
-            payload = (
+            if command.extras.get("global"):
+                scope = global_payload
+            elif _registered_in(command.extras.get("guilds"), guild_id):
+                scope = guild_payload
+            else:
+                continue
+            scope.append(
                 command.to_dict(self)
                 if self.translator is None
                 else await command.get_translated_payload(self, self.translator)
             )
-            (global_payload if command.extras.get("global") else guild_payload).append(payload)
         return global_payload, guild_payload
 
     async def sync_global(self, store: Store, *, force: bool = False) -> bool:
@@ -85,7 +94,7 @@ class CommandTree(app_commands.CommandTree[discord.Client]):
             MissingApplicationID: The client has not logged in.
         """
         application_id = self._application_id()
-        _, payload = await self.payloads()
+        _, payload = await self.payloads(guild_id)
         http = self.client.http
         return await self._upload(
             store,
@@ -121,3 +130,11 @@ class CommandTree(app_commands.CommandTree[discord.Client]):
             return False
         await store.put(NAMESPACE, key, digest)
         return True
+
+
+def _registered_in(guilds: Collection[int] | None, guild_id: int | None) -> bool:
+    """Whether a guild command whose ``extras["guilds"]`` is ``guilds`` belongs to ``guild_id``.
+
+    A command without a guild list belongs to every guild; None stands for every guild.
+    """
+    return guilds is None or guild_id is None or guild_id in guilds
