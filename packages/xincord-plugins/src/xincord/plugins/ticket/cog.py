@@ -10,7 +10,7 @@ import re
 import sqlite3
 import time
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Any, Protocol, cast, override, runtime_checkable
+from typing import TYPE_CHECKING, Any, cast, override
 
 import discord
 from discord import app_commands
@@ -25,6 +25,7 @@ from .drafts import defaults, select_roles, select_style, submit
 from .ids import IDS
 from .model import Controls, DataError, hex_color
 from .store import Panels
+from .targets import fetch, is_full, refusal
 from .texts import Texts, clip, readable_error, tell
 from .tickets import can_copy, category_of, opener, overwrites
 from .views import control_row, panel_button, preview_button, preview_embed
@@ -68,16 +69,6 @@ SCREENS: dict[str, str | None] = {
 LABEL_MAX = 45  # Discord's limit of a modal input's label
 MESSAGE_ID = re.compile(r"[0-9]{1,20}")  # a snowflake as /add-ticket's text option gives it
 GUILD_ID = re.compile(r"[1-9][0-9]{0,19}")  # a guild ID in decimal, as the store's keys hold it
-ROW_SIZE = 5  # the components an action row holds at most
-
-
-@runtime_checkable
-class Fetching(Protocol):
-    """A channel that fetches its messages, as v3's ``retrieveMessageById``."""
-
-    async def fetch_message(self, message_id: int, /) -> discord.Message:
-        """The channel's message ``message_id``."""
-        ...
 
 
 class PanelError(Exception):
@@ -221,10 +212,10 @@ class Ticket(ControlRow, commands.Cog):
         """The message that ``/add-ticket`` names, or the error that answers the command."""
         if not MESSAGE_ID.fullmatch(text):
             return texts.get("error.invalid-message-id", {"tt@message-id": text})
-        message = await _fetch(interaction.channel, int(text))
+        message = await fetch(interaction.channel, int(text))
         if message is None:
             return texts.get("error.message-not-found", {"tt@message-id": text})
-        refused = _refusal(message, interaction.client.user)
+        refused = refusal(message, interaction.client.user)
         if refused is not None:
             return texts.get(refused)
         return Target(message.id, message.embeds[0])
@@ -653,7 +644,7 @@ class Ticket(ControlRow, commands.Cog):
         channel = interaction.channel
 
         async def place(index: int) -> None:
-            message = await _fetch(channel, target.message_id)
+            message = await fetch(channel, target.message_id)
             if message is None:
                 missing = {"tt@message-id": str(target.message_id)}
                 raise PanelError(texts.get("error.message-not-found", missing))
@@ -747,45 +738,3 @@ def _values(data: Mapping[str, object]) -> list[str]:
 def _is_category(guild: object, text: str) -> bool:
     """Whether the guild's cache knows ``text`` as a category's ID, v3's ``getCategoryById``."""
     return getattr(cached_channel(guild, text), "type", None) is discord.ChannelType.category
-
-
-async def _fetch(channel: object, message_id: int) -> discord.Message | None:
-    """The channel's message ``message_id``, or None when Discord has none for the bot there."""
-    if not isinstance(channel, Fetching):  # a channel without messages has no such message
-        return None
-    try:
-        return await channel.fetch_message(message_id)
-    except discord.HTTPException:
-        return None
-
-
-def _refusal(message: discord.Message, bot: discord.ClientUser | None) -> str | None:
-    """The error key when ``/add-ticket`` cannot add a button to ``message``, else None."""
-    if bot is None or message.author.id != bot.id:
-        return "error.not-own-message"
-    if is_full(message):
-        return "error.message-full"
-    if not message.embeds:
-        return "error.no-embed"
-    return None
-
-
-def is_full(message: discord.Message) -> bool:
-    """Whether the message's first action row takes no more button: five components, or a select
-    (which fills its row).
-    """
-    row = first_row(message)
-    if row is None:
-        return False
-    children = row.children
-    return len(children) >= ROW_SIZE or not all(
-        isinstance(child, discord.Button) for child in children
-    )
-
-
-def first_row(message: discord.Message) -> discord.ActionRow | None:
-    """The message's first action row, v3's ``firstOrNull { it.type == ACTION_ROW }``."""
-    return next(
-        (component for component in message.components if isinstance(component, discord.ActionRow)),
-        None,
-    )

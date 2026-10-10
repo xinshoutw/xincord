@@ -52,6 +52,8 @@ category or role list; archiving embeds, stickers, reactions or edits; the Web D
 - `ids.py`: `IDS`, which `cog.py` re-exports.
 - `controls.py`: `ControlRow`, the cog's base: the texts of the replies and the control row's
   handlers (lock, unlock, delete, save and the save select), so that `cog.py` stays under 800 lines.
+- `targets.py`: the message that `/add-ticket` adds a button to: `fetch`, `refusal` and `is_full`
+  (its first row full or holding a select), also kept out of `cog.py` for its size.
 - `cog.py`: the cog `Ticket`, the commands, `handle` and the other handlers, `on_guild_remove` and
   the READY check.
 - `lang/<locale>/` with v3's `register.yaml`, `message/*.yaml` and `modal/*.yaml`, two of them fixed
