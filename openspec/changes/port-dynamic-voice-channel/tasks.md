@@ -22,7 +22,7 @@
 ## 5. Room names
 
 - [x] 5.1 xfail tests for "Room names follow format 1" against stubs in `names.py`
-- [ ] 5.2 Implement `custom_name` and `room_name`; remove the markers
+- [x] 5.2 Implement `custom_name` and `room_name`; remove the markers
 
 ## 6. Bind and unbind
 
