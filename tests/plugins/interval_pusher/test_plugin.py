@@ -9,7 +9,6 @@ Kotlin:
 from importlib.resources import files
 from typing import TYPE_CHECKING
 
-import pytest
 import yaml
 
 from plugin_fakes import load_plugin
@@ -20,10 +19,7 @@ if TYPE_CHECKING:
 
     from xincord.core.storage import Store
 
-XFAIL = pytest.mark.xfail(strict=True, reason="The plugin installs as IntervalPusher")
 
-
-@XFAIL
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as IntervalPusher."""
     # No dependencies and no intents: v3 handled no gateway event.
@@ -32,7 +28,6 @@ def test_discovered_by_name() -> None:
     ]
 
 
-@XFAIL
 async def test_first_load_creates_the_config(store: Store, tmp_path: Path) -> None:
     """Requirement: The plugin installs as IntervalPusher."""
     bot = await load_plugin("IntervalPusher", tmp_path / "plugins", store)
