@@ -5,7 +5,7 @@
 
 ## 2. Installation
 
-- [ ] 2.1 xfail tests for "The plugin installs as DynamicVoiceChannel"
+- [x] 2.1 xfail tests for "The plugin installs as DynamicVoiceChannel"
 - [ ] 2.2 Add the package, its `setup` and the `DynamicVoiceChannel` entry point; remove the markers
 
 ## 3. Bindings
