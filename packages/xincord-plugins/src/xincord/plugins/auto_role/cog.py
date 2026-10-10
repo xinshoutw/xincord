@@ -29,5 +29,17 @@ class AutoRole(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
-        """Stub until members who join get the guild's roles."""
-        raise NotImplementedError
+        """Give a member who joined a configured guild that guild's roles, one by one.
+
+        discord.py builds the member from the join event, so no member cache is needed.
+        """
+        role_ids = self.roles.get(member.guild.id)
+        if role_ids is None:
+            return
+        for role_id in dict.fromkeys(role_ids):  # a role listed twice is requested once
+            # Looked up in the joined guild at each join: v3 searched every guild, once.
+            role = member.guild.get_role(role_id)
+            if role is not None:
+                # discord.py's atomic add sends one add-role request, which keeps the member's
+                # other roles; v3's single request replaced them all.
+                await member.add_roles(role)
