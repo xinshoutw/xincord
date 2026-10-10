@@ -59,3 +59,54 @@ bye:
     description: "但願我們能在未來的道路上相見...\n"
     thumbnail: {url: "https://cdn.example/alice.png"}
     color: 15548997
+
+# The translated payloads of the four guild commands; keys that are not listed here are not
+# compared. 8 is the Administrator permission, and channel type 0 is a text channel. The texts
+# come from v3's Register.kt and register.yaml.
+commands:
+  - type: 1
+    name: "welcome-channel-bind"
+    description: "bind channel for welcome message"
+    nsfw: false
+    default_member_permissions: 8
+    options:
+      - type: 7
+        name: "channel"
+        description: "welcome output channel"
+        required: false
+        channel_types: [0]
+        name_localizations: {"en-US": "channel", "zh-TW": "channel"}
+        description_localizations: {"en-US": "Optional. Uses the current text channel if omitted", "zh-TW": "可選，不填則使用當前文字頻道"}
+    name_localizations: {"en-US": "welcome-channel-bind", "zh-TW": "welcome-channel-bind"}
+    description_localizations: {"en-US": "Bind the channel for welcome messages", "zh-TW": "綁定成員加入歡迎訊息頻道"}
+  - type: 1
+    name: "welcome-channel-unbind"
+    description: "unbind welcome channel"
+    nsfw: false
+    default_member_permissions: 8
+    options: []
+    name_localizations: {"en-US": "welcome-channel-unbind", "zh-TW": "welcome-channel-unbind"}
+    description_localizations: {"en-US": "Unbind the channel for welcome messages", "zh-TW": "解除綁定成員加入歡迎訊息頻道"}
+  - type: 1
+    name: "bye-channel-bind"
+    description: "bind channel for bye message"
+    nsfw: false
+    default_member_permissions: 8
+    options:
+      - type: 7
+        name: "channel"
+        description: "bye output channel"
+        required: false
+        channel_types: [0]
+        name_localizations: {"en-US": "channel", "zh-TW": "channel"}
+        description_localizations: {"en-US": "Optional. Uses the current text channel if omitted", "zh-TW": "可選，不填則使用當前文字頻道"}
+    name_localizations: {"en-US": "bye-channel-bind", "zh-TW": "bye-channel-bind"}
+    description_localizations: {"en-US": "Bind the channel for leave messages", "zh-TW": "綁定成員離開難過訊息頻道"}
+  - type: 1
+    name: "bye-channel-unbind"
+    description: "unbind bye channel"
+    nsfw: false
+    default_member_permissions: 8
+    options: []
+    name_localizations: {"en-US": "bye-channel-unbind", "zh-TW": "bye-channel-unbind"}
+    description_localizations: {"en-US": "Unbind the channel for leave messages", "zh-TW": "解除綁定成員離開難過訊息頻道"}

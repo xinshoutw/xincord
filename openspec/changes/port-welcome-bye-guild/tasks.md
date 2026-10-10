@@ -47,7 +47,7 @@
 
 ## 9. Commands
 
-- [ ] 9.1 xfail tests for "The commands are localized administrator guild commands"
+- [x] 9.1 xfail tests for "The commands are localized administrator guild commands"
 - [ ] 9.2 Build the four commands with the text-channel option and register them in `setup`;
       remove the markers
 

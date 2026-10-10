@@ -9,6 +9,7 @@ import logging
 from typing import TYPE_CHECKING, NamedTuple, Protocol, override, runtime_checkable
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from xincord.core.placeholders import placeholder_values
@@ -19,8 +20,6 @@ from .values import TextChannelLike, command_values, member_event_values, text_c
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-
-    from discord import app_commands
 
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
@@ -46,6 +45,15 @@ class Postable(TextChannelLike, Protocol):
     ) -> object:
         """Send a message to the channel."""
         ...
+
+
+class TextChannelOption(app_commands.Transformer[discord.Client]):
+    """Stub until the commands exist."""
+
+    @override
+    async def transform(self, interaction: discord.Interaction, value: object, /) -> object:
+        """Stub until the commands exist."""
+        raise NotImplementedError
 
 
 class CommandSpec(NamedTuple):
