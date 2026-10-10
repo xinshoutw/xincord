@@ -90,6 +90,7 @@ class CustomCommands(commands.Cog):
         edit the tree's ephemeral deferred response into it. Posts and public replies are rendered
         in the default locale for every user, as v3's posts; an ephemeral reply in the user's. The
         placeholders are the user's, the bot's and the interaction's (v3's, the bot's, among them).
+        A response that Discord refuses is deleted, with a warning.
         """
         name = interaction.command.name if interaction.command else ""
         spec = self.specs[name]
@@ -104,12 +105,21 @@ class CustomCommands(commands.Cog):
         # Rendered again after a refused post: discord.py closes a message's files once it sent
         # them, even when Discord refused the message.
         reply = render_message(template, values)
-        await interaction.edit_original_response(
-            content=reply.content or None,
-            embeds=reply.embeds,
-            view=reply.view,
-            attachments=reply.files,
-        )
+        try:
+            await interaction.edit_original_response(
+                content=reply.content or None,
+                embeds=reply.embeds,
+                view=reply.view,
+                attachments=reply.files,
+            )
+        except discord.HTTPException as error:
+            # No "thinking" response stays, which a public reply would leave for everyone.
+            logger.warning(
+                "CustomCommands cannot show %s in its response, so it deletes the response: %s",
+                name,
+                error,
+            )
+            await interaction.delete_original_response()
 
 
 def _permissions(names: Iterable[str]) -> discord.Permissions | None:

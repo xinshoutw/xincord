@@ -101,7 +101,6 @@ async def test_ephemeral_fallback(operator: Operator) -> None:
     assert sent[1][1]["content"] == "faq alice"
 
 
-@pytest.mark.xfail(strict=True, reason="A command can answer with a public or an ephemeral reply")
 @pytest.mark.parametrize(
     ("name", "answer"),
     [("rules", ["response.defer"]), ("shop", ["response.defer"])],

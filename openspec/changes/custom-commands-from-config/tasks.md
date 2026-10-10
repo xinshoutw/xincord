@@ -74,7 +74,7 @@
       render the templates at load and count the room left; remove the markers
 - [x] 11.5 xfail tests for "A command can answer with a public or an ephemeral reply": refused
       responses
-- [ ] 11.6 Log and delete a refused response; remove the markers
+- [x] 11.6 Log and delete a refused response; remove the markers
 - [ ] 11.7 The bundled config's comment on `"no"`; porting guide and skill notes
 
 ## 12. Close
