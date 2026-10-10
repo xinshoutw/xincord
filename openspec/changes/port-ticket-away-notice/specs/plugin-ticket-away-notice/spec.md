@@ -149,12 +149,18 @@ keep the plugin from loading, with an error that names the file.
 - **THEN** the plugin loads, the notice uploads the file, and no file stays open
 
 ### Requirement: Pending notices end with the plugin
-Unloading or reloading the plugin SHALL cancel the notices that wait for their delay, so that none
-is posted afterwards, without logging an error.
+Unloading or reloading the plugin SHALL cancel the notices that wait for their delay and start none
+afterwards, even for an event that discord.py dispatched before, so that no notice is posted after
+it, without logging an error.
 
 #### Scenario: Unload during the wait
 - **WHEN** the plugin unloads while a notice waits
 - **THEN** the wait ends, nothing is posted, and no error is logged
+
+#### Scenario: Event after the unload
+- **WHEN** a channel creation that discord.py dispatched before the unload reaches the unloaded
+  plugin's listener
+- **THEN** no notice starts
 
 ### Requirement: The guild and the owner are checked when the bot is ready
 When the bot becomes ready, and when the plugin loads into a ready bot, the plugin SHALL log a
