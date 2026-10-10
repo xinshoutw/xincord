@@ -311,10 +311,10 @@ do the same for every guild the bot is no longer in.
 
 ### Requirement: Settings are checked when the bot is ready
 When the bot is ready, and when the plugin loads into a ready bot, the plugin SHALL remove from the
-allow and block lists of each available guild the channels that the guild no longer has, as v3's
-startup did, and write nothing when none is gone.
+allow and block lists of each available guild the channels that the guild no longer has, its active
+threads counting as channels it has, as v3's startup did, and write nothing when none is gone.
 
 #### Scenario: Deleted channels
-- **WHEN** the allow list holds channel 30 and the deleted channel 31, and the block list the
-  deleted category 21
-- **THEN** the lists become `[30]` and `[]`, with a log line
+- **WHEN** the allow list holds channel 30, thread 41 and the deleted channel 31, and the block list
+  the deleted category 22
+- **THEN** the lists become `[30, 41]` and `[]`, with a log line

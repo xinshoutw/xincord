@@ -70,7 +70,28 @@ allowed; in the block mode none may be blocked. `targets(settings, places)` take
   fetched. `DEFAULT_LOCALE = "zh-TW"`, v3's default and fallback.
 - `lang/` holds v3's 16 files (`register.yaml`, `placeholder.yaml` and `message/{chat-logger@setting,
   delete,modify-allow,modify-block,on-msg-delete,on-msg-update}.yaml` per locale), each with a final
-  newline (six files had none). The texts are v3's.
+  newline (six files had none). The texts are v3's. `config.yaml` holds v3's `log_all` and the new
+  `retention_days`, with comments that name the Message Content intent.
+- uv_build ships every file in the package. Checked on 2026-10-10: the wheel from
+  `uv build --package xincord-plugins` lists the six modules, `config.yaml`, the 16 lang files, the
+  shared `listen_channels` package and the `ChatLogger` entry point; `xincord --no-online`, run from
+  a scratch virtual environment with both wheels and `plugins: [ChatLogger, VoiceLogger]`, writes
+  `plugins/ChatLogger/config.yaml` and the lang files of both, creates `ChatLogger_messages` and its
+  index in `data/xincord.db`, loads both plugins and exits with 0.
+- A scratch probe drove the plugin through discord.py's own objects (a zh-TW guild added with
+  `_add_guild_from_data`, `discord.Interaction` built from gateway payloads, the tree's `_call`,
+  `bot.on_interaction` and `DiscordWebSocket.received_message`), with `HTTPClient.request` and the
+  webhook adapter's `request` recorded: the command deferred with type 5 and the ephemeral flag and
+  edited `@original` into the en-US menu (the user's locale); the allow list button answered type 7
+  with the select menu alone (channel types 0, 2, 4, 5, 13, 15, 16, 10, 11 and 12, 1 to 25, no
+  embed); choosing channel 30 and category 20 answered type 7 with the menu listing them, stored
+  under `ChatLogger`; v3's `chat-logger@a:toggle_btn` toggled twice; through the gateway code, a
+  message created and edited in channel 30 posted the zh-TW update embed with
+  `POST /channels/5/messages`; a link preview's update posted nothing; a message deleted in thread
+  41 fetched `GET /guilds/10/members/7` and posted the deletion embed with the thread and category
+  20; a bulk deletion of two stored messages and an unknown one fetched the member once and posted
+  two embeds in order; the bot's own message was not stored, and a deletion in an undetected
+  channel posted nothing and removed the message.
 
 ### Config
 
@@ -150,7 +171,8 @@ discord.py runs listeners as tasks and later events change its cache meanwhile.
 (one line each), its description and its fields (name and value on two lines), the parts separated
 by blank lines and the empty ones left out. Embeds of other types (link previews, images, videos)
 are left out: Discord adds them to a message after it is sent, from the links in its content, so
-they would count as edits; bots' and webhooks' embeds are rich.
+they would count as edits; bots' and webhooks' embeds are rich, and an embed without a type counts
+as rich, Discord's default.
 
 ### Edits
 
@@ -204,21 +226,33 @@ intent; its deletion used the wrong key). `on_ready`, and `cog_load` in a ready 
 channels are dropped from the lists of available guilds) and, with `log_all` false, delete the
 stored messages of every guild the bot is no longer in, as v3's start did with their files. With
 `log_all` true the messages of left guilds stay until the retention removes them, as v3 kept them.
+The list check counts the guild's active threads as existing channels (`guild.threads`): JDA's
+`getGuildChannelById` found cached threads, and ChatLogger's lists can hold threads; VoiceLogger's
+lists hold voice channels and categories only, so its check is unchanged.
 
 ### Tests
 
 - `tests/plugins/chat_logger/`: `test_plugin.py`, `test_config.py`, `test_detect.py`,
-  `test_menu.py`, `test_components.py`, `test_command.py`, `test_text.py`, `test_messages.py`,
-  `test_store_messages.py` (the listener), `test_edit.py`, `test_delete.py`, `test_post.py`,
-  `test_retention.py`, `test_forget.py` and `test_check.py`; `conftest.py` loads the plugin, records
-  REST requests with `FakeRest` (autouse), gives the bot its user (autouse), stands for READY with
-  `plugin_fakes.Ready` (autouse: the retention loop waits for it), sends the posts to fake channels
-  through `get_partial_messageable` and finds the cog with `cast`.
-- Messages, edits and deletions reach the listeners as discord.py builds them: `discord.Message`
-  objects from gateway payloads with `bot._connection` (a guild added with `_add_guild_from_data`),
-  and the raw events from `plugin_fakes.gateway`.
+  `test_menu.py`, `test_components.py`, `test_command.py`, `test_text.py`, `test_messages.py`
+  (`MessageLog`), `test_receive.py` (storing), `test_edit.py`, `test_delete.py`, `test_post.py`,
+  `test_retention.py`, `test_forget.py` and `test_check.py`. `conftest.py` loads the plugin (its
+  `config` fixture, which tests parametrize, is the operator's `config.yaml`), records REST
+  requests with `FakeRest` (autouse), gives the bot its user (autouse) and stands for READY with
+  `plugin_fakes.Ready` (autouse: the retention loop waits for it); its `scene` fixture caches guild
+  10 in discord.py (category 20 with channel 30 and its thread 41, category 21 with channel 32,
+  channel 33 without a category), sends messages, edits and deletions through discord.py's own
+  parsers, records the posts per listen channel through `get_partial_messageable`, and reads the
+  stored rows.
+- `tests/support/payloads.py` builds Discord's payloads (users, members, channels, threads,
+  guilds, messages); `plugin_fakes.add_guild(bot, payload)` caches a guild as its `GUILD_CREATE`
+  would; `plugin_fakes.gateway` also records the connection state's dispatches, so discord.py's own
+  parsers reach the listeners. `FakeGuild.threads` stands for the active threads.
+- The retention loop's sleep is replaced by `Hours`, which records each delay and waits until the
+  test ends the hour.
 - `tests/fixtures/plugins/chat_logger/golden.yaml`: v3's embeds per locale for the menu, `delete`,
   the select menus and the two logs, and the translated command payload.
+- VoiceLogger's tests follow the moved code: `ListenSettings(store, NAMESPACE)` replaces the store
+  functions, and `NAMESPACE` comes from VoiceLogger's cog.
 
 ### v3 behaved differently
 
@@ -322,6 +356,85 @@ keeps the messages of a guild the bot left (until the retention).
 - v3's `plugins/ChatLogger/setting/*.json` and `data/*.db` are not read: listen channels must be set
   up again, and messages stored by v3 are not logged (the data migration is deferred, B11).
 
+### Inventory audit
+
+Every section of `docs/porting/analysis/inventory/ChatLogger.md` maps to this change:
+
+- Overview (1): the entry object, `info.yaml` and the name are "The plugin installs as ChatLogger"
+  ("Discovered by name"); `component_prefix: chat-logger@` is `IDS`'s legacy prefix ("v3 IDs");
+  `depend_plugins: [SQLiteAPI]` is the core's store (B12, no dependency); `require_intents` is
+  `INTENTS`; the listener flag is the cog's listeners.
+- Lifecycle (2): exporting the lang files and reading the config are "First load creates the
+  files"; `enabled` is the core's `plugins` list; the localizers are the Translator and
+  `Lang.text`; `DbManager`'s lazy start is `MessageLog.create` in `setup` and the checks at READY
+  ("Left while offline"), and its failing `DROP TABLE` and `JsonManager`'s
+  `ConcurrentModificationException` are "v3 behaved differently" entries; `unload()`'s connections
+  are the core's store; `reload()` is the core's reload; v3 had no background job, the retention
+  loop is new ("Every hour", "Unload"); the in-memory maps are the store; the shared placeholder
+  caches are per-render values.
+- Slash command (3): the definition is "Command payload"; the core's defer is "Command callback";
+  the `fullCommandName` filter is the group's routing; the in-memory default is "Channel without
+  settings"; `Placeholder.get(event)` outside text channels is a "v3 behaved differently" entry; the
+  rendered menu in the user's locale is "Menu" (golden embeds and buttons).
+- Components (4): the ID format is `IDS`; `toggle_btn` is "Toggle"; the list buttons and select
+  menus (v3's ten channel types, 1 to 25, their placeholder) are "Modify a list"; `delete_btn` is
+  "Delete" (the whole-file deletion fixed); unknown buttons and select actions are "Other
+  actions"; no removal of entries and no expiry are kept (Non-Goals, Kept on purpose); a list too
+  long to render is "Long list".
+- Events (5): `MessageReceivedEvent` and `isListenable` are "Guild messages are stored" (other
+  bots, webhooks, threads, the bot's own message, direct messages, "Only detected channels");
+  `MessageUpdateEvent` is "Edits of stored messages are logged" (the count after the edit in "Second
+  edit", the database still updated in "Not detected", messages stored before nothing in "Not
+  stored", threads in "Thread", webhooks in "Webhook"); the unverified link previews and pins are
+  "Same text" and "Link preview"; `MessageDeleteEvent` is "Deletions of stored messages are logged"
+  ("Delete", "Author gone", "Not stored", "Not detected"); `GuildLeaveEvent` is "The bot leaves";
+  `MessageBulkDeleteEvent` is "Bulk deletion"; reactions, attachments and stickers are out of
+  scope; the text extraction is "A message's text is its content and its rich embeds"; the
+  detected channels are "Listen channels detect message channels"; `sendListenChannel` is "Logs
+  reach every listen channel".
+- Configuration (6): `enabled` is the core's `plugins` list; `log_all` is "The config keeps v3's
+  key and bounds the stored messages" and "Only detected channels"; KAML's strict mode is the core's
+  unknown-key warning ("v3's file"); the dashboard's toggle is out of scope (B13).
+- Localization (7): en-US and zh-TW with the zh-TW default are `DEFAULT_LOCALE` and the bundled
+  files; `register.yaml` is "Command payload"; `placeholder.yaml` is the shared `list_text`
+  ("Menu", "Long list"); the user's locale for the menu and the guild's for the logs are "Menu" and
+  "Edit"; the zh-TW fallback is "Locale without templates"; the builder's rules are the core's
+  templates; fields over 1024 characters are "Long text" and "Long list"; the embed's 6000
+  characters stay within reach with fitted fields; the placeholder sources are the values above;
+  the recursive substitution is gone ("Typed placeholders").
+- Persistence (8): the message store is `MessageLog`, one table with v3's columns ("Stored
+  message"), a replayed insert ignored, the latest text only, deleted texts removed, bounded by
+  "Stored messages are kept for the retention period"; the start-up maintenance with `log_all`
+  false is "Left while offline"; the settings files are the shared store ("Modify a list"), the
+  `allow_mode` default fixed; the migration of both is out of scope (B11).
+- External dependencies (9): SQLiteAPI is the core's store; nothing else.
+- Discord requirements (10): the intents are `INTENTS` and the portal setting in the smoke
+  checklist; the permissions are in the smoke checklist, and the listen channels' refusals are
+  "Refused listen channel"; one member fetch per logged deletion (one per author in a bulk
+  deletion) and one message per listen channel and event are kept (Risks).
+- Concurrency (11): JDA's sequential dispatch became discord.py's tasks: the place is read before
+  any await, each `MessageLog` operation is one transaction ("Second edit"), the settings change
+  under the guild's lock (shared, VoiceLogger's "Concurrent changes"), and each log renders with its
+  own values.
+- Bugs (12): 1 is the store read per use; 2 is "Modify a list" (allow mode); 3 is "Delete"; 4 is
+  "Only detected channels"; 5 is one table without per-channel tables; 6 is "The bot leaves" with
+  `log_all` false; 7 is the core's store; 8 is "Author gone"; 9 is "Long text" and "Long list"; 10
+  is "Thread" and the thread detection; 11 is "Deleted listen channel" and "Refused listen
+  channel"; 12 is "Typed placeholders"; 13 is "Channel without a category"; 14 is "Content and
+  embeds" and "Missing parts"; 15 is the menu in every channel (the core's `interaction_values`
+  handles threads and voice chats); 16 is "Bulk deletion"; 17 is the store's keys, a key that is
+  not a guild ID skipped with a warning (VoiceLogger's test of the shared check). The behavior to
+  preserve is "Kept on purpose" and the scenarios above.
+- Testability (13): `extract_text` is `text.message_text`; `detected_channels` and
+  `listen_targets` are the shared `detects` and `targets`; `render_id_list` is the shared
+  `list_text`; the message repository is `MessageLog`; the settings repository is `ListenSettings`;
+  the custom IDs are `IDS`; the placeholder engine and the template rendering are the core's, with
+  `text.fit`.
+- Assessment (14): the raw events are used as suggested (`on_raw_message_edit`,
+  `on_raw_message_delete`, `on_raw_bulk_message_delete`); the group is an `app_commands.Group`; the
+  core's routing replaces persistent views; the store is the core's SQLite store, through its
+  worker thread rather than aiosqlite; the retention is a background task.
+
 ## Risks / Trade-offs
 
 - Message content is stored for `retention_days` days in the shared database file; anyone with the
@@ -335,3 +448,47 @@ keeps the messages of a guild the bot left (until the retention).
   decision); a guild with a very high message rate would delay their store calls.
 - Edits are detected by comparing texts: an edit that only changes attachments, or a link preview's
   text, is not logged.
+
+## Manual smoke checklist
+
+On a test guild, with a bot token and `plugins: [ChatLogger]` in `config.yaml`; a category `Chats`
+with the text channel `#general` and a thread in it, a text channel `#loose` outside categories,
+the text channels `#chat-log` and `#chat-log-2`, and two accounts (an administrator and a member).
+The bot needs View Channel and Read Message History in the logged channels, and View Channel, Send
+Messages and Embed Links in the log channels.
+
+1. With the Message Content intent off in the developer portal (Bot, Privileged Gateway Intents),
+   start the bot: Discord refuses the connection and the log names the privileged intents. Turn it
+   on and start again: the log lists `ChatLogger` as loaded, `plugins/ChatLogger/config.yaml` and
+   the 16 lang files exist, and `data/xincord.db` has the table `ChatLogger_messages`.
+2. As the member, the command list does not show `chat-logger`. As the administrator, run
+   `/chat-logger setting` in `#chat-log`: an ephemeral `Message Log` embed with `<ALLOW>`, `Empty`
+   twice and four buttons.
+3. Press `Modify Allowlist`: the select menu offers channels of every kind, categories and threads;
+   choose the category `Chats`: the menu lists it. Press `Toggle Mode` twice: `<BLOCK>`, then
+   `<ALLOW>`.
+4. As the member, send `hello` in `#general` and edit it into `hi`: `#chat-log` gets a yellow
+   `Message Updated` embed with the member, the category, `#general`, `1`, `hello` and `hi`, whose
+   title links to the message. Edit it into `hey`: `2`, `hi` and `hey`.
+5. Send a message with a link and wait for its preview, then pin and unpin it: nothing is posted
+   (record whether Discord sent the updates at all).
+6. Delete the message: a red `Message Deleted` embed with `hey` and `2`. Send and delete a message
+   in the thread: the embed names the thread and `Chats`.
+7. Send three messages in `#general` and purge them with a moderation bot (a bulk deletion): three
+   deletion embeds, oldest first.
+8. Send a message, let the member leave the guild, and delete the message as the administrator:
+   the embed shows the member's mention and no thumbnail.
+9. Send a message longer than 1024 characters (with Nitro or a webhook) and delete it: the content
+   field ends with `...`.
+10. Run the command in `#chat-log-2`, toggle to `<BLOCK>` and block `#loose`; edit messages in
+    `#loose` and `#general`: `#chat-log-2` gets `#general`'s only.
+11. Delete `#chat-log-2`, then edit a message in `#general`: the bot's log says that the listen
+    channel was forgotten. Press `Delete` in `#chat-log`'s menu: `Deleted Successfully`, and edits
+    are no longer posted there.
+12. Switch the guild's language to zh-TW (Community settings) and the administrator's client to
+    zh-TW: the menu, the select menu placeholder and the logs are v3's zh-TW texts.
+13. Set `log_all: false` and `retention_days: 1` and restart: messages in channels that no listen
+    channel detects are not stored (`sqlite3 data/xincord.db "SELECT channel_id, count(*) FROM
+    ChatLogger_messages GROUP BY channel_id"`), and a day later the older messages are gone.
+14. Remove the bot from a second guild with `log_all: false`: its settings and stored messages are
+    deleted.
