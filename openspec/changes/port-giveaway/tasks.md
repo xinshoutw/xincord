@@ -17,7 +17,7 @@
 ## 4. Language
 
 - [x] 4.1 xfail tests for "Each message uses one language" against a stub `texts.language`
-- [ ] 4.2 Implement `language` and `Texts`; remove the markers
+- [x] 4.2 Implement `language` and `Texts`; remove the markers
 
 ## 5. End times
 

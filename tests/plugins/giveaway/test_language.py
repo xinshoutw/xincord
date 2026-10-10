@@ -25,7 +25,6 @@ if TYPE_CHECKING:
     from xincord.plugins.giveaway.cog import Giveaway
 
 GOLDEN = golden("giveaway")
-REASON = "Each message uses one language"
 
 
 def plugin_lang(bot: Bot) -> Lang:
@@ -35,7 +34,6 @@ def plugin_lang(bot: Bot) -> Lang:
     return cast("Giveaway", cog).lang
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(
     ("locale", "chosen"),
     [
@@ -56,7 +54,6 @@ async def test_language(bot: Bot, locale: str, chosen: str) -> None:
     assert lang.template("message/create-giveaway", chosen).parent.parent.name == chosen
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_texts(bot: Bot, locale: str) -> None:
     """Requirement: Each message uses one language."""
@@ -68,7 +65,6 @@ async def test_texts(bot: Bot, locale: str) -> None:
     assert texts.get("post.title", {"ga@title": "%ga@id%"}) == expected["title-placeholder"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_operator_locale(tmp_path: Path, store: Store) -> None:
     """Requirement: Each message uses one language."""
     root = tmp_path / "plugins"
@@ -85,7 +81,6 @@ async def test_operator_locale(tmp_path: Path, store: Store) -> None:
     assert Texts(lang, "ja").get("post.draw") == GOLDEN["texts"]["zh-TW"]["draw"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_missing_text(tmp_path: Path, store: Store) -> None:
     """Requirement: Each message uses one language."""
     root = tmp_path / "plugins"
