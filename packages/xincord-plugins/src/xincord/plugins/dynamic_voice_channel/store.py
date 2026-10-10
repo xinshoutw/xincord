@@ -154,6 +154,16 @@ async def untrack(store: Store, guild_id: int, room_id: int) -> None:
             await store.delete(ROOMS, str(guild_id))
 
 
+async def forget(store: Store, guild_id: int) -> None:
+    """Delete the guild's bindings and rooms."""
+    raise NotImplementedError
+
+
+async def guild_ids(store: Store) -> list[int]:
+    """Return the guilds with bindings or rooms, in order."""
+    raise NotImplementedError
+
+
 def _lock(store: Store, guild_id: int) -> asyncio.Lock:
     """The lock of the guild's documents: every change reads and writes them under it.
 

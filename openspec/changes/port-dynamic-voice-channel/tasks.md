@@ -48,7 +48,7 @@
 
 ## 10. Left guilds
 
-- [ ] 10.1 xfail tests for "Data is forgotten with the guild" against stubs
+- [x] 10.1 xfail tests for "Data is forgotten with the guild" against stubs
 - [ ] 10.2 Implement `forget`, `guild_ids`, `on_guild_remove`, `on_ready`, `cog_load` and the
       left-guild check; remove the markers
 

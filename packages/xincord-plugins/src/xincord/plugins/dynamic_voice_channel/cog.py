@@ -17,7 +17,7 @@ from xincord.core.templates import render_message
 
 from .rooms import create as create_room
 from .rooms import delete as delete_room
-from .store import NAMESPACE, Binding, bind, unbind
+from .store import NAMESPACE, Binding, bind, forget, unbind
 
 if TYPE_CHECKING:
     import asyncio
@@ -211,6 +211,29 @@ class DynamicVoiceChannel(commands.Cog):
                 await create_room(self.bot, self.store, member, lobby)
             if left is not None:
                 await delete_room(self.store, left)
+
+    @override
+    async def cog_load(self) -> None:
+        """Check the guilds at once when the plugin loads into a ready bot, as on a reload."""
+        if self.bot.is_ready():
+            await self.check_guilds()
+
+    @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        """Check the guilds when the bot is ready; this fires for each session."""
+        await self.check_guilds()
+
+    @commands.Cog.listener()
+    async def on_guild_remove(self, guild: discord.Guild) -> None:
+        """Delete the bindings and rooms of a guild that the bot left or was removed from.
+
+        discord.py does not fire this during an outage (``on_guild_unavailable``).
+        """
+        await forget(self.store, guild.id)
+
+    async def check_guilds(self) -> None:
+        """Delete the data of the guilds that the bot is no longer in."""
+        raise NotImplementedError
 
     def _voice_lock(self, guild_id: int) -> asyncio.Lock:
         """The lock of the guild's voice changes; the store keeps it across reloads."""

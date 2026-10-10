@@ -3,19 +3,19 @@
 Discord's REST requests are recorded instead of sent, and the bot has its user, as after a login.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
 from discord_fakes import BOT_USER, FakeRest
 from plugin_fakes import load_plugin
 from xincord.core.bot import Bot
-from xincord.plugins.dynamic_voice_channel.cog import DynamicVoiceChannel
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from xincord.core.storage import Store
+    from xincord.plugins.dynamic_voice_channel.cog import DynamicVoiceChannel
 
 
 @pytest.fixture(autouse=True)
@@ -43,7 +43,12 @@ async def bot(store: Store, tmp_path: Path) -> Bot:
 
 @pytest.fixture
 def cog(bot: Bot) -> DynamicVoiceChannel:
-    """The loaded plugin's cog."""
+    """The loaded plugin's cog.
+
+    No isinstance check: a load that fails, as into a ready bot whose check raises, makes
+    discord.py import the plugin's modules again, so the class differs from the one imported
+    when the tests were collected.
+    """
     found = bot.get_cog("DynamicVoiceChannel")
-    assert isinstance(found, DynamicVoiceChannel)
-    return found
+    assert found is not None
+    return cast("DynamicVoiceChannel", found)
