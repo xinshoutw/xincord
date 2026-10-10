@@ -436,6 +436,22 @@ listed here:
 - `create_text_channel` with overwrites needs Manage Roles, as v3's did; copied overwrites that
   name a role discord.py has not cached are left out.
 
+## Checks
+
+- Package: the `xincord-plugins` wheel holds the 32 lang files and no `ticket/config.yaml`;
+  `xincord --no-online` from a scratch venv with both wheels exits 0 with Ticket loaded.
+- Image: `docker compose build`, then `docker compose run --rm -T bot --no-online` with the fourteen
+  ported plugins enabled, exits 0 with every one loaded.
+- Probe (a scratch script driving discord.py's own objects with HTTP recorded): the commands, the
+  builder, the confirmation, the reason modal (a label holding the paragraph input), the ticket
+  channel (overwrite types 0 for roles and 1 for members, @everyone denied View Channel, the
+  member, the staff roles and the bot allowed it, an uncached role's overwrite left out), the
+  opener, lock and unlock (`PUT .../permissions/{member}` with type 1), the save select
+  (`channel_types` [0]), the archive (a type-11 thread, the webhook, executions with `thread_id`
+  and `wait`, the markers, the webhook's deletion), `/add-ticket`, delete, and v3's panel and lock
+  IDs with the core's upgrade. It found that the opener let typed user mentions ping, fixed in
+  `dd324fd`.
+
 ## Manual smoke checklist
 
 Needs a token, a test guild, a second account and a category; the bot needs View Channel, Send

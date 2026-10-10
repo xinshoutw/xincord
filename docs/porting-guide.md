@@ -652,6 +652,15 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - **Webhook names.** Discord refuses a webhook message's username with `@`, `#`, `:`, three
   backticks, `discord` or `clyde`, or one that is `everyone` or `here`, or over 80 characters; JDA's
   archive then failed. Fall back to the username, then the ID (Ticket's `forwarded_name`).
+- **Objects as overwrite keys.** `discord.Object(id, type=discord.User)` compares and hashes equal
+  to the member with that ID, so setting the member's overwrite replaces a copied one instead of
+  adding a second (Ticket's `overwrites`).
+- **Attachments in probes.** `Attachment.to_file()` downloads through `HTTPClient.get_from_cdn`,
+  not `request`: a probe that records HTTP patches both. A recorded webhook answer needs whole
+  attachment objects (`size` included), or discord.py raises `KeyError`.
+- **Edits clear suppressed embeds.** `Message.edit()` sends the message's flags with
+  `suppress_embeds` set to its `suppress` argument, False by default: an edit (the core's upgrade
+  of v3 IDs) shows embeds that were suppressed.
 - **Webhook URLs in errors.** A webhook's URL holds its token, and aiohttp's connect timeout names
   the whole URL: cut URLs in error texts to their origin before showing or logging them
   (`xincord.plugins.redaction.redact`, shared since port-ticket).
