@@ -358,7 +358,6 @@ async def test_full_file(open_files: Opener, directory: Path) -> None:
     assert ids(directory) == {full: [*stored, at(last + 0.9)], new: [at(last + 1)]}
 
 
-@pytest.mark.xfail(strict=True, reason="A new message file starts when the newest is full")
 async def test_new_file_fails(
     open_files: Opener,
     directory: Path,

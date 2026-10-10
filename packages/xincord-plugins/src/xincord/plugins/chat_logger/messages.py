@@ -163,6 +163,7 @@ class MessageFiles:
         self.max_bytes = max_bytes
         self._executor: ThreadPoolExecutor | None = None
         self._files: tuple[MessageFile, ...] = ()  # oldest first, on the files' thread only
+        self._failing = False  # a new file failed since one last started, on that thread too
 
     @property
     def is_open(self) -> bool:
@@ -323,9 +324,15 @@ class MessageFiles:
         try:
             created = self._create(start)
         except sqlite3.Error, OSError:
-            # The message is stored; the next message stored in the full file tries again.
-            logger.exception("ChatLogger cannot start the message file %s", file_name(start))
+            # The message is stored; the next message stored in the full file tries again. One
+            # error per episode: a full disk would otherwise log a traceback at every message.
+            if self._failing:
+                logger.debug("ChatLogger still cannot start a message file", exc_info=True)
+            else:
+                logger.exception("ChatLogger cannot start the message file %s", file_name(start))
+            self._failing = True
             return
+        self._failing = False
         self._files = (*self._files, created)
         logger.info("ChatLogger started the message file %s", created.path.name)
 

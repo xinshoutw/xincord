@@ -71,7 +71,7 @@
       expired file on its own; remove the markers
 - [x] 8.6 xfail tests for "A new message file starts when the newest is full": a split that keeps
       failing is logged once until a file starts
-- [ ] 8.7 Log one error per failing episode; remove the markers
+- [x] 8.7 Log one error per failing episode; remove the markers
 
 ## 9. Close
 
