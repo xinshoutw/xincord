@@ -24,7 +24,7 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 | Porting guide and v3 differences | `docs/porting-guide.md` |
 | Specs | `openspec/specs/` (archived), `openspec/changes/` (active) |
 | Per-plugin inventories (acceptance-criteria source, with Kotlin `file:line`) | `docs/porting/analysis/inventory/<Plugin>.md` |
-| BasicCalculator golden data | `docs/porting/analysis/inventory/fixtures/*.jsonl` |
+| Calculator golden data | `docs/porting/analysis/inventory/fixtures/*.jsonl` |
 | Research (versions, v4 branch, Core brief) | `docs/porting/analysis/research/*.md` |
 | Kotlin v4 design spec (summarized in the porting guide) | `XsDiscordBotKt/docs/specs/2026-04-07-v4-core-refactor-design.md` |
 | Local data copy for a future migration test (B11, deferred) | `XsDiscordBotKt/Server/` |
@@ -144,23 +144,23 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   `xincord`), `.dockerignore`, and `compose.yaml` (service `bot`: `./bot` bind-mounted at `/bot`,
   named volume `data` = `xincord_data` at `/bot/data`, `stdin_open`, `tty`, `init`,
   `restart: unless-stopped`, 30 s stop grace, json-file logs 10 MB x 3).
-- **Plugins (`packages/xincord-plugins`):** `xincord.plugins.example` (entry point `_Example`), the
-  template: `__init__.py` (metadata constants, `setup`), `config.py`, `cog.py` (commands built in
-  `setup` from the Lang with the cog's bound method as callback, `IDS = ComponentIds("example",
-  ("action", "count"))` routed with `bot.route`), bundled `config.yaml` and `lang/`. Conventions
-  for every port: `.claude/skills/port-plugin/SKILL.md`. Reuse in tests: `plugin_fakes.load_plugin`
-  (real entry point, offline), `plugin_fakes.golden(<package>)`, `tests/support/discord_fakes.py`
-  (`FakeInteraction` records `sent`; `buttons`, `embed_dict`); the `store` fixture is in
-  `tests/conftest.py`. The example's `placeholder_values` moved into `xincord.core.placeholders`
-  with WelcomeByeGuild.
-- **BasicCalculator** (`xincord.plugins.basic_calculator`, no config): `calculator.py` is a pure
-  evaluator with v3's shunting-yard pass and `BigDecimal` results (`BigDecimal(unscaled, scale)`),
-  v3's defects fixed and size limits; `cog.py` runs it in `asyncio.to_thread`, posts the answer to
-  the channel (`_post`: a `runtime_checkable` `Postable` protocol, fallback to the deferred
-  response on `discord.HTTPException`) and edits errors into the deferred response. Reuse:
-  `discord_fakes.FakeChannel`, `forbidden()` and `delete_original_response`; the golden pattern
-  for recorded v3 answers with an independent evaluator (`tests/plugins/basic_calculator/
-  test_golden.py`).
+- **Plugins (`packages/xincord-plugins`):** `xincord.plugins.example` (entry point `Example`, v3's
+  _Example), the template: `__init__.py` (metadata constants, `setup`), `config.py`, `cog.py`
+  (commands built in `setup` from the Lang with the cog's bound method as callback, `IDS =
+  ComponentIds("example", ("action", "count"))` routed with `bot.route`), bundled `config.yaml` and
+  `lang/`. Conventions for every port: `.claude/skills/port-plugin/SKILL.md`. Reuse in tests:
+  `plugin_fakes.load_plugin` (real entry point, offline), `plugin_fakes.golden(<package>)`,
+  `tests/support/discord_fakes.py` (`FakeInteraction` records `sent`; `buttons`, `embed_dict`); the
+  `store` fixture is in `tests/conftest.py`. The example's `placeholder_values` moved into
+  `xincord.core.placeholders` with WelcomeGoodbye.
+- **Calculator** (v3 BasicCalculator; `xincord.plugins.calculator`, no config): `calculator.py` is
+  a pure evaluator with v3's shunting-yard pass and `BigDecimal` results (`BigDecimal(unscaled,
+  scale)`), v3's defects fixed and size limits; `cog.py` runs it in `asyncio.to_thread`, posts the
+  answer to the channel (`_post`: a `runtime_checkable` `Postable` protocol, fallback to the
+  deferred response on `discord.HTTPException`) and edits errors into the deferred response.
+  Reuse: `discord_fakes.FakeChannel`, `forbidden()` and `delete_original_response`; the golden
+  pattern for recorded v3 answers with an independent evaluator
+  (`tests/plugins/calculator/test_golden.py`).
 - **AutoRole** (`xincord.plugins.auto_role`, `INTENTS = discord.Intents(members=True)`, no lang):
   an `on_member_join` cog listener adds each configured role with its own atomic `add_roles`
   request (v3 replaced all roles), skipping and logging roles that are missing or not
@@ -178,8 +178,8 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   whose `client` is `SimpleNamespace(user=BOT_USER, guilds=[...])`, the global payload check in
   `tests/plugins/bot_info/test_command.py`, and a `cast`-based `cog` fixture for a plugin whose
   tests load invalid configs.
-- **SimpleCommand** (`xincord.plugins.simple_command`, no intents, no config, zh-TW only): five
-  guild commands from the `COMMANDS` table (`command(name)` with
+- **CustomCommands** (v3 SimpleCommand; `xincord.plugins.custom_commands`, no intents, no config,
+  zh-TW only): five guild commands from the `COMMANDS` table (`command(name)` with
   `app_commands.default_permissions(administrator=True)`) share the callback `post_message`, which
   reads `interaction.command.name`, renders that template in `lang.default_locale` with v3's
   `bot_id` and `bot_name`, posts the whole message (content, embeds, view and files) through
@@ -187,51 +187,52 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   the deferred response; when the channel takes no messages or refuses it, it renders again and
   edits the deferred response, with the files as `attachments`. The bundled templates hold the
   example account number `000000000000`. Reuse: `FakeInteraction(command=SimpleNamespace(name=...))`
-  and `ClosingChannel` (`tests/plugins/simple_command/test_post.py`) for discord.py's closed files.
+  and `ClosingChannel` (`tests/plugins/custom_commands/test_post.py`) for discord.py's closed files.
   Their v3 global keys now come from the core's `global_values` (moved there by Economy).
-- **WelcomeByeGuild** (`xincord.plugins.welcome_bye_guild`, `INTENTS = discord.Intents(members=True)`,
-  no config, en-US and zh-TW): the first plugin with data. `store.py` keeps v3's per-guild document
-  (`{"welcomeChannelId", "byeChannelId"}`, 0 = unbound) in the key-value table under the namespace
-  `WelcomeByeGuild` and the guild ID, read without writing and changed by `set_channel` under
-  `store.lock("WelcomeByeGuild:<id>")`; `values.py` builds v3's `wbg@` keys from the core families
-  (`command_values`, `member_event_values`) and checks text channels with a `runtime_checkable`
-  Protocol; `cog.py` has four guild commands with two shared callbacks (`bind_channel`,
-  `unbind_channel`, kind from the `COMMANDS` table), a `TextChannelOption` transformer that limits
-  the option to text channels (`channel_types` [0]), the runtime Administrator check through
-  `interaction.permissions`, replies in `interaction.guild_locale`, `on_member_join`,
-  `on_raw_member_remove` (skips the bot's own removal) and `on_guild_remove`, and
-  `forget_left_guilds` from `on_ready` and `cog_load`. Reuse: the per-guild data convention (skill,
-  "Storage"), `FakeGuild(channels=..., preferred_locale=..., icon=..., rules_channel=...)` with
-  `get_channel` and `as_guild()`, `FakeChannel(type=...)`, `FakeMember` with placeholder
-  attributes, `FakeInteraction(guild=, guild_locale=, permissions=)`, `Bot.user` patched as a
-  property, and the scratch probe through discord.py's own objects (skill step 7).
-- **IntervalPusher** (`xincord.plugins.interval_pusher`, no intents, no lang, config
-  `listeners[].url` and `interval`): the first background loop and outgoing HTTP. `pusher.py` has
-  `Pusher(number, listener, get, ping, sleep)`, v3's loop with its effects passed in (push at once,
-  then `interval` seconds after each attempt; a 404 ends it; failures are logged), `rest_ping`
+- **WelcomeGoodbye** (v3 WelcomeByeGuild; `xincord.plugins.welcome_goodbye`, `INTENTS =
+  discord.Intents(members=True)`, no config, en-US and zh-TW): the first plugin with data.
+  `store.py` keeps v3's per-guild document (`{"welcomeChannelId", "byeChannelId"}`, 0 = unbound) in
+  the key-value table under the namespace `WelcomeGoodbye` and the guild ID, read without writing
+  and changed by `set_channel` under `store.lock("WelcomeGoodbye:<id>")`; `values.py` builds v3's
+  `wbg@` keys from the core families (`command_values`, `member_event_values`) and checks text
+  channels with a `runtime_checkable` Protocol; `cog.py` has four guild commands with two shared
+  callbacks (`bind_channel`, `unbind_channel`, kind from the `COMMANDS` table), a
+  `TextChannelOption` transformer that limits the option to text channels (`channel_types` [0]), the
+  runtime Administrator check through `interaction.permissions`, replies in
+  `interaction.guild_locale`, `on_member_join`, `on_raw_member_remove` (skips the bot's own removal)
+  and `on_guild_remove`, and `forget_left_guilds` from `on_ready` and `cog_load`. Reuse: the
+  per-guild data convention (skill, "Storage"), `FakeGuild(channels=..., preferred_locale=...,
+  icon=..., rules_channel=...)` with `get_channel` and `as_guild()`, `FakeChannel(type=...)`,
+  `FakeMember` with placeholder attributes, `FakeInteraction(guild=, guild_locale=, permissions=)`,
+  `Bot.user` patched as a property, and the scratch probe through discord.py's own objects (skill
+  step 7).
+- **UptimeHeartbeat** (v3 IntervalPusher; `xincord.plugins.uptime_heartbeat`, no intents, no lang,
+  config `listeners[].url` and `interval`): the first background loop and outgoing HTTP. `pusher.py`
+  has `Pusher(number, listener, get, ping, sleep)`, v3's loop with its effects passed in (push at
+  once, then `interval` seconds after each attempt; a 404 ends it; failures are logged), `rest_ping`
   (times `bot.http.request(Route("GET", "/users/@me"))`, JDA's REST ping) and aiohttp's
   `open_session` and `get_status` (no redirects, v3's timeouts); `xincord-plugins` declares aiohttp.
   `cog.py` creates one task per listener in `cog_load`, each awaiting `bot.wait_until_ready()`, and
   cancels and awaits them in `cog_unload`. Reuse: `plugin_fakes.Ready` (READY for offline bots; its
   `close` cancels the tasks left running), `http_fakes.running_monitor()` (`Monitor`, a local HTTP
-  server), patching `discord.http.HTTPClient.request` to record REST calls, an injected `sleep`
-  with a fake clock, `bot.remove_cog` to run `cog_unload` without unloading the modules, and the
-  REST probe through `Route.BASE` and `http.static_login` (skill step 7).
-- **Feedbacker** (`xincord.plugins.feedbacker`, no intents, en-US and zh-TW, five config replies):
-  the first port with v3 component IDs and a modal. `cog.py` has `IDS = ComponentIds("feedbacker",
-  (action, user_id, star_count, submit_channel_id), legacy_prefix="feedbacker@")` routed to
-  `handle`, which dispatches on the interaction type and the action; `create_form` (the command,
-  with `member: discord.Member | discord.User` checked against `MemberLike` and a copy of
-  WelcomeByeGuild's `TextChannelOption`), `press_star` (`form_not_you`, the `fill-form` modal
-  through `render_modal` and `send_modal`, then `form.highlight` and the bot's own
-  `message.edit`) and `submit_form` (`modal_values`, `response.defer()`, the review in the guild's
-  locale, the form deleted only after the post, `followup.send(..., ephemeral=True)` on failure).
-  `config.py` keeps v3's three required replies and adds `form_failure` and `form_submit_failure`
-  (English defaults, zh-TW in the bundled file), each non-blank and at most 2000 characters.
-  Reuse: `discord_fakes.FakeMessage` (edits and deletion into `sent`, fetched until deleted),
-  `FakeResponse.send_message` and `send_modal`, `FakeInteraction.followup`, `not_found()`, route
-  tests through `bot.on_interaction` with v3 IDs (`tests/plugins/feedbacker/test_routes.py`), and
-  the HTTP-recording probe for interactions (skill step 7).
+  server), patching `discord.http.HTTPClient.request` to record REST calls, an injected `sleep` with
+  a fake clock, `bot.remove_cog` to run `cog_unload` without unloading the modules, and the REST
+  probe through `Route.BASE` and `http.static_login` (skill step 7).
+- **Feedback** (v3 Feedbacker; `xincord.plugins.feedback`, no intents, en-US and zh-TW, five config
+  replies, `/feedback`): the first port with v3 component IDs and a modal. `cog.py` has `IDS =
+  ComponentIds("feedback", (action, user_id, star_count, submit_channel_id),
+  legacy_prefix="feedbacker@")` routed to `handle`, which dispatches on the interaction type and the
+  action; `create_form` (the command, with `member: discord.Member | discord.User` checked against
+  `MemberLike` and a copy of WelcomeGoodbye's `TextChannelOption`), `press_star` (`form_not_you`,
+  the `fill-form` modal through `render_modal` and `send_modal`, then `form.highlight` and the bot's
+  own `message.edit`) and `submit_form` (`modal_values`, `response.defer()`, the review in the
+  guild's locale, the form deleted only after the post, `followup.send(..., ephemeral=True)` on
+  failure). `config.py` keeps v3's three required replies and adds `form_failure` and
+  `form_submit_failure` (English defaults, zh-TW in the bundled file), each non-blank and at most
+  2000 characters. Reuse: `discord_fakes.FakeMessage` (edits and deletion into `sent`, fetched until
+  deleted), `FakeResponse.send_message` and `send_modal`, `FakeInteraction.followup`, `not_found()`,
+  route tests through `bot.on_interaction` with v3 IDs (`tests/plugins/feedback/test_routes.py`),
+  and the HTTP-recording probe for interactions (skill step 7).
 - **Economy** (`xincord.plugins.economy`, no intents, en-US and zh-TW, config `admin_id` and
   `board_user_show_limit`): the first plugin whose data must never lose an update. `wallet.py` is
   pure (`Wallet`, v3's six `OPERATIONS` on exact integers, `rank` with ties by user ID);
@@ -298,8 +299,8 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   *parents)`, `targets`, `list_text`, `units`), `store.py` (`ListenSettings(store, namespace)`) and
   `menu.py` (`Menu`, `ListenChannels`: `show`, `handle`, `post`, `check_guilds`); both cogs keep
   their command group, `show_settings` and `handle`. `messages.py` keeps `ChatLogger_messages` in
-  the core store through `Store.run` (B8 settled: one table in `data/xincord.db`, v3's columns plus
-  the guild and the channel); `text.py` (`message_text`: the content and the rich embeds; `fit`:
+  the core store through `Store.run` (one table in `data/xincord.db`, v3's columns plus the guild
+  and the channel; the owner asked for own files instead, a follow-up change, section 6); `text.py` (`message_text`: the content and the rich embeds; `fit`:
   1024 UTF-16 code units; a member's embeds are previews and left out); `created.py`
   (`parse_created`: a new message from the `MESSAGE_CREATE` payload that `setup` relays, because
   `on_message`'s cached `Message` takes later edits in place); `logs.py` (`Place.of`,
@@ -333,7 +334,7 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   `FakeInteraction.original`, `FakeChannel.send` returning a `FakeMessage` with `jump_url`,
   `FakeChannel.get_partial_message`, and the script check that every `text.yaml` fragment is in the
   Kotlin sources.
-- **Still to build:** the plugins after Giveaway (section 5).
+- **Still to build:** the plugins after Giveaway and the owner's follow-up changes (section 5).
 
 ## 5. Status and next steps
 
@@ -352,23 +353,28 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 
 ### Next: the plugins
 
-Core is complete; _Example (the template), BasicCalculator, AutoRole, BotInfo, SimpleCommand,
-WelcomeByeGuild, IntervalPusher, Feedbacker, Economy, DynamicVoiceChannel, VoiceLogger, ChatLogger
+Core is complete; Example (the template), Calculator, AutoRole, BotInfo, CustomCommands,
+WelcomeGoodbye, UptimeHeartbeat, Feedback, Economy, DynamicVoiceChannel, VoiceLogger, ChatLogger
 and Giveaway are ported. Next: **Ticket** (`port-ticket`).
-The owner renamed several plugins on 2026-10-10 (_Example -> Example, BasicCalculator ->
-Calculator, SimpleCommand -> CustomCommands, WelcomeByeGuild -> WelcomeGoodbye, IntervalPusher ->
-UptimeHeartbeat, Feedbacker -> Feedback, TicketAddons -> TicketAwayNotice, NtustManager ->
-NtustAnnouncements, NtustCourse -> NtustCourseWatch): a port of a renamed plugin uses the new name
-for the entry point, `plugins/<Name>/`, the store namespace, the component ID namespace, the
-package and the capability, and keeps the v3 legacy prefixes. As of `port-giveaway` the ported
-ones still carry their v3 names in the repository.
+The owner renamed nine plugins on 2026-10-10 (`docs/porting/decisions.md`, Amendment 1; the table
+in `docs/porting-guide.md`, "Plugin names"), and `rename-plugins` applied the renames to the ported
+ones. A port of a renamed plugin uses the new name for the entry point, `plugins/<Name>/`, the
+store namespace, the component ID namespace, the package, the capability and the change
+(`port-ticket-away-notice`), and keeps the v3 name in the legacy prefix; the inventories and the
+Kotlin sources keep the v3 names.
 Port the plugins in C1 order with the `port-plugin` skill (`.claude/skills/port-plugin/SKILL.md`),
-one OpenSpec change each (`port-<plugin-kebab>`): _Example (done), BasicCalculator (done),
-AutoRole (done), BotInfo (done, with the configurable AGPL source link of C3), SimpleCommand
-(done), WelcomeByeGuild (done), IntervalPusher (done), Feedbacker (done), Economy (done),
+one OpenSpec change each (`port-<plugin-kebab>`): Example (done), Calculator (done),
+AutoRole (done), BotInfo (done, with the configurable AGPL source link of C3), CustomCommands
+(done), WelcomeGoodbye (done), UptimeHeartbeat (done), Feedback (done), Economy (done),
 DynamicVoiceChannel (done), VoiceLogger (done), ChatLogger (done), Giveaway (done), then Ticket,
-TicketAddons, NtustManager, NtustCourse, MusicPlayer (with Lavalink in `compose.yaml`).
-Update `docs/porting-guide.md` after each one.
+TicketAwayNotice (v3 TicketAddons), NtustAnnouncements (v3 NtustManager), NtustCourseWatch (v3
+NtustCourse), MusicPlayer (with Lavalink in `compose.yaml`). Update `docs/porting-guide.md` after
+each one.
+
+The owner also asked for follow-up changes (section 6), not started yet: UptimeHeartbeat logs only
+the host on failure and never stops a listener; CustomCommands defines its commands in the config
+file; ChatLogger keeps 5 years by default in its own files, starting a new file when one grows too
+large; the v3 data import (`xincord migrate`) before cutover.
 
 ### Working tips from this session
 
@@ -587,7 +593,7 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - `Messageable.send` overloads take `view: View` with content and embeds, or `view: LayoutView`
   without them; `View | LayoutView | None` matches none. `isinstance` against a Protocol keeps each
   member of `interaction.channel`'s union with its own overloads (and pyright reports an unsafe
-  overlap): pass the channel as `object` first (SimpleCommand's `_postable`).
+  overlap): pass the channel as `object` first (CustomCommands' `_postable`).
 - `app_commands.default_permissions(administrator=True)` also applies to a built `Command`; the
   payload's `default_member_permissions` is then the integer 8.
 - A `discord.TextChannel` option annotation sends `channel_types` [0, 5] (announcement channels
@@ -621,7 +627,7 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - `View.from_message` raises `ValueError` for a Components V2 message: use
   `LayoutView.from_message` when `message.flags.components_v2`.
 - After a handler deletes the message of a v3 ID, the core's legacy upgrade cannot fetch it and
-  logs an error (a v3-opened Feedbacker modal submitted after the switch).
+  logs an error (a Feedback modal that v3 opened, submitted after the switch).
 - `app_commands.describe(...)` applied to a built `Command` gives every option it does not name
   an ellipsis as its description: call it once with all the options (`rename` leaves the others).
 - A component interaction's `data` carries `component_type` (2 for a button); a modal
@@ -713,7 +719,7 @@ writes that reset corrupt files, recursive placeholder expansion, shared mutable
 caches, `asTextChannel()` failures in threads, voice chat and announcement channels, allow-all
 mentions.
 
-**Exact numbers (BasicCalculator):** `decimal` defaults to 28 digits, and `Fraction` reduces with a
+**Exact numbers (Calculator):** `decimal` defaults to 28 digits, and `Fraction` reduces with a
 gcd that costs 75 to 180 ms per operation at 100,000 digits; scaled integers (v3's `BigDecimal`)
 cost a few milliseconds. Python refuses `str()`/`int()` conversions over 4,300 digits and computes
 `10**999999999` if asked: bound sizes first.

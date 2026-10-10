@@ -45,14 +45,14 @@
 
 ## 8. Checks
 
-- [ ] 8.1 Build the image and run `docker compose run --rm -T bot --no-online` with every ported
+- [x] 8.1 Build the image and run `docker compose run --rm -T bot --no-online` with every ported
       plugin enabled in a temporary `bot/config.yaml`; clean up
-- [ ] 8.2 Check that the old names remain only in the inventories, the archive, Kotlin citations,
+- [x] 8.2 Check that the old names remain only in the inventories, the archive, Kotlin citations,
       legacy prefixes, placeholder keys and the records of decisions and answers
 
 ## 9. Docs
 
-- [ ] 9.1 Porting guide, port-plugin skill, `HANDOFF.md` sections 4 and 5 and the review queue's
+- [x] 9.1 Porting guide, port-plugin skill, `HANDOFF.md` sections 4 and 5 and the review queue's
       headings use the new names; the review queue gets a `rename-plugins` section and loses the
       image-check lines that 8.1 settles
 

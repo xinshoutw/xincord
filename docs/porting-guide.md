@@ -28,7 +28,7 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `ComponentIdManager` (`{prefix}{a..z}:{value};...`) | `ComponentIds`: `{namespace}:1:{letter}={value};...` plus the permanent v3 decoder; `upgrade_view` rewrites legacy IDs | B9 |
 | `event.replyModal(ModalCreator...)` and `ModalInteractionEvent.getValue(id)` | `interaction.response.send_modal(render_modal(...))` and `modal_values(interaction.data)[id]` (`xincord.core.templates`) | B10 |
 | `event.deferEdit()` on a modal submission, then the bot's own sends | `interaction.response.defer()` (a deferred message update), then `interaction.followup.send(..., ephemeral=True)` for a reply | B5 |
-| `component.withStyle(...)` on the message's rows, `editOriginalComponents` | `View.from_message(...)` (`LayoutView` for Components V2), change the items, `view.stop()`, `interaction.message.edit(view=...)` (Feedbacker's `highlight`) | |
+| `component.withStyle(...)` on the message's rows, `editOriginalComponents` | `View.from_message(...)` (`LayoutView` for Components V2), change the items, `view.stop()`, `interaction.message.edit(view=...)` (Feedback's `highlight`) | |
 | `getOption("member").asMember` | a `discord.Member \| discord.User` option, checked against `MemberLike`: discord.py passes the user when Discord resolved no member | |
 | `getOption("member").asUser` | the same option without the check: any user, in the guild or not (Economy) | |
 | `Placeholder.globalSubstitutor`, used by `getCreateBuilder(key, locale)` without a substitutor | `global_values(interaction.client)` (`bot_id`, `bot_name`; `xincord.core.placeholders`) | B10 |
@@ -36,15 +36,15 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | JDA's `addField`: trimmed name and value, U+200E for an empty one | the core's `render_message` does the same | B10 |
 | JSON files and embedded MongoDB | SQLite (`sqlite3` + `asyncio.to_thread`), key-value table plus per-plugin tables | B8 |
 | `JsonGuildFileManager` (`plugins/<Name>/data/<guildId>.json`) | the store's key-value table: namespace = the plugin's name, key = the guild ID, value = v3's document unchanged, changed under `store.lock("<Name>:<guildId>")` or in one `Store.update` (Economy's wallets) | B8, B11 |
-| `OptionData(CHANNEL).setChannelTypes(...)` | an `app_commands.Transformer` whose `channel_types` lists JDA's types and that passes on the `AppCommandChannel` (WelcomeByeGuild's `TextChannelOption`) | B5 |
+| `OptionData(CHANNEL).setChannelTypes(...)` | an `app_commands.Transformer` whose `channel_types` lists JDA's types and that passes on the `AppCommandChannel` (WelcomeGoodbye's `TextChannelOption`) | B5 |
 | `event.member.hasPermission(ADMINISTRATOR)` | `interaction.permissions.administrator` (Discord's resolved permissions; Administrator cannot be set per channel) | |
 | `GuildMemberRemoveEvent` / `GuildLeaveEvent` | `on_raw_member_remove` (also uncached members) / `on_guild_remove` | B3 |
 | kotlinx/Jackson YAML config | pydantic v2 models over PyYAML; unknown keys warn | B6 |
 | Coroutines, `launch`, scheduled executors | `asyncio` tasks, `discord.ext.tasks.loop` | |
-| A `CoroutineScope` job started in `load()` and cancelled in `unload()` | an `asyncio` task per loop created in `cog_load`, awaiting `bot.wait_until_ready()` first, cancelled and awaited in `cog_unload` (IntervalPusher) | B3 |
+| A `CoroutineScope` job started in `load()` and cancelled in `unload()` | an `asyncio` task per loop created in `cog_load`, awaiting `bot.wait_until_ready()` first, cancelled and awaited in `cog_unload` (UptimeHeartbeat) | B3 |
 | `delay(ms)` after each iteration (a fixed delay) | `while await step(): await sleep(seconds)` with `sleep` passed in; `tasks.loop` is a fixed rate | |
 | Java `HttpClient` | `aiohttp.ClientSession` (installed with discord.py, declared by `xincord-plugins`) with `ClientTimeout`; `allow_redirects=False` keeps Java's default | |
-| `jdaBot.restPing` | time `bot.http.request(discord.http.Route("GET", "/users/@me"))` (IntervalPusher's `rest_ping`); discord.py has no REST ping | |
+| `jdaBot.restPing` | time `bot.http.request(discord.http.Route("GET", "/users/@me"))` (UptimeHeartbeat's `rest_ping`); discord.py has no REST ping | |
 | JLine console (`JLineManager`, `JLineAppender`), `--ignore-update` | prompt_toolkit console (`xincord.core.console`; logs print above the prompt through `patch_stdout`), SIGHUP reload, `/xincord reload`; no version check | B15 |
 | `Server/start`: `java -jar` with the token on the command line | `compose.yaml` and the `Dockerfile` image; the token goes in `bot/config.yaml` | B16 |
 | `java -jar` with Clikt options | the `xincord` console script (`xincord.core.cli`, argparse); `--no-online` loads the plugins without connecting and exits | B15 |
@@ -107,14 +107,38 @@ every component interaction centrally (it blocks modals), rewriting the template
 migrating the shipped YAML, silent fallbacks, reload as a full gateway reconnect, and two listener
 styles at once.
 
+## Plugin names
+
+The owner renamed nine plugins on 2026-10-10 (`docs/porting/decisions.md`, Amendment 1). xincord
+uses the new names for the entry point (the name under `plugins:`), `plugins/<Name>/`, the package,
+the store namespace, the new-format component ID namespace and the OpenSpec capability; the
+inventories, Kotlin citations, archived changes, placeholder keys and legacy component ID
+prefixes keep the v3 names. The other plugins keep their names.
+
+| v3 name | xincord name | Package |
+|---|---|---|
+| _Example | Example | `example` |
+| BasicCalculator | Calculator | `calculator` |
+| SimpleCommand | CustomCommands | `custom_commands` |
+| WelcomeByeGuild | WelcomeGoodbye | `welcome_goodbye` |
+| IntervalPusher | UptimeHeartbeat | `uptime_heartbeat` |
+| Feedbacker | Feedback | `feedback` |
+| TicketAddons | TicketAwayNotice | not ported yet |
+| NtustManager | NtustAnnouncements | not ported yet |
+| NtustCourse | NtustCourseWatch | not ported yet |
+
+`xincord.core.migrate_v3` (`RENAMED`) writes the new names in the `plugins` list and moves each
+renamed plugin's v3 directory to `plugins/<new name>/`.
+
 ## Plugin conventions
 
-Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.md`, and _Example
+Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.md`, and Example
 (`xincord.plugins.example`) is the template to copy.
 
 - One package per plugin, `xincord.plugins.<package>`: `__init__.py` (metadata constants and
   `setup`), `config.py`, `cog.py`, the bundled `config.yaml` and `lang/`. The entry point is named
-  after the v3 plugin (`_Example = "xincord.plugins.example"`).
+  after the plugin, with the owner's new name for a renamed one (`Example =
+  "xincord.plugins.example"`; see "Plugin names").
 - Commands are built in `setup` from the plugin's Lang: `app_commands.Command` with the cog's
   bound method as the callback, then `rename` and `describe` on the command; names and
   descriptions default to v3's.
@@ -126,14 +150,14 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   (`plugin_fakes.load_plugin`); Discord fakes are in `tests/support/discord_fakes.py`; v3's text
   per locale is golden data in `tests/fixtures/plugins/<package>/golden.yaml`.
 - Logic that needs no Discord lives in its own module and is tested directly
-  (`basic_calculator/calculator.py`); the cog only renders and sends. CPU-bound work runs in
+  (`calculator/calculator.py`); the cog only renders and sends. CPU-bound work runs in
   `asyncio.to_thread`.
-- A plugin whose only v3 key was `enabled` ships no `config.yaml` (BasicCalculator).
+- A plugin whose only v3 key was `enabled` ships no `config.yaml` (Calculator).
 - A v3 reply posted with `event.channel.sendMessage` goes to `interaction.channel` when it has a
-  `send` method (BasicCalculator's `Postable` protocol: forums and categories have none), then the
+  `send` method (Calculator's `Postable` protocol: forums and categories have none), then the
   deferred response is deleted; on `discord.HTTPException` the reply replaces the deferred
   response instead.
-- Recorded v3 answers (BasicCalculator's JSONL) are copied to `tests/fixtures/plugins/<package>/`
+- Recorded v3 answers (Calculator's JSONL) are copied to `tests/fixtures/plugins/<package>/`
   unchanged. Records that a fixed v3 defect changes are checked against an independent
   implementation in the test, never edited.
 - Gateway events are `@commands.Cog.listener()` methods on the cog, which discord.py adds and
@@ -155,45 +179,45 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - v3 commands that differ only by their template share one callback that reads
   `interaction.command.name`; `setup` adds one command per name of a table, and
   `app_commands.default_permissions(administrator=True)` stands for v3's
-  `DefaultMemberPermissions.enabledFor(ADMINISTRATOR)` (SimpleCommand).
+  `DefaultMemberPermissions.enabledFor(ADMINISTRATOR)` (CustomCommands).
 - A public message that v3 rendered with `getCreateBuilder(key)` and no locale renders in the
-  default locale for every user, with v3's global keys `bot_id` and `bot_name` (SimpleCommand).
+  default locale for every user, with v3's global keys `bot_id` and `bot_name` (CustomCommands).
 - A whole operator template posted to the channel carries its `view` and `files` too; the fallback
-  into the deferred response renders it again (SimpleCommand's `_postable` and `_send`).
+  into the deferred response renders it again (CustomCommands' `_postable` and `_send`).
 - Bundled text that held a real account number in v3 ships an all-zero example under a comment
-  (SimpleCommand); operators' files under `plugins/<Name>/lang/` keep their values, because only
+  (CustomCommands); operators' files under `plugins/<Name>/lang/` keep their values, because only
   missing lang files are exported.
 - v3's `Placeholder.get(event)` is `xincord.core.placeholders.placeholder_values(interaction)`
-  (moved from _Example by WelcomeByeGuild); `Placeholder.get(member)` stays
+  (moved from Example by WelcomeGoodbye); `Placeholder.get(member)` stays
   `actor_values(member, bot)`.
 - Per-guild data (v3's `JsonGuildFileManager`) is a document in the store's key-value table under
-  the plugin's name and the guild ID, in v3's JSON shape so that the deferred migration (B11) can
-  copy v3's files; a missing document or field reads as v3's default; read-only paths never write;
+  the plugin's name and the guild ID, in v3's JSON shape so that the v3 data import (B11) can copy
+  v3's files; a missing document or field reads as v3's default; read-only paths never write;
   read-modify-write runs under `store.lock("<Name>:<guildId>")`, because discord.py runs handlers
   concurrently. The data goes with `on_guild_remove` and, from `on_ready` and `cog_load` in a ready
-  bot, for every guild the bot is no longer in (WelcomeByeGuild's `store.py` and
+  bot, for every guild the bot is no longer in (WelcomeGoodbye's `store.py` and
   `forget_left_guilds`).
 - A command option limited to some channel types uses an `app_commands.Transformer` with those
-  `channel_types` (WelcomeByeGuild's `TextChannelOption`); the handler checks the type again, and a
+  `channel_types` (WelcomeGoodbye's `TextChannelOption`); the handler checks the type again, and a
   command that falls back to the current channel checks `interaction.channel` the same way.
 - A runtime Administrator check (v3's `member.hasPermission(ADMINISTRATOR)`) reads
   `interaction.permissions.administrator`; replies v3 rendered in the guild's locale use
-  `(interaction.guild_locale or interaction.locale).value` (WelcomeByeGuild).
+  `(interaction.guild_locale or interaction.locale).value` (WelcomeGoodbye).
 - A background loop is a task per loop that `cog_load` creates and that awaits
   `bot.wait_until_ready()` first, so nothing runs before READY or under `--no-online`, and a
   plugin reloaded into a ready bot starts at once; `cog_unload` cancels the tasks and awaits them.
   The loop's effects (the request, the clock's `sleep`) are passed in, so that tests run it on a
-  fake clock; one failed step is logged and the loop goes on (IntervalPusher's `Pusher` and cog).
+  fake clock; one failed step is logged and the loop goes on (UptimeHeartbeat's `Pusher` and cog).
 - Outgoing HTTP goes through aiohttp, one `ClientSession` per loop opened after READY and closed
-  with the loop (IntervalPusher's `open_session`); tests send it to `http_fakes.Monitor`, a local
+  with the loop (UptimeHeartbeat's `open_session`); tests send it to `http_fakes.Monitor`, a local
   server.
 - A plugin with v3 components lists v3's fields in v3's order in `ComponentIds`, with v3's
   `component_prefix` as `legacy_prefix`, and routes them to one `handle` that dispatches on the
   interaction type and the `action` field; other actions get no response, as in v3. The core parses
-  v3's IDs and upgrades the message afterwards (Feedbacker).
+  v3's IDs and upgrades the message afterwards (Feedback).
 - A button that opens a modal answers with `interaction.response.send_modal(render_modal(...))`
   and may edit its own message afterwards with the bot's token; the modal's submission is routed
-  like a button and read with `modal_values(interaction.data)` (Feedbacker's `press_star` and
+  like a button and read with `modal_values(interaction.data)` (Feedback's `press_star` and
   `submit_form`).
 - Replies kept in a plugin's `config.yaml` (v3's Feedbacker) are `Annotated[str,
   StringConstraints(pattern=r"\S", max_length=2000)]`: Discord refuses an empty message or one over
@@ -205,15 +229,15 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   runs in one transaction on the store's thread, reads the document and returns a new one, and
   passes what the caller needs back through a list it appends to (Economy's `store.change`).
   `store.lock(...)` around `get` and `put` serializes only the plugin's own coroutines
-  (WelcomeByeGuild).
+  (WelcomeGoodbye).
 - A guild's data stays when the bot leaves the guild if v3 kept it (Economy's wallets, which may
-  hold real value); only plugins whose v3 deleted it on leave delete it (WelcomeByeGuild).
+  hold real value); only plugins whose v3 deleted it on leave delete it (WelcomeGoodbye).
 - A list that v3 required to be non-empty and shipped with real IDs (Economy's `admin_id`) has no
   default and ships empty, so the plugin waits for the operator and the error names the key.
 - v3 keys of a dropped feature (Economy's Google Sheets keys) are not fields: v3's files load and
   warn about them, as about `enabled`.
 - v3's global placeholders, for templates that v3 rendered without a substitutor, are
-  `global_values(interaction.client)` (moved into the core from BotInfo and SimpleCommand by
+  `global_values(interaction.client)` (moved into the core from BotInfo and CustomCommands by
   Economy).
 - A v3 `component_prefix` whose IDs carried no fields (Economy's `economy@`) gets
   `ComponentIds("<package>", ("action",), legacy_prefix=...)` and a handler that ignores the
@@ -312,7 +336,7 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   sentinel before that); tests await the listeners with `plugin_fakes.dispatch`.
 - **Channel overwrites.** `create_text_channel(overwrites=...)` does not inherit the category's
   overwrites the way JDA does; merge them explicitly (Ticket).
-- **IntervalPusher.** `tasks.loop` schedules from each start, not after each completion as Kotlin
+- **UptimeHeartbeat.** `tasks.loop` schedules from each start, not after each completion as Kotlin
   did. discord.py has no REST ping; time `GET /users/@me` to keep `%ping%`.
 - **`wait_until_ready` before a login.** discord.py creates the READY event in `login` or
   `async with bot`, and `wait_until_ready` raises before that, as in tests, which never log in:
@@ -320,7 +344,7 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   waits for a READY that never comes until `close` unloads the plugin and cancels it.
 - **Cancellation.** `asyncio.CancelledError` is a `BaseException`: `except Exception` does not
   catch it, so a cancelled loop ends quietly. Kotlin's `catch (e: Exception)` caught
-  `CancellationException` and logged a spurious failure (IntervalPusher).
+  `CancellationException` and logged a spurious failure (UptimeHeartbeat).
 - **aiohttp test servers.** `RawTestServer.close()` waits for the requests still in flight, so a
   request a test leaves unanswered holds the teardown until the client's timeout;
   `http_fakes.Monitor` answers its silent requests when it closes. Autouse fixtures are torn down
@@ -329,7 +353,7 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   `except` block (add `# noqa: TRY400` where a traceback is noise, such as a network error), and
   TRY401 refuses the exception object in a `logger.exception` call: the traceback shows it.
 - **Exact decimals.** `decimal` defaults to 28 digits, and `Fraction` reduces with a gcd that costs
-  75 to 180 ms per operation at 100,000 digits. BasicCalculator models Java's `BigDecimal` as an
+  75 to 180 ms per operation at 100,000 digits. Calculator models Java's `BigDecimal` as an
   unscaled integer and a scale, which costs a few milliseconds there.
 - **Big integers.** Python refuses `str()` and `int()` conversions of more than 4,300 digits
   (`ValueError`); bound the size before converting. Bound a power before computing it: Python
@@ -380,7 +404,7 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - **`send` overloads.** `Messageable.send` takes a `View` with content and embeds, or a
   `LayoutView` without them, never `View | LayoutView | None`; an `isinstance` check against a
   Protocol keeps a channel union's own overloads. Pass the channel as `object` before the check
-  (SimpleCommand's `_postable`).
+  (CustomCommands' `_postable`).
 - **Global `core.hooksPath`.** prek refuses to install while a global `core.hooksPath` is set; use
   `git config --local core.hooksPath .git/hooks`.
 - **Channel option types.** A `discord.TextChannel` annotation offers text and announcement
@@ -574,25 +598,25 @@ Every deliberate difference, added by the change that introduces it.
 | Interaction log | log channel messages used JDA's default mentions, so `%user_mention%` pinged | log messages never ping | core-status-log |
 | Status rotation | a single activity was set again after every delay | set once | core-status-log |
 | Deployment | `java -jar` from `Server/`, files and MongoDB data next to the jar | an arm64 image under docker compose: files in `./bot`, the SQLite database in the `xincord_data` volume | container |
-| _Example | an `option1` longer than 1024 characters overflowed the embed field, and the command got no reply | Discord refuses more than 1024 characters | port-example |
-| _Example | no reply in threads, voice channel chats and announcement channels | answers in any channel | port-example |
-| _Example | `%...%` in the options was expanded, and a self-reference made the reply fail | option text is inserted as typed | port-example |
-| _Example | the `_Example@` keys stayed in the user's cached placeholders | each render uses its own values | port-example |
-| _Example | `example_key` was required but never read; a config without it stopped the bot | optional, `example_value` by default, shown in the reply | port-example |
-| _Example | the reply needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers the command | port-example |
-| _Example | the reply was the embed alone | a third field shows `example_key`, and a button under the embed counts presses | port-example |
-| BasicCalculator | a minus after an operator subtracted from a synthetic `0` (`2*-3` was `-3`, `2^-1` was `0`, `1/-2` divided by zero) | it negates (`-6`, `0.5`, `-0.5`) | port-basic-calculator |
-| BasicCalculator | `^` grouped from the left (`2^3^2` was 64) | from the right (512) | port-basic-calculator |
-| BasicCalculator | `^` truncated its exponent to 32 bits (`2^0.5` was 1, `2^4294967297` was 2) | whole exponents only: `Exponent must be an integer` or `Too many digits` | port-basic-calculator |
-| BasicCalculator | division by zero and negative or huge exponents threw, and "thinking..." stayed | an error embed; negative exponents divide 1 by the power | port-basic-calculator |
-| BasicCalculator | no limits: `10^999999999` stalled the gateway thread, and formulas or results over 1018 characters got no reply | `formula` takes at most 1018 characters, numbers over 50,000 digits fail with `Too many digits`, and the calculation runs in a worker thread | port-basic-calculator |
-| BasicCalculator | `%...%` in a failing formula was expanded, and `%bc_question%` gave no reply | the formula is shown as typed | port-basic-calculator |
-| BasicCalculator | the `bc_` keys stayed in the member's cached placeholders | each render uses its own values | port-basic-calculator |
-| BasicCalculator | `%bc_answer_round%` was the whole answer | the part before the decimal point | port-basic-calculator |
-| BasicCalculator | "thinking..." stayed when the bot could not post in the channel | the answer replaces the deferred response | port-basic-calculator |
-| BasicCalculator | the en-US `formula` description said "bracket is ignorable" | it says that the multiplication sign can be omitted | port-basic-calculator |
-| BasicCalculator | the reply needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers the command | port-basic-calculator |
-| BasicCalculator | an unknown character outside the BMP was reported as half a surrogate pair | the whole character | port-basic-calculator |
+| Example | an `option1` longer than 1024 characters overflowed the embed field, and the command got no reply | Discord refuses more than 1024 characters | port-example |
+| Example | no reply in threads, voice channel chats and announcement channels | answers in any channel | port-example |
+| Example | `%...%` in the options was expanded, and a self-reference made the reply fail | option text is inserted as typed | port-example |
+| Example | the `_Example@` keys stayed in the user's cached placeholders | each render uses its own values | port-example |
+| Example | `example_key` was required but never read; a config without it stopped the bot | optional, `example_value` by default, shown in the reply | port-example |
+| Example | the reply needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers the command | port-example |
+| Example | the reply was the embed alone | a third field shows `example_key`, and a button under the embed counts presses | port-example |
+| Calculator | a minus after an operator subtracted from a synthetic `0` (`2*-3` was `-3`, `2^-1` was `0`, `1/-2` divided by zero) | it negates (`-6`, `0.5`, `-0.5`) | port-basic-calculator |
+| Calculator | `^` grouped from the left (`2^3^2` was 64) | from the right (512) | port-basic-calculator |
+| Calculator | `^` truncated its exponent to 32 bits (`2^0.5` was 1, `2^4294967297` was 2) | whole exponents only: `Exponent must be an integer` or `Too many digits` | port-basic-calculator |
+| Calculator | division by zero and negative or huge exponents threw, and "thinking..." stayed | an error embed; negative exponents divide 1 by the power | port-basic-calculator |
+| Calculator | no limits: `10^999999999` stalled the gateway thread, and formulas or results over 1018 characters got no reply | `formula` takes at most 1018 characters, numbers over 50,000 digits fail with `Too many digits`, and the calculation runs in a worker thread | port-basic-calculator |
+| Calculator | `%...%` in a failing formula was expanded, and `%bc_question%` gave no reply | the formula is shown as typed | port-basic-calculator |
+| Calculator | the `bc_` keys stayed in the member's cached placeholders | each render uses its own values | port-basic-calculator |
+| Calculator | `%bc_answer_round%` was the whole answer | the part before the decimal point | port-basic-calculator |
+| Calculator | "thinking..." stayed when the bot could not post in the channel | the answer replaces the deferred response | port-basic-calculator |
+| Calculator | the en-US `formula` description said "bracket is ignorable" | it says that the multiplication sign can be omitted | port-basic-calculator |
+| Calculator | the reply needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers the command | port-basic-calculator |
+| Calculator | an unknown character outside the BMP was reported as half a surrogate pair | the whole character | port-basic-calculator |
 | AutoRole | `modifyMemberRoles` replaced the member's roles with the configured ones, so a role another bot gave at the join could be removed | each configured role is added with its own request; the member keeps every other role | port-auto-role |
 | AutoRole | roles were looked up in every guild, and another guild's role made JDA refuse every role | roles are looked up in the joined guild; another guild's role is skipped and logged | port-auto-role |
 | AutoRole | one role the bot could not give (managed, `@everyone`, too high) or a missing Manage Roles meant no role at all | such a role is skipped with a warning and the others are given; without Manage Roles one warning names the guild | port-auto-role |
@@ -604,37 +628,37 @@ Every deliberate difference, added by the change that introduces it.
 | BotInfo | the reply needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers the command | port-bot-info |
 | BotInfo | guilds that became unavailable during an outage were left out of both counts | they count as guilds, with the members discord.py knew | port-bot-info |
 | BotInfo | no source link; the bundled `config.yaml` held only `enabled: false` | a Source Code field shows `source_url` (decision C3), by default the xincord repository, checked when the plugin loads | port-bot-info |
-| SimpleCommand | the deferred response was deleted together with the post, so a post the channel refused left the administrator with nothing | the message is posted first; when the channel takes no messages or refuses it, it replaces the deferred response and a warning is logged | port-simple-command |
-| SimpleCommand | the commands needed the core's auto-defer; with `--no-auto-defer-interactions` the user saw "The application did not respond" | the command tree always defers the commands | port-simple-command |
-| SimpleCommand | the bundled templates held real bank account numbers | they hold the example `000000000000`; operators' files keep theirs | port-simple-command |
-| SimpleCommand | messages were rendered with the shared global substitutor, with the keys other plugins had written into it | each render gets `bot_id` and `bot_name` only | port-simple-command |
-| WelcomeByeGuild | commands in threads, voice channel chats, stage and announcement channels got no reply (`asTextChannel()` threw), a bind chosen with the option there was saved silently, and `invalid-channel` was never delivered | the commands answer everywhere; without the option there, the reply is `invalid-channel` | port-welcome-bye-guild |
-| WelcomeByeGuild | `%...%` in member, guild and channel names was expanded, and a self-reference stopped the welcome or bye message | names are inserted as written | port-welcome-bye-guild |
-| WelcomeByeGuild | the bye message used the user's placeholders only, so its `wbg@member_*` and unprefixed member keys stayed as written | they render when discord.py still knew the member | port-welcome-bye-guild |
-| WelcomeByeGuild | `invalid-channel`, `*-bind-already` and `*-unbind-empty` created the guild's data file | nothing is written unless a channel changes | port-welcome-bye-guild |
-| WelcomeByeGuild | bindings in `plugins/WelcomeByeGuild/data/<guildId>.json`, written in place; a corrupt file was reset, a non-numeric file name stopped the bot | v3's document in the SQLite store under the guild ID; v3's files are not read (migration deferred, B11) | port-welcome-bye-guild |
-| WelcomeByeGuild | a guild's file was deleted only on a leave event received while the plugin was enabled | also deleted when the bot is ready, for guilds it left while offline or while the plugin was off | port-welcome-bye-guild |
-| WelcomeByeGuild | `guild-only` was rendered with the global placeholders only | with the interaction's, like `no-permission` (guild commands never show it) | port-welcome-bye-guild |
-| WelcomeByeGuild | a welcome or bye message that Discord refused surfaced as JDA's exception log | a warning names the guild and the channel | port-welcome-bye-guild |
-| WelcomeByeGuild | the commands needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers them | port-welcome-bye-guild |
-| WelcomeByeGuild | the zh-TW `welcome` and `bye` texts had typos | corrected in the bundled files | port-welcome-bye-guild |
-| IntervalPusher | an `interval` of 0 or less made the loop push without pause | the plugin does not load, and the error names `listeners.<n>.interval` | port-interval-pusher |
-| IntervalPusher | the URL was not checked, so a URL without a scheme, with another scheme or with a space failed at every push | the plugin does not load unless each `url` is an http or https URL with a host | port-interval-pusher |
-| IntervalPusher | stopping a pusher while it waited for the ping logged a spurious `Query URL ... failed` error | a cancelled loop logs nothing | port-interval-pusher |
-| IntervalPusher | the REST ping was requested at every push | only for URLs that contain `%ping%` | port-interval-pusher |
-| IntervalPusher | the bundled `config.yaml` held a listener on the owner's status domain | it lists no listeners and shows an example on `status.example.com` in a comment | port-interval-pusher |
-| IntervalPusher | a config without `listeners` or with an unknown key stopped the whole bot, even with the plugin disabled | only IntervalPusher is disabled, unknown keys warn, and the file is read only when `plugins` lists it | port-interval-pusher |
-| IntervalPusher | log lines did not say which listener (`Status Monitor refused the connection! (Code: 404)!`) | English lines that number the listener, at v3's levels | port-interval-pusher |
-| Feedbacker | a missing submit channel was reported through the interaction hook before anything acknowledged the submission, so the member saw a failed modal | the submission is acknowledged; the member gets `form_submit_failure` and the form stays | port-feedbacker |
-| Feedbacker | the form was deleted while its review was posted, so a refused review lost the feedback | the form is deleted only after the review is posted; a refused review keeps it and tells the member | port-feedbacker |
-| Feedbacker | a `member` option naming a user outside the guild, or a channel refusing the form, left the administrator's response "thinking" | `form_failure` and a log warning | port-feedbacker |
-| Feedbacker | `SubmitChannel must be TextChannel` and `Submit channel not found` were hard-coded English | `form_failure` and `form_submit_failure` in `config.yaml`: zh-TW in the bundled file, English defaults for v3's files | port-feedbacker |
-| Feedbacker | the star restyle was queued on the interaction hook before the modal acknowledged the press | the bot edits its own message after the modal opened; a refused edit is logged | port-feedbacker |
-| Feedbacker | the feedback was expanded as placeholders, and `%fb_content%` in it made the modal fail | the feedback is shown as typed | port-feedbacker |
-| Feedbacker | a submission without a member wrote its values into the global placeholders | each render has its own values | port-feedbacker |
-| Feedbacker | a star count above 5 or below 0 threw after the member had typed a feedback | the press fails before the modal opens | port-feedbacker |
-| Feedbacker | the command needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers it | port-feedbacker |
-| Feedbacker | a config without one of the three replies, or with an unknown key, stopped the whole bot even with the plugin disabled | only Feedbacker is disabled, unknown keys warn, and a blank reply or one over 2000 characters is refused at load | port-feedbacker |
+| CustomCommands | the deferred response was deleted together with the post, so a post the channel refused left the administrator with nothing | the message is posted first; when the channel takes no messages or refuses it, it replaces the deferred response and a warning is logged | port-simple-command |
+| CustomCommands | the commands needed the core's auto-defer; with `--no-auto-defer-interactions` the user saw "The application did not respond" | the command tree always defers the commands | port-simple-command |
+| CustomCommands | the bundled templates held real bank account numbers | they hold the example `000000000000`; operators' files keep theirs | port-simple-command |
+| CustomCommands | messages were rendered with the shared global substitutor, with the keys other plugins had written into it | each render gets `bot_id` and `bot_name` only | port-simple-command |
+| WelcomeGoodbye | commands in threads, voice channel chats, stage and announcement channels got no reply (`asTextChannel()` threw), a bind chosen with the option there was saved silently, and `invalid-channel` was never delivered | the commands answer everywhere; without the option there, the reply is `invalid-channel` | port-welcome-bye-guild |
+| WelcomeGoodbye | `%...%` in member, guild and channel names was expanded, and a self-reference stopped the welcome or bye message | names are inserted as written | port-welcome-bye-guild |
+| WelcomeGoodbye | the bye message used the user's placeholders only, so its `wbg@member_*` and unprefixed member keys stayed as written | they render when discord.py still knew the member | port-welcome-bye-guild |
+| WelcomeGoodbye | `invalid-channel`, `*-bind-already` and `*-unbind-empty` created the guild's data file | nothing is written unless a channel changes | port-welcome-bye-guild |
+| WelcomeGoodbye | bindings in `plugins/WelcomeByeGuild/data/<guildId>.json`, written in place; a corrupt file was reset, a non-numeric file name stopped the bot | v3's document in the SQLite store under the guild ID; v3's files are not read (migration deferred, B11) | port-welcome-bye-guild |
+| WelcomeGoodbye | a guild's file was deleted only on a leave event received while the plugin was enabled | also deleted when the bot is ready, for guilds it left while offline or while the plugin was off | port-welcome-bye-guild |
+| WelcomeGoodbye | `guild-only` was rendered with the global placeholders only | with the interaction's, like `no-permission` (guild commands never show it) | port-welcome-bye-guild |
+| WelcomeGoodbye | a welcome or bye message that Discord refused surfaced as JDA's exception log | a warning names the guild and the channel | port-welcome-bye-guild |
+| WelcomeGoodbye | the commands needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers them | port-welcome-bye-guild |
+| WelcomeGoodbye | the zh-TW `welcome` and `bye` texts had typos | corrected in the bundled files | port-welcome-bye-guild |
+| UptimeHeartbeat | an `interval` of 0 or less made the loop push without pause | the plugin does not load, and the error names `listeners.<n>.interval` | port-interval-pusher |
+| UptimeHeartbeat | the URL was not checked, so a URL without a scheme, with another scheme or with a space failed at every push | the plugin does not load unless each `url` is an http or https URL with a host | port-interval-pusher |
+| UptimeHeartbeat | stopping a pusher while it waited for the ping logged a spurious `Query URL ... failed` error | a cancelled loop logs nothing | port-interval-pusher |
+| UptimeHeartbeat | the REST ping was requested at every push | only for URLs that contain `%ping%` | port-interval-pusher |
+| UptimeHeartbeat | the bundled `config.yaml` held a listener on the owner's status domain | it lists no listeners and shows an example on `status.example.com` in a comment | port-interval-pusher |
+| UptimeHeartbeat | a config without `listeners` or with an unknown key stopped the whole bot, even with the plugin disabled | only UptimeHeartbeat is disabled, unknown keys warn, and the file is read only when `plugins` lists it | port-interval-pusher |
+| UptimeHeartbeat | log lines did not say which listener (`Status Monitor refused the connection! (Code: 404)!`) | English lines that number the listener, at v3's levels | port-interval-pusher |
+| Feedback | a missing submit channel was reported through the interaction hook before anything acknowledged the submission, so the member saw a failed modal | the submission is acknowledged; the member gets `form_submit_failure` and the form stays | port-feedbacker |
+| Feedback | the form was deleted while its review was posted, so a refused review lost the feedback | the form is deleted only after the review is posted; a refused review keeps it and tells the member | port-feedbacker |
+| Feedback | a `member` option naming a user outside the guild, or a channel refusing the form, left the administrator's response "thinking" | `form_failure` and a log warning | port-feedbacker |
+| Feedback | `SubmitChannel must be TextChannel` and `Submit channel not found` were hard-coded English | `form_failure` and `form_submit_failure` in `config.yaml`: zh-TW in the bundled file, English defaults for v3's files | port-feedbacker |
+| Feedback | the star restyle was queued on the interaction hook before the modal acknowledged the press | the bot edits its own message after the modal opened; a refused edit is logged | port-feedbacker |
+| Feedback | the feedback was expanded as placeholders, and `%fb_content%` in it made the modal fail | the feedback is shown as typed | port-feedbacker |
+| Feedback | a submission without a member wrote its values into the global placeholders | each render has its own values | port-feedbacker |
+| Feedback | a star count above 5 or below 0 threw after the member had typed a feedback | the press fails before the modal opens | port-feedbacker |
+| Feedback | the command needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers it | port-feedbacker |
+| Feedback | a config without one of the three replies, or with an unknown key, stopped the whole bot even with the plugin disabled | only Feedback is disabled, unknown keys warn, and a blank reply or one over 2000 characters is refused at load | port-feedbacker |
 | Economy | amounts were 32-bit `Int`s that wrapped silently (`2147483647 + 1` was saved as `-2147483648`), and a `value` beyond 32 bits left the response "thinking" | amounts are exact integers, and any value Discord sends is applied | port-economy |
 | Economy | `/balance`, the button and the boards created the wallet and the guild's file when reading, so every member who ran `/balance` appeared on the boards at 0 | reading writes nothing; only changed wallets are ranked | port-economy |
 | Economy | a user who is not an administrator and named another member in `/balance` silently got their own wallet | they get `no-permission` | port-economy |
@@ -705,3 +729,5 @@ Every deliberate difference, added by the change that introduces it.
 | Giveaway | the end time was read in the host's zone; `+12026-...` and `9999-12-31 24:00` were accepted | `timeZone` (empty for the host's); years up to 9999 | port-giveaway |
 | Giveaway | a modal with an unknown sub-action re-rendered the preview; a post button without an ID answered `Invalid giveaway id.` in English | no response; `Giveaway not found.` in the user's language | port-giveaway |
 | Giveaway | a drawn giveaway whose post was not refreshed (a crash after the draw, a refused edit) kept Reroll disabled for good; joins answered after the REST edit, which a burst delayed | every press is acknowledged at once and shows the stored giveaway in the post | port-giveaway |
+| Plugin names | plugins named `_Example`, `BasicCalculator`, `SimpleCommand`, `WelcomeByeGuild`, `IntervalPusher` and `Feedbacker`, with their files in `plugins/<name>/` | `Example`, `Calculator`, `CustomCommands`, `WelcomeGoodbye`, `UptimeHeartbeat` and `Feedback` (decision B18 as amended) under `plugins:` and as `plugins/<Name>/`; `migrate_v3` maps the names and moves the v3 directories | rename-plugins |
+| Feedback | the command was `/feedbacker` | `/feedback`; the zh-TW localized name is unchanged | rename-plugins |

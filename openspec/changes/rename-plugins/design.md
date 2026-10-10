@@ -136,9 +136,13 @@ Not applicable: the change ports no v3 behavior and fixes no v3 defect.
 
 ## Manual checks
 
-1. Image (done in this change, see `tasks.md` 8.1): `docker compose build`, then `docker compose
-   run --rm -T bot --no-online` with a temporary `bot/config.yaml` that enables every ported
-   plugin exits 0 with all of them loaded.
+1. Image (done in this change, `tasks.md` 8.1): `docker compose build`, then `docker compose run
+   --rm -T bot --no-online` with a temporary `bot/config.yaml` that enables every ported plugin
+   (and `plugins/Economy/config.yaml` with an example `admin_id`). Done on 2026-10-10: it exited 0,
+   logged `Plugins loaded:` with all thirteen and wrote their files under the new directory names;
+   `docker compose down -v` and removing `bot/` cleaned up. Before that, the wheel from
+   `uv build --package xincord-plugins` listed the six packages under their new names with their
+   `config.yaml` and `lang/` files, and the new entry points.
 2. At cutover, after `python -m xincord.core.migrate_v3 <dir>`: `plugins:` lists the new names and
    the renamed plugins' directories moved; delete `plugins/Feedback/lang/*/register.yaml` (v3's,
    with the `feedbacker` key) so that the bundled files are exported.

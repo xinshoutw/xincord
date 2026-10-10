@@ -13,7 +13,7 @@ with what the owner has not seen yet:
 When the owner answers an item, record the answer in `HANDOFF.md` section 6 and delete the item
 here; delete a section once it is empty.
 
-## _Example (`port-example`)
+## Example (v3 _Example, `port-example`)
 
 ### User-visible changes
 - `/example-command` replies with a third embed field, `Config value`, showing `example_key` from `plugins/_Example/config.yaml` (zh-TW name in the plugin's `lang/zh-TW/message/example.yaml`).
@@ -30,9 +30,8 @@ here; delete a section once it is empty.
 - Test layout: implemented `tests/plugins/<package>/`, golden data in `tests/fixtures/plugins/<package>/golden.yaml`, fakes in `tests/support/discord_fakes.py` and the `store` fixture in `tests/conftest.py`; alternative: fixtures and fakes next to each plugin's tests.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-example/design.md` (needs a token and a test guild).
-- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `_Example` enabled); an image build with the plugin enabled is still open.
 
-## BasicCalculator (`port-basic-calculator`)
+## Calculator (v3 BasicCalculator, `port-basic-calculator`)
 
 ### User-visible changes
 - `formula` takes at most 1018 characters; values over 50,000 digits and results over 1018 characters fail with `Too many digits` (v3: no reply).
@@ -51,7 +50,6 @@ here; delete a section once it is empty.
 - Non-ASCII digits (`３`, `١٢`): kept v3's `Unknown Token` error; alternative: read them as digits.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-basic-calculator/design.md` (needs a token and a test guild).
-- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `BasicCalculator` enabled); an image build with the plugin enabled is still open.
 
 ## AutoRole (`port-auto-role`)
 
@@ -71,7 +69,6 @@ here; delete a section once it is empty.
 - Audit log: no reason on the role requests, as v3; alternative: a reason such as `AutoRole`.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-auto-role/design.md` (needs a token, a test guild and a second account).
-- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `AutoRole` enabled); an image build with the plugin enabled is still open.
 
 ## BotInfo (`port-bot-info`)
 
@@ -88,9 +85,8 @@ here; delete a section once it is empty.
 - Unavailable guilds: counted, with the members discord.py knew (none if unknown); alternative: left out of both counts, as JDA did.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-bot-info/design.md` (needs a token and a test guild).
-- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `BotInfo` enabled); an image build with the plugin enabled is still open.
 
-## SimpleCommand (`port-simple-command`)
+## CustomCommands (v3 SimpleCommand, `port-simple-command`)
 
 ### User-visible changes
 - When the bot cannot post in the channel (missing permissions, or a channel that takes no messages), the administrator gets the message as the ephemeral response and the log has a warning (v3: the "thinking" message vanished and nothing was posted).
@@ -102,9 +98,8 @@ here; delete a section once it is empty.
 - What is posted: implemented the whole template, as v3 posted the built message (an operator's link buttons, Components V2 layouts and their uploaded files too); alternative: content and embeds only, as BasicCalculator posts.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-simple-command/design.md` (needs a token, a test guild and a member without Administrator).
-- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `SimpleCommand` enabled); an image build with the plugin enabled is still open.
 
-## WelcomeByeGuild (`port-welcome-bye-guild`)
+## WelcomeGoodbye (v3 WelcomeByeGuild, `port-welcome-bye-guild`)
 
 ### User-visible changes
 - The four commands answer in threads, voice channel chats, stage and announcement channels (v3: no reply, and a bind chosen with the `channel` option there was saved silently); without the option there, the reply is `invalid-channel`.
@@ -125,9 +120,8 @@ here; delete a section once it is empty.
 - Core gap found in the audit, unchanged: v3's commons-text read `%key:-fallback%` as a fallback for a missing key, while the core's `render` leaves it as written (no shipped template uses it); alternative: support the syntax in `render`.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-welcome-bye-guild/design.md` (needs a token, a test guild and a second account).
-- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `WelcomeByeGuild` enabled); an image build with the plugin enabled is still open.
 
-## IntervalPusher (`port-interval-pusher`)
+## UptimeHeartbeat (v3 IntervalPusher, `port-interval-pusher`)
 
 ### User-visible changes
 - The plugin shows nothing in Discord: the changes are in `plugins/IntervalPusher/config.yaml` and the log.
@@ -146,10 +140,9 @@ here; delete a section once it is empty.
 - Redirects: kept v3's behavior of not following them (a 3xx logs an error); alternative: follow them, so that an `http://` URL redirected to `https://` works.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-interval-pusher/design.md` (needs a token and an Uptime Kuma push monitor or another endpoint that shows its requests).
-- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `IntervalPusher` enabled, with and without a listener); an image build with the plugin enabled is still open.
 - After a discord.py upgrade, check that pushes carry a real ping and not `-1`: the ping uses discord.py's undocumented `HTTPClient.request` and `Route`.
 
-## Feedbacker (`port-feedbacker`)
+## Feedback (v3 Feedbacker, `port-feedbacker`)
 
 ### User-visible changes
 - The form is deleted only after its review is posted.
@@ -172,7 +165,6 @@ here; delete a section once it is empty.
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-feedbacker/design.md` (needs a token, a test guild and a second account).
 - This is the first modal xincord sends (a label around the text input, as discord.py builds it): check that it opens in both languages.
 - At cutover, add `form_failure` and `form_submit_failure` to the existing `plugins/Feedbacker/config.yaml` for zh-TW texts, and press one star of a v3 form if any remains.
-- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `Feedbacker` enabled, with the bundled and v3's config); an image build with the plugin enabled is still open.
 
 ## Economy (`port-economy`)
 
@@ -202,7 +194,6 @@ here; delete a section once it is empty.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-economy/design.md` (needs a token, a test guild and a second account).
 - At cutover, keep the existing `plugins/Economy/config.yaml` (it lists the administrators); its `enabled` and Google Sheets keys can be deleted to silence the warnings.
-- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `Economy` enabled, with the bundled, an operator's and v3's config); an image build with the plugin enabled is still open.
 
 ## DynamicVoiceChannel (`port-dynamic-voice-channel`)
 
@@ -239,7 +230,6 @@ here; delete a section once it is empty.
 - At cutover, delete v3's leftover rooms by hand (only v3's MongoDB knows them).
 - Two members who join an empty lobby at the same instant may both stay in the lobby without a room (discord.py may parse both joins before the plugin sees the first); watch whether it happens.
 - After a discord.py upgrade, check the room requests: the positions use discord.py's undocumented `HTTPClient.request` and `Route`.
-- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `DynamicVoiceChannel` enabled); an image build with the plugin enabled is still open.
 
 ## VoiceLogger (`port-voice-logger`)
 
@@ -272,7 +262,6 @@ here; delete a section once it is empty.
 - The bot needs View Audit Log for the members of status changes, and View Channel, Send Messages and Embed Links in the listen channels.
 - Unverified without a real guild: Discord's `VOICE_CHANNEL_STATUS_UPDATE` payload (null or empty for a cleared status), whether Discord sends it when it clears a status by itself, whether type-192 and 193 entries carry `options.channel_id` and `options.status` as documented (or the channel in `target_id`), whether `options.status` is exactly the gateway's text (if not, set statuses show `-`), and how soon after the gateway event the entries exist.
 - After a discord.py upgrade, check the relay (discord.py's internal `ConnectionState.parsers`) and the audit log request (`HTTPClient.request` and `Route`); if discord.py starts parsing the event, the relay still runs after its parser.
-- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `VoiceLogger` enabled); an image build with the plugin enabled is still open.
 
 ## ChatLogger (`port-chat-logger`)
 
@@ -304,7 +293,6 @@ here; delete a section once it is empty.
 - Turn the Message Content intent on for the bot in the Discord developer portal (Bot, Privileged Gateway Intents) before enabling ChatLogger: without it, Discord refuses the bot's connection.
 - The bot needs View Channel and Read Message History in the logged channels, and View Channel, Send Messages and Embed Links in the listen channels.
 - Unverified without a real guild: whether Discord sends `MESSAGE_UPDATE` for pins and link previews and which previews it types `rich` (members' are never logged either way; a bot's rich preview would log an edit), and how long a large purge takes to post.
-- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `ChatLogger` and `VoiceLogger` enabled); an image build with the plugin enabled is still open.
 
 ## Giveaway (`port-giveaway`)
 
@@ -346,3 +334,22 @@ here; delete a section once it is empty.
 - Unverified without Discord: that a type-7 response to a modal submission updates the ephemeral builder, and how a burst of joins looks (a response may show a count one behind until the next press).
 - Packaging was checked: the wheel's files, `xincord --no-online` from the built wheels, and the compose image (`docker compose run --rm -T bot --no-online` with `Giveaway` enabled), whose Python resolves `Asia/Taipei`.
 - After the deferred migration (B11), the core upgrades v3 posts' IDs with a fetch and an edit, which can briefly revert a concurrent edit of the post's buttons; the next press repairs it.
+
+## Plugin renames (`rename-plugins`)
+
+### User-visible changes
+- The core config's `plugins:` names Example, Calculator, CustomCommands, WelcomeGoodbye, UptimeHeartbeat and Feedback (v3: _Example, BasicCalculator, SimpleCommand, WelcomeByeGuild, IntervalPusher, Feedbacker); the other plugins keep their names.
+- Their files live in `plugins/Example/`, `plugins/Calculator/`, `plugins/CustomCommands/`, `plugins/WelcomeGoodbye/`, `plugins/UptimeHeartbeat/` and `plugins/Feedback/`.
+- `/feedbacker` is `/feedback` (the base and en-US name; zh-TW clients still see 評價表單); its `register.yaml` key is `feedback` in both locales.
+- Log lines use the new names (`Calculator cannot post ...`, `CustomCommands cannot post ...`, `WelcomeGoodbye deleted the channels of guild ...`, `UptimeHeartbeat listener 1 started (every 60 s)`, `Feedback cannot post a form in ...`), and so do the logger names (`xincord.plugins.uptime_heartbeat.pusher`).
+- `python -m xincord.core.migrate_v3 <dir>` writes the new names under `plugins:` and moves each renamed plugin's v3 directory to its new name, with a report line each.
+### Choices made without the owner
+- Placeholder keys: kept v3's, the template's `%_Example@option1%` included, like `wbg@` and `fb_`; alternative: `%Example@...%`, which no v3 operator used.
+- v3 directories: implemented moving them to the new names in `migrate_v3` (both kept, with a report line, when the new one exists), so that v3's config and lang files are found; alternative: only the new names under `plugins:`, the operator moving the directories.
+- The migration already maps the three plugins not ported yet (TicketAwayNotice, NtustAnnouncements, NtustCourseWatch); alternative: add each with its port.
+- `/feedback`'s `register.yaml` key: implemented `feedback`, so a `register.yaml` copied from v3 gives the base names (`feedback`, English descriptions) until it is renewed; alternative: v3's `feedbacker` key, which keeps v3's localizations and `/feedbacker` for en-US clients.
+- Cog classes take the new names too (`bot.get_cog("Calculator")`); alternative: v3's class names.
+### Manual checks
+- Smoke checklist in `openspec/changes/archive/2026-10-10-rename-plugins/design.md`.
+- Done: `docker compose build`, then `docker compose run --rm -T bot --no-online` with all thirteen ported plugins enabled, exited 0 with every one loaded; this settles the image checks of the earlier sections.
+- At cutover, after `migrate_v3`, delete `plugins/Feedback/lang/*/register.yaml` (v3's, with the `feedbacker` key) so that the bundled files with `/feedback` are exported.
