@@ -129,7 +129,7 @@ class FakeRole:
 
 @dataclass
 class FakeGuild:
-    """A guild with its roles and the bot's permissions there."""
+    """A guild with its roles, its member count and the bot's permissions there."""
 
     id: int = 10
     name: str = "guild"
@@ -138,6 +138,7 @@ class FakeGuild:
         default_factory=lambda: discord.Permissions(manage_roles=True)
     )
     unavailable: bool = False  # during a Discord outage
+    member_count: int | None = None  # None when Discord has not sent it (unavailable since startup)
 
     @property
     def me(self) -> SimpleNamespace | None:
