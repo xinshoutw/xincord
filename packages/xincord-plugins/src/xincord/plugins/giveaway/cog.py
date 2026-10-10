@@ -156,7 +156,10 @@ class Giveaway(commands.Cog):
                 logger.exception("Giveaway cannot draw the due giveaways of guild %s", key)
                 continue
             for instance in drawn:
-                await self._announce(instance)
+                try:
+                    await self._announce(instance)
+                except Exception:  # the giveaway is stored as drawn; the others still get posted
+                    logger.exception("Giveaway cannot post the draw of giveaway %s", instance.id)
 
     async def _announce(self, instance: Instance) -> None:
         """Update the post of a giveaway drawn automatically and announce its winners there.

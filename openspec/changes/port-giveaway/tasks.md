@@ -144,7 +144,7 @@
 - [x] 25.5 xfail test for "Failed announcement" (found during the review: an unexpected failure
       while posting one drawn giveaway ended the pass, and the giveaways drawn after it, already
       stored as drawn, were never announced)
-- [ ] 25.6 Log the failure and post the other drawn giveaways; remove the marker
+- [x] 25.6 Log the failure and post the other drawn giveaways; remove the marker
 
 ## 26. Close
 

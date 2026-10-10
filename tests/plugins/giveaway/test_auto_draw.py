@@ -283,7 +283,6 @@ async def test_unload(draws: Draws, ready: Ready) -> None:
     assert loop.cancelled()
 
 
-@pytest.mark.xfail(strict=True, reason="Due giveaways are drawn automatically")
 async def test_failed_announcement(
     draws: Draws, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
