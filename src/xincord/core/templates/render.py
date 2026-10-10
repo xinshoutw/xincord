@@ -38,6 +38,11 @@ if TYPE_CHECKING:
     from xincord.core.templates.schema_v2 import ActionRowV2
 
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
+# JDA trimmed embed fields with Java's String.trim, which removes the characters up to U+0020.
+JAVA_TRIM = "".join(map(chr, range(0x21)))
+# JDA's EmbedBuilder.ZERO_WIDTH_SPACE, a left-to-right mark, replaced an empty field name or value,
+# which Discord refuses.
+EMPTY_FIELD = chr(0x200E)
 
 
 @dataclass(frozen=True)
@@ -140,11 +145,17 @@ def _embed(
     for field in spec.fields:
         if field.model_key is not None:
             model = resolve_model(models, field.model_key, EmbedField)
-            embed.add_field(name=model.name, value=model.value, inline=model.inline)
+            name, value, inline = model.name, model.value, model.inline
         else:
             name, value = render(field.name or "", values), render(field.value or "", values)
-            embed.add_field(name=name, value=value, inline=field.inline)
+            inline = field.inline
+        embed.add_field(name=_field_text(name), value=_field_text(value), inline=inline)
     return embed if _has_content(embed) else None
+
+
+def _field_text(text: str) -> str:
+    """Return a field's name or value as JDA's ``MessageEmbed.Field`` kept it."""
+    return text.strip(JAVA_TRIM) or EMPTY_FIELD
 
 
 def _has_content(embed: discord.Embed) -> bool:

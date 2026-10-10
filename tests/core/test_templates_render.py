@@ -27,7 +27,6 @@ VALUES = {
 NOW = datetime(2026, 10, 10, 12, 0, tzinfo=UTC)
 # JDA's EmbedBuilder.ZERO_WIDTH_SPACE, a left-to-right mark that stands for an empty field text.
 JDA_EMPTY = chr(0x200E)
-FIELDS = pytest.mark.xfail(strict=True, reason="Embed fields follow JDA")
 
 
 def render(tmp_path: Path, text: str, values: dict[str, str] = VALUES) -> Message:
@@ -137,7 +136,6 @@ def test_image_url_is_set(tmp_path: Path) -> None:
     assert embed.image.url == "https://example.com/a.png"
 
 
-@FIELDS
 def test_empty_field_text(tmp_path: Path) -> None:
     """Requirement: Embed fields follow JDA."""
 
@@ -154,7 +152,6 @@ def test_empty_field_text(tmp_path: Path) -> None:
     ]
 
 
-@FIELDS
 def test_padded_field_text(tmp_path: Path) -> None:
     """Requirement: Embed fields follow JDA."""
 
@@ -164,7 +161,6 @@ def test_padded_field_text(tmp_path: Path) -> None:
     assert [(field.name, field.value) for field in embed.fields] == [("name", "value")]
 
 
-@FIELDS
 def test_java_trim(tmp_path: Path) -> None:
     """Requirement: Embed fields follow JDA."""
     # Java's String.trim removes the characters up to U+0020 only: control characters go, while
@@ -181,7 +177,6 @@ def test_java_trim(tmp_path: Path) -> None:
     assert [(field.name, field.value) for field in embed.fields] == [("name", kept)]
 
 
-@FIELDS
 def test_model_fields_follow_jda(tmp_path: Path) -> None:
     """Requirement: Embed fields follow JDA."""
     path = tmp_path / "template.yml"
