@@ -41,7 +41,7 @@
 - [x] 8.1 xfail tests for "Administrators change wallets", "Only administrators change wallets and
       see boards" and "Negative amounts are refused", against a stub `change_wallet` (and
       `show_board` for the boards' permission)
-- [ ] 8.2 Implement `change_wallet`; remove the markers
+- [x] 8.2 Implement `change_wallet`; remove the markers
 
 ## 9. Boards
 

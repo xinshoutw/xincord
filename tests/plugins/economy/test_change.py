@@ -40,9 +40,7 @@ AFTER = {
     "remove-cost": Wallet(money=100, cost=-10),
     "set-cost": Wallet(money=100, cost=30),
 }
-CHANGED = "Administrators change wallets"
 ADMINS_ONLY = "Only administrators change wallets and see boards"
-NEGATIVE = "Negative amounts are refused"
 
 
 def run(name: str, user: FakeMember, *, locale: discord.Locale = EN) -> FakeInteraction:
@@ -87,7 +85,6 @@ async def give_bob(store: Store) -> None:
     await change(store, 10, BOB.id, OPERATIONS["set-cost"], 20)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=CHANGED)
 @pytest.mark.parametrize("locale", [EN, ZH], ids=["en-US", "zh-TW"])
 @pytest.mark.parametrize("name", list(AFTER))
 async def test_change_reply(cog: Economy, store: Store, name: str, locale: discord.Locale) -> None:
@@ -101,7 +98,6 @@ async def test_change_reply(cog: Economy, store: Store, name: str, locale: disco
     assert await read(store, 10, BOB.id) == AFTER[name]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=CHANGED)
 async def test_user_outside_the_guild(cog: Economy, store: Store) -> None:
     """Requirement: Administrators change wallets."""
     carol = FakeUser(id=8, name="carol")  # Discord resolved no member: a discord.User
@@ -115,7 +111,6 @@ async def test_user_outside_the_guild(cog: Economy, store: Store) -> None:
     assert await read(store, 10, carol.id) == Wallet(money=5)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=CHANGED)
 async def test_amounts_past_32_bits(cog: Economy, store: Store) -> None:
     """Requirement: Administrators change wallets."""
     await change_by(cog, run("add-money", ADMIN), BOB, 2**53)
@@ -128,7 +123,6 @@ async def test_amounts_past_32_bits(cog: Economy, store: Store) -> None:
     assert await read(store, 10, BOB.id) == Wallet(money=2**54)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=ADMINS_ONLY)
 @pytest.mark.parametrize("locale", [EN, ZH], ids=["en-US", "zh-TW"])
 @pytest.mark.parametrize("name", list(AFTER))
 async def test_member_changes_a_wallet(
@@ -156,7 +150,6 @@ async def test_member_asks_for_a_board(cog: Economy, store: Store, name: str) ->
     assert replied(interaction) == [GOLDEN["no-permission"]["en-US"]]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=NEGATIVE)
 @pytest.mark.parametrize("name", list(AFTER))
 async def test_negative_amount(cog: Economy, store: Store, name: str) -> None:
     """Requirement: Negative amounts are refused."""
@@ -170,7 +163,6 @@ async def test_negative_amount(cog: Economy, store: Store, name: str) -> None:
     assert await read(store, 10, BOB.id) == Wallet(money=100, cost=20)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=NEGATIVE)
 async def test_zero(cog: Economy, store: Store) -> None:
     """Requirement: Negative amounts are refused."""
     interaction = run("add-money", ADMIN)
@@ -183,9 +175,6 @@ async def test_zero(cog: Economy, store: Store) -> None:
     assert await store.get(NAMESPACE, "10") == {"7": {"cost": 0, "money": 0}}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The commands are localized guild commands"
-)
 async def test_change_outside_a_guild(cog: Economy) -> None:
     """Requirement: The commands are localized guild commands."""
     interaction = run("add-money", ADMIN)

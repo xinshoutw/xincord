@@ -12,7 +12,8 @@ from discord.ext import commands
 from xincord.core.placeholders import actor_values, global_values
 from xincord.core.templates import render_message
 
-from .store import read
+from .store import change, read
+from .wallet import OPERATIONS
 
 if TYPE_CHECKING:
     import discord
@@ -23,6 +24,8 @@ if TYPE_CHECKING:
 
     from .config import Config
     from .wallet import Wallet
+
+BAD_VALUE = "Bad Value"  # v3's reply to a negative amount, the same in every locale
 
 
 class Economy(commands.Cog):
@@ -60,8 +63,29 @@ class Economy(commands.Cog):
     async def change_wallet(
         self, interaction: discord.Interaction, member: discord.Member | discord.User, value: int
     ) -> None:
-        """Stub."""
-        raise NotImplementedError
+        """Change ``member``'s wallet by ``value`` as the invoked command does (v3's six commands).
+
+        As in v3, a user whom ``admin_id`` does not list gets ``no-permission`` before the value is
+        looked at, and a negative value gets ``Bad Value``; 0 is a change. The reply is the message
+        named like the command, with ``member``'s values and the amounts before and after.
+        """
+        guild = interaction.guild
+        if guild is None:  # guild commands run in guilds only, as v3's guard assumed
+            return
+        if not self._is_admin(interaction):
+            await self._no_permission(interaction)
+            return
+        if value < 0:
+            await interaction.edit_original_response(content=BAD_VALUE)
+            return
+        name = _command_name(interaction)
+        before, after = await change(self.store, guild.id, member.id, OPERATIONS[name], value)
+        values = _user_values(interaction, member) | wallet_values(after)
+        values |= {
+            "economy_money_before": str(before.money),
+            "economy_cost_before": str(before.cost),
+        }
+        await self._reply(interaction, name, values)
 
     async def show_board(self, interaction: discord.Interaction) -> None:
         """Stub."""
@@ -88,6 +112,11 @@ async def _edit(interaction: discord.Interaction, message: Message) -> None:
     await interaction.edit_original_response(
         content=message.content, embeds=message.embeds, view=message.view, attachments=message.files
     )
+
+
+def _command_name(interaction: discord.Interaction) -> str:
+    """The base name of the invoked command, which picks the change, the board or the template."""
+    return interaction.command.name if interaction.command else ""
 
 
 def _user_values(
