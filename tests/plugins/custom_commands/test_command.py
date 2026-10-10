@@ -23,12 +23,12 @@ if TYPE_CHECKING:
     from discord_fakes import Sent
     from xincord.core.bot import Bot
     from xincord.core.command_tree import CommandTree
-    from xincord.plugins.simple_command.cog import SimpleCommand
+    from xincord.plugins.custom_commands.cog import CustomCommands
 
     # discord.py calls a cog command's function with the cog, its binding.
-    type Callback = Callable[[SimpleCommand, discord.Interaction], Awaitable[None]]
+    type Callback = Callable[[CustomCommands, discord.Interaction], Awaitable[None]]
 
-GOLDEN = golden("simple_command")
+GOLDEN = golden("custom_commands")
 NAMES = ("cub-none-card", "tsib-none-card", "ctcb-none-card", "ctcb-remit", "chpytwtp-remit")
 
 
@@ -49,7 +49,7 @@ async def test_command_payload(bot: Bot) -> None:
 
 
 @pytest.mark.parametrize("name", NAMES)
-async def test_command_callback(bot: Bot, cog: SimpleCommand, name: str) -> None:
+async def test_command_callback(bot: Bot, cog: CustomCommands, name: str) -> None:
     """Requirement: The commands are localized administrator guild commands."""
     command = bot.tree.get_command(name)
     assert isinstance(command, app_commands.Command)

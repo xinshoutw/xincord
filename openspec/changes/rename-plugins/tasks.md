@@ -19,7 +19,7 @@
 ## 4. CustomCommands
 
 - [x] 4.1 xfail tests for "The plugin installs as CustomCommands"
-- [ ] 4.2 Rename the package, the entry point, the cog, the log lines, the tests and the fixtures;
+- [x] 4.2 Rename the package, the entry point, the cog, the log lines, the tests and the fixtures;
       remove the markers
 
 ## 5. WelcomeGoodbye

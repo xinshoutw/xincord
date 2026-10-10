@@ -21,7 +21,7 @@ import pytest
 
 from discord_fakes import FakeChannel, FakeInteraction, buttons, embed_dict, forbidden
 from plugin_fakes import golden, load_plugin
-from xincord.plugins.simple_command.cog import SimpleCommand
+from xincord.plugins.custom_commands.cog import CustomCommands
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from discord_fakes import Sent
     from xincord.core.storage import Store
 
-GOLDEN = golden("simple_command")
+GOLDEN = golden("custom_commands")
 NAMES = ("cub-none-card", "tsib-none-card", "ctcb-none-card", "ctcb-remit", "chpytwtp-remit")
 LINK_BUTTON = """\
 content: "Pay here"
@@ -59,7 +59,7 @@ def command(name: str, locale: discord.Locale, channel: object) -> FakeInteracti
 
 
 async def run(
-    cog: SimpleCommand,
+    cog: CustomCommands,
     name: str = "cub-none-card",
     *,
     locale: discord.Locale = discord.Locale.american_english,
@@ -78,14 +78,14 @@ async def load_with(
     *,
     name: str = "cub-none-card",
     locale: str = "zh-TW",
-) -> SimpleCommand:
+) -> CustomCommands:
     """Load the plugin with the operator's ``message/<name>.yaml`` in ``locale``."""
-    message = tmp_path / "plugins" / "SimpleCommand" / "lang" / locale / "message"
+    message = tmp_path / "plugins" / "CustomCommands" / "lang" / locale / "message"
     message.mkdir(parents=True)
     (message / f"{name}.yaml").write_text(template, encoding="utf-8")
-    bot = await load_plugin("SimpleCommand", tmp_path / "plugins", store)
-    cog = bot.get_cog("SimpleCommand")
-    assert isinstance(cog, SimpleCommand)
+    bot = await load_plugin("CustomCommands", tmp_path / "plugins", store)
+    cog = bot.get_cog("CustomCommands")
+    assert isinstance(cog, CustomCommands)
     return cog
 
 
@@ -107,7 +107,7 @@ def files(fields: dict[str, object], key: str) -> Sequence[discord.File]:
     return cast("Sequence[discord.File]", fields[key])
 
 
-async def test_message(cog: SimpleCommand) -> None:
+async def test_message(cog: CustomCommands) -> None:
     """Requirement: A command posts its message in the channel."""
     sent = await run(cog)
 
@@ -116,7 +116,7 @@ async def test_message(cog: SimpleCommand) -> None:
 
 
 @pytest.mark.parametrize("name", NAMES)
-async def test_every_command(cog: SimpleCommand, name: str) -> None:
+async def test_every_command(cog: CustomCommands, name: str) -> None:
     """Requirement: A command posts its message in the channel."""
     sent = await run(cog, name)
 
@@ -124,7 +124,7 @@ async def test_every_command(cog: SimpleCommand, name: str) -> None:
 
 
 @pytest.mark.parametrize("locale", [discord.Locale.american_english, discord.Locale.japanese])
-async def test_default_locale(cog: SimpleCommand, locale: discord.Locale) -> None:
+async def test_default_locale(cog: CustomCommands, locale: discord.Locale) -> None:
     """Requirement: A command posts its message in the channel."""
     sent = await run(cog, "ctcb-remit", locale=locale)
 
@@ -179,7 +179,7 @@ async def test_layout_and_files(store: Store, tmp_path: Path) -> None:
 
 
 async def test_channel_refuses_the_message(
-    cog: SimpleCommand, caplog: pytest.LogCaptureFixture
+    cog: CustomCommands, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: A command posts its message in the channel."""
     with caplog.at_level(logging.WARNING):
@@ -209,7 +209,7 @@ async def test_refused_files_are_rendered_again(store: Store, tmp_path: Path) ->
 
 
 async def test_channel_without_messages(
-    cog: SimpleCommand, caplog: pytest.LogCaptureFixture
+    cog: CustomCommands, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: A command posts its message in the channel."""
     forum = SimpleNamespace(id=6, name="questions")  # a forum or a category has no send

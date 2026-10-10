@@ -43,7 +43,7 @@ class Postable(Protocol):
         ...
 
 
-class SimpleCommand(commands.Cog):
+class CustomCommands(commands.Cog):
     """The plugin's state and handlers; ``setup`` registers them."""
 
     def __init__(self, lang: Lang, templates: Templates) -> None:
@@ -78,7 +78,7 @@ class SimpleCommand(commands.Cog):
         channel = _postable(interaction.channel)
         if channel is None:
             logger.warning(
-                "SimpleCommand cannot post %s in %r, which takes no messages, so it shows it "
+                "CustomCommands cannot post %s in %r, which takes no messages, so it shows it "
                 "privately",
                 name,
                 interaction.channel,
@@ -116,7 +116,10 @@ async def _send(channel: Postable, name: str, message: Message) -> bool:
         )
     except discord.HTTPException as error:
         logger.warning(
-            "SimpleCommand cannot post %s in %r, so it shows it privately: %s", name, channel, error
+            "CustomCommands cannot post %s in %r, so it shows it privately: %s",
+            name,
+            channel,
+            error,
         )
         return False
     return True

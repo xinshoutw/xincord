@@ -1,4 +1,4 @@
-"""The SimpleCommand plugin's entry point and bundled files.
+"""The CustomCommands plugin's entry point and bundled files.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/resources/info.yaml:1-8
@@ -8,15 +8,12 @@ Kotlin:
 
 from typing import TYPE_CHECKING
 
-import pytest
-
-from plugin_fakes import load_plugin
 from xincord.core.plugins import PluginInfo, discover
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from xincord.core.storage import Store
+    from xincord.core.bot import Bot
 
 LANG_FILES = (
     "zh-TW/register.yaml",
@@ -28,7 +25,6 @@ LANG_FILES = (
 )
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as CustomCommands")
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as CustomCommands."""
     assert discover(["CustomCommands"]) == [
@@ -36,10 +32,8 @@ def test_discovered_by_name() -> None:
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as CustomCommands")
-async def test_first_load_creates_the_lang_files(store: Store, tmp_path: Path) -> None:
+async def test_first_load_creates_the_lang_files(bot: Bot, tmp_path: Path) -> None:
     """Requirement: The plugin installs as CustomCommands."""
-    bot = await load_plugin("CustomCommands", tmp_path / "plugins", store)
     directory = tmp_path / "plugins" / "CustomCommands"
 
     assert bot.loaded == ("CustomCommands",)
