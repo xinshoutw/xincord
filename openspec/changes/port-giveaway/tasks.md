@@ -113,7 +113,7 @@
 
 ## 21. Automatic draw
 
-- [ ] 21.1 xfail tests for "Due giveaways are drawn automatically" against a stub `draw_due`
+- [x] 21.1 xfail tests for "Due giveaways are drawn automatically" against a stub `draw_due`
 - [ ] 21.2 Implement the loop, `draw_due` and the posts; remove the markers
 
 ## 22. Routes

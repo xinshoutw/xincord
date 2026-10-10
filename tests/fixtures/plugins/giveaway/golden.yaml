@@ -261,3 +261,9 @@ cancelled: {en-US: "Giveaway setup cancelled.", zh-TW: "已取消建立抽獎流
 result:
   en-US: {drawn: "Draw finished", rerolled: "Reroll finished", nobody: "There are no participants.", not-enough: "(not enough participants)"}
   zh-TW: {drawn: "開獎完成", rerolled: "重抽完成", nobody: "目前沒有任何參與者。", not-enough: "（名額不足）"}
+
+# message/auto-draw-result.yaml for the giveaway Nitro drawn by the automatic draw, with {body}
+# standing for the winner lines.
+announcement:
+  en-US: "⏰ Auto draw completed for **Nitro**\n**Draw finished**\n{body}"
+  zh-TW: "⏰ **Nitro** 已自動開獎\n**開獎完成**\n{body}"

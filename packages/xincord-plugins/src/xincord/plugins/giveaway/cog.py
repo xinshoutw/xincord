@@ -28,6 +28,7 @@ from .texts import Texts, language, post_buttons, post_embed, preview, result
 from .times import format_end_time
 
 if TYPE_CHECKING:
+    import asyncio
     from collections.abc import Callable, Mapping, Sequence
 
     from xincord.core.component_ids import ParsedId
@@ -119,6 +120,11 @@ class Giveaway(commands.Cog):
         # Each user's draft per guild, by user ID and guild ID; v3's StepManager.steps.
         self.drafts: dict[tuple[int, int], Session] = {}
         self.clock: Callable[[], float] = time.time  # now, in epoch seconds
+        self.tasks: tuple[asyncio.Task[None], ...] = ()  # the automatic draw once loaded
+
+    async def draw_due(self) -> None:
+        """One pass of the automatic draw: draw, store and announce the due giveaways."""
+        raise NotImplementedError
 
     def command(self) -> app_commands.Command[Any, ..., None]:
         """Build v3's ``/create-giveaway``, localized from ``register.yaml``.

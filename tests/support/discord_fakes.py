@@ -152,11 +152,18 @@ class FakeChannel:
     name: str = "general"
     type: discord.ChannelType = discord.ChannelType.text
     next_id: int = 500  # the ID of the next message sent to the channel
+    message_error: Exception | None = None  # what editing the channel's messages raises
 
     @property
     def mention(self) -> str:
         """The mention markup."""
         return f"<#{self.id}>"
+
+    def get_partial_message(self, message_id: int, /) -> FakeMessage:
+        """The channel's message ``message_id``, without fetching it, as discord.py's."""
+        return FakeMessage(
+            sent=self.sent, id=message_id, channel_id=self.id, error=self.message_error
+        )
 
     async def send(self, **fields: object) -> FakeMessage:
         """Record a message sent to the channel and return it, as discord.py does."""
