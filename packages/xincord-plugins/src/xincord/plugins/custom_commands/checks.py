@@ -4,11 +4,10 @@ The models check each value; these check that names stay unique, that Discord ta
 commands, and that each command's template exists and can be posted.
 """
 
-from typing import TYPE_CHECKING, cast
-
-from pydantic import BaseModel
+from typing import TYPE_CHECKING
 
 from xincord.core.config import ConfigError
+from xincord.core.templates import TemplateError, render_message
 
 from .config import Localization
 
@@ -17,16 +16,17 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from xincord.core.i18n import Lang
-    from xincord.core.templates import Templates
+    from xincord.core.templates import MessageTemplate, Templates
 
     from .config import CommandSpec, Config
 
-LIMIT = 100  # Discord's slash commands per guild; discord.py's tree takes no more either
-NEEDS_MORE = ("uid", "model_key")  # template keys that need component IDs or models
+# Discord's slash commands per guild. discord.py's tree takes no more either, and the core keeps
+# every plugin's commands in it.
+LIMIT = 100
 NONE = Localization()
 
 
-def check(config: Config, lang: Lang, templates: Templates, path: Path) -> None:
+def check(config: Config, lang: Lang, templates: Templates, path: Path, *, taken: int) -> None:
     """Raise ``ConfigError`` with a line per problem, ``<file>: <key>: <problem>``.
 
     Args:
@@ -34,13 +34,14 @@ def check(config: Config, lang: Lang, templates: Templates, path: Path) -> None:
         lang: The plugin's lang files.
         templates: Their parsed templates.
         path: The ``config.yaml`` file, for the messages.
+        taken: How many slash commands the bot holds already (the core's, other plugins').
     """
     commands = config.commands
     lines = [f"{path}: {problem}" for problem in _duplicate_names(commands)]
-    if len(commands) > LIMIT:
+    if len(commands) > (room := LIMIT - taken):
         lines.append(
-            f"{path}: commands: {len(commands)} commands, more than the {LIMIT} that Discord "
-            "takes per guild"
+            f"{path}: commands: {len(commands)} commands, more than the {room} places left of "
+            f"the {LIMIT} that Discord takes per guild"
         )
     lines += _template_problems(commands, lang, templates, path)
     if lines:
@@ -85,29 +86,21 @@ def _template_problems(
             if file is None or file in checked:
                 continue
             checked.add(file)
-            if (key := _needs_more(templates.message(name, locale))) is not None:
-                yield (
-                    f"{file}: {key}: CustomCommands posts templates without component IDs (uid) "
-                    "or models (model_key)"
-                )
+            if (problem := _render_problem(templates.message(name, locale))) is not None:
+                yield f"{file}: cannot be posted: {problem}"
 
 
-def _needs_more(node: object, key: str = "") -> str | None:
-    """The key of the first ``uid`` or ``model_key`` in a parsed template, or None.
+def _render_problem(template: MessageTemplate) -> str | None:
+    """Why ``template`` cannot be rendered as the plugin renders it, or None.
 
-    Components with a ``uid`` need an ID builder and a handler, and a ``model_key`` a model,
-    which the plugin has neither of.
+    The plugin has no component IDs and no models to give, so a component with a ``uid`` or a
+    ``model_key`` fails, as do a missing ``file_path`` and too many rows or components. The
+    render has no placeholder values; the files it opens are closed.
     """
-    if isinstance(node, BaseModel):
-        for field in type(node).model_fields:
-            value: object = getattr(node, field)
-            path = f"{key}.{field}" if key else field
-            if field in NEEDS_MORE and value is not None:
-                return path
-            if (found := _needs_more(value, path)) is not None:
-                return found
-    elif isinstance(node, tuple):
-        for index, item in enumerate(cast("tuple[object, ...]", node)):
-            if (found := _needs_more(item, f"{key}.{index}")) is not None:
-                return found
+    try:
+        message = render_message(template, {})
+    except (TemplateError, ValueError) as error:
+        return str(error)
+    for file in message.files:
+        file.close()
     return None

@@ -21,6 +21,19 @@ from xincord.core.i18n import DESCRIPTION_MAX, is_command_name
 LOCALES = frozenset(locale.value for locale in discord.Locale)
 
 
+def _name(name: str) -> str:
+    """Accept ``name`` if discord.py and Discord both take it as a command's name.
+
+    discord.py's check, which ``app_commands.Command`` runs too, refuses an apostrophe, which
+    Discord takes, but lets a final line break through, which Discord refuses.
+    """
+    validate_name(name)
+    if not is_command_name(name):
+        msg = "a name has 1 to 32 characters: lower-case letters, digits, - and _"
+        raise ValueError(msg)
+    return name
+
+
 def _localized_name(name: str) -> str:
     """Accept ``name`` if it follows Discord's command name rules, as ``register.yaml`` names."""
     if not is_command_name(name):
@@ -45,9 +58,7 @@ def _permission(name: str) -> str:
     return name
 
 
-# discord.py's own check of a command's name (lower case; letters, digits, - and _), which
-# app_commands.Command runs too; Discord also takes ', but discord.py does not.
-Name = Annotated[str, AfterValidator(validate_name)]
+Name = Annotated[str, AfterValidator(_name)]
 Description = Annotated[str, StringConstraints(min_length=1, max_length=DESCRIPTION_MAX)]
 
 

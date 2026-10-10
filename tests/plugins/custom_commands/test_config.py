@@ -123,7 +123,6 @@ async def test_duplicate_names(
     assert f"config.yaml: {key}: " in log
 
 
-@pytest.mark.xfail(strict=True, reason="The config is validated at load")
 async def test_too_many_commands(operator: Operator, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config is validated at load."""
     entries = "".join(
@@ -145,7 +144,6 @@ async def test_missing_template(operator: Operator, caplog: pytest.LogCaptureFix
     assert "config.yaml: commands.0.template: " in log
 
 
-@pytest.mark.xfail(strict=True, reason="The config is validated at load")
 @pytest.mark.parametrize(
     ("template", "reason"),
     UNPOSTABLE,
@@ -163,7 +161,6 @@ async def test_template_that_cannot_be_posted(
     assert f"en-US/message/faq.yaml: cannot be posted: {reason}" in log
 
 
-@pytest.mark.xfail(strict=True, reason="The config is validated at load")
 async def test_link_button_with_a_uid(operator: Operator) -> None:
     """Requirement: The config is validated at load."""
     operator.template(
@@ -179,7 +176,6 @@ async def test_link_button_with_a_uid(operator: Operator) -> None:
     assert bot.loaded == ("CustomCommands",)
 
 
-@pytest.mark.xfail(strict=True, reason="The config is validated at load")
 async def test_name_with_a_line_break(operator: Operator, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config is validated at load."""
     operator.template("pay", 'content: "Pay here"\n')

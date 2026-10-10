@@ -70,7 +70,7 @@
 - [x] 11.3 xfail tests for "Lang files are validated at load" (combining marks, line breaks) and
       "The config is validated at load" (a trailing line break, templates that fail to render, a
       link button with a `uid`, the room left)
-- [ ] 11.4 Follow Discord's scripts in `is_command_name`, check the configured name with it,
+- [x] 11.4 Follow Discord's scripts in `is_command_name`, check the configured name with it,
       render the templates at load and count the room left; remove the markers
 - [ ] 11.5 xfail tests for "A command can answer with a public or an ephemeral reply": refused
       responses

@@ -38,7 +38,8 @@ async def setup(bot: Bot) -> None:
     lang = context.lang(DEFAULT_LOCALE)
     templates = Templates.load(lang)
     config = context.config(Config)
-    check(config, lang, templates, context.directory / "config.yaml")
+    taken = len(bot.tree.get_commands(type=discord.AppCommandType.chat_input))
+    check(config, lang, templates, context.directory / "config.yaml", taken=taken)
     cog = CustomCommands(config, lang, templates)
     await bot.add_cog(cog)
     # Guild commands, as in v3, in the config's order. discord.py removes them when the plugin

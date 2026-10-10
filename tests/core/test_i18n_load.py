@@ -102,7 +102,6 @@ def test_public_name_check_refuses(name: str) -> None:
     assert not is_command_name(name)
 
 
-@pytest.mark.xfail(strict=True, reason="Lang files are validated at load")
 def test_marks_of_other_scripts_are_refused(tmp_path: Path) -> None:
     """Requirement: Lang files are validated at load."""
     accented = "cafe" + chr(0x0301)  # a combining mark, which Discord takes in Devanagari and Thai

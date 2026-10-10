@@ -20,6 +20,10 @@ TEMPLATE_KINDS = ("message", "modal")
 YAML_SUFFIXES = (".yml", ".yaml")
 NAME_MAX = 32
 DESCRIPTION_MAX = 100
+# Discord's command names take letters, numbers, -, _ and ', and any character of the Devanagari
+# and Thai scripts, combining marks included (^[-_'\p{L}\p{N}\p{sc=Deva}\p{sc=Thai}]{1,32}$):
+# here the Devanagari, Devanagari Extended and Thai blocks.
+NAME_SCRIPTS = ((0x0900, 0x097F), (0xA8E0, 0xA8FF), (0x0E00, 0x0E7F))
 
 
 class LangError(Exception):
@@ -240,10 +244,14 @@ def is_command_name(name: str) -> bool:
 
     For command names that plugins read from elsewhere, such as a config file.
     """
+    return 0 < len(name) <= NAME_MAX and name == name.lower() and all(map(_name_char, name))
+
+
+def _name_char(char: str) -> bool:
     return (
-        0 < len(name) <= NAME_MAX
-        and name == name.lower()
-        and all(char in "-_'" or unicodedata.category(char)[0] in "LNM" for char in name)
+        char in "-_'"
+        or unicodedata.category(char)[0] in "LN"
+        or any(low <= ord(char) <= high for low, high in NAME_SCRIPTS)
     )
 
 
