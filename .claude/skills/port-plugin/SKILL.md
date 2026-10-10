@@ -77,7 +77,10 @@ Names: `<Plugin>` is the v3 name (`AutoRole`, `_Example`), `<kebab>` its kebab c
    `_discord_parsers = state.parsers`, `_dispatch = bot.dispatch`, `_dispatch_listeners = []`,
    `_keep_alive = None` and `shard_id = None`, and await `ws.received_message(json.dumps({"op": 0,
    "s": 1, "t": <name>, "d": <payload>}))`; answer `POST /channels/<id>/messages` with a message
-   payload so that a partial messageable's `send` returns (VoiceLogger's probe).
+   payload so that a partial messageable's `send` returns (VoiceLogger's probe). Message events go
+   through the same gateway code (`MESSAGE_CREATE`, `MESSAGE_UPDATE`, `MESSAGE_DELETE`,
+   `MESSAGE_DELETE_BULK`), with `state.user` set to a `discord.ClientUser` and the payloads of
+   `tests/support/payloads.py` (ChatLogger's probe).
 8. **Document.** `docs/porting-guide.md`: differences rows, new pitfalls, convention changes. Audit
    the inventory: each behavior is a scenario with a test, or out of scope or a v3 difference in
    `design.md`, with the reason.
@@ -107,6 +110,11 @@ packages/xincord-plugins/src/xincord/plugins/<package>/
   is the v3 name: the `plugins:` entry, the `plugins/<Plugin>/` directory and the log name. `uv run`
   reinstalls the workspace package; `uv.lock` does not change.
 - `uv_build` ships every file in the package, so bundled YAML reaches the image.
+- Code that two plugins share is a package under `xincord.plugins` without an entry point, which
+  both import absolutely (`xincord.plugins.listen_channels`, VoiceLogger's and ChatLogger's listen
+  channels: `ListenSettings`, `ListenChannels`, `Menu`). Neither plugin needs the other; discord.py
+  leaves the package imported when a plugin unloads, so it holds no state, and what differs is
+  passed in. Each plugin builds its command group in its own module, so that unloading removes it.
 
 ### setup
 
@@ -174,7 +182,14 @@ async def setup(bot: Bot) -> None:
   with its last entry (DynamicVoiceChannel's `store.py`).
 - Settings that v3 kept per channel inside a guild's file (`{"<channelId>": {...}}`) stay one
   document per guild; each change reads it under the guild's lock, rewrites the one entry in v3's
-  shape and keeps the others as they were (VoiceLogger's `_change` and `remove`).
+  shape and keeps the others as they were (the shared `ListenSettings._change` and `remove`).
+- Data that grows with the guilds' traffic (ChatLogger's messages, v3's SQLiteAPI files) is a
+  plugin table, `<Plugin>_<table>`, created in `setup` with `CREATE TABLE IF NOT EXISTS` through
+  `Store.run`; each operation is one `run` (a read, a comparison and an update together), and the
+  SQL stays in module constants (ruff's S608 refuses SQL built with f-strings). Bound it: a config
+  key (`retention_days`) and a background task that deletes the older rows at READY and every hour,
+  in batches through a subquery, since the store's one thread serves every plugin (ChatLogger's
+  `messages.py`). A snowflake gives its creation time (`discord.utils.time_snowflake`).
 
 ### Commands
 
@@ -261,6 +276,14 @@ async def setup(bot: Bot) -> None:
   params=...)`, because `Guild.audit_logs` drops their `options`, and matched by type, channel and
   time (`status.match`), never as the guild's newest entry; `guild.fetch_member` stands for JDA's
   `retrieveMemberById`.
+- Message events: `on_message` (skip `message.guild is None` and the bot's own messages, which
+  come too), `on_raw_message_edit` (`payload.message` is the updated message that discord.py
+  builds from the payload; `on_message_edit` needs the cached one), `on_raw_message_delete` and
+  `on_raw_bulk_message_delete`. Read the channel's place before the first await: a thread's parent
+  and that channel's category come from `thread.parent`, since `Thread.category_id` raises without
+  it (ChatLogger's `Place.of`). `INTENTS = discord.Intents(guild_messages=True,
+  message_content=True)`: the message content intent is privileged, and Discord refuses the bot's
+  connection unless the developer portal allows it; the smoke checklist says so.
 - State that mirrors Discord's (VoiceLogger's tracked voice statuses) is forgotten at each READY
   (`on_ready` fires for each new session) and a guild's on `on_guild_unavailable` and
   `on_guild_remove`, as JDA rebuilt its cache. Logs of one entity whose handling waits for
@@ -270,7 +293,7 @@ async def setup(bot: Bot) -> None:
   `bot.get_partial_messageable(id, guild_id=...)` and a `Postable` cast (the `send` overloads take
   no view union): no cache needed, archived threads reached; a `discord.NotFound` forgets the
   channel's settings, another refusal is a warning naming the guild and the channel, and the other
-  channels still get the message (VoiceLogger's `_post`).
+  channels still get the message (the shared `ListenChannels.post`).
 - Problems the operator must fix (a missing role or permission) are `logger.warning` lines from
   `logging.getLogger(__name__)` that name the plugin; Discord errors on one item are logged and the
   others still handled.
@@ -453,5 +476,12 @@ async def setup(bot: Bot) -> None:
   checks at READY), a stub would break those tests: mark the new tests `xfail(strict=True,
   reason=...)` without `raises`, failing on their assertions. A plugin whose `cog_load` can raise
   in such a test is re-imported by discord.py, so its `cog` fixture uses `cast`.
+- Message events go through discord.py's own parsers: `tests/support/payloads.py` builds the
+  payloads (a member carries `flags`, or discord.py keeps the author a `User`),
+  `plugin_fakes.add_guild(bot, payloads.guild(...))` caches a guild with its channels and threads,
+  and `plugin_fakes.gateway(bot, "MESSAGE_CREATE", payload)` runs the listeners that the parser
+  dispatched. ChatLogger's `scene` fixture bundles the bot, the store, the REST recorder, the cached
+  guild and the posts per listen channel; a `config` fixture that the `bot` fixture reads lets a
+  test load the plugin with another `config.yaml` through `pytest.mark.parametrize("config", ...)`.
 - ruff, pyright, pytest and coverage already cover `packages/` and `tests/`; nothing to configure
   per plugin.

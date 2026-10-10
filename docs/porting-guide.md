@@ -66,6 +66,12 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `guild.getGuildChannelById(id).sendMessage(...)` to a channel that a command set up | `bot.get_partial_messageable(id, guild_id=...).send(...)`, which needs no cache; `discord.NotFound` means the channel is gone (VoiceLogger's listen channels) | |
 | `deferEdit()` and `hook.editOriginal(MessageEditData.fromCreateData(...))` on a component | `interaction.response.edit_message(content=..., embeds=..., view=..., attachments=...)`: one type-7 response that replaces the message (`embeds=()` and `view=None` clear them) | B5 |
 | `EntitySelectInteractionEvent.values` | `interaction.data["values"]`, snowflakes as strings, with `component_type` 5 to 8 | |
+| `MessageReceivedEvent` | `on_message(message)`: `message.guild` is None outside guilds (and for a guild that discord.py has not cached); the bot's own messages come too, compare `bot.user.id` | B3 |
+| `MessageUpdateEvent` (every `MESSAGE_UPDATE`, the message cached or not) | `on_raw_message_edit(payload)` with `payload.message`, the updated message that discord.py builds from the payload (since 2.5); `on_message_edit` needs the cached message | B3 |
+| `MessageDeleteEvent` / `MessageBulkDeleteEvent` | `on_raw_message_delete(payload)` / `on_raw_bulk_message_delete(payload)`, uncached messages too; discord.py never splits a bulk deletion | B3 |
+| `Message.contentRaw` and `getEmbeds()` | `message.content` and `message.embeds`; an embed's `type` is `rich` for bots' and webhooks' embeds and a preview type (`link`, `article`, `image`, `video`, `gifv`) for the ones Discord adds from links | |
+| SQLiteAPI's `SQLiteFileManager` (ChatLogger: a file per guild, a table per channel) | a plugin table in the core store through `Store.run`, named `<Plugin>_<table>` (`ChatLogger_messages`), each operation one transaction | B8, B12 |
+| Code that v3 copied between plugins (VoiceLogger's and ChatLogger's `ChannelData`, `JsonManager` and settings menu) | a package under `xincord.plugins` without an entry point that both plugins import (`xincord.plugins.listen_channels`: `ListenSettings`, `ListenChannels`) | B3 |
 | Ktor Web-Dashboard | not ported | B13 |
 
 ## Intents kept from the v4 attempt (A3)
@@ -231,9 +237,24 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   the other channels still get the message.
 - Settings that v3 kept per channel inside a guild's file (`{"<channelId>": {...}}`) stay one
   document per guild, changed one channel at a time under the guild's lock; a change that changes
-  nothing writes nothing (VoiceLogger's `store.py`).
+  nothing writes nothing (`xincord.plugins.listen_channels.store`, shared by VoiceLogger and
+  ChatLogger).
 - Audit log entries of types that discord.py does not know are read raw and matched by type,
   channel and time, never taken as "the guild's newest entry" (VoiceLogger's `status.match`).
+- Code that two plugins share lives in a package under `xincord.plugins` without an entry point
+  (VoiceLogger's and ChatLogger's `xincord.plugins.listen_channels`): neither plugin needs the
+  other, and discord.py, which drops a plugin's own modules when it unloads it, leaves the package
+  imported, so it holds no state. What differs is passed in (`ListenSettings(store, namespace)`,
+  `Menu(lang, templates, ids, key, template)`); each plugin builds its command group in its own
+  module, so that unloading the plugin removes it.
+- Data that grows with the guilds' traffic (ChatLogger's messages) is a plugin table in the core
+  store, `<Plugin>_<table>` through `Store.run`, each operation one transaction, and is bounded: a
+  background task deletes what is older than the configured retention at READY and every hour, in
+  batches, so that the store's single database thread, which every plugin shares, is never held
+  long (decision B8, settled in port-chat-logger).
+- Tests of message events feed discord.py's own parsers: `tests/support/payloads.py` builds the
+  payloads, `plugin_fakes.add_guild` caches a guild, and `plugin_fakes.gateway` runs the listeners
+  that the parsers dispatched (ChatLogger's `scene` fixture).
 
 ## Pitfalls
 
@@ -415,11 +436,31 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   code units, where a character outside the BMP counts twice; Python's `len` counts it once. Count
   `len(text.encode("utf-16-le")) // 2` to stay within the limits (VoiceLogger's lists,
   DynamicVoiceChannel's names).
+- **Members in payloads.** discord.py makes a message's author a `Member` only when the payload's
+  `member` holds every field that `Member` reads (`flags` too); `Message.__init__` swallows the
+  `KeyError` and keeps a `User`. `payloads.member` and `payloads.message` carry them.
+- **Parsers dispatch through the state.** discord.py's own parsers call the connection state's
+  `dispatch`, bound when the client was created, not `bot.dispatch`; `plugin_fakes.gateway`
+  records both.
+- **Uncached guilds, channels and parents.** A message from a guild that discord.py has not cached
+  has no `guild`, and one from an uncached channel a `PartialMessageable`; `Thread.category_id`
+  raises without the cached parent channel, so read `thread.parent`. `guild.channels` leaves
+  threads out; `guild.threads` holds the active ones (ChatLogger's `Place.of`).
+- **Embed types.** `Embed.from_dict` leaves `type` None when the payload has none; Discord's
+  default is `rich`.
+- **Privileged message content.** A plugin that declares `message_content` makes the core request
+  it, and Discord closes the gateway (4014) unless the developer portal allows it: the bot does not
+  connect at all. Without the intent, messages arrive without their text.
+- **Fixtures by parameter.** `pytest.mark.parametrize` with a fixture's name overrides that fixture
+  for the test, also where other fixtures request it (ChatLogger's `config`).
+- **Batched deletions.** SQLite's `DELETE` takes no `LIMIT` unless it was compiled with it: delete a
+  batch through a subquery of IDs (ChatLogger's `PRUNE`).
 
 v3 behaviors never to reproduce: loading plugins in reverse dependency order, non-atomic JSON
 writes that silently reset corrupt files, recursive placeholder expansion, shared mutable
 placeholder caches, `asTextChannel()` failures in threads, voice chat and announcement channels,
-allow-all mentions, and naming the member of an event after the guild's newest audit log entry.
+allow-all mentions, naming the member of an event after the guild's newest audit log entry, and
+keeping message content forever.
 
 ## Differences from v3
 
@@ -583,3 +624,14 @@ Every deliberate difference, added by the change that introduces it.
 | VoiceLogger | the values stayed in the member's shared substitutor, mixed between the status handler and the voice handler | each log renders with its own values | port-voice-logger |
 | VoiceLogger | the settings of a left guild were deleted at the next start only; an unknown select menu action threw; an unreadable file was replaced by `{}`; the command needed the core's auto-defer | they are deleted on leave and at READY; no response; an error without overwriting; the command tree always defers the command | port-voice-logger |
 | VoiceLogger | settings in `plugins/VoiceLogger/setting/<guildId>.json` | v3's document per guild in the SQLite store; v3's files are not read (migration deferred, B11) | port-voice-logger |
+| ChatLogger | settings in `plugins/ChatLogger/setting/<guildId>.json` and messages in `data/<guildId>.db`, one table per channel | v3's settings documents in the store and one table, `ChatLogger_messages`, in `data/xincord.db`; v3's files are not read (migration deferred, B11) | port-chat-logger |
+| ChatLogger | messages were stored forever, deleted ones' too | they are kept `retention_days` days (30 by default), and a deleted message's text leaves the store once its deletion is handled | port-chat-logger |
+| ChatLogger | `log_all: false` froze the logged channels to those that had a table; its start-up `DROP TABLE` always failed; leaving a guild deleted nothing (wrong key) | it stores the detected channels' messages; one table; a left guild's messages are deleted with `log_all: false` | port-chat-logger |
+| ChatLogger | edits and deletions in threads were never posted, and the block mode never detected threads | threads are logged, detected through their channel and its category or by their own ID | port-chat-logger |
+| ChatLogger | the deletion of a message whose author had left, or of a webhook's message, was not logged | it is logged with the stored author's mention and `-` | port-chat-logger |
+| ChatLogger | bulk deletions (purges) were never logged | each stored message of one is logged, oldest first | port-chat-logger |
+| ChatLogger | every `MESSAGE_UPDATE` counted as an edit, link previews included, whose text replaced the content | only a change of the text counts | port-chat-logger |
+| ChatLogger | a message with embeds was stored without its content, with `null` for a missing title or description | the content and the rich embeds, without missing parts | port-chat-logger |
+| ChatLogger | a message over 1024 characters lost its log; `%...%` in messages was expanded, and `%cl_msg_after%` made the log throw | texts are cut with `...` and shown as written | port-chat-logger |
+| ChatLogger | a webhook's edit showed the placeholders themselves; a channel without a category showed an earlier category or the placeholder | the webhook's mention, and `-` | port-chat-logger |
+| ChatLogger | VoiceLogger's settings defects (the first use threw, the first selection switched to the block mode, "Delete" deleted the guild's file, the menu only in text channels, posts stopped at a missing listen channel, long lists broke the menu) | fixed as in VoiceLogger, by the same shared code | port-chat-logger |
