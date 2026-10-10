@@ -16,7 +16,7 @@
 
 ## 4. REST ping
 
-- [ ] 4.1 xfail tests for "The URL carries the REST ping" against stubs in `pusher.py`
+- [x] 4.1 xfail tests for "The URL carries the REST ping" against stubs in `pusher.py`
 - [ ] 4.2 Implement `build_url`, `rest_ping` and `Pusher.url`, and declare aiohttp in
       `xincord-plugins`; remove the markers
 
