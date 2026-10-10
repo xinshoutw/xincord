@@ -1,26 +1,31 @@
-"""The builder's drafts: only the builder message that shows a user's draft drives it.
+"""The builder's drafts: the latest builder of a draft drives it; prizes and the winner policy.
 
 v3 looked the draft up by the user and the guild only, so an older builder message drove the
 newest draft.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:16-79
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:313-319
+    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:209-225
+    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:313-363
+    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepData.kt:34-45
     XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:125-149
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
+import discord
 import pytest
 
+from discord_fakes import embed_dict
 from plugin_fakes import golden
-from xincord.plugins.giveaway.model import Draft
+from xincord.plugins.giveaway.model import Draft, Policy, Prize
 
 if TYPE_CHECKING:
     from conftest import Scene
     from discord_fakes import FakeInteraction
 
 GOLDEN = golden("giveaway")
+PRIZES = "The builder removes prizes and switches the winner policy"
 
 
 def expired(locale: str = "en-US") -> list[tuple[str, dict[str, object]]]:
@@ -77,3 +82,54 @@ async def test_unknown_sub_action(scene: Scene) -> None:
     assert sent(pressed) == []
     assert sent(submitted) == []  # v3 re-rendered the preview for a modal
     assert scene.draft() == Draft(title="Mine")
+
+
+def preview_fields(interaction: FakeInteraction) -> list[dict[str, Any]]:
+    """The fields of the preview that replaced the builder, the interaction's only response."""
+    [(method, fields)] = interaction.sent
+    assert method == "response.edit_message"
+    assert isinstance(fields["view"], discord.ui.View)
+    [embed] = cast("tuple[discord.Embed, ...]", fields["embeds"])
+    found: list[dict[str, Any]] = embed_dict(embed)["fields"]
+    return found
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=PRIZES)
+async def test_remove_prize(scene: Scene) -> None:
+    """Requirement: The builder removes prizes and switches the winner policy."""
+    scene.keep(Draft(prizes=(Prize("Nitro", 2), Prize("Sticker", 1))))
+
+    pressed = await scene.press("remove-prize")
+
+    assert scene.draft() == Draft(prizes=(Prize("Nitro", 2),))
+    expected = GOLDEN["preview"]["en-US"]["full"]["fields"][2]["value"].partition("\n")[0]
+    assert preview_fields(pressed)[2]["value"] == expected
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=PRIZES)
+@pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
+async def test_nothing_to_remove(scene: Scene, locale: str) -> None:
+    """Requirement: The builder removes prizes and switches the winner policy."""
+    scene.keep(Draft(title="Nitro"))
+
+    pressed = await scene.press("remove-prize", scene.who(locale=locale))
+
+    reply = GOLDEN["replies"][locale]["no-prize"]
+    assert sent(pressed) == [("response.send_message", {"content": reply, "ephemeral": True})]
+    assert scene.draft() == Draft(title="Nitro")
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=PRIZES)
+async def test_switch_policy(scene: Scene) -> None:
+    """Requirement: The builder removes prizes and switches the winner policy."""
+    scene.keep(Draft())
+    unique = GOLDEN["preview"]["en-US"]["full"]["fields"][3]["value"]
+    allowed = GOLDEN["preview"]["en-US"]["empty"]["fields"][3]["value"]
+
+    first = await scene.press("toggle-duplicate-policy")
+    assert scene.draft().policy is Policy.UNIQUE_ACROSS_PRIZES
+    second = await scene.press("toggle-duplicate-policy")
+
+    assert scene.draft().policy is Policy.ALLOW_DUPLICATE
+    assert preview_fields(first)[3]["value"] == unique
+    assert preview_fields(second)[3]["value"] == allowed
