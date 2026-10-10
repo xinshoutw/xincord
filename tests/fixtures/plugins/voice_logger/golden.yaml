@@ -73,3 +73,74 @@ commands:
         name_localizations: {"en-US": "setting", "zh-TW": "設定"}
         description_localizations: {"en-US": "set voice log in this channel", "zh-TW": "設定語音紀錄在此頻道"}
         options: []
+
+# The voice logs per locale for member 7 (no avatar: discord.py's default one) in guild 10: a join
+# of Room A (30, category 20), a leave of Loose (33, outside categories: "-") and a switch from
+# Room A to Room B (32, category 21). The core trims the member field's newlines, as JDA did.
+voice:
+  en-US:
+    join:
+      title: "☛ Voice Channel Joined"
+      url: "https://discord.com/channels/10/30"
+      thumbnail: {url: "https://cdn.example/default.png"}
+      color: 974848
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "`Member`", value: "<@7>", inline: false}
+        - {name: "`Category`", value: "<#20>", inline: false}
+        - {name: "`Channel`", value: "<#30> (Room A)", inline: false}
+    left:
+      title: "☛ Voice Channel Left"
+      url: "https://discord.com/channels/10/33"
+      thumbnail: {url: "https://cdn.example/default.png"}
+      color: 12591136
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "`Member`", value: "<@7>", inline: false}
+        - {name: "`Category`", value: "-", inline: false}
+        - {name: "`Channel`", value: "<#33> (Loose)", inline: false}
+    switch:
+      title: "☛ Voice Channel Switch"
+      url: "https://discord.com/channels/10/32"
+      thumbnail: {url: "https://cdn.example/default.png"}
+      color: 13684736
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "`Member`", value: "<@7>", inline: false}
+        - {name: "`Category Left`", value: "<#20>", inline: false}
+        - {name: "`Channel Left`", value: "<#30> (Room A)", inline: false}
+        - {name: "`Category Join`", value: "<#21>", inline: false}
+        - {name: "`Channel Join`", value: "<#32> (Room B)", inline: false}
+  zh-TW:
+    join:
+      title: "☛ 進入語音頻道"
+      url: "https://discord.com/channels/10/30"
+      thumbnail: {url: "https://cdn.example/default.png"}
+      color: 974848
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "`使用者`", value: "<@7>", inline: false}
+        - {name: "`類別`", value: "<#20>", inline: false}
+        - {name: "`頻道`", value: "<#30> (Room A)", inline: false}
+    left:
+      title: "☛ 退出語音頻道"
+      url: "https://discord.com/channels/10/33"
+      thumbnail: {url: "https://cdn.example/default.png"}
+      color: 12591136
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "`使用者`", value: "<@7>", inline: false}
+        - {name: "`類別`", value: "-", inline: false}
+        - {name: "`頻道`", value: "<#33> (Loose)", inline: false}
+    switch:
+      title: "☛ 轉換語音頻道"
+      url: "https://discord.com/channels/10/32"
+      thumbnail: {url: "https://cdn.example/default.png"}
+      color: 13684736
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "`使用者`", value: "<@7>", inline: false}
+        - {name: "`退出類別`", value: "<#20>", inline: false}
+        - {name: "`退出頻道`", value: "<#30> (Room A)", inline: false}
+        - {name: "`進入類別`", value: "<#21>", inline: false}
+        - {name: "`進入頻道`", value: "<#32> (Room B)", inline: false}

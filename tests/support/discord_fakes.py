@@ -179,6 +179,12 @@ class FakeVoiceChannel(FakeChannel):
     gate: asyncio.Event | None = None
     cloning: asyncio.Event = field(default_factory=asyncio.Event)
 
+    @property
+    def jump_url(self) -> str:
+        """The channel's URL, as discord.py builds it."""
+        guild_id = 0 if self.guild is None else self.guild.id
+        return f"https://discord.com/channels/{guild_id}/{self.id}"
+
     async def clone(
         self, *, name: str | None = None, reason: str | None = None
     ) -> FakeVoiceChannel:

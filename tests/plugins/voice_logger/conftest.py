@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, cast
 
 import pytest
 
-from discord_fakes import BOT_USER, FakeRest
+from discord_fakes import BOT_USER, FakeChannel, FakeRest
 from plugin_fakes import load_plugin
 from xincord.core.bot import Bot
 
@@ -52,3 +52,20 @@ def cog(bot: Bot) -> VoiceLogger:
     found = bot.get_cog("VoiceLogger")
     assert found is not None
     return cast("VoiceLogger", found)
+
+
+@pytest.fixture
+def channels(bot: Bot, monkeypatch: pytest.MonkeyPatch) -> dict[int, FakeChannel]:
+    """The listen channels that the plugin posts to, by ID; each is created at its first use.
+
+    The plugin reaches them through ``bot.get_partial_messageable``, which needs no cache. Put a
+    channel here before the post to make it fail (``FakeChannel(id=..., error=...)``).
+    """
+    created: dict[int, FakeChannel] = {}
+
+    def partial(channel_id: int, *, guild_id: int | None = None) -> FakeChannel:
+        assert guild_id is not None  # the listen channel's guild
+        return created.setdefault(channel_id, FakeChannel(id=channel_id))
+
+    monkeypatch.setattr(bot, "get_partial_messageable", partial)
+    return created

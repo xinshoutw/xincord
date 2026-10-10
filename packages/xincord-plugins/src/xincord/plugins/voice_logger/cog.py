@@ -128,6 +128,17 @@ class VoiceLogger(commands.Cog):
         template = self.templates.message(name, interaction.locale.value)
         return render_message(template, placeholder_values(interaction), build_id=IDS.build)
 
+    @commands.Cog.listener()
+    async def on_voice_state_update(
+        self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState
+    ) -> None:
+        """Post a join, a leave or a switch to the listen channels that detect it.
+
+        Raises:
+            NotImplementedError: Not implemented yet.
+        """
+        raise NotImplementedError
+
     def _menu(self, interaction: discord.Interaction, setting: Setting) -> Message:
         """v3's settings menu for ``setting``, in the user's locale.
 
