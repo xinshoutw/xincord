@@ -19,8 +19,11 @@ from xincord.plugins.uptime_heartbeat.pusher import Pusher, build_url, rest_ping
 if TYPE_CHECKING:
     from discord.http import Route
 
-URL = "https://status.example.com/api/push/xxxxxxxxxx?status=up&msg=OK&ping=%ping%"
+TOKEN = "xxxxxxxxxx"  # the push token: in the URL's path, never in a log line
+URL = f"https://status.example.com/api/push/{TOKEN}?status=up&msg=OK&ping=%ping%"
 PUSHED = URL.replace("%ping%", "42")
+ENDPOINT = "https://status.example.com"  # the URL's origin, all that the logs show of it
+ORIGIN_ONLY = "Logs show only the URL's origin"
 
 
 class Stop(Exception):  # noqa: N818 - it ends the loop, it reports no error
@@ -142,15 +145,15 @@ def records_above(caplog: pytest.LogCaptureFixture, level: int) -> list[logging.
     return [record for record in caplog.records if record.levelno > level]
 
 
+@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
 @pytest.mark.parametrize("status", [200, 204, 299])
 async def test_success(status: int, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
     with caplog.at_level(logging.DEBUG, "xincord.plugins.uptime_heartbeat"):
-        keep_pushing = await Fakes(answers=(status,)).pusher().push()
+        await Fakes(answers=(status,)).pusher().push()
 
-    assert keep_pushing
     assert records_above(caplog, logging.DEBUG) == []
-    assert f"UptimeHeartbeat listener 1 pushed {PUSHED}" in caplog.messages
+    assert caplog.messages == [f"UptimeHeartbeat listener 1 pushed to {ENDPOINT} (code {status})"]
 
 
 async def test_not_found(caplog: pytest.LogCaptureFixture) -> None:
@@ -177,19 +180,20 @@ async def test_monitor_offline(caplog: pytest.LogCaptureFixture) -> None:
     )
 
 
+@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
 @pytest.mark.parametrize("status", [500, 302, 401])
 async def test_other_status(status: int, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
-    keep_pushing = await Fakes(answers=(status,)).pusher().push()
+    await Fakes(answers=(status,)).pusher().push()
 
-    assert keep_pushing
     [record] = records_above(caplog, logging.INFO)
     assert record.levelno == logging.ERROR
     assert record.getMessage() == (
-        f"UptimeHeartbeat listener 1: pushing to {PUSHED} failed with code {status}"
+        f"UptimeHeartbeat listener 1: pushing to {ENDPOINT} failed with code {status}"
     )
 
 
+@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
 @pytest.mark.parametrize(
     ("error", "text"),
     [
@@ -204,26 +208,92 @@ async def test_other_status(status: int, caplog: pytest.LogCaptureFixture) -> No
 )
 async def test_network_error(error: Exception, text: str, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
-    keep_pushing = await Fakes(answers=(error,)).pusher().push()
+    await Fakes(answers=(error,)).pusher().push()
 
-    assert keep_pushing
     [record] = records_above(caplog, logging.INFO)
     assert record.levelno == logging.ERROR
-    # The URL as configured, as v3 logged it; no traceback for a network error.
-    assert record.getMessage() == f"UptimeHeartbeat listener 1: pushing to {URL} failed: {text}"
+    # No traceback for a network error.
+    assert (
+        record.getMessage() == f"UptimeHeartbeat listener 1: pushing to {ENDPOINT} failed: {text}"
+    )
     assert record.exc_info is None
 
 
+@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
 async def test_unexpected_error(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
-    keep_pushing = await Fakes(answers=(ValueError("unexpected"),)).pusher().push()
+    await Fakes(answers=(ValueError("unexpected"),)).pusher().push()
 
-    assert keep_pushing
     [record] = records_above(caplog, logging.INFO)
     assert record.levelno == logging.ERROR
-    assert record.getMessage() == f"UptimeHeartbeat listener 1: pushing to {URL} failed"
-    assert record.exc_info is not None  # the traceback, for a failure nobody expected
-    assert str(record.exc_info[1]) == "unexpected"
+    # The traceback, for a failure nobody expected, is part of the message.
+    message = record.getMessage()
+    assert message.startswith(
+        f"UptimeHeartbeat listener 1: pushing to {ENDPOINT} failed\n"
+        "Traceback (most recent call last):\n"
+    )
+    assert message.endswith("\nValueError: unexpected")
+
+
+@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
+async def test_pushes_that_fail_or_work(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Logs show only the URL's origin."""
+    timeout = aiohttp.ConnectionTimeoutError(f"Connection timeout to host {PUSHED}")
+    unexpected = ValueError(f"unexpected answer from {PUSHED}")
+    answers = (200, 500, 302, timeout, unexpected, 200)
+    fakes = Fakes(answers=answers, stop_after=len(answers))
+
+    with caplog.at_level(logging.DEBUG, "xincord.plugins.uptime_heartbeat"), pytest.raises(Stop):
+        await fakes.pusher().run()
+
+    start, *pushes = caplog.messages
+    assert start == "UptimeHeartbeat listener 1 started (every 60 s)"
+    assert len(pushes) >= len(answers)
+    assert all(ENDPOINT in message for message in pushes)
+    assert TOKEN not in caplog.text
+    assert "/api/push" not in caplog.text
+
+
+@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
+async def test_port_and_user_info(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Logs show only the URL's origin."""
+    url = f"http://user:secret@127.0.0.1:3001/api/push/{TOKEN}"
+
+    await Fakes(answers=(500,)).pusher(url).push()
+
+    [record] = records_above(caplog, logging.INFO)
+    assert record.getMessage() == (
+        "UptimeHeartbeat listener 1: pushing to http://127.0.0.1:3001 failed with code 500"
+    )
+    assert "secret" not in caplog.text
+    assert TOKEN not in caplog.text
+
+
+@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
+async def test_url_in_an_errors_text(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Logs show only the URL's origin."""
+    # aiohttp 3.14.4's connect timeout names the whole URL.
+    timeout = aiohttp.ConnectionTimeoutError(f"Connection timeout to host {PUSHED}")
+
+    await Fakes(answers=(timeout,)).pusher().push()
+
+    [record] = records_above(caplog, logging.INFO)
+    assert record.getMessage() == (
+        f"UptimeHeartbeat listener 1: pushing to {ENDPOINT} failed: "
+        f"Connection timeout to host {ENDPOINT}"
+    )
+
+
+@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
+async def test_url_in_a_traceback(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Logs show only the URL's origin."""
+    await Fakes(answers=(ValueError(f"unexpected answer from {PUSHED}"),)).pusher().push()
+
+    [record] = records_above(caplog, logging.INFO)
+    message = record.getMessage()
+    assert "Traceback (most recent call last):" in message
+    assert message.endswith(f"\nValueError: unexpected answer from {ENDPOINT}")
+    assert TOKEN not in caplog.text
 
 
 async def test_first_push_at_once(caplog: pytest.LogCaptureFixture) -> None:

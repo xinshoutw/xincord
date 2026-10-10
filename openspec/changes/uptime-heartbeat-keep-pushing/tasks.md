@@ -1,6 +1,6 @@
 ## 1. Logs show only the URL's origin
 
-- [ ] 1.1 xfail tests for "Logs show only the URL's origin": `origin` and `redact` against stubs in
+- [x] 1.1 xfail tests for "Logs show only the URL's origin": `origin` and `redact` against stubs in
       `logs.py`, and the push lines that name the origin (a malformed answer through aiohttp too)
 - [ ] 1.2 Implement `origin` and `redact` and use them in every line that shows the URL; remove the
       markers
