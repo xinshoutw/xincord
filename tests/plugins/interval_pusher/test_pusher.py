@@ -19,7 +19,6 @@ from xincord.plugins.interval_pusher.pusher import Pusher, build_url, rest_ping
 if TYPE_CHECKING:
     from discord.http import Route
 
-PING = "The URL carries the REST ping"
 URL = "https://status.example.com/api/push/xxxxxxxxxx?status=up&msg=OK&ping=%ping%"
 
 
@@ -49,7 +48,6 @@ class Fakes:
         return Pusher(1, listener, get=self.get, ping=self.ping, sleep=self.sleep)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=PING)
 def test_every_placeholder_is_replaced() -> None:
     """Requirement: The URL carries the REST ping."""
     template = "https://status.example.com/%ping%/push?ping=%ping%"
@@ -58,7 +56,6 @@ def test_every_placeholder_is_replaced() -> None:
     assert build_url(template, -1) == "https://status.example.com/-1/push?ping=-1"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=PING)
 async def test_ping_in_the_url() -> None:
     """Requirement: The URL carries the REST ping."""
     fakes = Fakes(ping_ms=42)
@@ -69,7 +66,6 @@ async def test_ping_in_the_url() -> None:
     assert fakes.calls == ["ping"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=PING)
 @pytest.mark.parametrize(
     "error",
     [
@@ -93,7 +89,6 @@ async def test_failed_ping(error: Exception, caplog: pytest.LogCaptureFixture) -
     )
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=PING)
 async def test_no_placeholder() -> None:
     """Requirement: The URL carries the REST ping."""
     fakes = Fakes()
@@ -103,7 +98,6 @@ async def test_no_placeholder() -> None:
     assert fakes.calls == []  # v3 asked Discord at every push
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=PING)
 async def test_measured_round_trip() -> None:
     """Requirement: The URL carries the REST ping."""
     requests: list[Route] = []

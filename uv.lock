@@ -867,11 +867,15 @@ name = "xincord-plugins"
 version = "0.1.0"
 source = { editable = "packages/xincord-plugins" }
 dependencies = [
+    { name = "aiohttp" },
     { name = "xincord" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "xincord", editable = "." }]
+requires-dist = [
+    { name = "aiohttp", specifier = ">=3.14.4" },
+    { name = "xincord", editable = "." },
+]
 
 [[package]]
 name = "yarl"
