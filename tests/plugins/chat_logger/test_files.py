@@ -13,6 +13,7 @@ import pytest
 from discord.utils import time_snowflake
 
 from xincord.plugins.chat_logger.files import (
+    expired,
     file_name,
     first_id,
     first_second,
@@ -86,3 +87,21 @@ def test_next_start() -> None:
     assert first_id(next_start(at(5.999) + (1 << 22) - 1, newest)) > at(5.999) + (1 << 22) - 1
     # A first file whose rows are all older than its own start still gets a later successor.
     assert next_start(at(-10), newest) == NOON + timedelta(seconds=1)
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="Stored messages are kept for the retention period",
+)
+def test_expired() -> None:
+    """Requirement: Stored messages are kept for the retention period."""
+    first_ids = [at(0), at(60), at(120)]
+
+    assert expired(first_ids, at(59)) == 0  # the first file may hold a message from 00:59
+    assert expired(first_ids, at(60)) == 1  # its messages are all older than its successor
+    assert expired(first_ids, at(119)) == 1
+    assert expired(first_ids, at(120)) == 2
+    assert expired(first_ids, at(86400)) == 2  # never the newest file
+    assert expired([at(0)], at(86400)) == 0
+    assert expired([], at(86400)) == 0

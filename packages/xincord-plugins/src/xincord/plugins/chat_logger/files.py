@@ -67,3 +67,8 @@ def next_start(last_id: int, newest: datetime) -> datetime:
     the newest file's own start, so that the names keep their order.
     """
     return max(first_second(last_id) + SECOND, newest + SECOND)
+
+
+def expired(first_ids: Sequence[int], before: int) -> int:
+    """How many of the oldest files hold only messages below ``before``, never the newest."""
+    raise NotImplementedError

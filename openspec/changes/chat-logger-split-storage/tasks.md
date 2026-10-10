@@ -37,7 +37,7 @@
 
 ## 6. Expired files
 
-- [ ] 6.1 xfail tests for "Stored messages are kept for the retention period": `files.expired` and
+- [x] 6.1 xfail tests for "Stored messages are kept for the retention period": `files.expired` and
       whole files expiring in `MessageFiles.prune` and through the plugin at READY
 - [ ] 6.2 Delete the expired files; remove the markers
 

@@ -19,10 +19,13 @@ from discord_fakes import BOT_USER, FakeChannel, FakeRest, embed_dict
 from plugin_fakes import Ready, add_guild, gateway, load_plugin
 from xincord.core.bot import Bot
 from xincord.plugins.chat_logger.cog import NAMESPACE
+from xincord.plugins.chat_logger.files import file_name
+from xincord.plugins.chat_logger.messages import INSERT, create_file
 from xincord.plugins.listen_channels.store import ListenSettings
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, Callable, Iterable, Iterator
+    from collections.abc import AsyncGenerator, Callable, Iterable, Iterator, Sequence
+    from datetime import datetime
     from pathlib import Path
 
     import discord
@@ -248,6 +251,24 @@ def scene(
     monkeypatch.setattr(bot, "get_partial_messageable", partial)
     guild = add_guild(bot, payloads.guild(GUILD, channels=CHANNELS, threads=THREADS))
     return Scene(bot, store, rest, guild, created, tmp_path / "data" / "ChatLogger")
+
+
+@pytest.fixture
+def write_file(tmp_path: Path) -> Callable[[datetime, Sequence[int]], str]:
+    """Write a message file, as an earlier run left it: messages of member 7 in channel 30.
+
+    The file is `tmp_path / "data" / "ChatLogger" / "messages-<start>.db"`; the writer returns its
+    name.
+    """
+
+    def write(start: datetime, message_ids: Sequence[int]) -> str:
+        path = tmp_path / "data" / "ChatLogger" / file_name(start)
+        with closing(create_file(path)) as db:
+            db.executemany(INSERT, [(message_id, 10, 30, 7, "text") for message_id in message_ids])
+            db.commit()
+        return path.name
+
+    return write
 
 
 @pytest.fixture

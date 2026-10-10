@@ -1,6 +1,7 @@
-"""The retention: messages older than ``retention_days`` leave the store, at READY and hourly.
+"""The retention: messages older than ``retention_days`` leave their files, at READY and hourly.
 
-v3 kept every message forever; there is no Kotlin counterpart.
+Files whose messages all expired are deleted. v3 kept every message forever; there is no Kotlin
+counterpart.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/DbManager.kt:168-187
@@ -10,19 +11,23 @@ import asyncio
 import logging
 import sqlite3
 from datetime import timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
+import pytest
 from discord.utils import time_snowflake, utcnow
 
 from plugin_fakes import WAIT
 from xincord.core.bot import Bot
 
 if TYPE_CHECKING:
-    import pytest
+    from collections.abc import Callable, Sequence
+    from datetime import datetime
+    from pathlib import Path
 
     from conftest import Loader, Scene
     from plugin_fakes import Ready
     from xincord.core.storage import Store
+    from xincord.plugins.chat_logger.cog import ChatLogger
 
 
 class Hours:
@@ -124,6 +129,36 @@ async def test_failure(
     assert f"ChatLogger cannot delete the messages older than {days} days" in caplog.text
     assert caplog.records[-1].levelno == logging.ERROR
     assert not loop.done()
+
+
+@pytest.mark.xfail(strict=True, reason="Stored messages are kept for the retention period")
+async def test_expired_files(
+    load: Loader,
+    ready: Ready,
+    tmp_path: Path,
+    write_file: Callable[[datetime, Sequence[int]], str],
+    stored_ids: Callable[[], list[int]],
+) -> None:
+    """Requirement: Stored messages are kept for the retention period."""
+    now = utcnow().replace(microsecond=0)
+
+    def back(days: float) -> datetime:
+        return now - timedelta(days=days)
+
+    # Left by earlier runs: ranges that end 1830 days ago, 1800 days ago, and never.
+    write_file(back(1900), [ago(1900), ago(1840)])
+    second = write_file(back(1830), [ago(1828), ago(1810)])
+    third = write_file(back(1800), [ago(1)])
+    bot = await load()
+    hours = Hours()
+    cast("ChatLogger", bot.get_cog("ChatLogger")).sleep = hours.sleep
+
+    ready.set()
+    await hours.asleep()  # READY's deletion is done
+
+    names = sorted(path.name for path in (tmp_path / "data" / "ChatLogger").glob("messages-*"))
+    assert names == [second, third]
+    assert stored_ids() == [ago(1810), ago(1)]
 
 
 async def test_unload(scene: Scene, ready: Ready) -> None:

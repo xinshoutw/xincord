@@ -24,7 +24,7 @@ from xincord.plugins.chat_logger.files import file_name
 from xincord.plugins.chat_logger.messages import Edit, MessageFiles, Stored
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+    from collections.abc import AsyncGenerator, Callable, Sequence
     from pathlib import Path
 
 type Row = tuple[int, int, int, int, str, int]  # v3's columns, with the guild and the channel
@@ -269,6 +269,37 @@ async def test_failed_work_keeps_nothing(open_files: Opener, directory: Path) ->
         messages.transaction(db, broken)
 
     assert rows(directory) == {FIRST: [(at(5), 10, 30, 7, "a", 0)]}
+
+
+@pytest.mark.xfail(strict=True, reason="Stored messages are kept for the retention period")
+async def test_expired_files(
+    open_files: Opener,
+    directory: Path,
+    write_file: Callable[[datetime, Sequence[int]], str],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Requirement: Stored messages are kept for the retention period."""
+
+    def ago(days: float) -> datetime:
+        return NOON - timedelta(days=days)
+
+    def created(*days: float) -> list[int]:
+        return [time_snowflake(ago(day)) for day in days]
+
+    # The first file's range ends 1830 days ago, the second's 1800 days ago, the third's never.
+    first = write_file(ago(1900), created(1900, 1840))
+    second = write_file(ago(1830), created(1828, 1810))
+    third = write_file(ago(1800), created(1))
+    files = await open_files()
+
+    with caplog.at_level(logging.INFO):
+        deleted = await files.prune(time_snowflake(ago(1826)))
+
+    assert deleted == 1  # 1828 days old; the first file's messages left with the file
+    assert ids(directory) == {second: created(1810), third: created(1)}
+    assert f"ChatLogger deleted the message file {first}, whose messages all expired" in caplog.text
+    await files.prune(time_snowflake(NOON))  # every message expired: the newest file stays
+    assert ids(directory) == {third: []}
 
 
 async def test_full_file(open_files: Opener, directory: Path) -> None:
