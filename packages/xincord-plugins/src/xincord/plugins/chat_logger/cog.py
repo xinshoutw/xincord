@@ -248,6 +248,10 @@ class ChatLogger(commands.Cog):
             return global_values(self.bot) | unknown_author(user_id)
         return {} if bot is None else author_values(member, bot)
 
+    async def forget_left_guilds(self) -> None:
+        """Delete the stored messages of the guilds that the bot left, with ``log_all`` false."""
+        raise NotImplementedError
+
     def _own(self, author: discord.abc.Snowflake) -> bool:
         """Whether ``author`` is the bot, whose messages v3 did not store."""
         bot = self.bot.user
