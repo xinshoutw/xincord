@@ -54,7 +54,9 @@ def parse_created(payload: Mapping[str, object]) -> Created | None:
     if message_id is None or guild_id is None or channel_id is None or author_id is None:
         return None
     content, embeds = payload.get("content"), payload.get("embeds")
-    entries = cast("list[object]", embeds) if isinstance(embeds, list) else []
+    # Only bots and webhooks send embeds: a member's are link previews (rich ones too).
+    sender = fields.get("bot") is True or payload.get("webhook_id") is not None
+    entries = cast("list[object]", embeds) if sender and isinstance(embeds, list) else []
     parsed = [
         discord.Embed.from_dict(cast("EmbedData", entry))
         for entry in entries

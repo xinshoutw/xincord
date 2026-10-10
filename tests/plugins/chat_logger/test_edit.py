@@ -172,7 +172,6 @@ async def test_edited_at_once(scene: Scene) -> None:
     assert await scene.rows() == [(100, 10, 30, 7, "result", 1)]
 
 
-@pytest.mark.xfail(strict=True, reason="Edits of stored messages are logged")
 async def test_rich_link_preview(scene: Scene) -> None:
     """Requirement: Edits of stored messages are logged."""
     await scene.listen(5, [30])

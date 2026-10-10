@@ -35,13 +35,16 @@ async def test_bots_and_webhooks(scene: Scene) -> None:
     """Requirement: Guild messages are stored."""
     other_bot = payloads.user(8, "helper", bot=True)
     webhook = payloads.user(500, "hook", bot=True)
-    await scene.parse("MESSAGE_CREATE", payloads.message(100, 30, 10, other_bot, "beep"))
+    embed: payloads.Payload = {"type": "rich", "title": "T"}
+    bot_message = payloads.message(100, 30, 10, other_bot, "beep", embeds=[embed])
+    await scene.parse("MESSAGE_CREATE", bot_message)
     await scene.parse(
         "MESSAGE_CREATE", payloads.message(101, 30, 10, webhook, "hi", webhook_id=500)
     )
 
-    # v3 stored other bots' and webhooks' messages; a webhook's author is the webhook.
-    assert await scene.rows() == [(100, 10, 30, 8, "beep", 0), (101, 10, 30, 500, "hi", 0)]
+    # v3 stored other bots' and webhooks' messages; a webhook's author is the webhook. Their rich
+    # embeds are part of the text.
+    assert await scene.rows() == [(100, 10, 30, 8, "beep\n\nT", 0), (101, 10, 30, 500, "hi", 0)]
 
 
 async def test_the_bots_own_message(scene: Scene) -> None:

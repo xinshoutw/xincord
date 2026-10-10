@@ -181,7 +181,9 @@ class ChatLogger(commands.Cog):
         if guild_id is None or self._own(message.author.id):
             return
         place = Place.of(payload.channel_id, message.channel)
-        text = message_text(message.content, message.embeds)
+        # Only bots and webhooks send embeds: a member's are link previews (rich ones too).
+        sender = message.author.bot or message.webhook_id is not None
+        text = message_text(message.content, message.embeds if sender else ())
         await self._inserted([payload.message_id])
         edit = await self.messages.edit(payload.message_id, text)
         guild = self.bot.get_guild(guild_id)
