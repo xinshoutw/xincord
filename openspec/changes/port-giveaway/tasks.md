@@ -135,7 +135,7 @@
 
 ## 25. Review
 
-- [ ] 25.1 Gate passes, push, CI green (before the review)
+- [x] 25.1 Gate passes, push, CI green (before the review)
 - [ ] 25.2 Cross-review the change (other paths into the features, repeated or concurrent
       presses, state left behind); fix each finding xfail-first
 
