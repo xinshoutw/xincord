@@ -18,6 +18,7 @@ from .store import read_setting
 if TYPE_CHECKING:
     import discord
 
+    from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
     from xincord.core.templates import Message, Templates
@@ -57,6 +58,14 @@ class VoiceLogger(commands.Cog):
             view=message.view,
             attachments=message.files,
         )
+
+    async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
+        """Send a press or a choice in the settings menu to its handler; ``setup`` routes here.
+
+        Raises:
+            NotImplementedError: Not implemented yet.
+        """
+        raise NotImplementedError
 
     def _menu(self, interaction: discord.Interaction, setting: Setting) -> Message:
         """v3's settings menu for ``setting``, in the user's locale.

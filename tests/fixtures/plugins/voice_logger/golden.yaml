@@ -33,3 +33,25 @@ menu:
       - ["設定白名單", 3, "voice_logger:1:a=modify_allow_btn"]
       - ["設定黑名單", 2, "voice_logger:1:a=modify_block_btn"]
       - ["刪除", 4, "voice_logger:1:a=delete_btn"]
+
+# The select menu that replaces the menu when a list's button is pressed (the message keeps no
+# embed): its placeholder per locale, its limits and its channel types (2 voice, 4 category).
+select:
+  en-US: "choose channels, categories or search here"
+  zh-TW: "選擇頻道、類別或在此搜尋"
+select_limits: {min_values: 1, max_values: 25, channel_types: [2, 4]}
+
+# The embed that replaces the menu of channel voice-log once its settings are deleted.
+delete:
+  en-US:
+    author: {name: "Voice Log"}
+    title: "☛ voice-log's Channel Setting"
+    description: "Deleted Successfully"
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    color: 65535
+  zh-TW:
+    author: {name: "語音日誌"}
+    title: "☛ voice-log 的頻道設定"
+    description: "刪除完成"
+    footer: {text: "❖ ORDERLY SERVER ❖"}
+    color: 65535

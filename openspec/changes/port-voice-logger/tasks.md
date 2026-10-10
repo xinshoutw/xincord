@@ -33,7 +33,7 @@
 
 ## 7. Components
 
-- [ ] 7.1 xfail tests for "The settings components change the settings" against a stub `handle`
+- [x] 7.1 xfail tests for "The settings components change the settings" against a stub `handle`
 - [ ] 7.2 Implement `handle` and route `IDS` in `setup`; remove the markers
 
 ## 8. Command
