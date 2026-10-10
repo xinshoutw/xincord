@@ -56,7 +56,7 @@
 
 ## 10. Conventions and docs
 
-- [ ] 10.1 Check that the built wheel ships `lang/` and that `xincord --no-online` loads the plugin
+- [x] 10.1 Check that the built wheel ships `lang/` and that `xincord --no-online` loads the plugin
 - [ ] 10.2 Porting guide rows and pitfalls, and skill corrections (per-guild data in the store,
       channel options, `placeholder_values` in the core)
 - [ ] 10.3 Audit the inventory against the scenarios and the design

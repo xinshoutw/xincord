@@ -39,6 +39,12 @@ permissions; per-guild templates or locales; new commands.
   with final newlines added (the zh-TW `register.yaml` and the en-US `welcome.yaml` had none) and
   two zh-TW typos corrected: `welcome`'s last line read "不坊" for "不妨", and `bye`'s description
   "但願我們會能未來的道路相見..." becomes "但願我們能在未來的道路上相見...".
+- uv_build ships every file in the package. Checked on 2026-10-10: the wheel from
+  `uv build --package xincord-plugins` lists the four modules, the 28 lang files and the
+  `WelcomeByeGuild` entry point, and `xincord --no-online`, run from a scratch virtual environment
+  with both wheels and `plugins: [WelcomeByeGuild]`, loads the plugin, writes the 28 lang files
+  under `plugins/WelcomeByeGuild/lang/`, writes no `plugins/WelcomeByeGuild/config.yaml`, and exits
+  with 0.
 
 ### Storage (`store.py`)
 
