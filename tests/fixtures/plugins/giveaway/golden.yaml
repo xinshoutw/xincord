@@ -151,3 +151,34 @@ replies:
     not-drawn: "抽獎尚未開獎，不能重抽。"
     joined: "你已成功參加抽獎。"
     left: "你已取消參加抽獎。"
+
+# The builder's modals (modal/*.yaml): per modal, its inputs' IDs, styles, maximum lengths and
+# whether they are required, then per locale its title and its inputs' labels and placeholders.
+modals:
+  set-title:
+    inputs: [["title", "short", 100, true]]
+    en-US: {title: "Set Giveaway Title", labels: ["Giveaway Title"], placeholders: ["Type giveaway title"]}
+    zh-TW: {title: "設定抽獎標題", labels: ["抽獎標題"], placeholders: ["輸入抽獎標題"]}
+  set-description:
+    inputs: [["description", "paragraph", 4000, false]]
+    en-US: {title: "Set Giveaway Description", labels: ["Description"], placeholders: ["Optional description"]}
+    zh-TW: {title: "設定抽獎說明", labels: ["抽獎說明"], placeholders: ["可選，填寫抽獎說明"]}
+  set-end-time:
+    inputs: [["end-time", "short", 20, true]]
+    en-US: {title: "Set End Time", labels: ["End Time"], placeholders: ["yyyy-MM-dd HH:mm"]}
+    zh-TW: {title: "設定結束時間", labels: ["結束時間"], placeholders: ["yyyy-MM-dd HH:mm"]}
+  add-prize:
+    inputs: [["prize-name", "short", 100, true], ["winner-count", "short", 2, true]]
+    en-US: {title: "Add Prize", labels: ["Prize Name", "Winner Count"], placeholders: ["Prize name", "Enter a number from 1 to 50"]}
+    zh-TW: {title: "新增獎品", labels: ["獎品名稱", "中獎人數"], placeholders: ["獎品名稱", "請輸入 1 到 50"]}
+  set-sponsor:
+    inputs: [["sponsor", "short", 100, false]]
+    en-US: {title: "Set Sponsor", labels: ["Sponsor / Host"], placeholders: ["Optional"]}
+    zh-TW: {title: "設定主辦/贊助", labels: ["主辦 / 贊助"], placeholders: ["可選"]}
+  set-thumbnail:
+    inputs: [["thumbnail", "short", 1000, false]]
+    en-US: {title: "Set Thumbnail URL", labels: ["Thumbnail URL"], placeholders: ["https://..."]}
+    zh-TW: {title: "設定縮圖網址", labels: ["縮圖網址"], placeholders: ["https://..."]}
+
+# The name that add-prize suggests for a draft's third prize (StepManager.kt:193-198).
+third-prize: {en-US: "Prize 3", zh-TW: "獎品 3"}

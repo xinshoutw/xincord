@@ -62,7 +62,7 @@
 
 ## 12. Modals
 
-- [ ] 12.1 xfail tests for "Builder buttons open pre-filled modals" against a stub `_open_modal`
+- [x] 12.1 xfail tests for "Builder buttons open pre-filled modals" against a stub `_open_modal`
 - [ ] 12.2 Implement `_open_modal`; remove the markers
 
 ## 13. Submissions

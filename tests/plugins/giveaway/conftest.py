@@ -52,12 +52,23 @@ def config() -> str | None:
 
 
 @pytest.fixture
-async def bot(store: Store, tmp_path: Path, config: str | None) -> Bot:
+def files() -> dict[str, str]:
+    """Operator files written under ``plugins/Giveaway/`` before the load; tests parametrize it."""
+    return {}
+
+
+@pytest.fixture
+async def bot(store: Store, tmp_path: Path, config: str | None, files: dict[str, str]) -> Bot:
     """A bot that loaded Giveaway from `tmp_path / "plugins"` and never connects.
 
     The plugin's giveaways are in ``store``, the same store as the tests'.
     """
-    return await load_plugin("Giveaway", tmp_path / "plugins", store, config=config)
+    root = tmp_path / "plugins"
+    for name, text in files.items():
+        path = root / "Giveaway" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    return await load_plugin("Giveaway", root, store, config=config)
 
 
 @pytest.fixture
