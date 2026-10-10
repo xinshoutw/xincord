@@ -36,7 +36,7 @@
 
 ## 7. Replies
 
-- [ ] 7.1 xfail tests for "A command can answer with a public or an ephemeral reply"
+- [x] 7.1 xfail tests for "A command can answer with a public or an ephemeral reply"
 - [ ] 7.2 Implement `reply`; remove the markers
 
 ## 8. Validation
