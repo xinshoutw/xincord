@@ -4,7 +4,7 @@ The bot has its user, as after a login.
 """
 
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from xincord.core.storage import Store
+    from xincord.plugins.ticket.cog import Ticket
 
 PACKAGE = "xincord.plugins.ticket"
 
@@ -50,3 +51,15 @@ async def bot(store: Store, tmp_path: Path) -> Bot:
     The plugin's panels are in ``store``, the same store as the tests'.
     """
     return await load_plugin("Ticket", tmp_path / "plugins", store)
+
+
+@pytest.fixture
+def cog(bot: Bot) -> Ticket:
+    """The loaded plugin's cog.
+
+    No isinstance check: a failed load makes discord.py import the plugin's modules again, so the
+    class may differ from the one imported when the tests were collected.
+    """
+    found = bot.get_cog("Ticket")
+    assert found is not None
+    return cast("Ticket", found)

@@ -6,6 +6,7 @@ Kotlin:
 """
 
 import logging
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from discord.ext import commands
@@ -21,6 +22,8 @@ if TYPE_CHECKING:
     from xincord.core.storage import Store
     from xincord.core.templates import Templates
 
+    from .model import Draft
+
 logger = logging.getLogger(__name__)
 
 # v3's fields in v3's order, the user ID in hex as v3 wrote it, and v3's prefix, so that v3's
@@ -33,6 +36,23 @@ IDS = ComponentIds(
 )
 
 
+@dataclass(frozen=True)
+class Target:
+    """The message that ``/add-ticket`` adds a button to, and its first embed for the preview."""
+
+    message_id: int
+    embed: discord.Embed
+
+
+@dataclass(frozen=True)
+class Session:
+    """A user's draft in a guild, the builder message that shows it, and the message it adds to."""
+
+    message_id: int
+    draft: Draft
+    target: Target | None = None
+
+
 class Ticket(commands.Cog):
     """The plugin's state and handlers; ``setup`` registers them."""
 
@@ -42,6 +62,12 @@ class Ticket(commands.Cog):
         self.store = store
         self.lang = lang
         self.templates = templates
+        # Each user's draft per guild, by user ID and guild ID; v3's StepManager.steps, per user.
+        self.drafts: dict[tuple[int, int], Session] = {}
+
+    async def create_ticket(self, interaction: discord.Interaction) -> None:
+        """Edit the deferred response into the builder of a new panel for the user."""
+        raise NotImplementedError
 
     def texts(self, interaction: discord.Interaction) -> Texts:
         """The texts of a reply to the user who acted: their locale, else zh-TW (v3's templates).
