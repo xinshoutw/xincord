@@ -12,3 +12,7 @@ class Config(Model):
 
     v3's ``enabled`` key is gone: the core config's ``plugins`` list enables the plugin.
     """
+
+    def roles_by_guild(self) -> dict[int, tuple[int, ...]]:
+        """Stub until the config lists guilds."""
+        raise NotImplementedError

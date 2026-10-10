@@ -20,3 +20,8 @@ class AutoRole(commands.Cog):
         """Keep the bot and what ``setup`` loaded."""
         self.bot = bot
         self.config = config
+
+    @property
+    def roles(self) -> dict[int, tuple[int, ...]]:
+        """Stub until the config lists guilds."""
+        raise NotImplementedError

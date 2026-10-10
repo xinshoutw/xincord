@@ -12,7 +12,7 @@
 
 ## 3. Config
 
-- [ ] 3.1 xfail tests for "The config lists guilds and their roles"
+- [x] 3.1 xfail tests for "The config lists guilds and their roles"
 - [ ] 3.2 Add the config model and the guild-to-roles map; remove the markers
 
 ## 4. Join
