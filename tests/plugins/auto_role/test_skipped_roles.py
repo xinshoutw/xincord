@@ -9,7 +9,6 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 from discord_fakes import FakeGuild, FakeMember, FakeRole, forbidden
 from plugin_fakes import dispatch, load_plugin
@@ -17,15 +16,12 @@ from plugin_fakes import dispatch, load_plugin
 if TYPE_CHECKING:
     from pathlib import Path
 
+    import pytest
+
     from xincord.core.bot import Bot
     from xincord.core.storage import Store
 
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Roles that cannot be given are skipped"
-)
 
-
-@XFAIL
 async def test_missing_role(bot: Bot, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Roles that cannot be given are skipped."""
     member = FakeMember(FakeGuild(10, "guild", [FakeRole(11, "member")]))
@@ -37,7 +33,6 @@ async def test_missing_role(bot: Bot, caplog: pytest.LogCaptureFixture) -> None:
     assert "AutoRole skips role 12: it is not in guild (10)" in caplog.text
 
 
-@XFAIL
 async def test_role_of_another_guild(
     store: Store, tmp_path: Path, guild: FakeGuild, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -54,7 +49,6 @@ async def test_role_of_another_guild(
     assert "AutoRole skips role 21: it is not in guild (10)" in caplog.text
 
 
-@XFAIL
 async def test_role_created_later(bot: Bot) -> None:
     """Requirement: Roles that cannot be given are skipped."""
     guild = FakeGuild(10, "guild", [FakeRole(11, "member")])
@@ -68,7 +62,6 @@ async def test_role_created_later(bot: Bot) -> None:
     assert second.requests == [((11,), True), ((12,), True)]
 
 
-@XFAIL
 async def test_role_the_bot_cannot_give(bot: Bot, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Roles that cannot be given are skipped."""
     roles = [FakeRole(11, "member", assignable=False), FakeRole(12, "news")]
@@ -84,7 +77,6 @@ async def test_role_the_bot_cannot_give(bot: Bot, caplog: pytest.LogCaptureFixtu
     ) in caplog.text
 
 
-@XFAIL
 async def test_missing_manage_roles(
     bot: Bot, guild: FakeGuild, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -99,7 +91,6 @@ async def test_missing_manage_roles(
     assert "AutoRole gives no roles in guild (10): the bot lacks Manage Roles" in caplog.text
 
 
-@XFAIL
 async def test_failed_request(bot: Bot, guild: FakeGuild, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Roles that cannot be given are skipped."""
     member = FakeMember(guild, errors={11: forbidden()})
