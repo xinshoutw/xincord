@@ -1,0 +1,221 @@
+# NtustAnnouncements (v3 NtustManager): list it under `plugins` in the core config.yaml to enable
+# it. Once the bot is ready, it reads the first page of each board below at once, then
+# `fetch-interval` seconds after each pass, and posts the board's entries that it has not posted
+# yet to the board's channel, in the page's order. Gemini turns each NTUST article into Discord
+# Markdown with `prompt`; other links (shared documents, other sites) are posted as their title.
+# The plugin does not load until `api-keys` holds Gemini API keys and every board names its
+# channel.
+
+# Seconds between a board's passes, from 60.
+fetch-interval: 3600
+
+# Gemini API keys, used in turn, each for at most 10 requests a minute. The log names a key by its
+# position in this list, never by its text. Replace these examples with your keys.
+api-keys:
+  - "sk-thisisatestkey1234567890abcdef1234567890"
+  - "sk-thisisatestkey1234567890abcdef1234567890"
+
+# The Gemini model that converts the articles.
+model: "gemini-2.5-flash"
+
+# What Gemini is asked for each article. It must hold {{page_url}}, {{base_url}}, {{now}} and
+# {{html}}; {{page_title}} is optional. Each token is replaced once: {{page_title}} with the
+# entry's title, {{page_url}} with its URL, {{base_url}} with https:// and the URL's host, {{now}}
+# with the host's local time (yyyy-MM-dd HH:mm:ss) and {{html}} with the article's content.
+prompt: |-
+  你會收到一段 HTML 片段。請將其轉換為「Discord 支援的 Markdown」並輸出結果。
+  **只輸出 Markdown 內容**（不得包含任何解說文字、前後綴、或代碼圍欄）。
+
+  ## 目標
+  - 去除與正文無關的雜訊（例如：瀏覽數、友善列印、分享按鈕、追蹤程式碼、廣告、頁面操作用 script）。
+  - 盡可能保留資訊架構（標題、段落、清單、連結、附件列表、表格資料、程式碼區塊等）。
+  - 產出在 Discord 內可讀、結構清楚的 Markdown。
+  
+  ## 節點白名單與一般規則
+  - 僅處理以下節點：h1~h6, p, br, strong/b, em/i, a, img, ul/ol/li, table/thead/tbody/tr/th/td, pre, code。
+  - 其他節點與所有 <script>、分享/列印/統計元件一律忽略。
+  - 連續空白收斂為單一空白；段落/區塊之間以**單一空白行**分隔。
+  - 保留原文語言（中文、數字與標點），避免改寫語意。
+  
+  ## 標題（Heading）
+  - 基本輸出：h1→`# `、h2→`## `、h3→`### `。h4~h6 一律降階為粗體小標：`**小標題**`（另起一行）。
+  - **動態升階**：若全文不存在 h1，且最上層只有 h2 或 h3，允許將**全篇最高層級**上調一級（最多到 h1），其他層級依相對關係同幅上調，但不要超過 h3。
+      - 例：僅有 h2/h3 → 全文 h2→h1、h3→h2；若僅有 h3 → h3→h2（因只允許到 h3，上調一級已足夠）。
+  - 不要自動新增不存在的標題；僅調整現有標題層級以改善層次。
+  
+  ## 清單與段落
+  - 偵測「看起來像清單的段落」（例如以 1. 2. 3. 或 • / - 起始），轉為有序 `1.` 或無序 `-` 清單。
+  - 其他以段落輸出；避免多餘空行與過度換行。
+  
+  ## 連結（URL）
+  - 將標題使用 Markdown 語法做超連結，指向文章網址 {{page_url}}
+  - 將所有相對路徑轉為絕對網址，基底為 `{{base_url}}`（例如 `/path` → `{{base_url}}/path`）。
+  - 移除常見追蹤參數（例如 `utm_*`, `ct`），保留關鍵查詢參數（例如下載必要的 `file`, `fname`）。
+  - 超連結格式使用 `[可讀標題](URL)`；若原文只有檔名，則用檔名作為標題。
+  - **請勿**使用圖片 Markdown 語法 `![]()`。
+  
+  ## 圖片
+  - 嘗試以 URL 與屬性判斷（不可保證能實際抓取），採「最佳努力」原則。
+  - 規則：
+    - 若圖片屬「資訊性」（例如流程/示意/地圖/數據圖表/掃描之公告），以一行文字超連結表示：`[圖片：極短描述](URL)`。
+    - 裝飾性或社群 icon 圖片忽略。
+  - 若無法判斷或無 Alt，使用通用描述：`[圖片](URL)`。
+  
+  ## 表格
+  - Discord 不支援表格。請扁平化為文字區塊，格式如下：
+    - 先輸出表頭一行：`**欄1｜欄2｜欄3**`
+    - 接著每列各一行，前綴 `• `，欄位以 `｜` 分隔。
+    - 儲存格內若有換行，以 `; ` 合併。
+  - 若表格僅有單欄，直接以清單列出即可。
+  
+  ## 附件 / 可下載檔
+  - 以清單列出，每項為 `[檔名（副檔名）](URL)`，可在檔名後以括號補充（例如「上午場」、「PDF」、「交通資訊」等），但不要冗長。
+  - 仍需套用「連結」規則（轉絕對網址、移除追蹤參數）。
+  
+  ## 程式碼區塊（重點新增）
+  - 識別來源中的程式碼：優先依 `pre`, `code` 節點與其 `class`（例如 `language-*`, `lang-*`, `hljs-*`, `prettyprint`），其次依內容啟發式（shebang、關鍵語法）。
+  - **輸出為 Discord 支援的 fenced code block**：
+      - 以三個反引號圍起來：開頭 ```語言標記（可留空），結尾 ```。
+      - 保留**原始縮排與換行**；不進行自動換行、字元轉義或重排（除非必要的 HTML 解碼）。
+  - **嘗試判斷語言並加上標記**；若無法確定則留空（僅 ```）。
+      - 語言偵測準則（其一或多個同時成立即可）：
+      - class/name：`language-python`→`python`、`language-js`→`javascript`、`language-ts`→`typescript`、`language-cpp`→`cpp`、`language-c`→`c`、`language-java`→`java`、`language-go`→`go`、`language-rust`→`rust`、`language-php`→`php`、`language-ruby`→`ruby`、`language-sh|bash`→`bash`、`language-powershell`→`powershell`、`language-sql`→`sql`、`language-html`→`html`、`language-css`→`css`、`language-json`→`json`、`language-yaml|yml`→`yaml`。
+      - shebang：`#!/usr/bin/env python`→`python`、`#!/bin/bash`→`bash`、`#!/usr/bin/env node`→`javascript`、`#!/usr/bin/pwsh`→`powershell`。
+      - 典型語法特徵（舉例，僅作輔助判斷）：
+      - **python**：`def `、`import ... as`、`print(`、`if __name__ == "__main__":`
+      - **javascript/typescript**：`console.log(`、`import ... from`、`export default`、`async function`
+      - **cpp**：`#include <...>`、`std::`、`int main(`、`;` 行尾分號大量出現
+      - **c**：`#include <...>`、`printf(`、`int main(`，無 `std::`
+      - **java**：`public class`、`System.out.println(`、`@Override`
+      - **go**：`package main`、`func main()`、`fmt.Println(`
+      - **rust**：`fn main()`、`let mut`、`println!(`、`use crate::`
+      - **php**：`<?php`、`echo`、`$variable`
+      - **ruby**：`def ... end`、`puts`、`class ... end`
+      - **bash**：`#!/bin/bash`、`echo`、`&&` 拼接、常見命令行
+      - **powershell**：`Write-Host`、`Get-ChildItem`、`$PSVersionTable`
+      - **sql**：`SELECT ... FROM`、`INSERT INTO`、`WHERE`、`;` 結尾
+      - **html**：`<!DOCTYPE html>`、`<html>`、`<head>`、`<body>`
+      - **css**：選擇器 `{ ... }`、`color:`、`display:`
+      - **json**：`{ "key": value }`、鍵名**必須**帶引號、不得含註解
+      - **yaml**：`key: value`、縮排為兩空格、無花括號
+  - 內嵌行內程式碼（`<code>` 但非區塊）轉為 Markdown 行內反引號 \`...\`。若 `<code>` 其實是大片段，且有換行，升格為 fenced code block。
+  
+  ## 自我檢查（非常重要）
+  - 僅輸出純 Markdown 內容，不得出現任何解釋說明。
+  - 移除多餘前後空行。
+  - 所有超連結必須符合 `[文字](URL)` 語法，方括號與圓括號成對完整。
+  - 若標題需要加超連結，僅允許格式為：
+    `# [標題文字](URL)` 或 `## [標題文字](URL)` 或 `### [標題文字](URL)`
+    （井號 → 空格 → 方括號包住標題 → 圓括號內 URL）。
+    禁止 `[## 標題](URL)`、`[# 標題](URL)` `[URL](URL)` 等寫法，若發生了，你可以根據域名使用相關的名詞，例如表單(forms) `[表單](URL)`。
+  - 若模型無法確保語法正確，則輸出標題與超連結分兩行：
+  - 若沒有任何可轉換內容，輸出：`*(無可轉換內容)*`
+  - **總字元數必須小於 10000。若超過，請進行壓縮與摘要，優先刪除冗餘空白行、過長清單，並以「…其餘略」方式保留必要資訊。**
+  
+  --- 輸入 HTML 開始 ---
+  時間：{{now}}
+  基底網址：{{base_url}}
+  文章標題：{{page_title}}
+  文章網址：{{page_url}}
+  HTML：
+  {{html}}
+  --- 輸入 HTML 結束 ---
+
+# The boards. `name` keys the list of what the board posted (v3's names, so that v3's lists can be
+# imported); `url` is the board's first page; `layout` is how the page lists its entries
+# (student-affairs: titles in the table's first column; academic-affairs: in its second;
+# language-center: listed rows); `channel-id` is the channel that gets the board's posts (set each
+# one: the plugin does not load with 0); `title-prefix`, when set, keeps the titles that start
+# with it. Each board posts its whole first page the first time it is read.
+boards:
+  # 學生宿舍公告
+  - name: STUDENT_DORMITORY
+    url: "https://student.ntust.edu.tw/p/403-1053-1436-1.php"
+    layout: student-affairs
+    channel-id: 0
+  # 助學措施
+  - name: STUDENT_AID
+    url: "https://student.ntust.edu.tw/p/403-1053-1437-1.php"
+    layout: student-affairs
+    channel-id: 0
+  # 生輔組
+  - name: STUDENT_GUIDANCE
+    url: "https://student.ntust.edu.tw/p/403-1053-1439-1.php"
+    layout: student-affairs
+    channel-id: 0
+  # 活動組
+  - name: STUDENT_ACTIVITY
+    url: "https://student.ntust.edu.tw/p/403-1053-1440-1.php"
+    layout: student-affairs
+    channel-id: 0
+  # 資源教室
+  - name: STUDENT_RESOURCE_ROOM
+    url: "https://student.ntust.edu.tw/p/412-1053-8272.php"
+    layout: student-affairs
+    channel-id: 0
+  # 學務處本部公告
+  - name: STUDENT_MAIN_OFFICE
+    url: "https://student.ntust.edu.tw/p/403-1053-1435-1.php"
+    layout: student-affairs
+    channel-id: 0
+    title-prefix: "【處本部】"
+  # 處本部公告
+  - name: ACADEMIC_MAIN_OFFICE
+    url: "https://www.academic.ntust.edu.tw/p/403-1048-1413-1.php"
+    layout: academic-affairs
+    channel-id: 0
+  # 研教組公告
+  - name: ACADEMIC_GRADUATE_EDUCATION
+    url: "https://www.academic.ntust.edu.tw/p/403-1048-1414-1.php"
+    layout: academic-affairs
+    channel-id: 0
+  # 註冊組公告
+  - name: ACADEMIC_REGISTRATION
+    url: "https://www.academic.ntust.edu.tw/p/403-1048-1415-1.php"
+    layout: academic-affairs
+    channel-id: 0
+  # 課務組公告
+  - name: ACADEMIC_COURSE
+    url: "https://www.academic.ntust.edu.tw/p/403-1048-1416-1.php"
+    layout: academic-affairs
+    channel-id: 0
+  # 綜合業務組公告
+  - name: ACADEMIC_COMPREHENSIVE_BUSINESS
+    url: "https://www.academic.ntust.edu.tw/p/403-1048-1417-1.php"
+    layout: academic-affairs
+    channel-id: 0
+  # 語言中心徵才公告
+  - name: LANGUAGE_CENTER_RECRUITMENT
+    url: "https://lc.ntust.edu.tw/p/403-1070-1626-1.php"
+    layout: language-center
+    channel-id: 0
+  # 語言中心抵免與獎勵公告
+  - name: LANGUAGE_CENTER_EXEMPTION_REWARD
+    url: "https://lc.ntust.edu.tw/p/403-1070-1627-1.php"
+    layout: language-center
+    channel-id: 0
+  # 語言中心榮譽榜單
+  - name: LANGUAGE_CENTER_HONOR_LIST
+    url: "https://lc.ntust.edu.tw/p/403-1070-1051-1.php"
+    layout: language-center
+    channel-id: 0
+  # 語言中心新生相關公告
+  - name: LANGUAGE_CENTER_FRESHMAN
+    url: "https://lc.ntust.edu.tw/p/403-1070-1628-1.php"
+    layout: language-center
+    channel-id: 0
+  # 語言中心英文單字
+  - name: LANGUAGE_CENTER_ENGLISH_WORDS
+    url: "https://lc.ntust.edu.tw/p/403-1070-1828-1.php"
+    layout: language-center
+    channel-id: 0
+  # 語言中心校外公告
+  - name: LANGUAGE_CENTER_EXTERNAL
+    url: "https://lc.ntust.edu.tw/p/403-1070-1829-1.php"
+    layout: language-center
+    channel-id: 0
+  # 語言中心活動公告
+  - name: LANGUAGE_CENTER_ACTIVITY
+    url: "https://lc.ntust.edu.tw/p/403-1070-1050-1.php"
+    layout: language-center
+    channel-id: 0

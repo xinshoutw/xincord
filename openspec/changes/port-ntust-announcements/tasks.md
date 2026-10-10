@@ -1,6 +1,6 @@
 ## 1. Resources
 
-- [ ] 1.1 Bundle `config.yaml` (v3's interval, example keys and prompt copied by a script, `model`,
+- [x] 1.1 Bundle `config.yaml` (v3's interval, example keys and prompt copied by a script, `model`,
       v3's 18 boards with 0 for every channel) and add the trimmed NTUST pages and `golden.yaml`
       under `tests/fixtures/plugins/ntust_announcements/`
 - [ ] 1.2 Move `Failures` from UptimeHeartbeat's `logs.py` into `xincord.plugins.failures`
