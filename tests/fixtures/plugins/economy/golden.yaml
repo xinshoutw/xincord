@@ -49,3 +49,97 @@ no-permission:
     title: "你沒有權限 ><"
     color: 16711680
     footer: {text: "❖ ORDERLY SERVER ❖"}
+
+# Each change command's embed per locale, for bob (ID 7) with the money 100 and the cost 20 and
+# the value 30.
+changes:
+  add-money:
+    en-US:
+      author: {name: "Pocket Add Balance", icon_url: "https://i.imgur.com/PsEXCuY.png"}
+      title: "☛ bob's Pocket"
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "Balance [+]", value: "100 ➣ 130 $", inline: false}
+        - {name: "Cost", value: "20 $", inline: false}
+    zh-TW:
+      author: {name: "口袋增值", icon_url: "https://i.imgur.com/PsEXCuY.png"}
+      title: "☛ bob 的口袋"
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "餘額 [+]", value: "100 ➣ 130 元", inline: false}
+        - {name: "總消費", value: "20 元", inline: false}
+  remove-money:
+    en-US:
+      author: {name: "Pocket Reduce Balance", icon_url: "https://i.imgur.com/PsEXCuY.png"}
+      title: "☛ bob's Pocket"
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "Balance [-]", value: "100 ➣ 70 $", inline: false}
+        - {name: "Cost [+]", value: "20 ➣ 50 $", inline: false}
+    zh-TW:
+      author: {name: "口袋扣款", icon_url: "https://i.imgur.com/PsEXCuY.png"}
+      title: "☛ bob 的口袋"
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "餘額 [-]", value: "100 ➣ 70 元", inline: false}
+        - {name: "總消費 [+]", value: "20 ➣ 50 元", inline: false}
+  set-money:
+    en-US:
+      author: {name: "Pocket Set Balance", icon_url: "https://i.imgur.com/PsEXCuY.png"}
+      title: "☛ bob's Pocket"
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "Balance [=]", value: "100 ➣ 30 $", inline: false}
+        - {name: "Cost", value: "20 $", inline: false}
+    zh-TW:
+      author: {name: "口袋餘額設定", icon_url: "https://i.imgur.com/PsEXCuY.png"}
+      title: "☛ bob 的口袋"
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "餘額 [=]", value: "100 ➣ 30 元", inline: false}
+        - {name: "總消費", value: "20 元", inline: false}
+  add-cost:
+    en-US:
+      author: {name: "Pocket Add Balance", icon_url: "https://i.imgur.com/PsEXCuY.png"}
+      title: "☛ bob's Pocket"
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "Balance", value: "100 $", inline: false}
+        - {name: "Cost [+]", value: "20 ➣ 50 $", inline: false}
+    zh-TW:
+      author: {name: "口袋增值", icon_url: "https://i.imgur.com/PsEXCuY.png"}
+      title: "☛ bob 的口袋"
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "餘額", value: "100 元", inline: false}
+        - {name: "總消費 [+]", value: "20 ➣ 50 元", inline: false}
+  remove-cost:
+    en-US:
+      author: {name: "Pocket Reduce Balance", icon_url: "https://i.imgur.com/PsEXCuY.png"}
+      title: "☛ bob's Pocket"
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "Balance", value: "100 $", inline: false}
+        - {name: "Cost [-]", value: "20 ➣ -10 $", inline: false}
+    zh-TW:
+      author: {name: "口袋扣款", icon_url: "https://i.imgur.com/PsEXCuY.png"}
+      title: "☛ bob 的口袋"
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "餘額", value: "100 元", inline: false}
+        - {name: "總消費 [-]", value: "20 ➣ -10 元", inline: false}
+  set-cost:
+    en-US:
+      author: {name: "Pocket Set Cost", icon_url: "https://i.imgur.com/PsEXCuY.png"}
+      title: "☛ bob's Pocket"
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "Balance", value: "100 $", inline: false}
+        - {name: "Cost [=]", value: "20 ➣ 30 $", inline: false}
+    zh-TW:
+      author: {name: "口袋總消費設定", icon_url: "https://i.imgur.com/PsEXCuY.png"}
+      title: "☛ bob 的口袋"
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "餘額", value: "100 元", inline: false}
+        - {name: "總消費 [=]", value: "20 ➣ 30 元", inline: false}

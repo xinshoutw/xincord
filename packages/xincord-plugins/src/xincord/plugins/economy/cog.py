@@ -57,6 +57,16 @@ class Economy(commands.Cog):
         values = _user_values(interaction, target) | wallet_values(wallet)
         await self._reply(interaction, "balance", values)
 
+    async def change_wallet(
+        self, interaction: discord.Interaction, member: discord.Member | discord.User, value: int
+    ) -> None:
+        """Stub."""
+        raise NotImplementedError
+
+    async def show_board(self, interaction: discord.Interaction) -> None:
+        """Stub."""
+        raise NotImplementedError
+
     def _is_admin(self, interaction: discord.Interaction) -> bool:
         """Whether ``admin_id`` lists the user; Discord's Administrator does not count."""
         return interaction.user.id in self.config.admin_id
