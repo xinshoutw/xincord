@@ -223,8 +223,9 @@ status, or a channel that is not a cached voice channel, SHALL post nothing.
 ### Requirement: Status changes name their member from the audit log
 For a detected change, the plugin SHALL read the guild's audit log of type 192 for a set status, or
 193 for a cleared one, and take the newest entry for the channel made within 30 seconds of the
-event, preferring one with the new status; without one it SHALL read once more after 2 seconds. The
-member values SHALL be the entry's user's, or `-` without an entry, an audit log or the member.
+event, one with the new status first; a type-192 entry with another status SHALL not count. Without
+one it SHALL read once more after 2 seconds. The member values SHALL be the entry's user's, or `-`
+without an entry, an audit log or the member.
 
 #### Scenario: Matching entry
 - **WHEN** the audit log holds a newer entry for another channel and an entry for channel 30
@@ -237,6 +238,11 @@ member values SHALL be the entry's user's, or `-` without an entry, an audit log
 #### Scenario: Late entry
 - **WHEN** the first read has no matching entry and the second, 2 seconds later, has one
 - **THEN** the log names its user
+
+#### Scenario: Earlier change's entry
+- **WHEN** the first read holds only the channel's entry of an earlier status, and the second read
+  the entry of the new status
+- **THEN** the log names the second entry's user
 
 #### Scenario: No entry
 - **WHEN** neither read has a matching entry, or the only entry for the channel is 10 minutes old
@@ -253,6 +259,25 @@ member values SHALL be the entry's user's, or `-` without an entry, an audit log
 #### Scenario: Not detected
 - **WHEN** no listen channel detects the channel
 - **THEN** the audit log is not read
+
+### Requirement: Status changes are posted in order from the current session
+The plugin SHALL post a voice channel's status changes in the order they arrive, also when one
+waits for its audit log entry. It SHALL forget the tracked statuses when a new gateway session
+starts, and a guild's when the bot leaves the guild or the guild becomes unavailable, as JDA rebuilt
+its cache then.
+
+#### Scenario: A change waits for its entry
+- **WHEN** a cleared status waits for its audit log entry and the channel gets a new status meanwhile
+- **THEN** the delete embed is posted before the new status embed
+
+#### Scenario: A new session or an outage
+- **WHEN** the status `Gaming` was logged, and then the bot becomes ready again or the guild becomes
+  unavailable
+- **THEN** `Gaming` set again is logged as a new status
+
+#### Scenario: The bot leaves
+- **WHEN** the bot leaves a guild whose statuses it tracked
+- **THEN** it forgets them
 
 ### Requirement: Settings are forgotten with the guild
 When the bot leaves a guild, the plugin SHALL delete the guild's settings. When the bot is ready,
@@ -272,7 +297,8 @@ no longer in.
 When the bot is ready, and when the plugin loads into a ready bot, the plugin SHALL remove from the
 allow and block lists of each available guild the channels that the guild no longer has, as v3's
 startup did, and write nothing when none is gone. Unavailable guilds SHALL be skipped, and a guild
-whose settings cannot be read SHALL be skipped with an error.
+whose settings cannot be read SHALL be skipped with an error, and a stored key that is not a guild
+ID with a warning.
 
 #### Scenario: Deleted channels
 - **WHEN** the allow list holds channel 30 and the deleted channel 31, and the block list the
@@ -287,3 +313,8 @@ whose settings cannot be read SHALL be skipped with an error.
 - **WHEN** one guild is unavailable and another's settings cannot be read
 - **THEN** the first keeps its lists, the second is skipped with an error, and the other guilds
   are still checked
+
+#### Scenario: A key that is not a guild ID
+- **WHEN** the namespace holds settings under the key `general`, and the bot becomes ready or the
+  plugin loads into a ready bot
+- **THEN** a warning names the key, the plugin loads, and the other guilds are still checked

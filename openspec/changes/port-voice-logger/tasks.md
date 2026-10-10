@@ -76,8 +76,23 @@
 - [x] 13.2 Porting guide rows and pitfalls, and skill corrections
 - [x] 13.3 Audit the inventory against the scenarios and the design
 
-## 14. Close
+## 14. Review findings
 
-- [ ] 14.1 Gate passes, push, CI green
-- [ ] 14.2 Archive the change and run `openspec validate --all --strict`
-- [ ] 14.3 Update `HANDOFF.md` and `docs/porting/owner-review.md`; push; CI green
+- [x] 14.1 Gate passes, push, CI green (before the review)
+- [x] 14.2 xfail test for "Earlier change's entry" (found in the review: an entry of an earlier
+      status named the member and stopped the second read)
+- [ ] 14.3 Leave out type-192 entries with another status; remove the marker
+- [ ] 14.4 xfail tests for "Status changes are posted in order from the current session" (found in
+      the review: a change waiting for its entry was posted after a later one, and tracked statuses
+      outlived sessions, outages and left guilds)
+- [ ] 14.5 Post each channel's status changes under a lock and forget the tracked statuses with
+      sessions, outages and left guilds; remove the markers
+- [ ] 14.6 xfail test for "A key that is not a guild ID" (found in the review: such a key stopped the
+      checks and the load into a ready bot), and a test of the list check on that load
+- [ ] 14.7 Skip such keys with a warning; remove the marker
+
+## 15. Close
+
+- [ ] 15.1 Gate passes, push, CI green
+- [ ] 15.2 Archive the change and run `openspec validate --all --strict`
+- [ ] 15.3 Update `HANDOFF.md` and `docs/porting/owner-review.md`; push; CI green
