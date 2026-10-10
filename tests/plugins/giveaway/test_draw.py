@@ -209,3 +209,10 @@ async def test_long_result(scene: Scene) -> None:
     body = result.removeprefix(header)
     assert len(body) == 1800  # v3's clipFieldText(..., 1800)
     assert body.endswith("...")
+
+
+async def test_unknown_giveaway(scene: Scene) -> None:
+    """Requirement: The creator or an administrator draws and administrators reroll."""
+    clicked = await scene.click("reroll", "0000000000000000", scene.who(locale="zh-TW"))
+
+    assert told(clicked) == GOLDEN["replies"]["zh-TW"]["not-found"]
