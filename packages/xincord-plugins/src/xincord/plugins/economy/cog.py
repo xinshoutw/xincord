@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 import discord
 from discord.ext import commands
 
+from xincord.core.component_ids import ComponentIds
 from xincord.core.placeholders import actor_values, global_values, render
 from xincord.core.templates import TemplateError, render_message
 
@@ -18,6 +19,7 @@ from .store import change, read, read_all
 from .wallet import OPERATIONS, rank
 
 if TYPE_CHECKING:
+    from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
     from xincord.core.templates import Message, MessageTemplate, Templates
@@ -25,6 +27,9 @@ if TYPE_CHECKING:
     from .config import Config
     from .wallet import Kind, Wallet
 
+# v3 declared no fields and only checked its prefix; a codec needs one field, and v3's plugins
+# start with the action.
+IDS = ComponentIds("economy", ("action",), legacy_prefix="economy@")
 BAD_VALUE = "Bad Value"  # v3's reply to a negative amount, the same in every locale
 # v3's boards and what each ranks.
 BOARDS: dict[str, Kind] = {"top-money": "money", "top-cost": "cost"}
@@ -108,6 +113,10 @@ class Economy(commands.Cog):
         template = self.templates.message(name, interaction.locale.value)
         values = _user_values(interaction, interaction.user)
         await _edit(interaction, _board(template, values, ranked))
+
+    async def handle(self, interaction: discord.Interaction, _parsed: ParsedId) -> None:
+        """Stub."""
+        raise NotImplementedError
 
     def _is_admin(self, interaction: discord.Interaction) -> bool:
         """Whether ``admin_id`` lists the user; Discord's Administrator does not count."""
