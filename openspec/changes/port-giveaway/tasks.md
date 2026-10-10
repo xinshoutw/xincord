@@ -45,7 +45,7 @@
 ## 9. Preview
 
 - [x] 9.1 xfail tests for "The preview shows the draft" against a stub `texts.preview`
-- [ ] 9.2 Implement `preview`; remove the markers
+- [x] 9.2 Implement `preview`; remove the markers
 
 ## 10. Command
 

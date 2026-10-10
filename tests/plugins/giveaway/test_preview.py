@@ -38,7 +38,6 @@ def texts(bot: Bot, locale: str) -> Texts:
     return Texts(cast("Giveaway", bot.get_cog("Giveaway")).lang, locale)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_empty_draft(bot: Bot, locale: str) -> None:
     """Requirement: The preview shows the draft."""
@@ -47,7 +46,6 @@ async def test_empty_draft(bot: Bot, locale: str) -> None:
     assert embed_dict(embed) == GOLDEN["preview"][locale]["empty"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_full_draft(bot: Bot, locale: str) -> None:
     """Requirement: The preview shows the draft."""
@@ -56,7 +54,6 @@ async def test_full_draft(bot: Bot, locale: str) -> None:
     assert embed_dict(embed) == GOLDEN["preview"][locale]["full"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_long_texts(bot: Bot) -> None:
     """Requirement: The preview shows the draft."""
     prizes = tuple(Prize(f"Prize number {index} " + "x" * 60, 1) for index in range(40))
@@ -73,7 +70,6 @@ async def test_long_texts(bot: Bot) -> None:
     assert len(embed) <= 6000
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_typed_placeholders(bot: Bot) -> None:
     """Requirement: The preview shows the draft."""
     draft = Draft(title="%ga@title%", description="%bot_name%", sponsor="%ga@index%")
