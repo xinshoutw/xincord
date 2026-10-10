@@ -1,4 +1,4 @@
-"""Migrate a v3 (XsDiscordBotKt) core ``config.yaml`` to the xincord schema.
+"""Migrate a v3 (XsDiscordBotKt) directory: the core ``config.yaml`` and the plugins' names.
 
 Run ``python -m xincord.core.migrate_v3 <server directory>`` once per installation.
 """
@@ -23,6 +23,20 @@ ACTIVITY_TYPES = {
     "COMPETING": "competing",
 }
 LOG_TYPES = ("command", "button", "modal")
+# Plugins whose xincord name differs from v3's (decision B18 as amended on 2026-10-10). v3 kept
+# each plugin's files in plugins/<v3 name>/ (XsDiscordBotKt@3a59607:
+# Core/src/main/kotlin/core/plugin/PluginEvent.kt:21).
+RENAMED = {
+    "_Example": "Example",
+    "BasicCalculator": "Calculator",
+    "SimpleCommand": "CustomCommands",
+    "WelcomeByeGuild": "WelcomeGoodbye",
+    "IntervalPusher": "UptimeHeartbeat",
+    "Feedbacker": "Feedback",
+    "TicketAddons": "TicketAwayNotice",
+    "NtustManager": "NtustAnnouncements",
+    "NtustCourse": "NtustCourseWatch",
+}
 
 
 def migrate_core_config(v3: Mapping[str, object]) -> tuple[dict[str, object], list[str]]:
@@ -120,16 +134,49 @@ def _list(value: object) -> list[object]:
 
 
 def enabled_v3_plugins(root: Path) -> list[str]:
-    """Return the plugins whose v3 ``plugins/<Name>/config.yaml`` sets ``enabled: true``."""
-    return [
-        path.parent.name
-        for path in sorted((root / "plugins").glob("*/config.yaml"))
-        if _mapping(yaml.safe_load(path.read_text(encoding="utf-8"))).get("enabled") is True
-    ]
+    """Return the plugins whose v3 ``plugins/<Name>/config.yaml`` sets ``enabled: true``.
+
+    A renamed plugin is listed under its xincord name (``RENAMED``); the names are sorted.
+    """
+    return sorted(
+        {
+            RENAMED.get(path.parent.name, path.parent.name)
+            for path in (root / "plugins").glob("*/config.yaml")
+            if _mapping(yaml.safe_load(path.read_text(encoding="utf-8"))).get("enabled") is True
+        },
+    )
+
+
+def move_renamed_directories(root: Path) -> list[str]:
+    """Move each renamed plugin's ``plugins/<v3 name>/`` to ``plugins/<new name>/``.
+
+    A plugin then finds v3's config and lang files under its new name. When the new directory
+    exists already, both stay as they are.
+
+    Args:
+        root: The server directory of a v3 installation.
+
+    Returns:
+        One report line per renamed plugin's v3 directory: moved, or kept.
+    """
+    report: list[str] = []
+    for old, new in RENAMED.items():
+        source, target = root / "plugins" / old, root / "plugins" / new
+        if not source.is_dir():
+            continue
+        if target.exists():
+            report.append(f"{source}: kept, {target} exists")
+            continue
+        source.rename(target)
+        report.append(f"{source}: moved to {target}")
+    return report
 
 
 def migrate_directory(root: Path) -> list[str]:
     """Migrate ``root/config.yaml`` in place, keeping the original as ``config.v3.yaml``.
+
+    The renamed plugins' directories move to their new names before the new config is written,
+    so that a failed move leaves the v3 config for a second run.
 
     Args:
         root: The server directory of a v3 installation.
@@ -152,9 +199,10 @@ def migrate_directory(root: Path) -> list[str]:
     new = {"token": new["token"], "plugins": plugins, **new}
     report.append(f"plugins: enabled {', '.join(plugins) or 'none'}")
     CoreConfig.model_validate(new)
+    moves = move_renamed_directories(root)
     backup.write_text(text, encoding="utf-8")
     path.write_text(yaml.safe_dump(new, sort_keys=False, allow_unicode=True), encoding="utf-8")
-    return [*report, f"{path}: migrated, original kept as {backup}"]
+    return [*report, *moves, f"{path}: migrated, original kept as {backup}"]
 
 
 def main(argv: Sequence[str] | None = None) -> int:

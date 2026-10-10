@@ -197,7 +197,6 @@ def write_plugin(root: Path, name: str, text: str) -> Path:
     return directory
 
 
-@pytest.mark.xfail(strict=True, reason="v3 plugin switches migrate to the enabled list")
 def test_renamed_v3_plugins(tmp_path: Path) -> None:
     """Requirement: v3 plugin switches migrate to the enabled list."""
     (tmp_path / "config.yaml").write_text(V3_TEXT, encoding="utf-8")
@@ -212,7 +211,6 @@ def test_renamed_v3_plugins(tmp_path: Path) -> None:
     assert f"plugins: enabled {', '.join(names)}" in report
 
 
-@pytest.mark.xfail(strict=True, reason="Renamed plugins' v3 directories move to their new names")
 def test_renamed_directory_moves(tmp_path: Path) -> None:
     """Requirement: Renamed plugins' v3 directories move to their new names."""
     (tmp_path / "config.yaml").write_text(V3_TEXT, encoding="utf-8")
@@ -231,7 +229,6 @@ def test_renamed_directory_moves(tmp_path: Path) -> None:
     assert f"{old}: moved to {new}" in report
 
 
-@pytest.mark.xfail(strict=True, reason="Renamed plugins' v3 directories move to their new names")
 def test_existing_new_directory_is_kept(tmp_path: Path) -> None:
     """Requirement: Renamed plugins' v3 directories move to their new names."""
     (tmp_path / "config.yaml").write_text(V3_TEXT, encoding="utf-8")
@@ -246,7 +243,6 @@ def test_existing_new_directory_is_kept(tmp_path: Path) -> None:
     assert load_config(tmp_path / "config.yaml", CoreConfig, "").plugins == ("Feedback",)
 
 
-@pytest.mark.xfail(strict=True, reason="Renamed plugins' v3 directories move to their new names")
 def test_migrated_directory_is_left_alone(tmp_path: Path) -> None:
     """Requirement: Renamed plugins' v3 directories move to their new names."""
     (tmp_path / "config.yaml").write_text(V3_TEXT, encoding="utf-8")

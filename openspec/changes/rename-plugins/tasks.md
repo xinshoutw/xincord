@@ -2,7 +2,7 @@
 
 - [x] 1.1 xfail tests for "v3 plugin switches migrate to the enabled list" (renamed plugins) and
       "Renamed plugins' v3 directories move to their new names"
-- [ ] 1.2 Add `RENAMED`, map the enabled list and move the directories in
+- [x] 1.2 Add `RENAMED`, map the enabled list and move the directories in
       `xincord.core.migrate_v3`; remove the markers
 
 ## 2. Example
