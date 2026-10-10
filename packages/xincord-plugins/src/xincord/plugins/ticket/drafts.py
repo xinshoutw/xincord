@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from .model import Draft, parse_color
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Mapping, Sequence
 
     from .texts import Texts
 
@@ -74,3 +74,13 @@ def _button(draft: Draft, text: str, emoji: str) -> Draft | str:
     if not text and not emoji:
         return "error.button-empty"
     return replace(draft, button_text=text, button_emoji=emoji)
+
+
+def select_roles(draft: Draft, values: Sequence[str]) -> Draft:
+    """The draft with the selected staff roles, which replace the earlier ones, as in v3."""
+    raise NotImplementedError
+
+
+def select_style(draft: Draft, index: str) -> Draft:
+    """The draft with the color button's style: 1 blue, 2 gray, 3 green, 4 red; else unchanged."""
+    raise NotImplementedError
