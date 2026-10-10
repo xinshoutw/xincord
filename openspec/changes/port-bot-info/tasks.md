@@ -32,7 +32,7 @@
 
 ## 7. Conventions and docs
 
-- [ ] 7.1 Check that the built wheel ships `config.yaml` and `lang/` and that `xincord --no-online`
+- [x] 7.1 Check that the built wheel ships `config.yaml` and `lang/` and that `xincord --no-online`
       loads the plugin
 - [ ] 7.2 Porting guide rows and pitfalls, and skill corrections (global commands and their
       contexts, member counts)
