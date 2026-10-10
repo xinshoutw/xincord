@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 NO_PING = -1  # what %ping% becomes when the ping cannot be measured, as in v3
 # A failed ping: Discord's errors, aiohttp's, and OSError for the network, timeouts included.
 PING_ERRORS = (discord.DiscordException, aiohttp.ClientError, OSError)
+# v3's limits: 10 seconds to connect and 30 seconds for the whole request.
+TIMEOUT = aiohttp.ClientTimeout(total=30, connect=10)
 
 
 def build_url(template: str, ping: int) -> str:
@@ -48,13 +50,17 @@ async def rest_ping(client: discord.Client, clock: Callable[[], float] = time.pe
 
 
 def open_session() -> aiohttp.ClientSession:
-    """An HTTP session for one listener's pushes."""
-    raise NotImplementedError
+    """An HTTP session for one listener's pushes, with v3's limits; the caller closes it."""
+    return aiohttp.ClientSession(timeout=TIMEOUT)
 
 
 async def get_status(session: aiohttp.ClientSession, url: str) -> int:
-    """Send one push to ``url`` and return the status code."""
-    raise NotImplementedError
+    """Send one push, a GET that follows no redirect as in v3, and return its status code.
+
+    The body is not read: v3 read it into a string and ignored it.
+    """
+    async with session.get(url, allow_redirects=False) as response:
+        return response.status
 
 
 @dataclass(frozen=True)

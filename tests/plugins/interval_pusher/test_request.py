@@ -8,7 +8,6 @@ Kotlin:
 from typing import TYPE_CHECKING
 
 import aiohttp
-import pytest
 from yarl import URL
 
 from xincord.plugins.interval_pusher.pusher import get_status, open_session
@@ -16,12 +15,7 @@ from xincord.plugins.interval_pusher.pusher import get_status, open_session
 if TYPE_CHECKING:
     from http_fakes import Monitor
 
-XFAIL = pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Each push is one GET request"
-)
 
-
-@XFAIL
 async def test_status_code(monitor: Monitor) -> None:
     """Requirement: Each push is one GET request."""
     monitor.statuses["/api/push/token"] = 204
@@ -33,7 +27,6 @@ async def test_status_code(monitor: Monitor) -> None:
     assert monitor.requests == [("GET", URL("/api/push/token?status=up&ping=42"))]
 
 
-@XFAIL
 async def test_redirect(monitor: Monitor) -> None:
     """Requirement: Each push is one GET request."""
     monitor.statuses["/api/push/token"] = 302  # to /moved
@@ -45,7 +38,6 @@ async def test_redirect(monitor: Monitor) -> None:
     assert monitor.requests == [("GET", URL("/api/push/token"))]
 
 
-@XFAIL
 async def test_limits() -> None:
     """Requirement: Each push is one GET request."""
     async with open_session() as session:

@@ -24,7 +24,7 @@
 
 - [x] 5.1 xfail tests for "Each push is one GET request", with the local monitor in
       `tests/support/http_fakes.py`
-- [ ] 5.2 Implement `open_session` and `get_status`; remove the markers
+- [x] 5.2 Implement `open_session` and `get_status`; remove the markers
 
 ## 6. Status codes
 
