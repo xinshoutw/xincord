@@ -102,3 +102,21 @@ here; delete a section once it is empty.
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-bot-info/design.md` (needs a token and a test guild).
 - The bot's application must allow the Server Members intent in the developer portal (v3 always requested it); without it, startup stops with a privileged-intents error.
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `BotInfo` enabled); an image build with the plugin enabled is still open.
+
+## SimpleCommand (`port-simple-command`)
+
+### User-visible changes
+- When the bot cannot post in the channel (missing permissions, or a channel that takes no messages), the administrator gets the message as the ephemeral response and the log has a warning (v3: the "thinking" message vanished and nothing was posted).
+- The bundled templates show the example account number `000000000000` under a comment (v3 shipped the real numbers); existing `plugins/SimpleCommand/lang/` files keep theirs, because only missing lang files are exported.
+- The commands always answer (v3 needed the core's auto-defer switch).
+- No `plugins/SimpleCommand/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list.
+- Placeholders that other plugins left in v3's shared global substitutor no longer expand in these templates; `%bot_id%` and `%bot_name%` still do.
+### Choices made without the owner
+- Command set: kept v3's five fixed commands (one table in the code, one shared handler); alternative: commands defined in a config file (name to template), so operators add or remove them without a code change (inventory B3).
+- A channel that refuses the message: implemented the message in the deferred ephemeral response, as BasicCalculator; alternative: an error text telling the administrator that the bot cannot post there.
+- Example account number: implemented `000000000000`, which no real account has, under a comment in each template; alternative: a placeholder text such as `<account number>`.
+- What is posted: implemented the whole template, as v3 posted the built message (an operator's link buttons, Components V2 layouts and their uploaded files too); alternative: content and embeds only, as BasicCalculator posts.
+### Manual checks
+- Smoke checklist in `openspec/changes/archive/2026-10-10-port-simple-command/design.md` (needs a token, a test guild and a member without Administrator).
+- At cutover, copy v3's `plugins/SimpleCommand/lang/` (with the real account numbers) into the bot's `plugins/SimpleCommand/lang/`; otherwise the commands post the example number.
+- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `SimpleCommand` enabled); an image build with the plugin enabled is still open.

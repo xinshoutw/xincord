@@ -1,6 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after `port-bot-info`, the fourth plugin port. Core is complete. Read
+Updated 2026-10-10 after `port-simple-command`, the fifth plugin port. Core is complete. Read
 this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and
 binding; do not re-open them unless you find a serious problem, and then ask the owner.
 
@@ -166,7 +166,19 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   whose `client` is `SimpleNamespace(user=BOT_USER, guilds=[...])`, the global payload check in
   `tests/plugins/bot_info/test_command.py`, and a `cast`-based `cog` fixture for a plugin whose
   tests load invalid configs.
-- **Still to build:** the plugins after BotInfo (section 5).
+- **SimpleCommand** (`xincord.plugins.simple_command`, no intents, no config, zh-TW only): five
+  guild commands from the `COMMANDS` table (`command(name)` with
+  `app_commands.default_permissions(administrator=True)`) share the callback `post_message`, which
+  reads `interaction.command.name`, renders that template in `lang.default_locale` with v3's
+  `bot_id` and `bot_name`, posts the whole message (content, embeds, view and files) through
+  `_postable` (the channel as `object` against the `Postable` Protocol) and `_send`, then deletes
+  the deferred response; when the channel takes no messages or refuses it, it renders again and
+  edits the deferred response, with the files as `attachments`. The bundled templates hold the
+  example account number `000000000000`. Reuse: `FakeInteraction(command=SimpleNamespace(name=...))`
+  and `ClosingChannel` (`tests/plugins/simple_command/test_post.py`) for discord.py's closed files.
+  `_bot_values` now exists in BotInfo and SimpleCommand: a third plugin that needs v3's global keys
+  moves it into `xincord.core.placeholders`.
+- **Still to build:** the plugins after SimpleCommand (section 5).
 
 ## 5. Status and next steps
 
@@ -176,17 +188,17 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `core-templates`, `core-components-v2`, `core-component-ids`, `core-plugin-loading`,
 `core-command-tree`, `core-component-routing`, `core-interaction-values`, `core-startup`,
 `core-reload`, `core-console`, `core-status-log`, `container`, `port-example`,
-`port-basic-calculator`, `port-auto-role`, `port-bot-info`. Each one's `design.md` in
-`openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
-`docs/porting-guide.md` has the differences table.
+`port-basic-calculator`, `port-auto-role`, `port-bot-info`, `port-simple-command`. Each one's
+`design.md` in `openspec/changes/archive/` records its decisions and "v3 behaved differently"
+notes; `docs/porting-guide.md` has the differences table.
 
 ### Next: the plugins
 
-Core is complete; _Example (the template), BasicCalculator, AutoRole and BotInfo are ported.
-Next: **SimpleCommand** (`port-simple-command`). Port the plugins in C1 order with the
-`port-plugin` skill (`.claude/skills/port-plugin/SKILL.md`), one OpenSpec change each
+Core is complete; _Example (the template), BasicCalculator, AutoRole, BotInfo and SimpleCommand
+are ported. Next: **WelcomeByeGuild** (`port-welcome-bye-guild`). Port the plugins in C1 order
+with the `port-plugin` skill (`.claude/skills/port-plugin/SKILL.md`), one OpenSpec change each
 (`port-<plugin-kebab>`): _Example (done), BasicCalculator (done), AutoRole (done), BotInfo (done,
-with the configurable AGPL source link of C3), then SimpleCommand, WelcomeByeGuild,
+with the configurable AGPL source link of C3), SimpleCommand (done), then WelcomeByeGuild,
 IntervalPusher, Feedbacker, Economy, DynamicVoiceChannel, VoiceLogger, ChatLogger, Giveaway,
 Ticket, TicketAddons, NtustManager, NtustCourse, MusicPlayer (with Lavalink in `compose.yaml`).
 Update `docs/porting-guide.md` after each one.
@@ -329,6 +341,16 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - Components V2 classes exist: `LayoutView`, `Container`, `Section`, `TextDisplay`, `Thumbnail`,
   `MediaGallery` (`discord.MediaGalleryItem`), `Separator` (`SeparatorSpacing`), `File`,
   `ActionRow`; buttons take `sku_id`.
+- `send` and the interaction edits close a message's `File` objects when they finish, even when
+  Discord refused the request (`MultipartParameters.__exit__`): render again before sending the
+  message elsewhere. An unclosed `discord.File` in a test fails it
+  (`PytestUnraisableExceptionWarning`).
+- `Messageable.send` overloads take `view: View` with content and embeds, or `view: LayoutView`
+  without them; `View | LayoutView | None` matches none. `isinstance` against a Protocol keeps each
+  member of `interaction.channel`'s union with its own overloads (and pyright reports an unsafe
+  overlap): pass the channel as `object` first (SimpleCommand's `_postable`).
+- `app_commands.default_permissions(administrator=True)` also applies to a built `Command`; the
+  payload's `default_member_permissions` is then the integer 8.
 
 **v3 behaviors never to reproduce:** loading plugins in reverse dependency order, non-atomic JSON
 writes that reset corrupt files, recursive placeholder expansion, shared mutable placeholder
