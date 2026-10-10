@@ -1,0 +1,56 @@
+# CustomCommands: list it under `plugins` in the core config.yaml to enable it.
+
+# Slash commands that answer with a message template, lang/<locale>/message/<template>.yaml
+# (v1 or Components V2). Add, change or remove entries, then reload the plugin
+# (`/xincord reload CustomCommands`): the bot uploads the changed commands. An entry's keys:
+#   name: 1 to 32 characters: lower-case letters, digits, - and _; unique.
+#   description: 1 to 100 characters.
+#   localizations: optional; per Discord locale (zh-TW, en-US, ja, ...), the name and the
+#     description that clients in that language show.
+#   template: optional; the template's file name without .yaml, by default the command's name.
+#   permissions: optional; the permissions that members need to see the command, by discord.py's
+#     names (administrator, manage_guild, manage_messages, ...), by default [administrator];
+#     [] for every member. Server Settings > Integrations can change it per server.
+#   reply: optional; channel (the default) posts the message in the command's channel, public
+#     replies with it to everyone, ephemeral replies with it to the user only.
+#   guilds: optional; the IDs of the guilds that get the command, by default every guild.
+# Posts and public replies use the zh-TW templates, ephemeral replies the user's language when its
+# template exists, else zh-TW. Templates can use placeholders such as %user_mention%, %user_name%,
+# %channel_name% and %bot_name%.
+# Example:
+#   - name: rules
+#     description: Post the server rules
+#     localizations:
+#       en-GB: {name: rules, description: Post the server rules}
+#     template: rules
+#     permissions: [manage_guild]
+#     reply: public
+#     guilds: [111111111111111111]
+
+# The five commands below post a shop's bank payment instructions. Their templates hold an example
+# account number: put yours in lang/zh-TW/message/<name>.yaml.
+commands:
+  - name: cub-none-card
+    description: generate message
+    localizations:
+      zh-TW: {name: "國泰世華-無卡", description: "取得訊息"}
+
+  - name: tsib-none-card
+    description: generate message
+    localizations:
+      zh-TW: {name: "台新銀行-無卡", description: "取得訊息"}
+
+  - name: ctcb-none-card
+    description: generate message
+    localizations:
+      zh-TW: {name: "中國信託-無卡", description: "取得訊息"}
+
+  - name: ctcb-remit
+    description: generate message
+    localizations:
+      zh-TW: {name: "中國信託-匯款", description: "取得訊息"}
+
+  - name: chpytwtp-remit
+    description: generate message
+    localizations:
+      zh-TW: {name: "郵局-匯款", description: "取得訊息"}

@@ -12,7 +12,7 @@
 
 ## 3. Bundled config
 
-- [ ] 3.1 Bundle `config.yaml` with v3's five commands (not read yet)
+- [x] 3.1 Bundle `config.yaml` with v3's five commands (not read yet)
 
 ## 4. Commands from the config
 
