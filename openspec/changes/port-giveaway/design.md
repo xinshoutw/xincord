@@ -205,17 +205,21 @@ through `Giveaways.change(guild, id, transition)`, which runs a pure transition 
 lock and writes only a changed instance:
 
 - `model.join(instance, user, now)`: closed when drawn or `now >= end`; else the user is added or
-  removed. A press from another message than `messageId` is acknowledged with `response.defer()`
-  and changes nothing, as v3.
+  removed. A press from another message than `messageId` changes nothing, as v3's `deferEdit`.
 - `model.draw(instance, user, admin, reroll, now, rng)`: not allowed unless (draw) the creator or an
   administrator or (reroll) an administrator; then already drawn, too early (`now < end`) or not
   drawn; else every prize is drawn, `ended` true and `endedAtEpochSecond` now.
 
-A change answers with `response.edit_message(...)`, the whole post rendered from the stored
-instance (one interaction response, which no channel rate limit delays, where v3 edited the message
-through the REST API), then `followup.send(..., ephemeral=True)` with the joined or left text or the
-rendered `draw-result` (`%ga@header%`, `%ga@body%`, `%ga@title%`). Refusals are ephemeral replies
-in the giveaway's language. Winners are drawn with the cog's `random`, a `random.SystemRandom()`
+Each press is acknowledged at once with `response.defer()` (a deferred update), before it waits for
+the guild's lock: a burst of presses on a large document would otherwise run past Discord's three
+seconds, and the user would see a failure for a join that was stored. Then every press from the
+post shows the giveaway as stored, through `edit_original_response(...)` with the whole post (the
+press's webhook, which no channel rate limit delays, where v3 edited the message through the REST
+API), refusals included, so that a post left stale (a restart during a draw, a refused edit,
+responses that crossed) is repaired by the next press; v3 left such a post with Reroll disabled for
+good. The user is told with `followup.send(..., ephemeral=True)`: the joined or left text, the
+rendered `draw-result` (`%ga@header%`, `%ga@body%`, `%ga@title%`) or the refusal, in the
+giveaway's language. Winners are drawn with the cog's `random`, a `random.SystemRandom()`
 that tests replace with a seeded `random.Random`; `draw_winners` samples with `rng.sample`, which
 draws the same distribution as v3's Fisher-Yates `shuffled(...).take(k)`.
 
@@ -325,7 +329,10 @@ and `FakeChannel.get_partial_message`.
   id.` in English and one outside a guild `Guild not found.`; both answer `Giveaway not found.` in
   the user's language.
 - v3 behaved differently: `24:00` on 9999-12-31 and years after 9999 written with a sign
-  (`+12026-01-05 10:00`) were end times; they get the format error.
+  (`+12026-01-05 10:00`) were end times; they get the format error, as do times whose UTC time is
+  past 9999 (9999-12-31 23:59 west of UTC).
+- v3 behaved differently: a drawn giveaway whose post was not refreshed (a crash after the draw, a
+  refused edit) kept Join and Draw enabled and Reroll disabled for good; every press repairs it.
 
 Kept from v3: drafts have no time limit (one per member and guild, gone at confirmation, cancel, a
 new command, the guild's leave, a reload or a restart); there is no limit on the number of prizes;
@@ -342,8 +349,9 @@ waits five seconds after READY (v3: after each load); winners who left the guild
   message (v3: the builder turned into `create-failed` without buttons).
 - Long descriptions and prize lists end with `...` in the preview and the post (v3: the preview
   stopped updating, or the post or its refresh failed).
-- Joining and drawing update the post in the same response; the joined, left and draw result
-  replies arrive as ephemeral follow-ups.
+- Joining and drawing are acknowledged at once and update the post through the press; the joined,
+  left, draw result and refusal replies arrive as ephemeral follow-ups, and any press repairs a
+  post that shows an outdated state.
 - Giveaways in threads, announcement channels and voice channel chats are refreshed and announced
   when drawn automatically.
 - The announcement pings the winners but no roles or everyone (B19).
@@ -467,9 +475,15 @@ Every section of `docs/porting/analysis/inventory/Giveaway.md` maps to this chan
 - A burst of joins sends one interaction response per press; each renders the stored count, so
   two responses that cross may show a count one behind until the next press.
 - A pass that is cancelled (an unload) after storing a draw and before posting it leaves that
-  giveaway drawn without an announcement.
+  giveaway drawn without an announcement; the next press on its post shows the winners.
 - The core's upgrade of a v3 post fetches the message and needs Read Message History; without it
-  the core logs the failure, and the post's own updates replace the IDs anyway.
+  the core logs the failure, and the post's own updates replace the IDs anyway. The upgrade edits
+  the components of the copy it fetched, so an edit that lands between its fetch and its edit (an
+  automatic draw, another press) can get its buttons reverted until the next press; it matters
+  only for v3 posts with stored giveaways, after the deferred migration (B11), and is the core's.
+- `Store.put` encodes a document on the event loop: a guild with very many stored participants
+  delays other interactions for the time of a `json.dumps`, which the acknowledgement keeps within
+  Discord's limit.
 
 ## Manual smoke checklist
 

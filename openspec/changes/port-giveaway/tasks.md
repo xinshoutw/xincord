@@ -136,8 +136,9 @@
 ## 25. Review
 
 - [x] 25.1 Gate passes, push, CI green (before the review)
-- [ ] 25.2 Cross-review the change (other paths into the features, repeated or concurrent
-      presses, state left behind); fix each finding xfail-first
+- [x] 25.2 Cross-review the change (other paths into the features, repeated or concurrent
+      presses, state left behind); fix each finding xfail-first (25.3 to 25.14; the core's
+      upgrade race is a recorded risk, 25.15)
 - [x] 25.3 xfail test for "Acknowledgement fails" (found during the review: a confirmation whose
       deferral Discord refused had already taken the draft, which was lost)
 - [x] 25.4 Give the draft back whenever no giveaway was posted; remove the marker
@@ -160,6 +161,8 @@
 - [x] 25.13 xfail test for broken documents in the automatic draw (found in the cross-review: a
       broken guild document was logged with a traceback at every pass)
 - [x] 25.14 Log each broken document or entry once; remove the marker
+- [x] 25.15 Record the core's fetch-then-edit upgrade of v3 posts and the store's encoding on the
+      event loop as risks in the design
 
 ## 26. Close
 
