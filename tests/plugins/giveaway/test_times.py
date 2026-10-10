@@ -141,7 +141,6 @@ def test_host_zone() -> None:
     assert format_end_time(1772330400, None) == "2026-03-01 10:00"
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_beyond_9999_in_utc() -> None:
     """Requirement: End times are read and shown in the configured zone."""
     # 9999-12-31 23:59 in New York is in the year 10000 in UTC, which datetime cannot show.

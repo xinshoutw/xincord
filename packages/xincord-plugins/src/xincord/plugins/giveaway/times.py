@@ -25,7 +25,7 @@ def parse_end_time(text: str, zone: tzinfo | None) -> int | None:
     As Java's SMART resolver: each field must be in its range, a day past the month's last day is
     clamped to it, and ``24:00`` is the start of the next day. Fold 0 takes the earlier offset in
     an overlap and moves a time in a gap forward, as Java's ``atZone``. A time that ``datetime``
-    cannot hold (past 9999) is no end time.
+    cannot hold (past 9999, in the zone or in UTC) is no end time.
     """
     match = PATTERN.fullmatch(text)
     if match is None:
@@ -38,9 +38,11 @@ def parse_end_time(text: str, zone: tzinfo | None) -> int | None:
     try:
         # Adding to a datetime keeps its wall time, so 24:00 becomes the next day's 00:00.
         moment = datetime(year, month, day, tzinfo=zone) + timedelta(hours=hour, minutes=minute)
-        return int(moment.timestamp())
+        epoch = int(moment.timestamp())
+        datetime.fromtimestamp(epoch, zone)  # it can be shown, also when UTC is past 9999
     except OverflowError, ValueError, OSError:
         return None
+    return epoch
 
 
 def format_end_time(epoch: int, zone: tzinfo | None) -> str:
