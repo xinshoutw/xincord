@@ -11,6 +11,8 @@ Kotlin:
 import re
 from dataclasses import dataclass
 
+from yarl import URL
+
 AUTHORITY_END = re.compile(r"[/?#]")  # where the path, the query or the fragment begins
 # An http or https URL in an error's text, up to the next whitespace: aiohttp's connect timeout
 # names the whole URL, and its error for a malformed answer ends with it in quotes.
@@ -32,8 +34,33 @@ def origin(url: str) -> str:
 
 
 def private_parts(url: str) -> tuple[str, ...]:
-    """What logs must not show of ``url``, longest first: user info, path, query and fragment."""
-    raise NotImplementedError
+    """What logs must not show of ``url``, longest first: user info, path, query and fragment.
+
+    The path, the query and the fragment count together, without the fragment, and each alone, as
+    written and as yarl encodes them, which is what aiohttp sends; a part of one character (a bare
+    ``/``) says nothing and is left.
+    """
+    parts: set[str] = set()
+    for form in _forms(url):
+        rest = form.partition("://")[2]
+        authority = AUTHORITY_END.split(rest, maxsplit=1)[0]
+        tail = rest[len(authority) :]
+        request, _, fragment = tail.partition("#")
+        path, _, query = request.partition("?")
+        parts |= {authority.rpartition("@")[0], tail, request, path, query, fragment}
+    return tuple(sorted((part for part in parts if len(part) > 1), key=_longest_first))
+
+
+def _forms(url: str) -> tuple[str, ...]:
+    """``url`` as written and as yarl encodes it; yarl refuses some (a port that is ``-1``)."""
+    try:
+        return (url, str(URL(url)))
+    except ValueError:
+        return (url,)
+
+
+def _longest_first(part: str) -> tuple[int, str]:
+    return (-len(part), part)
 
 
 def redact(text: str, *urls: str) -> str:
@@ -45,7 +72,7 @@ def redact(text: str, *urls: str) -> str:
     """
     text = URL_IN_TEXT.sub(_cut, text)
     parts = {part for url in urls for part in private_parts(url)}
-    for part in sorted(parts, key=lambda part: (-len(part), part)):
+    for part in sorted(parts, key=_longest_first):
         text = text.replace(part, HIDDEN)
     return text
 

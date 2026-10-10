@@ -10,7 +10,6 @@ import logging
 from typing import TYPE_CHECKING
 
 import aiohttp
-import pytest
 from yarl import URL
 
 from xincord.plugins.uptime_heartbeat.config import Listener
@@ -19,10 +18,11 @@ from xincord.plugins.uptime_heartbeat.pusher import Pusher, get_status, open_ses
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
+    import pytest
+
     from http_fakes import Monitor
 
 TOKEN = "xxxxxxxxxx"  # the push token: in the URL's path, never in a log line
-ORIGIN_ONLY = "Logs show only the URL's origin"
 
 
 async def test_status_code(monitor: Monitor) -> None:
@@ -95,7 +95,6 @@ async def test_malformed_answer(caplog: pytest.LogCaptureFixture) -> None:
     assert TOKEN not in caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
 async def test_answer_that_quotes_the_request(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Logs show only the URL's origin."""
 

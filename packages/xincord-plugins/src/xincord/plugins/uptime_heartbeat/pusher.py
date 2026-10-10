@@ -137,18 +137,19 @@ class Pusher:
         raises ``CancelledError``, which is no ``Exception``, and logs nothing; v3 caught the
         cancellation while it waited for the ping and logged a spurious failure.
         """
+        url = self.listener.url  # with the ping in it once it is measured
         try:
             url = await self.url()
             status = await self.get(url)
         except NETWORK_ERRORS as error:
             # A network error needs no traceback. Its text can name the URL (aiohttp's connect
-            # timeout does), so its URLs are cut to their origin too.
-            self.failed(type(error), logging.ERROR, f": {redact(describe(error))}")
+            # timeout does) or quote the server's answer, so it is redacted.
+            self.failed(type(error), logging.ERROR, f": {self.hide(describe(error), url)}")
             return
         except Exception as error:  # noqa: BLE001 - logged with its traceback below
-            # Unexpected: the traceback shows where it failed. It is part of the message, with its
-            # URLs cut to their origin: logger.exception would print the error's text as it is.
-            self.failed(type(error), logging.ERROR, f"\n{redact(format_traceback(error))}")
+            # Unexpected: the traceback shows where it failed. It is part of the message, redacted:
+            # logger.exception would print the error's text as it is.
+            self.failed(type(error), logging.ERROR, f"\n{self.hide(format_traceback(error), url)}")
             return
         if status in SUCCESS:
             self.worked(status)
@@ -156,6 +157,10 @@ class Pusher:
             self.failed(status, logging.WARNING, f" with code {status} ({WARNINGS[status]})")
         else:
             self.failed(status, logging.ERROR, f" with code {status}")
+
+    def hide(self, text: str, url: str) -> str:
+        """``text`` without the listener's URL or the pushed ``url``: only their origins stay."""
+        return redact(text, self.listener.url, url)
 
     def failed(self, kind: object, level: int, detail: str) -> None:
         """Log a failed push: at ``level`` when its ``kind`` is new, else at debug level.

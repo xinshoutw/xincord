@@ -36,7 +36,7 @@
       message; remove the markers
 - [x] 5.4 xfail tests for "Logs show only the URL's origin": `private_parts` against a stub, and an
       answer that quotes the request line
-- [ ] 5.5 Implement `private_parts` and pass the listener's URLs to `redact`; remove the markers
+- [x] 5.5 Implement `private_parts` and pass the listener's URLs to `redact`; remove the markers
 - [ ] 5.6 xfail test for "The URL carries the REST ping": an unexpected ping error
 - [ ] 5.7 Put `-1` in the URL after any ping error; remove the marker
 - [ ] 5.8 xfail tests for "A failure is logged when it starts, changes or ends": episodes in

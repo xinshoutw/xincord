@@ -8,7 +8,6 @@ import pytest
 
 from xincord.plugins.uptime_heartbeat.logs import Failures, origin, private_parts, redact
 
-ORIGIN_ONLY = "Logs show only the URL's origin"
 # A URL with a quote in its path: Python's repr, which aiohttp's texts use, then quotes it with ".
 QUOTED = "https://status.example.com/api/push/it's?ping=42"
 
@@ -80,7 +79,6 @@ def test_redact(text: str, expected: str) -> None:
     assert redact(text) == expected
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=ORIGIN_ONLY)
 @pytest.mark.parametrize(
     ("url", "parts"),
     [
@@ -103,6 +101,12 @@ def test_redact(text: str, expected: str) -> None:
             ("/caf%C3%A9", f"/caf{chr(0xE9)}"),
             id="encoded",
         ),
+        pytest.param(
+            # yarl refuses this port: the parts as written.
+            "https://status.example.com:%ping%/push?ping=%ping%",
+            ("/push?ping=%ping%", "ping=%ping%", "/push"),
+            id="URL that yarl refuses",
+        ),
     ],
 )
 def test_private_parts(url: str, parts: tuple[str, ...]) -> None:
@@ -110,7 +114,6 @@ def test_private_parts(url: str, parts: tuple[str, ...]) -> None:
     assert private_parts(url) == parts
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=ORIGIN_ONLY)
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
