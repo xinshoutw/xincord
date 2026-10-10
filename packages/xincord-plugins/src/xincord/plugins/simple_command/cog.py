@@ -11,6 +11,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from xincord.core.placeholders import global_values
 from xincord.core.templates import render_message
 
 if TYPE_CHECKING:
@@ -73,7 +74,7 @@ class SimpleCommand(commands.Cog):
         """
         name = interaction.command.name if interaction.command else ""
         template = self.templates.message(name, self.lang.default_locale)
-        values = _bot_values(interaction)
+        values = global_values(interaction.client)
         channel = _postable(interaction.channel)
         if channel is None:
             logger.warning(
@@ -119,9 +120,3 @@ async def _send(channel: Postable, name: str, message: Message) -> bool:
         )
         return False
     return True
-
-
-def _bot_values(interaction: discord.Interaction) -> dict[str, str]:
-    """v3's global placeholders, which its messages were rendered with: the bot's keys."""
-    bot = interaction.client.user  # set once the bot has logged in
-    return {} if bot is None else {"bot_id": str(bot.id), "bot_name": bot.name}
