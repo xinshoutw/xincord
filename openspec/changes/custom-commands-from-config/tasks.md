@@ -51,7 +51,7 @@
 
 ## 10. Checks and docs
 
-- [ ] 10.1 The wheel ships `config.yaml` and the templates and no `register.yaml`; `xincord
+- [x] 10.1 The wheel ships `config.yaml` and the templates and no `register.yaml`; `xincord
       --no-online` loads the plugin from a scratch venv; a probe through discord.py's objects
       (translated payload, public and ephemeral replies)
 - [ ] 10.2 Image check: `docker compose build` and `docker compose run --rm -T bot --no-online`

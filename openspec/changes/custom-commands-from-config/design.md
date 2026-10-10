@@ -199,7 +199,30 @@ concerned (CustomCommands only). A 3.2.x directory, which has no such file, need
 
 The bundled `lang/zh-TW/` keeps v3's five templates (example account number, v3's names) and drops
 `register.yaml`. An operator's `register.yaml`, such as v3's copied at cutover, still loads and is
-checked by the core, but nothing reads it; the bundled `config.yaml` holds the same names.
+checked by the core, but nothing reads it; the bundled `config.yaml` holds the same names. An
+operator who adds an en-US template for some commands only gets the core's warning at each load
+that en-US lacks the others (`en-US lacks template keys of zh-TW: ...`), which is what happens:
+those fall back to zh-TW.
+
+### Checks (2026-10-10)
+
+- The wheel from `uv build --package xincord-plugins` lists `config.yaml` and the five templates,
+  no `register.yaml`, and the `CustomCommands` entry point.
+- A scratch virtual environment with both wheels: `xincord --no-online` with `plugins:
+  [CustomCommands]` in an empty directory exits 0 and writes `plugins/CustomCommands/config.yaml`
+  (the bundled file, byte for byte) and the five templates; with a v3 `plugins/CustomCommands/
+  config.yaml` holding only `enabled: true` it exits 1 and the log names `commands`; a v3-shaped
+  directory (`plugins/SimpleCommand/` with `enabled: true`, v3's `register.yaml` and templates with
+  other numbers) migrated with `python -m xincord.core.migrate_v3 .` reports the move and the
+  set-aside file, and `--no-online` then exits 0 with the bundled config written and the
+  operator's templates kept.
+- A scratch probe through discord.py's own `Interaction` and `CommandTree._call`, with the bot's
+  REST and webhook requests recorded: the channel command defers with flags 64, posts the embed
+  to `POST /channels/{id}/messages` and deletes `@original`; a `public` one defers with type 5 and
+  no flags, then patches `@original` with the zh-TW content and the user's mention and channel
+  name; an `ephemeral` one defers with flags 64 and patches `@original` with the en-US template
+  for an en-US user and the zh-TW one for a Japanese user; `payloads(10)` holds a command limited
+  to guild 10 and `payloads(11)` does not, and `permissions: []` gives no default permissions.
 
 ### Tests (xfail-first)
 
