@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from xincord.core.storage import Store
     from xincord.plugins.bot_info.cog import BotInfo
 
-REQUIREMENT = "The config sets the source link"
 DEFAULT_URL = "https://github.com/xinshoutw/xincord"
 HOST = "https://git.example/"  # 20 characters
 
@@ -36,7 +35,6 @@ def loaded_cog(bot: Bot) -> BotInfo:
     return cast("BotInfo", cog)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REQUIREMENT)
 async def test_default_config(tmp_path: Path, store: Store) -> None:
     """Requirement: The config sets the source link."""
     bot = await load_plugin("BotInfo", tmp_path / "plugins", store)
@@ -44,7 +42,6 @@ async def test_default_config(tmp_path: Path, store: Store) -> None:
     assert loaded_cog(bot).config.source_url == DEFAULT_URL
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REQUIREMENT)
 async def test_v3_config_file(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -56,7 +53,6 @@ async def test_v3_config_file(
     assert loaded_cog(bot).config.source_url == DEFAULT_URL
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REQUIREMENT)
 @pytest.mark.parametrize("url", [f"{HOST}bot", "http://git.example/bot", HOST + "a" * 492])
 async def test_operator_url(url: str, tmp_path: Path, store: Store) -> None:
     """Requirement: The config sets the source link."""
@@ -66,7 +62,6 @@ async def test_operator_url(url: str, tmp_path: Path, store: Store) -> None:
     assert loaded_cog(bot).config.source_url == url
 
 
-@pytest.mark.xfail(strict=True, reason=REQUIREMENT)
 @pytest.mark.parametrize(
     "url", ["", "git.example/bot", "ftp://git.example/bot", f"{HOST}my bot", HOST + "a" * 493]
 )
