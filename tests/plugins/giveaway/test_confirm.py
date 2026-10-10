@@ -303,3 +303,21 @@ async def test_acknowledgement_fails(scene: Scene, monkeypatch: pytest.MonkeyPat
 
     assert scene.draft() == COMPLETE  # a later press can still post
     assert posts(scene) == []
+
+
+@pytest.mark.xfail(strict=True, reason="A giveaway that cannot be posted keeps the builder")
+async def test_long_error(scene: Scene, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Requirement: A giveaway that cannot be posted keeps the builder."""
+    scene.keep(COMPLETE)
+
+    async def add(_giveaways: Giveaways, instance: Instance) -> None:
+        del instance
+        message = "x" * 3000
+        raise sqlite3.OperationalError(message)
+
+    monkeypatch.setattr(Giveaways, "add", add)
+    pressed = await scene.press("confirm-create")
+
+    text = failure(pressed)
+    assert len(text) <= 2000  # Discord's limit for a message's content
+    assert text.endswith("...")

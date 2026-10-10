@@ -319,7 +319,7 @@ get the session-expired text.
 ### Requirement: A giveaway that cannot be posted keeps the builder
 When the builder's channel takes no messages or refuses the post, or the giveaway cannot be stored,
 in which case the post is deleted, the plugin SHALL give the draft back, keep the builder and send
-v3's `create-failed` with the error as an ephemeral follow-up.
+v3's `create-failed` with the error, cut to 1000 characters, as an ephemeral follow-up.
 
 #### Scenario: Channel refuses
 - **WHEN** the channel refuses the post
@@ -329,6 +329,10 @@ v3's `create-failed` with the error as an ephemeral follow-up.
 #### Scenario: Store fails
 - **WHEN** the giveaway cannot be stored after the post was made
 - **THEN** the post is deleted and the user gets `create-failed`
+
+#### Scenario: Long error
+- **WHEN** the error's text is 3000 characters long
+- **THEN** `create-failed` holds its first characters and `...`, within Discord's limit
 
 #### Scenario: Acknowledgement fails
 - **WHEN** Discord refuses the acknowledgement of the press, before anything is posted
