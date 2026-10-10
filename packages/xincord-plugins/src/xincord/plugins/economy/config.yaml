@@ -1,0 +1,12 @@
+# Economy: list it under `plugins` in the core config.yaml to enable it.
+
+# The user IDs of the administrators: they change wallets with /add-money and the other change
+# commands, see the boards and see every member's wallet with /balance. The plugin does not load
+# until at least one is listed. Example:
+#   admin_id:
+#     - 111111111111111111
+#     - 222222222222222222
+admin_id: []
+
+# How many wallets /top-money and /top-cost show, 1 to 25.
+board_user_show_limit: 10

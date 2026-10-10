@@ -1,0 +1,9 @@
+embeds:
+  - author:
+      name: "Pocket Board"
+      icon_url: "https://i.imgur.com/PsEXCuY.png"
+    title:
+      text: "☛ Money Board"
+    footer:
+      text: "❖ ORDERLY SERVER ❖"
+    description: "%index%.\t%name_mention%\n%economy_board% $\n\n"

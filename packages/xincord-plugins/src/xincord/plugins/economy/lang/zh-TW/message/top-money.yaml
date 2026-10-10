@@ -1,0 +1,9 @@
+embeds:
+  - author:
+      name: "口袋排行榜"
+      icon_url: "https://i.imgur.com/PsEXCuY.png"
+    title:
+      text: "☛ 餘額"
+    footer:
+      text: "❖ ORDERLY SERVER ❖"
+    description: "%index%.\t%name_mention%\n%economy_board% 元\n\n"

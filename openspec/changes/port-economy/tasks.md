@@ -6,7 +6,7 @@
 
 ## 2. Resources
 
-- [ ] 2.1 Bundle v3's en-US and zh-TW lang files with LF line endings, and `config.yaml` without
+- [x] 2.1 Bundle v3's en-US and zh-TW lang files with LF line endings, and `config.yaml` without
       real IDs or the Google Sheets keys
 
 ## 3. Installation
