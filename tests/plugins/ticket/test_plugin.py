@@ -8,8 +8,6 @@ Kotlin:
 
 from typing import TYPE_CHECKING
 
-import pytest
-
 from xincord.core.plugins import PluginInfo, discover
 
 if TYPE_CHECKING:
@@ -47,7 +45,6 @@ LANG_FILES = tuple(
 )
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as Ticket")
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as Ticket."""
     # No intents: guild leaves need only discord.py's default guilds intent, the members come with
@@ -55,7 +52,6 @@ def test_discovered_by_name() -> None:
     assert discover(["Ticket"]) == [PluginInfo("Ticket", "xincord.plugins.ticket")]
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as Ticket")
 async def test_first_load_creates_the_files(bot: Bot, tmp_path: Path) -> None:
     """Requirement: The plugin installs as Ticket."""
     directory = tmp_path / "plugins" / "Ticket"
