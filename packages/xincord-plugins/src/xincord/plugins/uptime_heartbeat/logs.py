@@ -7,12 +7,37 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/IntervalPusher.kt:99-123
 """
 
+import re
+
+AUTHORITY_END = re.compile(r"[/?#]")  # where the path, the query or the fragment begins
+# An http or https URL in an error's text, up to the next whitespace: aiohttp's connect timeout
+# names the whole URL, and its error for a malformed answer ends with it in quotes.
+URL_IN_TEXT = re.compile(r"\bhttps?://\S+", re.IGNORECASE)
+QUOTES = "'\""
+
 
 def origin(url: str) -> str:
-    """The scheme, the host and the port of ``url``: what the logs show of it."""
-    raise NotImplementedError
+    """The scheme, the host and the port of ``url``: what the logs show of it.
+
+    The user info, the path, the query and the fragment are left out, since they can carry the push
+    token. String operations only, so that no URL makes it raise: ``urlsplit(...).port`` raises for
+    a port that ``%ping%`` replaced with ``-1``.
+    """
+    scheme, _, rest = url.partition("://")
+    authority = AUTHORITY_END.split(rest, maxsplit=1)[0]
+    return f"{scheme.lower()}://{authority.rpartition('@')[2]}"
 
 
 def redact(text: str) -> str:
-    """``text`` with each http or https URL in it cut to its origin."""
-    raise NotImplementedError
+    """``text`` with each http or https URL in it cut to its origin.
+
+    The whole run of non-space characters goes, so that a quote inside a path leaves nothing of it
+    behind; the quotes that end the run stay, so that ``url='...'`` stays quoted.
+    """
+    return URL_IN_TEXT.sub(_cut, text)
+
+
+def _cut(match: re.Match[str]) -> str:
+    found = match[0]
+    url = found.rstrip(QUOTES)
+    return origin(url) + found[len(url) :]

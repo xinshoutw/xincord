@@ -6,6 +6,7 @@ Kotlin:
 
 import logging
 import time
+import traceback
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -14,6 +15,7 @@ import discord
 from discord.http import Route
 
 from .config import PING
+from .logs import origin, redact
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -78,6 +80,11 @@ class Pusher:
     ping: Ping
     sleep: Sleep
 
+    @property
+    def endpoint(self) -> str:
+        """The listener's URL as the logs show it: its origin, without the push token."""
+        return origin(self.listener.url)
+
     async def run(self) -> None:
         """Push at once, then again ``interval`` seconds after each attempt, until a 404.
 
@@ -122,26 +129,36 @@ class Pusher:
             url = await self.url()
             status = await self.get(url)
         except NETWORK_ERRORS as error:
-            # The URL as configured, as v3 logged it; a network error needs no traceback.
+            # A network error needs no traceback. Its text can name the URL (aiohttp's connect
+            # timeout does), so its URLs are cut to their origin too.
             logger.error(  # noqa: TRY400
                 "UptimeHeartbeat listener %d: pushing to %s failed: %s",
                 self.number,
-                self.listener.url,
-                describe(error),
+                self.endpoint,
+                redact(describe(error)),
             )
             return True
-        except Exception:
-            # Unexpected: the traceback shows where it failed.
-            logger.exception(
-                "UptimeHeartbeat listener %d: pushing to %s failed", self.number, self.listener.url
+        except Exception as error:  # noqa: BLE001 - logged with its traceback below
+            # Unexpected: the traceback shows where it failed. It is part of the message, with its
+            # URLs cut to their origin: logger.exception would print the error's text as it is.
+            logger.error(  # noqa: TRY400
+                "UptimeHeartbeat listener %d: pushing to %s failed\n%s",
+                self.number,
+                self.endpoint,
+                redact(format_traceback(error)),
             )
             return True
-        return self.follow(url, status)
+        return self.follow(status)
 
-    def follow(self, url: str, status: int) -> bool:
+    def follow(self, status: int) -> bool:
         """Log a push's status code as v3 did; only a 404 stops the listener."""
         if status in SUCCESS:
-            logger.debug("UptimeHeartbeat listener %d pushed %s", self.number, url)
+            logger.debug(
+                "UptimeHeartbeat listener %d pushed to %s (code %d)",
+                self.number,
+                self.endpoint,
+                status,
+            )
         elif status == NOT_FOUND:
             logger.warning(
                 "UptimeHeartbeat listener %d stopped: the status monitor refused the push "
@@ -157,7 +174,7 @@ class Pusher:
             logger.error(
                 "UptimeHeartbeat listener %d: pushing to %s failed with code %d",
                 self.number,
-                url,
+                self.endpoint,
                 status,
             )
         return True
@@ -166,3 +183,8 @@ class Pusher:
 def describe(error: BaseException) -> str:
     """The error's message, or its type when it has none (aiohttp's timeouts may have none)."""
     return str(error) or type(error).__name__
+
+
+def format_traceback(error: BaseException) -> str:
+    """The error's traceback as ``logging`` prints it, without the last newline."""
+    return "".join(traceback.format_exception(error)).rstrip("\n")

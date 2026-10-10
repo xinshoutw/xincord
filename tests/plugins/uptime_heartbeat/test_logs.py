@@ -8,12 +8,10 @@ import pytest
 
 from xincord.plugins.uptime_heartbeat.logs import origin, redact
 
-ORIGIN_ONLY = "Logs show only the URL's origin"
 # A URL with a quote in its path: Python's repr, which aiohttp's texts use, then quotes it with ".
 QUOTED = "https://status.example.com/api/push/it's?ping=42"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=ORIGIN_ONLY)
 @pytest.mark.parametrize(
     ("url", "expected"),
     [
@@ -48,7 +46,6 @@ def test_origin(url: str, expected: str) -> None:
     assert origin(url) == expected
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=ORIGIN_ONLY)
 @pytest.mark.parametrize(
     ("text", "expected"),
     [

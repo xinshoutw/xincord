@@ -23,7 +23,6 @@ TOKEN = "xxxxxxxxxx"  # the push token: in the URL's path, never in a log line
 URL = f"https://status.example.com/api/push/{TOKEN}?status=up&msg=OK&ping=%ping%"
 PUSHED = URL.replace("%ping%", "42")
 ENDPOINT = "https://status.example.com"  # the URL's origin, all that the logs show of it
-ORIGIN_ONLY = "Logs show only the URL's origin"
 
 
 class Stop(Exception):  # noqa: N818 - it ends the loop, it reports no error
@@ -145,7 +144,6 @@ def records_above(caplog: pytest.LogCaptureFixture, level: int) -> list[logging.
     return [record for record in caplog.records if record.levelno > level]
 
 
-@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
 @pytest.mark.parametrize("status", [200, 204, 299])
 async def test_success(status: int, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
@@ -180,7 +178,6 @@ async def test_monitor_offline(caplog: pytest.LogCaptureFixture) -> None:
     )
 
 
-@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
 @pytest.mark.parametrize("status", [500, 302, 401])
 async def test_other_status(status: int, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
@@ -193,7 +190,6 @@ async def test_other_status(status: int, caplog: pytest.LogCaptureFixture) -> No
     )
 
 
-@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
 @pytest.mark.parametrize(
     ("error", "text"),
     [
@@ -219,7 +215,6 @@ async def test_network_error(error: Exception, text: str, caplog: pytest.LogCapt
     assert record.exc_info is None
 
 
-@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
 async def test_unexpected_error(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
     await Fakes(answers=(ValueError("unexpected"),)).pusher().push()
@@ -235,7 +230,6 @@ async def test_unexpected_error(caplog: pytest.LogCaptureFixture) -> None:
     assert message.endswith("\nValueError: unexpected")
 
 
-@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
 async def test_pushes_that_fail_or_work(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Logs show only the URL's origin."""
     timeout = aiohttp.ConnectionTimeoutError(f"Connection timeout to host {PUSHED}")
@@ -254,7 +248,6 @@ async def test_pushes_that_fail_or_work(caplog: pytest.LogCaptureFixture) -> Non
     assert "/api/push" not in caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
 async def test_port_and_user_info(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Logs show only the URL's origin."""
     url = f"http://user:secret@127.0.0.1:3001/api/push/{TOKEN}"
@@ -269,7 +262,6 @@ async def test_port_and_user_info(caplog: pytest.LogCaptureFixture) -> None:
     assert TOKEN not in caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
 async def test_url_in_an_errors_text(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Logs show only the URL's origin."""
     # aiohttp 3.14.4's connect timeout names the whole URL.
@@ -284,7 +276,6 @@ async def test_url_in_an_errors_text(caplog: pytest.LogCaptureFixture) -> None:
     )
 
 
-@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
 async def test_url_in_a_traceback(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Logs show only the URL's origin."""
     await Fakes(answers=(ValueError(f"unexpected answer from {PUSHED}"),)).pusher().push()

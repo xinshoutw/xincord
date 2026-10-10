@@ -10,17 +10,17 @@ import logging
 from typing import TYPE_CHECKING
 
 import aiohttp
-import pytest
 from yarl import URL
 
 from xincord.plugins.uptime_heartbeat.config import Listener
 from xincord.plugins.uptime_heartbeat.pusher import Pusher, get_status, open_session
 
 if TYPE_CHECKING:
+    import pytest
+
     from http_fakes import Monitor
 
 TOKEN = "xxxxxxxxxx"  # the push token: in the URL's path, never in a log line
-ORIGIN_ONLY = "Logs show only the URL's origin"
 
 
 async def test_status_code(monitor: Monitor) -> None:
@@ -51,7 +51,6 @@ async def test_limits() -> None:
         assert session.timeout == aiohttp.ClientTimeout(total=30, connect=10)
 
 
-@pytest.mark.xfail(strict=True, reason=ORIGIN_ONLY)
 async def test_malformed_answer(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Logs show only the URL's origin."""
 
