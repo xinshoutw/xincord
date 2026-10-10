@@ -75,9 +75,16 @@ class Instance:
     winner_results: tuple[Winners, ...] = ()
 
 
+ID_LENGTH = 16  # v3's IDs: the first 16 hexadecimal digits of a random UUID
+
+
 def new_id(taken: Collection[str], random_hex: Callable[[], str]) -> str:
-    """A new giveaway ID that ``taken`` lacks, from ``random_hex`` (a UUID's hex digits)."""
-    raise NotImplementedError
+    """A new giveaway ID that ``taken`` lacks, from ``random_hex`` (a UUID's hex digits).
+
+    As v3: the first 16 digits, drawn again while the guild has a giveaway with them.
+    """
+    candidates = iter(lambda: random_hex()[:ID_LENGTH], None)
+    return next(candidate for candidate in candidates if candidate not in taken)
 
 
 def draw_winners(

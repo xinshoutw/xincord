@@ -93,7 +93,7 @@
 
 - [x] 17.1 xfail tests for "Confirming posts the giveaway" and "A giveaway that cannot be posted
       keeps the builder" against a stub `_post`
-- [ ] 17.2 Implement `_post`; remove the markers
+- [x] 17.2 Implement `_post`; remove the markers
 
 ## 18. Cancel
 

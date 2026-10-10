@@ -5,10 +5,13 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:16-380
 """
 
+import logging
 import random
+import sqlite3
 import time
+import uuid
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 import discord
 from discord import app_commands
@@ -19,12 +22,13 @@ from xincord.core.placeholders import global_values, placeholder_values
 from xincord.core.templates import modal_values, render_message, render_modal
 
 from .drafts import problem, remove_last_prize, submit, switch_policy
-from .model import Draft, Instance
+from .model import DataError, Draft, Instance, new_id
+from .store import Giveaways
 from .texts import Texts, language, post_buttons, post_embed, preview
 from .times import format_end_time
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping
+    from collections.abc import Callable, Mapping, Sequence
 
     from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
@@ -33,6 +37,8 @@ if TYPE_CHECKING:
 
     from .config import Config
 
+logger = logging.getLogger(__name__)
+
 # v3's fields in v3's order, all text, and v3's prefix, so that v3's posts keep working.
 IDS = ComponentIds("giveaway", ("action", "sub_action", "giveaway_id"), legacy_prefix="giveaway@")
 BUTTON = 2  # the component type of a button, which v3's onButtonInteraction took
@@ -40,6 +46,44 @@ BUTTON = 2  # the component type of a button, which v3's onButtonInteraction too
 MODALS = frozenset(
     ("set-title", "set-description", "set-end-time", "set-sponsor", "set-thumbnail", "add-prize")
 )
+
+
+class PostError(Exception):
+    """A giveaway cannot be posted; the message says why, for the user and the log."""
+
+
+class Posted(Protocol):
+    """A message that the bot sent, as the plugin uses it."""
+
+    @property
+    def id(self) -> int:
+        """The message's ID."""
+        ...
+
+    @property
+    def jump_url(self) -> str:
+        """The message's link."""
+        ...
+
+    async def delete(self) -> None:
+        """Delete the message."""
+        ...
+
+
+@runtime_checkable
+class Postable(Protocol):
+    """A channel that takes messages (forums and categories do not), as the plugin calls it."""
+
+    async def send(
+        self,
+        *,
+        content: str | None = None,
+        embeds: Sequence[discord.Embed] = (),
+        view: discord.ui.View | discord.ui.LayoutView | None = None,
+        files: Sequence[discord.File] = (),
+    ) -> Posted:
+        """Send a message to the channel."""
+        ...
 
 
 @dataclass(frozen=True)
@@ -60,6 +104,7 @@ class Giveaway(commands.Cog):
         self.bot = bot
         self.config = config
         self.store = store
+        self.giveaways = Giveaways(store)
         self.lang = lang
         self.templates = templates
         # The winners' draws: the operating system's randomness, never a seeded generator.
@@ -240,8 +285,96 @@ class Giveaway(commands.Cog):
         await self._post(interaction, session)
 
     async def _post(self, interaction: discord.Interaction, session: Session) -> None:
-        """Post the confirmed draft as a giveaway in the builder's channel."""
-        raise NotImplementedError
+        """Post the confirmed draft as a giveaway, then turn the builder into a link to it.
+
+        The draft is taken before the first await, so a second press meanwhile gets the
+        session-expired text; v3 removed it after the post and posted twice. When the post cannot
+        be made or stored, the draft comes back (unless the user started another one), the builder
+        stays, and ``create-failed`` tells the user why; v3 replaced the builder and kept an
+        orphaned draft, or said nothing for the errors that JDA threw before sending.
+        """
+        user_id, guild_id = interaction.user.id, cast("int", interaction.guild_id)
+        del self.drafts[user_id, guild_id]
+        await interaction.response.defer()  # v3's deferEdit: the builder stays for now
+        try:
+            posted = await self._create(interaction, guild_id, session.draft)
+        except PostError as error:
+            logger.warning(
+                "Giveaway cannot post a giveaway in channel %s of guild %s: %s",
+                interaction.channel_id,
+                guild_id,
+                error,
+            )
+            self.drafts.setdefault((user_id, guild_id), session)
+            failed = self._render(interaction, "create-failed", {"ga@error": str(error)})
+            await interaction.followup.send(
+                content=failed.content, embeds=failed.embeds, ephemeral=True
+            )
+            return
+        finished = self._render(interaction, "create-finished", {"ga@jump-url": posted.jump_url})
+        await interaction.edit_original_response(
+            content=finished.content,
+            embeds=finished.embeds,
+            view=finished.view,
+            attachments=finished.files,
+        )
+
+    async def _create(
+        self, interaction: discord.Interaction, guild_id: int, draft: Draft
+    ) -> Posted:
+        """Post ``draft`` in the interaction's channel and store it as a new giveaway.
+
+        As v3: a new ID unused in the guild, the creator's locale, ``giveaway-post``, then the
+        giveaway with the post's ID; a post whose giveaway cannot be stored is deleted.
+
+        Raises:
+            PostError: The channel takes no messages or refused the post, or the store failed.
+        """
+        channel, channel_id = _postable(interaction.channel), interaction.channel_id
+        if channel is None or channel_id is None:
+            msg = "the channel takes no messages"
+            raise PostError(msg)
+        try:
+            taken = await self.giveaways.ids(guild_id)
+        except DataError as error:
+            raise PostError(str(error)) from error
+        instance = Instance(
+            id=new_id(taken, lambda: uuid.uuid4().hex),
+            guild_id=guild_id,
+            channel_id=channel_id,
+            message_id=0,
+            creator_id=interaction.user.id,
+            config=draft,
+            locale_tag=interaction.locale.value,
+            created_at=int(self.clock()),
+        )
+        message = self.render_post(instance)
+        try:
+            posted = await channel.send(
+                content=message.content or None,
+                embeds=message.embeds,
+                view=message.view,
+                files=message.files,
+            )
+        except discord.HTTPException as error:
+            raise PostError(str(error)) from error
+        try:
+            await self.giveaways.add(replace(instance, message_id=posted.id))
+        except (DataError, sqlite3.Error) as error:
+            await _delete(posted)
+            raise PostError(str(error)) from error
+        return posted
+
+    def _render(
+        self, interaction: discord.Interaction, name: str, values: Mapping[str, str]
+    ) -> Message:
+        """Template ``name`` in the user's language with v3's global values and ``values``."""
+        locale = language(self.lang, interaction.locale.value)
+        return render_message(
+            self.templates.message(name, locale),
+            global_values(interaction.client) | dict(values),
+            build_id=IDS.build,
+        )
 
     async def _cancel(self, interaction: discord.Interaction) -> None:
         """Drop the user's draft."""
@@ -300,3 +433,21 @@ class Giveaway(commands.Cog):
 async def _tell(interaction: discord.Interaction, text: str) -> None:
     """Answer the interaction with ``text``, ephemerally, as v3's replies."""
     await interaction.response.send_message(text, ephemeral=True)
+
+
+def _postable(channel: object) -> Postable | None:
+    """``channel`` if it takes messages, typed by the call that the plugin makes.
+
+    discord.py's ``send`` overloads take a ``View`` or a ``LayoutView``, never their union.
+    """
+    return channel if isinstance(channel, Postable) else None
+
+
+async def _delete(posted: Posted) -> None:
+    """Delete a post whose giveaway was not stored, as v3 did; a failure is logged."""
+    try:
+        await posted.delete()
+    except discord.HTTPException as error:
+        logger.warning(
+            "Giveaway cannot delete the post %s, which it did not store: %s", posted.id, error
+        )

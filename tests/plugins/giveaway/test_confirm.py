@@ -25,9 +25,9 @@ if TYPE_CHECKING:
     from discord_fakes import FakeInteraction
 
 GOLDEN = golden("giveaway")
-POSTS = "Confirming posts the giveaway"
-FAILS = "A giveaway that cannot be posted keeps the builder"
 ID = re.compile(r"[0-9a-f]{16}")
+# v3's deferEdit: a deferred update of the builder, without thinking.
+DEFERRED = ("response.defer", {"ephemeral": False, "thinking": False})
 NOW = 1772244000  # the tests' clock
 COMPLETE = Draft(title="Nitro", end_at=NOW + 3600, prizes=(Prize("Nitro", 1),))
 
@@ -114,7 +114,6 @@ def giveaway_id(post: dict[str, object]) -> str:
     return custom_id.rpartition("=")[2]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=POSTS)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_posted(scene: Scene, locale: str) -> None:
     """Requirement: Confirming posts the giveaway."""
@@ -129,7 +128,7 @@ async def test_posted(scene: Scene, locale: str) -> None:
     expected = Instance(found, 10, 5, 500, 7, COMPLETE, locale_tag=locale, created_at=NOW)
     assert stored == expected
     deferred, (method, finished) = pressed.sent
-    assert deferred == ("response.defer", {})  # v3's deferEdit
+    assert deferred == DEFERRED
     assert method == "edit_original_response"
     link = "https://discord.com/channels/10/5/500"
     assert finished == {
@@ -141,7 +140,6 @@ async def test_posted(scene: Scene, locale: str) -> None:
     assert scene.cog.drafts == {}
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=POSTS)
 async def test_post_is_the_template(scene: Scene) -> None:
     """Requirement: Confirming posts the giveaway."""
     scene.keep(COMPLETE)
@@ -158,7 +156,6 @@ async def test_post_is_the_template(scene: Scene) -> None:
     assert post["files"] == ()
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=POSTS)
 async def test_double_press(scene: Scene) -> None:
     """Requirement: Confirming posts the giveaway."""
     channel = GatedChannel(id=5)
@@ -176,7 +173,6 @@ async def test_double_press(scene: Scene) -> None:
     assert len(await Giveaways(scene.store).ids(10)) == 1
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=POSTS)
 def test_new_ids() -> None:
     """Requirement: Confirming posts the giveaway."""
     hexes = iter(["aaaaaaaaaaaaaaaa" + "1" * 16, "bbbbbbbbbbbbbbbb" + "2" * 16])
@@ -187,13 +183,12 @@ def test_new_ids() -> None:
 def failure(interaction: FakeInteraction) -> str:
     """The text of the ephemeral follow-up after the deferral, the interaction's responses."""
     deferred, (method, fields) = interaction.sent
-    assert deferred == ("response.defer", {})
+    assert deferred == DEFERRED
     assert method == "followup.send"
     assert fields["ephemeral"] is True
     return str(fields["content"])
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=FAILS)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_channel_refuses(scene: Scene, locale: str, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A giveaway that cannot be posted keeps the builder."""
@@ -215,7 +210,6 @@ async def test_channel_refuses(scene: Scene, locale: str, caplog: pytest.LogCapt
     assert len(posts(scene)) == 1
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=FAILS)
 async def test_channel_takes_no_messages(scene: Scene) -> None:
     """Requirement: A giveaway that cannot be posted keeps the builder."""
     scene.channel = object()  # as a category: no send
@@ -227,7 +221,6 @@ async def test_channel_takes_no_messages(scene: Scene) -> None:
     assert scene.draft() == COMPLETE
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=FAILS)
 async def test_store_fails(scene: Scene, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: A giveaway that cannot be posted keeps the builder."""
     scene.keep(COMPLETE)
@@ -246,7 +239,6 @@ async def test_store_fails(scene: Scene, monkeypatch: pytest.MonkeyPatch) -> Non
     assert scene.draft() == COMPLETE
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=FAILS)
 async def test_new_draft_while_posting(scene: Scene) -> None:
     """Requirement: A giveaway that cannot be posted keeps the builder."""
     channel = GatedChannel(id=5, error=forbidden())
@@ -260,3 +252,38 @@ async def test_new_draft_while_posting(scene: Scene) -> None:
     await pressed
 
     assert scene.draft() == Draft(title="Newer")  # the failed draft does not replace it
+
+
+async def test_broken_document(scene: Scene) -> None:
+    """Requirement: A giveaway that cannot be posted keeps the builder."""
+    await scene.store.put("Giveaway", "10", ["not", "v3's", "document"])
+    scene.keep(COMPLETE)
+
+    pressed = await scene.press("confirm-create")
+
+    assert failure(pressed).startswith(GOLDEN["failed"]["en-US"] + "guild 10: ")
+    assert posts(scene) == []
+    assert await scene.store.get("Giveaway", "10") == ["not", "v3's", "document"]
+
+
+async def test_post_cannot_be_deleted(
+    scene: Scene, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: A giveaway that cannot be posted keeps the builder."""
+    scene.keep(COMPLETE)
+
+    async def add(_giveaways: Giveaways, instance: Instance) -> None:
+        del instance
+        message = "disk I/O error"
+        raise sqlite3.OperationalError(message)
+
+    async def delete(_message: FakeMessage) -> None:
+        raise forbidden()
+
+    monkeypatch.setattr(Giveaways, "add", add)
+    monkeypatch.setattr(FakeMessage, "delete", delete)
+    with caplog.at_level(logging.WARNING):
+        pressed = await scene.press("confirm-create")
+
+    assert failure(pressed) == GOLDEN["failed"]["en-US"] + "disk I/O error"
+    assert "Giveaway cannot delete the post 500, which it did not store" in caplog.text
