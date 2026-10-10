@@ -183,8 +183,10 @@ refuses an ID that appeared meanwhile) with the post's ID, and edits the builder
 `edit_original_response` into `create-finished` with `%ga@jump-url%`, replacing its embeds and
 buttons. When the channel takes no messages or refuses the post, or the store fails (the post is
 then deleted, as v3's `message.delete()`), the session goes back unless the user started a new
-one, the builder stays, and `create-failed` with `%ga@error%` (the error's text) goes to the user
-as an ephemeral follow-up; the failure is logged.
+one, the builder stays, and `create-failed` with `%ga@error%` (the error's text, cut to 1000
+characters so that the reply stays within Discord's 2000) goes to the user as an ephemeral
+follow-up; the failure is logged. Any other failure before a post (Discord refusing the deferral,
+a cancellation) also gives the session back, then propagates to the core's log.
 
 `cancel` takes the session out and replaces the builder with `create-cancelled` (content only,
 `embeds=()` and `view=None`, as v3's replace edit).
@@ -232,8 +234,10 @@ document and returns the drawn instances. Only then does it update each post wit
 `bot.get_partial_messageable(channel, guild_id=...).get_partial_message(message).edit(...)` and
 send `auto-draw-result` (`global_values` with `%ga@title%`, `%ga@header%` and `%ga@body%`) to the
 same partial messageable, so threads, announcement channels and voice channel chats work and no
-cache or Read Message History is needed. Each failure is a warning naming the giveaway; a failed
-pass is logged (`logger.exception`) and the loop goes on, as v3's `runCatching`.
+cache or Read Message History is needed. Each refusal is a warning naming the giveaway, and an
+unexpected failure while posting one drawn giveaway is logged (`logger.exception`) before the pass
+posts the others, which are stored as drawn already; a failed pass is logged and the loop goes on,
+as v3's `runCatching`.
 
 ### Component IDs
 
