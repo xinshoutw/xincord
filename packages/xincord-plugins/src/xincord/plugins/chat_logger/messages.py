@@ -91,10 +91,17 @@ def create_file(path: Path) -> sqlite3.Connection:
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     building = path.with_name(f"{path.name}.tmp")
+    building.unlink(missing_ok=True)  # left by an attempt that failed
     with closing(connect(building)):
         pass
     building.replace(path)
-    return connect(path)
+    try:
+        return connect(path)
+    except BaseException:
+        # Left in the directory, the file would hold its range at the next start, away from the
+        # messages that the full file takes meanwhile.
+        path.unlink(missing_ok=True)
+        raise
 
 
 def connect(path: Path) -> sqlite3.Connection:

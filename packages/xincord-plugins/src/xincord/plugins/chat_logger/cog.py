@@ -113,7 +113,7 @@ class ChatLogger(commands.Cog):
     async def _retain(self) -> None:
         """Delete the old messages when the bot is ready, then every hour.
 
-        v3 kept every message forever; the retention keeps the store from growing without limit.
+        v3 kept every message forever; the retention keeps the files from growing without limit.
         """
         await self.bot.wait_until_ready()
         while True:

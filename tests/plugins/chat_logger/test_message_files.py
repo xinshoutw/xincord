@@ -353,7 +353,6 @@ async def test_new_file_fails(
     assert created == [FIRST, name(6), name(11)]
 
 
-@pytest.mark.xfail(strict=True, reason="A new message file starts when the newest is full")
 async def test_leftover_temporary_file(open_files: Opener, directory: Path) -> None:
     """Requirement: A new message file starts when the newest is full."""
     directory.mkdir(parents=True)
@@ -367,7 +366,6 @@ async def test_leftover_temporary_file(open_files: Opener, directory: Path) -> N
     assert not leftover.exists()
 
 
-@pytest.mark.xfail(strict=True, reason="A new message file starts when the newest is full")
 async def test_new_file_fails_after_its_rename(
     open_files: Opener,
     directory: Path,

@@ -43,7 +43,7 @@
 - [x] 6.3 xfail tests for "A new message file starts when the newest is full" (found while
       reviewing): a temporary file left by a failed attempt, and a new file that fails after its
       rename, which a restart would have read
-- [ ] 6.4 Remove the leftover before building and the renamed file after a failure; remove the
+- [x] 6.4 Remove the leftover before building and the renamed file after a failure; remove the
       markers
 
 ## 7. Checks and docs
