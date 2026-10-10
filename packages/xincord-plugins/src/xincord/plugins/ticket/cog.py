@@ -16,9 +16,9 @@ from discord.ext import commands
 
 from xincord.core.component_ids import ComponentIds
 from xincord.core.placeholders import global_values, placeholder_values
-from xincord.core.templates import render_message, render_modal
+from xincord.core.templates import modal_values, render_message, render_modal
 
-from .drafts import defaults
+from .drafts import defaults, submit
 from .model import hex_color
 from .texts import Texts
 from .views import preview_button, preview_embed
@@ -297,8 +297,28 @@ class Ticket(commands.Cog):
     async def _apply(
         self, interaction: discord.Interaction, session: Session, sub_action: str
     ) -> None:
-        """Change the draft with the submitted modal ``sub_action``."""
-        raise NotImplementedError
+        """Change the draft with the submitted modal ``sub_action`` and show the main screen.
+
+        An invalid value gets its error ephemerally and leaves the draft. A valid one replaces the
+        builder message through the submission (a modal opened from a message may update it),
+        where v3 deferred and edited it through the command's 15-minute hook.
+        """
+        values = modal_values(interaction.data)
+        changed = submit(session.draft, sub_action, values)
+        if isinstance(changed, str):
+            typed = {"tt@color": values.get("color", "")}
+            await _tell(interaction, self.texts(interaction).get(changed, typed))
+            return
+        await self._update(interaction, session, changed)
+
+    async def _update(
+        self, interaction: discord.Interaction, session: Session, draft: Draft
+    ) -> None:
+        """Show ``draft`` in the builder's main screen through the interaction, then keep it."""
+        changed = replace(session, draft=draft)
+        await self._screen(interaction, changed)
+        # The session was found by the user and this interaction's guild.
+        self.drafts[interaction.user.id, cast("int", interaction.guild_id)] = changed
 
     async def _confirm(self, interaction: discord.Interaction, session: Session) -> None:
         """Post the panel, or add its button to the message, and store it."""

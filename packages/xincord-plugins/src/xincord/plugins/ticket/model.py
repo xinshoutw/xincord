@@ -5,6 +5,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:181-196
 """
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
@@ -27,6 +28,7 @@ class Entry:
 
 
 GREEN = 3  # JDA's ButtonStyle.SUCCESS, v3's default style of a panel button
+COLOR = re.compile(r"(?:#|0[xX])?([0-9a-fA-F]{1,6})")  # what the color modal takes
 
 
 @dataclass(frozen=True)
@@ -66,7 +68,8 @@ def parse_color(text: str) -> int | None:
     v3 parsed the text after its first character, so its own placeholder ``0x00FFFF`` failed and
     ``FFFFFF`` became ``0x0FFFFF`` (B5). None when the text is no such color.
     """
-    raise NotImplementedError
+    match = COLOR.fullmatch(text.strip())
+    return None if match is None else int(match[1], 16)
 
 
 def parse_entry(value: JSON, where: str) -> Entry:

@@ -37,9 +37,6 @@ def main_screen(interaction: FakeInteraction) -> list[list[tuple[str | None, str
     return rows
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Submitted modals change the draft"
-)
 async def test_values_set(scene: Scene) -> None:
     """Requirement: Submitted modals change the draft."""
     scene.keep(DRAFT)
@@ -64,9 +61,6 @@ async def test_values_set(scene: Scene) -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Submitted modals change the draft"
-)
 async def test_empty_reason_ignored(scene: Scene) -> None:
     """Requirement: Submitted modals change the draft."""
     scene.keep(DRAFT)
@@ -77,9 +71,6 @@ async def test_empty_reason_ignored(scene: Scene) -> None:
     assert scene.session().draft == DRAFT
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Submitted modals change the draft"
-)
 @pytest.mark.parametrize(
     ("sub_action", "values", "reply"),
     [
@@ -109,9 +100,6 @@ async def test_refused_values(
     assert scene.session().draft == DRAFT
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Submitted modals change the draft"
-)
 async def test_v3_zh_tw_button_modal(scene: Scene) -> None:
     """Requirement: Submitted modals change the draft."""
     scene.keep(DRAFT)
@@ -124,9 +112,6 @@ async def test_v3_zh_tw_button_modal(scene: Scene) -> None:
     assert scene.session().draft.button_emoji == TICKET
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Submitted modals change the draft"
-)
 @pytest.mark.parametrize("sub_action", ["prev", "unknown"])
 async def test_other_modals_change_nothing(scene: Scene, sub_action: str) -> None:
     """Requirement: Submitted modals change the draft."""
@@ -138,9 +123,6 @@ async def test_other_modals_change_nothing(scene: Scene, sub_action: str) -> Non
     assert scene.session().draft == DRAFT
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Submitted modals change the draft"
-)
 @pytest.mark.parametrize(
     ("text", "color"),
     [
