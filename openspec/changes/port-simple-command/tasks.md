@@ -5,7 +5,7 @@
 
 ## 2. Installation
 
-- [ ] 2.1 xfail tests for "The plugin installs as SimpleCommand"
+- [x] 2.1 xfail tests for "The plugin installs as SimpleCommand"
 - [ ] 2.2 Add the package, its `setup` and the `SimpleCommand` entry point; remove the markers
 
 ## 3. Posting
