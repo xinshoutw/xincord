@@ -87,15 +87,15 @@ def list_text(
         )
         for channel in ids
     ]
-    if _units("".join(lines)) <= FIELD_MAX:
+    if units("".join(lines)) <= FIELD_MAX:
         return "".join(lines)
     # The running totals grow, so the lines that fit are the first ones.
-    room = FIELD_MAX - _units(MORE)
-    fitting = sum(1 for total in accumulate(map(_units, lines)) if total <= room)
+    room = FIELD_MAX - units(MORE)
+    fitting = sum(1 for total in accumulate(map(units, lines)) if total <= room)
     return "".join(lines[:fitting]) + MORE
 
 
-def _units(text: str) -> int:
+def units(text: str) -> int:
     """The length of ``text`` in UTF-16 code units, Java's ``String.length``.
 
     A character outside the BMP counts twice, so the result never exceeds Discord's limit,

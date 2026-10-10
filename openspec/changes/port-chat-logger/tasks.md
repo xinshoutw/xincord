@@ -39,7 +39,7 @@
 
 ## 8. Message texts
 
-- [ ] 8.1 xfail tests for "A message's text is its content and its rich embeds" and the cut of
+- [x] 8.1 xfail tests for "A message's text is its content and its rich embeds" and the cut of
       "Logged texts are shown as written and fit an embed field" against stubs in `text.py`
 - [ ] 8.2 Implement `message_text` and `fit`; remove the markers
 
