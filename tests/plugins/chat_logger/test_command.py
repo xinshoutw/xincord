@@ -11,17 +11,19 @@ Kotlin:
 
 from typing import TYPE_CHECKING, Any, cast
 
-import pytest
+import discord
 from discord import app_commands
 
 from discord_fakes import FakeChannel, FakeGuild, FakeInteraction, FakeMember
 from plugin_fakes import golden
+from xincord.plugins.chat_logger.cog import IDS, NAMESPACE
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from xincord.core.bot import Bot
     from xincord.core.command_tree import CommandTree
+    from xincord.core.storage import Store
     from xincord.plugins.chat_logger.cog import ChatLogger
 
     # discord.py calls a cog command's function with the cog, its binding, and the options.
@@ -30,7 +32,6 @@ if TYPE_CHECKING:
 GOLDEN = golden("chat_logger")
 NAME = "chat-logger"
 GUILD = FakeGuild(10)
-REASON = "The command is a localized administrator guild command"
 
 
 def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
@@ -44,7 +45,6 @@ def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
     return found
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 async def test_command_payload(bot: Bot) -> None:
     """Requirement: The command is a localized administrator guild command."""
     global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
@@ -57,7 +57,6 @@ async def test_command_payload(bot: Bot) -> None:
     assert NAME not in {entry["name"] for entry in global_payload}
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 async def test_command_callback(bot: Bot, cog: ChatLogger) -> None:
     """Requirement: The command is a localized administrator guild command."""
     group = bot.tree.get_command(NAME)
@@ -76,3 +75,20 @@ async def test_command_callback(bot: Bot, cog: ChatLogger) -> None:
     deferred, (method, _) = cast("FakeInteraction", interaction).sent
     assert deferred == ("response.defer", {"ephemeral": True, "thinking": True})
     assert method == "edit_original_response"
+
+
+async def test_outside_a_guild(cog: ChatLogger, store: Store) -> None:
+    """Requirement: The command is a localized administrator guild command."""
+    # Guild commands and their menus never run outside a guild; v3's handlers assumed a guild too.
+    command = FakeInteraction({"type": 1, "name": NAME}, channel=FakeChannel(id=5))
+    pressed = FakeInteraction(
+        {"component_type": 2, "custom_id": "chat_logger:1:a=toggle_btn"},
+        type=discord.InteractionType.component,
+        channel=FakeChannel(id=5),
+    )
+
+    await cog.show_settings(command.as_interaction())
+    await cog.handle(pressed.as_interaction(), IDS.parse("chat_logger:1:a=toggle_btn"))
+
+    assert command.sent == pressed.sent == []
+    assert await store.keys(NAMESPACE) == []

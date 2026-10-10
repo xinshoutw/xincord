@@ -35,6 +35,8 @@ async def setup(bot: Bot) -> None:
     templates = Templates.load(lang)
     cog = ChatLogger(bot, context.config(Config), context.store, lang, templates)
     await bot.add_cog(cog)
+    # A guild command, as in v3. discord.py removes it when the plugin unloads.
+    bot.tree.add_command(cog.command())
     # The menu's buttons and select menus with IDS's IDs, v3's too, reach cog.handle; the core
     # drops the route when the plugin unloads.
     bot.route(__name__, IDS, cog.handle)
