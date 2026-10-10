@@ -12,6 +12,7 @@ _Example = "xincord.plugins.example"
 BasicCalculator = "xincord.plugins.basic_calculator"
 AutoRole = "xincord.plugins.auto_role"
 BotInfo = "xincord.plugins.bot_info"
+SimpleCommand = "xincord.plugins.simple_command"
 
 [build-system]
 requires = ["uv_build>=0.12.24,<0.13"]

@@ -8,8 +8,6 @@ Kotlin:
 
 from typing import TYPE_CHECKING
 
-import pytest
-
 from xincord.core.plugins import PluginInfo, discover
 
 if TYPE_CHECKING:
@@ -17,7 +15,6 @@ if TYPE_CHECKING:
 
     from xincord.core.bot import Bot
 
-XFAIL = pytest.mark.xfail(strict=True, reason="The plugin installs as SimpleCommand")
 LANG_FILES = (
     "zh-TW/register.yaml",
     "zh-TW/message/cub-none-card.yaml",
@@ -28,7 +25,6 @@ LANG_FILES = (
 )
 
 
-@XFAIL
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as SimpleCommand."""
     assert discover(["SimpleCommand"]) == [
@@ -36,7 +32,6 @@ def test_discovered_by_name() -> None:
     ]
 
 
-@XFAIL
 async def test_first_load_creates_the_lang_files(bot: Bot, tmp_path: Path) -> None:
     """Requirement: The plugin installs as SimpleCommand."""
     directory = tmp_path / "plugins" / "SimpleCommand"
