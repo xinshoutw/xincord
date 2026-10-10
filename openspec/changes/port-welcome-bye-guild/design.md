@@ -210,9 +210,80 @@ permissions a message needs depend on the operator's template and can change aft
 failed welcome or bye is logged instead, and a bind-time check is left to the owner. Issue 12.8 (no
 upload of an empty command list) is fixed by the core.
 
+Found during the audit, both from the core and affecting every plugin, and left as they are:
+v3's commons-text substitutor also read `%key:-fallback%` as "the value of `key`, else `fallback`",
+which the core's `render` leaves as written (no shipped template uses it; listed for the owner);
+discord.py's avatar and icon URLs end with `?size=1024`, where JDA's had no query (Discord shows the
+same image).
+
 ### Inventory audit
 
-Filled in by task 10.3.
+Every section of `docs/porting/analysis/inventory/WelcomeByeGuild.md` maps to this change:
+
+- Overview (1): the entry object, `info.yaml` and the name are "The plugin installs as
+  WelcomeByeGuild" ("Discovered by name", which also declares the members intent that v3 left to
+  its core); the unused `welcome-bye@` prefix has no counterpart (no component IDs).
+- Lifecycle (2): exporting missing lang files is "First load creates the lang files"; the `enabled`
+  check, its warning and the localizer built while disabled are the core's `plugins` list; reading
+  every data file at load and keeping them in memory is replaced by store reads per command or
+  event; `reload()` and the console's full restart are the core's reload, which replaces the cog;
+  command uploads after a reload are the core's. No background jobs; no unload work.
+- Slash commands (3): names, descriptions, localizations, the optional text-channel option and the
+  Administrator default permission are "Command payload" and "Text channels only"; the camelCase
+  lookup keys are the YAML keys (core-i18n); the ephemeral auto-defer and the reply by editing it
+  are "Command callback" and every reply test; the name filter is the tree's routing; `guild-only`
+  and the runtime Administrator check are "Outside a guild" and "Member without Administrator";
+  the guild locale is "Guild locale" and "Other locales"; the bind steps are "Option's channel",
+  "Command's channel", "Already bound", "No text channel" (with an option that is not a text
+  channel) and "One channel for both"; the unbind steps are "Nothing bound", "Unbind" and "Deleted
+  channel"; the reply texts are the golden replies of both locales ("Every reply"); the crash
+  outside text channels is a "v3 behaved differently" entry, and a probe through discord.py's own
+  objects found and fixed the core's thread-category failure. The core's interaction log covers
+  v3's `[CMD]` line.
+- Components (4): none.
+- Events (5): the join filters are "Nothing bound" and "Channel gone or not a text channel"; the
+  member event values are "Member event values"; the welcome in the guild's locale is "Welcome"
+  and "Other locale"; no bot filter is "Bots are welcomed"; JDA's logged exception is "Message
+  refused". The removal for cached and uncached members is "Bye" and "Uncached user"; v3's missing
+  member keys are "Departed user" and a "v3 behaved differently" entry; the bot's own removal is
+  "Bot removed"; unknown guilds are "Nothing to send"; refusals are "Bye refused". The guild leave
+  is "Bot leaves", extended by "Left while offline" and "Loaded into a ready bot". The member count
+  that includes the new member is discord.py's (checked in the probe).
+- Configuration (6): `enabled` is the core's `plugins` list; no config model.
+- Localization and templates (7): the bundled en-US and zh-TW files and zh-TW as the default are
+  "First load creates the lang files" and `DEFAULT_LOCALE`; the v1 content and embed schema, the
+  `http` URL filter and empty embeds are the core's templates; the whole-locale fallback is the
+  core's per-file fallback (core-templates); the welcome and bye texts are the golden embeds, with
+  the typos corrected (a "v3 behaved differently" entry); the placeholder engine is the core's
+  single-pass `render` (recursion and caches are "v3 behaved differently" entries; `%key:-fallback%`
+  is listed above); the `wbg@` table is "Command values", "Bound channel no longer cached", "No
+  previous channel" and "Member event values", which check v3's exact key sets.
+- Persistence (8): the per-guild document, missing and unknown fields, exact snowflakes, unchanged
+  channels and deletions are "Each guild's channels are stored"; the files' eager load, the
+  read-path writes, the reset of corrupt files and the in-place writes are "v3 behaved differently"
+  entries; importing v3's files is out of scope (B11), with the document kept in v3's shape.
+- External dependencies (9): none; the CDN URLs are listed above.
+- Discord requirements (10): the members intent is declared ("Discovered by name"); channels come
+  from the guild cache; no member cache is needed (the raw removal); the bot's permissions in the
+  bound channel are not checked at bind time (kept, and listed for the owner), and a refused
+  message is logged. Rate limits are discord.py's.
+- Concurrency (11): JDA's single event thread is replaced by the guild lock ("Concurrent
+  changes"); the atomic references are a cog replaced on reload; the shared placeholder caches are
+  per-render values.
+- Bugs and quirks (12): the behaviors to preserve are scenarios listed above; bugs 12.1 to 12.5 and
+  12.7 are "v3 behaved differently" entries with scenarios ("No text channel", "Departed user", the
+  store's scenarios, "Left while offline"); 12.6 is kept and listed for the owner; 12.8 is fixed by
+  the core (core-startup). The dead `guild-only` path stays as a guard; the hard-coded values are
+  `DEFAULT_LOCALE`, `NONE`, `COMMANDS` and the bundled YAML.
+- Testability (13): the target resolution is `text_channel`; the bind and unbind state machine is
+  `set_channel`; the placeholder builders are `values.py`, tested with fakes; the template engine
+  and locale resolution are the core's; the JSON store is `store.py`; the command metadata is the
+  golden payload.
+- Assessment (14): the commands are built from the Lang with the default permission and a runtime
+  check; `app_commands.guild_only()` is not needed for guild commands; the channel option is the
+  transformer the inventory suggested (discord.py's `TextChannel` annotation does give `[0, 5]`);
+  the defer is the command tree's; the events are `on_member_join`, `on_raw_member_remove` and
+  `on_guild_remove`; the commands stay guild commands; the store replaces the files, with a lock.
 
 ## Risks / Trade-offs
 
