@@ -68,6 +68,10 @@ Names: `<Plugin>` is the v3 name (`AutoRole`, `_Example`), `<kebab>` its kebab c
    `attachment_size_limit`, run commands with `await bot.tree._call(interaction)` (defer,
    transformers, callback) and components and modals with `await bot.on_interaction(interaction)`
    (Feedbacker's probe; it checked the modal's label payload and the core's legacy upgrade).
+   For voice and channel work, give `_add_guild_from_data` the category and voice channels
+   (`parent_id`), feed `state.parse_voice_state_update(...)` with a `member` payload, and answer the
+   recorded `POST /guilds/{id}/channels` with the body plus an `id` so that `clone()` returns a
+   channel (DynamicVoiceChannel's probe).
 8. **Document.** `docs/porting-guide.md`: differences rows, new pitfalls, convention changes. Audit
    the inventory: each behavior is a scenario with a test, or out of scope or a v3 difference in
    `design.md`, with the reason.
@@ -155,6 +159,13 @@ async def setup(bot: Bot) -> None:
   from `cog_load` in a ready bot, for every guild that `bot.get_guild` does not know
   (WelcomeByeGuild's `store.py` and `forget_left_guilds`); when v3 kept it, keep it (Economy).
 - Amounts that v3 kept in Kotlin `Int`s are Python integers: exact, never wrapped, never floats.
+- A second kind of per-guild data goes in its own namespace, `<Name>.<kind>`, keyed by the guild
+  ID (DynamicVoiceChannel's `DynamicVoiceChannel.rooms`, which v3 kept in a MongoDB collection),
+  so that `<Name>` keeps v3's documents only; `forget` deletes both.
+- `Store.update` writes its function's result even when nothing changed, and stores `null` for a
+  missing key when the function returns None: a change that may find nothing to change (an unbind,
+  forgetting a room) uses `store.lock` with `get`, `put` and `delete`, and deletes the document
+  with its last entry (DynamicVoiceChannel's `store.py`).
 
 ### Commands
 
@@ -181,6 +192,13 @@ async def setup(bot: Bot) -> None:
 - v3's `setDefaultPermissions(DefaultMemberPermissions.enabledFor(ADMINISTRATOR))` is
   `app_commands.default_permissions(administrator=True)(command)` on the built command; the payload
   then holds `default_member_permissions` 8 (SimpleCommand).
+- v3's `addSubcommands(SubcommandData(...))` is an `app_commands.Group(name=lang.command(...),
+  description=..., default_permissions=discord.Permissions(administrator=True))` built in the
+  plugin's `cog.py` (a bare `Group` takes its `module` from the frame that creates it, so unloading
+  then removes it) and `group.add_command(app_commands.Command(..., callback=self.<method>))` per
+  subcommand, each localized with one `rename` and one `describe` call from
+  `<root>.subcommands.<name>.*` (DynamicVoiceChannel's `command` and `SUBCOMMANDS`). The tree
+  defers each subcommand; `interaction.command` is the subcommand.
 - v3 commands that only differ by the template they show share one callback, the cog's bound
   method, which reads the base name from `interaction.command.name`; `setup` adds one command per
   name of a module-level table (SimpleCommand's `COMMANDS` and `command(name)`). Commands that
@@ -229,6 +247,23 @@ async def setup(bot: Bot) -> None:
 - Problems the operator must fix (a missing role or permission) are `logger.warning` lines from
   `logging.getLogger(__name__)` that name the plugin; Discord errors on one item are logged and the
   others still handled.
+- Voice: `on_voice_state_update(member, before, after)` also fires for mutes, deafens and streams,
+  where JDA's `GuildVoiceUpdateEvent` fired for channel changes only: compare the channels' IDs.
+  Count a channel's members with `channel.voice_states` (no member cache needed), and read it at
+  the start of the listener, before the first await: discord.py runs listeners as tasks, and the
+  events parsed meanwhile are already in the cache. `INTENTS = discord.Intents(voice_states=True)`
+  (in discord.py's defaults, declared anyway).
+- A sequence of Discord requests that another event must not interleave with (creating a room,
+  then deleting it when it empties) runs under a per-guild `store.lock("<Name>:voice:<guildId>")`,
+  outside the store's data lock; re-check under the lock what the listener read before.
+- Channels that the plugin creates and must clean up after a restart are tracked in the store once
+  deleting them loses nothing (DynamicVoiceChannel tracks a room once the lobby's copy exists),
+  forgotten on a 404, kept with a warning when a deletion is refused, and checked from `on_ready`
+  and from `cog_load` in a ready bot (empty ones deleted, missing ones forgotten, unavailable guilds
+  skipped). `VocalGuildChannel.clone()` copies the overwrites as they are; JDA's raw
+  `setPosition` is a `Route("PATCH", "/channels/{channel_id}")` with `{"position": n}`, because
+  `edit(position=...)` renumbers the guild's whole bucket; `set_permissions(member, overwrite=...)`
+  replaces JDA's `putMemberPermissionOverride` (DynamicVoiceChannel's `rooms.py`).
 
 ### Background loops and HTTP
 
@@ -363,5 +398,18 @@ async def setup(bot: Bot) -> None:
   commit fails for its own stub.
 - Never unload or reload the real plugin in a test: discord.py re-imports its modules, and later
   tests compare against classes from the old ones. The core's reload tests use fake plugins.
+- Voice and channels (DynamicVoiceChannel's `conftest.py`): `discord_fakes.FakeVoiceChannel` (a
+  `FakeChannel` with `guild`, `category_id`, `voice_states`, and `clone`, `delete` and
+  `set_permissions` that record into `sent` or raise from `errors`; `clone` sets `cloning` and
+  waits for `gate`), `FakeGuild.voice_channels`, `voice_state(channel)` for `before` and `after`,
+  and `FakeRest`, whose `install(monkeypatch)` records discord.py's REST requests as
+  `("<method> <path>", {"json": body})` into the same `sent` list as the channels, or raises from
+  `errors`. Test interleavings with `gate` and `cloning` (wait on the event or on the task's
+  failure), never with sleeps. The bot's user for `bot_*` values is an autouse fixture patching
+  `Bot.user`.
+- When the new behavior runs from a listener that earlier tests already trigger (`on_ready` for the
+  checks at READY), a stub would break those tests: mark the new tests `xfail(strict=True,
+  reason=...)` without `raises`, failing on their assertions. A plugin whose `cog_load` can raise
+  in such a test is re-imported by discord.py, so its `cog` fixture uses `cast`.
 - ruff, pyright, pytest and coverage already cover `packages/` and `tests/`; nothing to configure
   per plugin.

@@ -53,6 +53,13 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `StatusChanger` thread over `TYPE;text;ms` strings | `xincord.core.status.rotate` task, started on ready and restarted by a full reload | |
 | `InteractionLogger` and `ConsoleLogger` listeners | `xincord.core.interaction_log.log` from `Bot.on_interaction`, after routing | |
 | JDA's default mentions (all types ping) | the bot's `allowed_mentions`: users and the replied-to user; a message opts in with its own | B19 |
+| `Commands.slash(...).addSubcommands(SubcommandData(...))` | an `app_commands.Group` built in the plugin's `cog.py` (its `module` comes from the creating frame, so unloading removes it) with `app_commands.Command` subcommands whose callbacks are the cog's bound methods (DynamicVoiceChannel) | B5 |
+| `GuildVoiceUpdateEvent` (channel changes only) | `on_voice_state_update(member, before, after)`, which also fires for mutes, deafens and streams: compare the channels' IDs; read `channel.voice_states` before the first await | B3 |
+| `AudioChannel.members.size` (voice state cache) | `len(channel.voice_states)`, which needs no member cache (`VocalGuildChannel.members` does) | B4 |
+| `VoiceChannel.createCopy()` | `await channel.clone()`, which also copies the NSFW flag, the video quality and the slowmode | |
+| `ChannelManager.setPosition(n)` (a raw position) | `bot.http.request(Route("PATCH", "/channels/{channel_id}", channel_id=...), json={"position": n})`; discord.py's `edit(position=...)` renumbers the guild's channels of the same sorting bucket in one bulk request | |
+| `ChannelManager.putMemberPermissionOverride(id, allow, deny)` | `channel.set_permissions(member, overwrite=PermissionOverwrite(...))`, a `PUT` of that overwrite that keeps the others | |
+| Embedded MongoDB collections (`CacheDbManager`, `MemoryCacheDb`) | one JSON document per guild in the store under `<Name>.<collection>` (DynamicVoiceChannel's rooms), changed under the guild's lock | B8 |
 | Ktor Web-Dashboard | not ported | B13 |
 
 ## Intents kept from the v4 attempt (A3)
@@ -193,6 +200,21 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - A template whose first embed's description is the template of rows (Economy's boards) is
   checked in `setup` for every locale, so a broken one fails at load with the file named
   (`check_boards`).
+- A command with subcommands is an `app_commands.Group` built in the plugin's `cog.py` with
+  `default_permissions` set on it, and one `app_commands.Command` per subcommand whose callback is
+  the cog's bound method, localized from `<root>.subcommands.<name>.*` with one `rename` and one
+  `describe` call each (DynamicVoiceChannel's `command`).
+- Channels that a plugin creates and must clean up are tracked in the store per guild, once nothing
+  is lost by deleting them (DynamicVoiceChannel tracks a room once the lobby's copy exists), and
+  checked when the bot is ready and when the plugin loads into a ready bot: empty ones are deleted
+  and missing ones forgotten, in available guilds only. A refused deletion keeps the record, so a
+  later event tries again.
+- A sequence of Discord requests that a later event must not interleave with (a room's creation
+  and its deletion) runs under a per-guild lock from `store.lock`, which survives reloads; the
+  cache state that decides it (a voice channel's members) is read before the first await.
+- A plugin with a second kind of per-guild data keeps it in its own namespace, `<Name>.<kind>`
+  (DynamicVoiceChannel's `DynamicVoiceChannel.rooms`), so that the plugin's namespace keeps v3's
+  documents only.
 
 ## Pitfalls
 
@@ -336,6 +358,28 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - **Option texts on a built command.** `app_commands.describe(...)` applied to a built `Command`
   gives every option it does not name an ellipsis as its description: call it once with all the
   options (Economy's `command`). `rename(...)` leaves the options it does not name alone.
+- **Voice state updates.** `on_voice_state_update` fires for mutes, deafens and streams too; JDA's
+  `GuildVoiceUpdateEvent` fired for channel changes only. Compare `before.channel` and
+  `after.channel` by ID.
+- **Listeners run after the cache moved on.** discord.py runs each listener as a task, and the
+  gateway events parsed before that task runs, or while it awaits, are already in the cache it
+  reads: a listener can see a member who already left (DynamicVoiceChannel's probe parsed a join
+  and a leave before the listeners ran). Read what decides the handling at the start of the
+  listener, before the first await, and check again under a lock before acting; JDA ran each
+  listener with the cache as of its event.
+- **Channel positions.** `GuildChannel.edit(position=...)` renumbers every channel of the guild in
+  the channel's sorting bucket (all voice and stage channels, say), and `move(...)` those of its
+  category, in one `PATCH /guilds/{id}/channels` computed from the cached positions; JDA's
+  `ChannelManager.setPosition` sent the channel's raw position in `PATCH /channels/{id}`, which a
+  `Route` request keeps (DynamicVoiceChannel).
+- **Clones.** `VocalGuildChannel.clone()` copies the overwrites as they are, and also the NSFW
+  flag, the video quality and the slowmode, which JDA's `createCopy` left at Discord's defaults.
+  `Guild.create_*_channel(overwrites=...)` sends an `Object(type=Role)` key (an uncached role) as a
+  member overwrite: its `_create_channel` checks `isinstance(target, Role)` only, unlike `edit`.
+- **No-op updates.** `Store.update` writes the function's result even when it is the value it read,
+  and stores `null` for a missing key when the function returns None. Changes that may find nothing
+  to change use `store.lock` with `get`, `put` and `delete` (DynamicVoiceChannel's `unbind` and
+  `untrack`).
 
 v3 behaviors never to reproduce: loading plugins in reverse dependency order, non-atomic JSON
 writes that silently reset corrupt files, recursive placeholder expansion, shared mutable
@@ -471,3 +515,22 @@ Every deliberate difference, added by the change that introduces it.
 | Economy | the commands needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers them | port-economy |
 | Economy | every load and reload rewrote every guild file, and a file whose name was not a number stopped the load | the store is read only when a command needs it; v3's files are not read (migration deferred, B11) | port-economy |
 | Economy | any button ID starting with `economy@` showed the wallet | the core's v3 decoder reads `economy@` alone or with v3's `<letter>:<value>` segments; no v3 template or production message has such a button | port-economy |
+| DynamicVoiceChannel | `/dynamic-voice-channel bind` and `unbind` never ran: the command filter compared the top-level name with the subcommands' full names (since `ea14fbf`), and the response stayed "thinking" | both subcommands answer | port-dynamic-voice-channel |
+| DynamicVoiceChannel | the `channel` options offered every channel type, and anything but a voice channel threw before an answer | they offer voice channels only | port-dynamic-voice-channel |
+| DynamicVoiceChannel | replies used `Placeholder.get(event)`, which threw outside text channels | the replies work in every channel | port-dynamic-voice-channel |
+| DynamicVoiceChannel | `bind` appended a duplicate entry, which won until the next restart and lost afterwards | a bind replaces the binding of the same category and name | port-dynamic-voice-channel |
+| DynamicVoiceChannel | the lobby was tracked as a room before its copy existed, so a refused copy got the lobby deleted once it emptied, and its binding dropped at the next start | the room is tracked once the copy exists; a refused copy leaves the lobby as it was, with a warning | port-dynamic-voice-channel |
+| DynamicVoiceChannel | the tracker was written to MongoDB asynchronously while leaves read MongoDB, so a quick leave left an orphan room | a guild's voice changes are handled one after another, and a leave sees the room that the join created | port-dynamic-voice-channel |
+| DynamicVoiceChannel | rooms that emptied while the bot was away were never deleted, and the tracker kept deleted channels forever | at READY and on a load into a ready bot, empty rooms are deleted and missing ones forgotten | port-dynamic-voice-channel |
+| DynamicVoiceChannel | a refused step of the creation skipped the following ones; a blank name or one over 100 characters also skipped the move and the member's permissions; a missing Manage Permissions also skipped the rename (one PATCH) | each step runs and logs its own refusal; an unusable name keeps the room's old name, with a warning; the permissions are a separate request | port-dynamic-voice-channel |
+| DynamicVoiceChannel | a failed deletion still untracked the room, which then stayed forever | the room stays tracked, and a later leave or READY tries again | port-dynamic-voice-channel |
+| DynamicVoiceChannel | an empty room was deleted on the leave event even when someone joined it right after | emptiness is checked right before the deletion | port-dynamic-voice-channel |
+| DynamicVoiceChannel | a stage channel with a lobby's name threw and stopped that voice update's handling, its leave part included | stage channels are not lobbies | port-dynamic-voice-channel |
+| DynamicVoiceChannel | a tracked room that kept the lobby's name could be copied again as a lobby | tracked rooms are never lobbies | port-dynamic-voice-channel |
+| DynamicVoiceChannel | placeholders in display names were expanded again, and a self-reference stopped the rename; `dvc@custom_name` stayed in the member's shared placeholders | names are inserted as written, with each render's own values | port-dynamic-voice-channel |
+| DynamicVoiceChannel | deleting the file of a left guild threw inside the loop over the files, which left the following guilds' bindings unloaded until the next restart; a guild unavailable at startup counted as left | every left guild's data is deleted; unavailable guilds keep theirs | port-dynamic-voice-channel |
+| DynamicVoiceChannel | leaving a guild kept its bindings in memory (a wrong predicate) and its rooms in MongoDB | both are deleted | port-dynamic-voice-channel |
+| DynamicVoiceChannel | the copy of a lobby lost its NSFW flag, video quality and slowmode | the copy keeps them | port-dynamic-voice-channel |
+| DynamicVoiceChannel | the plugin did not load without SQLiteAPI, which it never used; an unreadable binding file was replaced by `[]`; the commands needed the core's auto-defer | no dependency; an unreadable document stops the handling with an error and is never overwritten; the command tree always defers the commands | port-dynamic-voice-channel |
+| DynamicVoiceChannel | bindings in `plugins/DynamicVoiceChannel/data/<guildId>.json` and rooms in MongoDB's `DynamicVoiceChannel.generated_cache` | v3's binding documents and the rooms per guild in the SQLite store; v3's files and MongoDB are not read (migration deferred, B11) | port-dynamic-voice-channel |
+| DynamicVoiceChannel | the en-US `unbind-fail` title said "is not be found" | it says "was not found" | port-dynamic-voice-channel |
