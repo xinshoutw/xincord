@@ -9,7 +9,6 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 from discord_fakes import FakeGuild, FakeRole
 from plugin_fakes import dispatch, load_plugin
@@ -17,6 +16,8 @@ from xincord.core.bot import Bot
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import pytest
 
     from xincord.core.storage import Store
 
@@ -103,9 +104,6 @@ async def test_loaded_into_a_ready_bot(
     assert_warned(caplog)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=AttributeError, reason="Problems are logged when the bot is ready"
-)
 async def test_unavailable_guild(
     store: Store,
     tmp_path: Path,

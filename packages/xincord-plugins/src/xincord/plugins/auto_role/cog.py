@@ -54,6 +54,8 @@ class AutoRole(commands.Cog):
                     "AutoRole gives no roles in guild %s: the bot is not in it", guild_id
                 )
                 continue
+            if guild.unavailable:  # an outage: no roles or members are known, and none can join
+                continue
             _can_manage_roles(guild)
             _givable(guild, role_ids)
 
