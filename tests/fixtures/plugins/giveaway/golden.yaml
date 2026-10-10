@@ -255,3 +255,9 @@ post-buttons:
 created: {en-US: "Giveaway created successfully: ", zh-TW: "抽獎建立成功："}
 failed: {en-US: "Failed to create giveaway: ", zh-TW: "建立抽獎失敗："}
 cancelled: {en-US: "Giveaway setup cancelled.", zh-TW: "已取消建立抽獎流程。"}
+
+# The draw result's header and the body without participants (Giveaway.kt:354-386); draw-result
+# is "**%ga@header%**\n%ga@body%" in both locales.
+result:
+  en-US: {drawn: "Draw finished", rerolled: "Reroll finished", nobody: "There are no participants.", not-enough: "(not enough participants)"}
+  zh-TW: {drawn: "開獎完成", rerolled: "重抽完成", nobody: "目前沒有任何參與者。", not-enough: "（名額不足）"}

@@ -165,6 +165,9 @@ class Giveaway(commands.Cog):
                 await self.press(interaction, sub_action)
             elif action == "participate":
                 await self.join(interaction, parsed.fields.get("giveaway_id"))
+            elif action in {"draw", "reroll"}:
+                giveaway_id = parsed.fields.get("giveaway_id")
+                await self.draw(interaction, giveaway_id, reroll=action == "reroll")
         elif interaction.type is discord.InteractionType.modal_submit and action == "create":
             await self.submit(interaction, sub_action)
 
@@ -232,6 +235,12 @@ class Giveaway(commands.Cog):
     def _giveaway_texts(self, instance: Instance) -> Texts:
         """The texts in the giveaway's language, its creator's."""
         return Texts(self.lang, language(self.lang, instance.locale_tag))
+
+    async def draw(
+        self, interaction: discord.Interaction, giveaway_id: str | None, *, reroll: bool
+    ) -> None:
+        """Draw the giveaway's winners, or draw them again."""
+        raise NotImplementedError
 
     async def press(self, interaction: discord.Interaction, sub_action: str) -> None:
         """Handle a press of the builder's button ``sub_action``.
