@@ -41,7 +41,7 @@
 
 - [x] 8.1 xfail tests for "Pushing follows the bot's readiness and the plugin's lifetime" and for
       independent listeners, against a stub `tasks`
-- [ ] 8.2 Start the loops in `cog_load` and cancel them in `cog_unload`; remove the markers
+- [x] 8.2 Start the loops in `cog_load` and cancel them in `cog_unload`; remove the markers
 
 ## 9. Conventions and docs
 

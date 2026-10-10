@@ -20,7 +20,8 @@ class Monitor:
     """A status monitor on 127.0.0.1: answers each path with its status, 200 by default.
 
     A 3xx answer redirects to ``/moved``. Requests to a path in ``silent`` get no answer until the
-    client gives up. ``requests`` records each request's method, path and query, in order.
+    client gives up or the monitor closes. ``requests`` records each request's method, path and
+    query, in order.
     """
 
     statuses: dict[str, int] = field(default_factory=dict[str, int])
@@ -28,6 +29,7 @@ class Monitor:
     requests: list[tuple[str, URL]] = field(default_factory=list[tuple[str, URL]])
     root: str = ""  # scheme, host and port, set once the server runs
     _arrived: asyncio.Condition = field(default_factory=asyncio.Condition)
+    _closing: asyncio.Event = field(default_factory=asyncio.Event)
 
     def url(self, path: str) -> str:
         """The URL of ``path`` (with its query, written as is) on this monitor."""
@@ -42,12 +44,18 @@ class Monitor:
         async with asyncio.timeout(WAIT), self._arrived:
             await self._arrived.wait_for(lambda: len(self.requests) >= count)
 
+    def close(self) -> None:
+        """Answer the silent requests, so that the server can stop."""
+        self._closing.set()
+
     async def handle(self, request: web.BaseRequest) -> web.StreamResponse:
         async with self._arrived:
             self.requests.append((request.method, request.rel_url))
             self._arrived.notify_all()
         if request.path in self.silent:
-            await asyncio.Event().wait()  # the server cancels this when the client disconnects
+            # The server cancels this when the client disconnects. Answered when the monitor
+            # closes, which would otherwise wait for the client to give up.
+            await self._closing.wait()
         status = self.statuses.get(request.path, 200)
         redirect = 300 <= status < 400
         return web.Response(status=status, headers={"Location": "/moved"} if redirect else None)
@@ -59,4 +67,7 @@ async def running_monitor() -> AsyncGenerator[Monitor]:
     monitor = Monitor()
     async with RawTestServer(monitor.handle) as server:
         monitor.root = str(server.make_url(""))
-        yield monitor
+        try:
+            yield monitor
+        finally:
+            monitor.close()

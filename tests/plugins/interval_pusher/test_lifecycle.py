@@ -11,7 +11,6 @@ import json
 import logging
 from typing import TYPE_CHECKING, cast
 
-import pytest
 from discord.http import HTTPClient
 
 from plugin_fakes import WAIT, load_plugin
@@ -19,15 +18,13 @@ from plugin_fakes import WAIT, load_plugin
 if TYPE_CHECKING:
     from pathlib import Path
 
+    import pytest
     from discord.http import Route
 
     from http_fakes import Monitor
     from plugin_fakes import Ready
     from xincord.core.storage import Store
     from xincord.plugins.interval_pusher.cog import IntervalPusher
-
-LIFETIME = "Pushing follows the bot's readiness and the plugin's lifetime"
-XFAIL = pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=LIFETIME)
 
 
 async def load(tmp_path: Path, store: Store, *urls: str) -> IntervalPusher:
@@ -55,7 +52,6 @@ def plugin_problems(caplog: pytest.LogCaptureFixture) -> list[str]:
     ]
 
 
-@XFAIL
 async def test_pushes_start_when_the_bot_is_ready(
     tmp_path: Path, store: Store, monitor: Monitor, ready: Ready, discord_requests: list[Route]
 ) -> None:
@@ -78,7 +74,6 @@ async def test_pushes_start_when_the_bot_is_ready(
     assert [(route.method, route.path) for route in discord_requests] == [("GET", "/users/@me")]
 
 
-@XFAIL
 async def test_loaded_into_a_ready_bot(
     tmp_path: Path, store: Store, monitor: Monitor, ready: Ready
 ) -> None:
@@ -93,7 +88,6 @@ async def test_loaded_into_a_ready_bot(
     assert [url.path for _, url in monitor.requests] == ["/one"]
 
 
-@XFAIL
 async def test_unloaded_during_a_push(
     tmp_path: Path,
     store: Store,
@@ -114,7 +108,6 @@ async def test_unloaded_during_a_push(
     assert plugin_problems(caplog) == []  # v3 logged a spurious failure
 
 
-@XFAIL
 async def test_unloaded_during_a_ping(
     tmp_path: Path,
     store: Store,
@@ -144,7 +137,6 @@ async def test_unloaded_during_a_ping(
     assert plugin_problems(caplog) == []
 
 
-@XFAIL
 async def test_reload(tmp_path: Path, store: Store, monitor: Monitor, ready: Ready) -> None:
     """Requirement: Pushing follows the bot's readiness and the plugin's lifetime."""
     ready.set()
@@ -162,11 +154,6 @@ async def test_reload(tmp_path: Path, store: Store, monitor: Monitor, ready: Rea
     assert [url.path for _, url in monitor.requests] == ["/old", "/new"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Each listener pushes at once, then after a fixed delay",
-)
 async def test_independent_listeners(
     tmp_path: Path, store: Store, monitor: Monitor, ready: Ready
 ) -> None:
