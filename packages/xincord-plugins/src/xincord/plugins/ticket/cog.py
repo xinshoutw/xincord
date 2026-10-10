@@ -214,10 +214,16 @@ class Ticket(commands.Cog):
             kind = data.get("component_type")
             if kind == BUTTON and action == "create":
                 await self.press(interaction, sub_action, fields)
+            elif kind == BUTTON and action == "press":
+                await self.ask(interaction, fields)
             elif kind in ENTITY_SELECTS and action == "create":
                 await self.choose(interaction, sub_action, _values(data))
         elif interaction.type is discord.InteractionType.modal_submit and action == "create":
             await self.submit(interaction, sub_action)
+
+    async def ask(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
+        """Answer a panel button with the reason modal of its stored entry."""
+        raise NotImplementedError
 
     async def press(
         self, interaction: discord.Interaction, sub_action: str, fields: Mapping[str, str]

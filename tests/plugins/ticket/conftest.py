@@ -161,6 +161,15 @@ class Scene:
         await self.cog.handle(interaction.as_interaction(), IDS.parse(custom_id))
         return interaction
 
+    async def click(self, action: str, who: Who, **fields: str) -> FakeInteraction:
+        """``who`` presses a panel's or a ticket's button ``action`` with the ID's ``fields``."""
+        custom_id = IDS.build({"action": action, **fields})
+        interaction = self.interaction(
+            {"component_type": BUTTON, "custom_id": custom_id}, COMPONENT, who
+        )
+        await self.cog.handle(interaction.as_interaction(), IDS.parse(custom_id))
+        return interaction
+
     async def choose(
         self,
         sub_action: str,
