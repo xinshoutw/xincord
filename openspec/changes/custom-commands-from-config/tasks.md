@@ -1,7 +1,7 @@
 ## 1. Core: command names and translations
 
 - [x] 1.1 xfail tests for "Lang files are validated at load": `is_command_name` against a stub
-- [ ] 1.2 Make the name check public; remove the markers
+- [x] 1.2 Make the name check public; remove the markers
 - [ ] 1.3 xfail tests for "Commands can be localized from a table": `localized` against a stub
 - [ ] 1.4 Implement `localized` and the translator's table; remove the markers
 

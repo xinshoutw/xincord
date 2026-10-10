@@ -205,7 +205,7 @@ def _flatten(path: Path) -> dict[str, str]:
 def _check_register(path: Path, flat: Mapping[str, str]) -> None:
     for key, value in flat.items():
         field = key.rpartition(".")[2]
-        if field == "name" and not _is_command_name(value):
+        if field == "name" and not is_command_name(value):
             msg = f"{path}: {key}: {value!r} is not a valid Discord command name"
             raise LangError(msg)
         if field == "description" and not 0 < len(value) <= DESCRIPTION_MAX:
@@ -218,10 +218,6 @@ def is_command_name(name: str) -> bool:
 
     For command names that plugins read from elsewhere, such as a config file.
     """
-    raise NotImplementedError
-
-
-def _is_command_name(name: str) -> bool:
     return (
         0 < len(name) <= NAME_MAX
         and name == name.lower()

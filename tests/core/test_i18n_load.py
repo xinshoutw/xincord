@@ -86,9 +86,6 @@ def test_valid_command_names_load(tmp_path: Path, name: str) -> None:
     assert lang.registers["en-US"]["calc.name"] == name
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Lang files are validated at load"
-)
 @pytest.mark.parametrize("name", VALID_NAMES)
 def test_public_name_check_accepts(name: str) -> None:
     """Requirement: Lang files are validated at load."""
@@ -96,9 +93,6 @@ def test_public_name_check_accepts(name: str) -> None:
     assert is_command_name(name)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Lang files are validated at load"
-)
 @pytest.mark.parametrize("name", INVALID_NAMES)
 def test_public_name_check_refuses(name: str) -> None:
     """Requirement: Lang files are validated at load."""
