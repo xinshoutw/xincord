@@ -1,0 +1,9 @@
+# AutoRole: list it under `plugins` in the core config.yaml to enable it. The bot then needs the
+# Server Members intent, allowed for it in the Discord developer portal.
+
+# Members who join one of these guilds get its roles. In each guild, the bot needs the Manage Roles
+# permission, and its highest role must be above these roles.
+# Example:
+#   - guild_id: 111111111111111111
+#     role_ids: [222222222222222222, 333333333333333333]
+guilds: []

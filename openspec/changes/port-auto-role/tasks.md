@@ -1,6 +1,6 @@
 ## 1. Resources
 
-- [ ] 1.1 Bundle `config.yaml` with no guilds and a commented example with placeholder IDs (v3's
+- [x] 1.1 Bundle `config.yaml` with no guilds and a commented example with placeholder IDs (v3's
       file held real IDs)
 
 ## 2. Installation
