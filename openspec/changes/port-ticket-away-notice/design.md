@@ -62,8 +62,10 @@ through the Web Dashboard (B13).
 defaults): `guild_id` and `user_id` are `PositiveInt` (v3's Strings, `require(isNotBlank)`; v3's
 files hold unquoted 18-digit numbers, and pydantic also reads quoted ones), `prefix` a tuple of
 strings with at least one item (`require(isNotEmpty)`), `delay_millis` an integer from 1 to Java's
-`Long.MAX_VALUE` (`require(> 0)`). v3's `enabled` is not a field: a v3 file logs `unknown key
-enabled`. An invalid file raises `ConfigError` in `setup`, so the core disables only this plugin
+`Long.MAX_VALUE` (`require(> 0)`). Numbers in `prefix` become text
+(`coerce_numbers_to_str`), as kaml read an unquoted `2024` (found in the cross-review); YAML 1.1
+still reads `no` as a boolean and `007` as 7, so the bundled comment asks for quotes. v3's
+`enabled` is not a field: a v3 file logs `unknown key enabled`. An invalid file raises `ConfigError` in `setup`, so the core disables only this plugin
 and names the key. `Config.watches(guild_id, name)` is the pure filter: the configured guild and
 `name.startswith(prefix)`, case-sensitive as Kotlin's `startsWith`; an empty prefix matches every
 name, as in v3.
@@ -77,8 +79,11 @@ returns unless `Config.watches` holds, and checks the channel as `object` agains
 `runtime_checkable` Protocol with `send` (text and announcement channels, voice and stage channels'
 chats, threads and forum posts have it; categories and forum or media channels do not, and are
 skipped at debug level). JDA's `ChannelCreateEvent` covered every kind too, but `asTextChannel()`
-threw for all but text channels (B2). `watch` then starts the notice as a task and returns, so the
-listener holds nothing up.
+threw for all but text channels (B2). A thread that the bot started itself is skipped too: Ticket's
+archive thread takes the ticket channel's name, and v3 never posted in threads (found in the
+cross-review); channels carry no creator, and Ticket's own ticket channels are meant to get the
+notice. `watch` then starts the notice as a task and returns, so the listener holds nothing up; it
+starts nothing once the cog unloaded (see "Unload").
 
 ### The owner's status and the delay
 
@@ -124,13 +129,16 @@ SERVER ❖`.
   that nothing awaits; cancellation is no `Exception` and stays quiet.
 - `setup` renders the `not-online` template once with no values and closes its files: a template
   that the plugin can never post (a component with a `uid`, a `model_key`, a missing `file_path`,
-  too many rows) raises `ConfigError` with the file named, so the plugin does not load
-  (CustomCommands' `_render_problem`). v3 failed at each notice.
+  too many rows, more than ten embeds, an empty message) raises `ConfigError` with the file named,
+  so the plugin does not load (CustomCommands' `_render_problem`). v3 failed at each notice.
 
 ### Unload
 
-`cog_unload` cancels the waiting notices and awaits them; a reload builds a new cog, so the notices
-that waited during a reload are dropped. The tasks hold no files or connections.
+`cog_unload` marks the cog `closed`, then cancels the waiting notices and awaits them; a reload
+builds a new cog, so the notices that waited during a reload are dropped. discord.py removes a
+cog's listeners before `cog_unload`, but runs each listener as a task: one that it scheduled before
+the unload can run afterwards, and `closed` makes it start nothing (found in the cross-review). The
+tasks hold no files or connections.
 
 ### Ready check
 
@@ -155,8 +163,8 @@ owner's question about a `ticket-` prefix is in the review queue's Ticket sectio
   `test_watch.py`, `test_notice.py`, `test_problems.py`, `test_unload.py`, `test_ready.py`.
 - The tests feed discord.py's own parsers (`plugin_fakes.add_guild`, `gateway`) with
   `CHANNEL_CREATE`, `THREAD_CREATE`, `PRESENCE_UPDATE`, `CHANNEL_DELETE`, `GUILD_DELETE` and
-  `GUILD_MEMBER_REMOVE` payloads, so that the plugin gets discord.py's channels, threads and members
-  with their statuses; `discord_fakes.FakeRest` records the REST requests (the notices' `POST
+  `GUILD_MEMBER_REMOVE` payloads (a thread's owner chosen by `create_thread`), so that the plugin
+  gets discord.py's channels, threads and members with their statuses; `discord_fakes.FakeRest` records the REST requests (the notices' `POST
   /channels/{id}/messages`, the member lookups) and answers them, and now keeps a multipart
   upload's parts (`form`). `payloads.guild` gains `members` and `presences`, `payloads.channel` a
   `guild_id` (and a voice channel's bitrate and user limit), and `payloads.presence` builds a
@@ -164,8 +172,9 @@ owner's question about a `ticket-` prefix is in the review queue's Ticket sectio
 - The delay runs on a fake `sleep` (the scene's `Clock`) that records the delay and waits until the
   test wakes it, so that a test can change the cache during the wait; nothing sleeps in real time.
 - Golden data (`tests/fixtures/plugins/ticket_away_notice/golden.yaml`): the bundled notice's
-  embed, v3's config with placeholder IDs (unquoted and quoted) and an operator's notice in v3's
-  layout with its embed; `hours.txt` is a file that an operator's notice attaches. No CJK text is
+  embed, v3's config with placeholder IDs (unquoted and quoted), a channel named after v3's Chinese
+  prefix, and an operator's notice in v3's layout with its embed; `hours.txt` is a file that an
+  operator's notice attaches. No CJK text is
   typed in Python.
 
 ## v3 behaved differently
@@ -210,7 +219,8 @@ and channel IDs; the text in the description), and operator log warnings (Englis
 
 1. The notice is posted only in `guild_id` (v3: in every guild where the owner was a member).
 2. Threads, forum posts, announcement channels and voice and stage channels' chats with a matching
-   name get the notice (v3 posted in text channels only and threw for the others).
+   name get the notice (v3 posted in text channels only and threw for the others); threads that the
+   bot starts itself, such as Ticket's archives, do not.
 3. The notice appears only while the owner is offline as Discord reports it (v3 posted almost
    always), and not when the owner comes online or the channel is deleted during the wait.
 4. The plugin is `TicketAwayNotice` under `plugins:` and in `plugins/TicketAwayNotice/`; the bot
@@ -293,6 +303,9 @@ no real IDs or shop name in the package, the tests or the commits.
   during the wait get none; an uncached owner is looked up twice through `GET
   /guilds/{guild}/members/{user}`; the notice's body is the embed with `content` null and
   `allowed_mentions` for users only; unloading the extension during the wait cancels the notice.
+- After the cross-review's fixes (2026-10-11): the probe gave the same requests, `xincord
+  --no-online` from fresh wheels exited 0 with a v3 numeric prefix, and the image check again loaded
+  all fifteen plugins.
 
 ## Inventory audit
 

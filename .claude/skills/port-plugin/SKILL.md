@@ -427,8 +427,11 @@ async def setup(bot: Bot) -> None:
   listener checks what needs no await, then creates a task, kept in a set on the cog with
   `task.add_done_callback(self.<set>.discard)`; the task waits on the cog's `sleep`, checks the
   cache again when the wait ends (the channel and guild still there, the member's status) and logs
-  what it does not handle with `logger.exception`, since nothing awaits it; `cog_unload` cancels
-  and awaits the set. The listener returns at once, so the wait holds no other event up.
+  what it does not handle with `logger.exception`, since nothing awaits it; `cog_unload` sets a
+  `closed` flag that the listener checks (a listener that discord.py scheduled before the unload
+  still runs after it), then cancels and awaits the set. The listener returns at once, so the wait
+  holds no other event up. Threads that the bot starts itself (Ticket's archives) reach
+  `on_thread_create` too: skip them by `thread.owner_id` when they are not meant.
 - A Discord REST call that JDA made without a discord.py counterpart goes through
   `bot.http.request(discord.http.Route(method, path))` (UptimeHeartbeat's `rest_ping`).
 

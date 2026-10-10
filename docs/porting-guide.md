@@ -343,11 +343,11 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   with a seeded `random.Random`; the pure draw takes the generator as an argument.
 - Work that an event starts and that waits (TicketAwayNotice's notice, v3's `queueAfter`) is an
   `asyncio` task that the listener creates after the checks that need no await, kept in a set on
-  the cog (`add_done_callback(set.discard)`) and cancelled and awaited in `cog_unload`; it waits on
-  the cog's `sleep`, which tests replace, checks the cache again when the wait ends (the channel,
-  the guild, the member's status), and logs any failure that it does not handle with
-  `logger.exception`, because nothing awaits it. The listener returns at once, so the wait holds no
-  other event up.
+  the cog (`add_done_callback(set.discard)`) and cancelled and awaited in `cog_unload`, which first
+  sets a `closed` flag that the listener checks; it waits on the cog's `sleep`, which tests replace,
+  checks the cache again when the wait ends (the channel, the guild, the member's status), and logs
+  any failure that it does not handle with `logger.exception`, because nothing awaits it. The
+  listener returns at once, so the wait holds no other event up.
 - A plugin that reads members' statuses declares `discord.Intents(members=True, presences=True)`:
   both are privileged, and the smoke checklist says to allow them in the developer portal
   (TicketAwayNotice).
@@ -700,6 +700,14 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   asyncio's "Task exception was never retrieved" when the task is collected: log it inside the task
   (TicketAwayNotice's `_notice`). `asyncio.CancelledError` is no `Exception`, so a cancelled task
   stays quiet.
+- **Listeners after an unload.** `Cog._eject` removes a cog's listeners before it calls
+  `cog_unload`, but discord.py runs each listener as a task: one that it scheduled before the
+  unload runs afterwards on the old cog. A cog that starts work from its listeners marks itself
+  closed in `cog_unload` and starts nothing then (TicketAwayNotice's `closed`, found in its
+  review).
+- **The bot's own threads.** A thread that the bot starts (Ticket's archive, named after the ticket
+  channel) reaches `on_thread_create` too; `thread.owner_id` names its creator, while channels
+  carry none (TicketAwayNotice skips the bot's threads).
 - **Mentions in embed titles.** Discord shows a channel or user mention in an embed's title,
   author or footer as raw `<#...>` text; it renders mentions in the description and in field
   values (TicketAwayNotice's bundled notice moved v3's text into the description).
@@ -932,4 +940,4 @@ Every deliberate difference, added by the change that introduces it.
 | TicketAwayNotice | the notice was queued after one check and posted after the delay whatever happened, into a deleted channel or after the owner came online; nothing cancelled it | the channel and the owner are checked again when the wait ends; unloading cancels the waiting notices | port-ticket-away-notice |
 | TicketAwayNotice | an invalid config stopped the bot even while disabled (B4), unknown keys failed the load, and the IDs took any text | only the plugin is disabled, unknown keys warn, and both IDs must be positive integers | port-ticket-away-notice |
 | TicketAwayNotice | the bundled files held the shop's guild and owner IDs, its name and two channel IDs, and the text sat in the embed title, where channel mentions show as raw text | 0 for both IDs (the plugin waits for them), example values, the text in the description; operators' files keep theirs | port-ticket-away-notice |
-| TicketAwayNotice | a template that could not be sent failed at each notice; a refused notice or a missing owner showed only as JDA's failure log | the template is checked at load, with the file named; warnings name the guild and the channel or the user | port-ticket-away-notice |
+| TicketAwayNotice | a template that could not be sent (a component ID, more than ten embeds, an empty message) failed at each notice; a refused notice or a missing owner showed only as JDA's failure log | the template is checked at load, with the file named; warnings name the guild and the channel or the user | port-ticket-away-notice |
