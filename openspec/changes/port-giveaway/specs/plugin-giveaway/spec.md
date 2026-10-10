@@ -448,6 +448,10 @@ creator's language. A failure SHALL be logged and the other giveaways still hand
 - **WHEN** the store fails during a pass
 - **THEN** the error is logged and the next pass runs
 
+#### Scenario: Failed announcement
+- **WHEN** posting one drawn giveaway fails unexpectedly
+- **THEN** the error is logged and the pass posts the other drawn giveaways
+
 #### Scenario: Unload
 - **WHEN** the plugin unloads
 - **THEN** the automatic draw stops

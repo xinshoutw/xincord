@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 
     from conftest import Scene
     from plugin_fakes import Ready
+    from xincord.core.templates import Message
 
 GOLDEN = golden("giveaway")
 NOW = 1772244000  # the tests' clock
@@ -280,3 +281,28 @@ async def test_unload(draws: Draws, ready: Ready) -> None:
     await draws.scene.bot.remove_cog("Giveaway")  # runs cog_unload, as an unload or a reload does
 
     assert loop.cancelled()
+
+
+@pytest.mark.xfail(strict=True, reason="Due giveaways are drawn automatically")
+async def test_failed_announcement(
+    draws: Draws, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: Due giveaways are drawn automatically."""
+    scene = draws.scene
+    other = replace(DUE, id="0000000000000006", channel_id=6, message_id=600)
+    await scene.add(DUE)
+    await scene.add(other)
+    render = scene.cog.render_post
+
+    def failing(instance: Instance) -> Message:
+        if instance.id == DUE.id:
+            message = "a broken operator template"
+            raise RuntimeError(message)
+        return render(instance)
+
+    monkeypatch.setattr(scene.cog, "render_post", failing)
+    with caplog.at_level(logging.ERROR):
+        await scene.cog.draw_due()
+
+    assert len(announced(draws, 6)) == 1  # the pass goes on after the failure
+    assert f"Giveaway cannot post the draw of giveaway {DUE.id}" in caplog.text

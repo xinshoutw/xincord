@@ -141,6 +141,10 @@
 - [x] 25.3 xfail test for "Acknowledgement fails" (found during the review: a confirmation whose
       deferral Discord refused had already taken the draft, which was lost)
 - [x] 25.4 Give the draft back whenever no giveaway was posted; remove the marker
+- [x] 25.5 xfail test for "Failed announcement" (found during the review: an unexpected failure
+      while posting one drawn giveaway ended the pass, and the giveaways drawn after it, already
+      stored as drawn, were never announced)
+- [ ] 25.6 Log the failure and post the other drawn giveaways; remove the marker
 
 ## 26. Close
 
