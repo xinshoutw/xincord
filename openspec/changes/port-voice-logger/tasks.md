@@ -49,13 +49,13 @@
 
 ## 10. Status changes
 
-- [ ] 10.1 xfail tests for "Voice channel status changes are logged" against stubs (`classify`, the
-      status listener)
-- [ ] 10.2 Implement the relay in `setup`, the status tracking and the status logs (members from
-      the audit log stubbed out); remove the markers
-- [ ] 10.3 xfail tests for "Status changes name their member from the audit log" against stubs in
-      `status.py`
-- [ ] 10.4 Implement `match` and `find_actor` and fetch the member; remove the markers
+- [x] 10.1 xfail tests for "Status changes name their member from the audit log" against stubs in
+      `status.py` (`match` and `find_actor`, pure)
+- [ ] 10.2 Implement `match` and `find_actor`; remove the markers
+- [ ] 10.3 xfail tests for "Voice channel status changes are logged" and the listener's part of
+      "Status changes name their member from the audit log" against a stub status listener
+- [ ] 10.4 Relay the event in `setup`; implement the status tracking, `classify`, the audit log
+      requests and the member; remove the markers
 
 ## 11. Left guilds
 
