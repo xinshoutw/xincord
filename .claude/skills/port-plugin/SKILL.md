@@ -158,7 +158,17 @@ async def setup(bot: Bot) -> None:
   `Annotated[str, StringConstraints(pattern=r"\S", max_length=2000)]`).
 - v3 keys without a default stay required (UptimeHeartbeat's `listeners`, Feedback's replies). A
   new key is optional, so that v3's files load; a text default is English, because Python files
-  hold no CJK, and the bundled file can hold the zh-TW text (Feedback's `form_failure`).
+  hold no CJK, and the bundled file can hold the zh-TW text (Feedback's `form_failure`). A new key
+  whose default only the bundled file can hold (CustomCommands' `commands`, with zh-TW names) is
+  required, and `xincord.core.migrate_v3` sets aside the plugin's v3 file when it held only
+  `enabled` (`SET_ASIDE`), so that the bundled one is written.
+- Checks that need several entries or the lang files run in `setup` after the config loads and
+  raise one `ConfigError` with a `<file>: <key>: <problem>` line per problem, as `parse_model`
+  formats them (CustomCommands' `checks.py`: unique names per locale, a count limit, templates
+  that exist and need no component IDs or models).
+- A failed reload sets the previous version up again with the config and lang that it loaded (the
+  core replays them); templates and other files are read again, and a plugin whose previous
+  version fails too is unloaded until a later reload loads it.
 - Keys of a v3 feature that is not ported (Economy's Google Sheets keys, decision B12) are not
   fields: v3's files load and warn about each of them, as about `enabled`.
 - v3's camelCase keys (Giveaway's `defaultLocale`, `autoDrawIntervalSeconds`) are snake_case
@@ -231,7 +241,9 @@ async def setup(bot: Bot) -> None:
   `interaction.edit_original_response(...)` or `interaction.followup.send(...)`.
 - v3's `setDefaultPermissions(DefaultMemberPermissions.enabledFor(ADMINISTRATOR))` is
   `app_commands.default_permissions(administrator=True)(command)` on the built command; the payload
-  then holds `default_member_permissions` 8 (CustomCommands).
+  then holds `default_member_permissions` 8 (Economy, Giveaway). Permissions an operator lists by
+  discord.py's names become `command.default_permissions = discord.Permissions(<the flags' bits>)`,
+  and None lets every member use the command (CustomCommands' `_permissions`).
 - v3's `addSubcommands(SubcommandData(...))` is an `app_commands.Group(name=lang.command(...),
   description=..., default_permissions=discord.Permissions(administrator=True))` built in the
   plugin's `cog.py` (a bare `Group` takes its `module` from the frame that creates it, so unloading
@@ -239,11 +251,17 @@ async def setup(bot: Bot) -> None:
   subcommand, each localized with one `rename` and one `describe` call from
   `<root>.subcommands.<name>.*` (DynamicVoiceChannel's `command` and `SUBCOMMANDS`). The tree
   defers each subcommand; `interaction.command` is the subcommand.
-- v3 commands that only differ by the template they show share one callback, the cog's bound
-  method, which reads the base name from `interaction.command.name`; `setup` adds one command per
-  name of a module-level table (CustomCommands' `COMMANDS` and `command(name)`). Commands that
-  differ in their options share one callback per signature (WelcomeGoodbye's `bind_channel` and
-  `unbind_channel`, with a `COMMANDS` table of `CommandSpec(kind, description, option)`).
+- Commands that only differ by the template they show share one callback, the cog's bound method,
+  which reads the base name from `interaction.command.name` (CustomCommands' `post_message`, which
+  looks the name up among its config's entries). Commands that differ in their options share one
+  callback per signature (WelcomeGoodbye's `bind_channel` and `unbind_channel`, with a `COMMANDS`
+  table of `CommandSpec(kind, description, option)`).
+- Commands that the operator defines in `config.yaml` (CustomCommands since
+  `custom-commands-from-config`): `setup` builds one per entry with `command(spec)`, names and
+  descriptions as `localized(default, translations)` (the core's; no `register.yaml`),
+  `extras["guilds"]` for a guild list (the core uploads such a command to those guilds only) and,
+  for a public reply, `extras["defer"] = False` and `response.defer(thinking=True)` in the
+  callback: after the tree's ephemeral deferral no reply can be public.
 - A channel option limited to JDA's channel types (`setChannelTypes(ChannelType.TEXT)`) is
   `app_commands.Transform[app_commands.AppCommandChannel, <Transformer>] | None` with a Transformer
   whose `type` is channel, whose `channel_types` lists the types and whose `transform` passes the
@@ -389,10 +407,12 @@ async def setup(bot: Bot) -> None:
 - The core trims embed field names and values as JDA did and gives an empty one U+200E, which
   Discord would refuse otherwise (Feedback's empty feedback): no plugin-side workaround.
 - A template that v3 rendered with `getCreateBuilder(key)` and no locale, such as a public message,
-  renders in `lang.default_locale` for every user (CustomCommands); one rendered with the user's
-  locale uses `interaction.locale.value`. Without a substitutor, v3 used only its global keys:
-  `bot_id` and `bot_name`, `xincord.core.placeholders.global_values(interaction.client)` (BotInfo,
-  CustomCommands, Economy's `no-permission`).
+  renders in `lang.default_locale` for every user (CustomCommands' posts and public replies); one
+  rendered with the user's locale uses `interaction.locale.value` (CustomCommands' ephemeral
+  replies). Without a substitutor, v3 used only its global keys: `bot_id` and `bot_name`,
+  `xincord.core.placeholders.global_values(interaction.client)` (BotInfo, Economy's
+  `no-permission`); operator templates may get `placeholder_values(interaction)` instead
+  (CustomCommands).
 - A template whose first embed's description is the template of rows (Economy's boards) is checked
   for every locale in `setup`, so that a broken one fails at load with the file named.
 - Texts that v3 hard-coded in Kotlin (Giveaway's field names, statuses, replies, errors) go in a
@@ -514,8 +534,11 @@ async def setup(bot: Bot) -> None:
 - Pure functions get one requirement each when they can be stubbed separately (Calculator:
   trimming, reading, results, powers, then `calculate` with the golden files), so that each xfail
   commit fails for its own stub.
-- Never unload or reload the real plugin in a test: discord.py re-imports its modules, and later
-  tests compare against classes from the old ones. The core's reload tests use fake plugins.
+- Never unload or reload the real plugin in a test without an autouse `plugin_modules` fixture
+  that puts its `sys.modules` entries back after each test (Giveaway's, CustomCommands'): discord.py
+  re-imports its modules, and later tests compare against classes from the old ones. With it, a
+  test may reload the real plugin and look the new cog up by name (CustomCommands'
+  `test_reload.py`); the core's reload tests use fake plugins.
 - Voice and channels (DynamicVoiceChannel's `conftest.py`): `discord_fakes.FakeVoiceChannel` (a
   `FakeChannel` with `guild`, `category_id`, `voice_states`, and `clone`, `delete` and
   `set_permissions` that record into `sent` or raise from `errors`; `clone` sets `cloning` and

@@ -54,8 +54,8 @@
 - [x] 10.1 The wheel ships `config.yaml` and the templates and no `register.yaml`; `xincord
       --no-online` loads the plugin from a scratch venv; a probe through discord.py's objects
       (translated payload, public and ephemeral replies)
-- [ ] 10.2 Image check: `docker compose build` and `docker compose run --rm -T bot --no-online`
-- [ ] 10.3 Porting guide rows and conventions, port-plugin skill notes; audit the scenarios and the
+- [x] 10.2 Image check: `docker compose build` and `docker compose run --rm -T bot --no-online`
+- [x] 10.3 Porting guide rows and conventions, port-plugin skill notes; audit the scenarios and the
       inventory against the tests and `design.md`
 - [ ] 10.4 Cross-review (a subagent) and its fixes
 

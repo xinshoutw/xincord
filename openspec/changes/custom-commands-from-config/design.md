@@ -223,6 +223,11 @@ those fall back to zh-TW.
   name; an `ephemeral` one defers with flags 64 and patches `@original` with the en-US template
   for an en-US user and the zh-TW one for a Japanese user; `payloads(10)` holds a command limited
   to guild 10 and `payloads(11)` does not, and `permissions: []` gives no default permissions.
+- Image: `docker compose build`, then `docker compose run --rm -T bot --no-online` with a
+  temporary `bot/config.yaml` that enables all thirteen ported plugins (and Economy's example
+  `admin_id`), exited 0 with every plugin loaded and wrote the bundled
+  `bot/plugins/CustomCommands/config.yaml` and the five templates; `docker compose down -v` and
+  removing `bot/` cleaned up.
 
 ### Tests (xfail-first)
 

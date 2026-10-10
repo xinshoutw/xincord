@@ -66,7 +66,7 @@ def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
 
 
 async def test_command_payload(bot: Bot) -> None:
-    """Requirement: The commands are localized administrator guild commands."""
+    """Requirement: Commands come from the config."""
     global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
     expected: list[dict[str, Any]] = GOLDEN["commands"]
     by_name = {entry["name"]: entry for entry in guild_payload}
@@ -78,7 +78,7 @@ async def test_command_payload(bot: Bot) -> None:
 
 @pytest.mark.parametrize("name", NAMES)
 async def test_command_callback(bot: Bot, cog: CustomCommands, name: str) -> None:
-    """Requirement: The commands are localized administrator guild commands."""
+    """Requirement: Commands come from the config."""
     command = bot.tree.get_command(name)
     assert isinstance(command, app_commands.Command)
     assert command.binding is cog

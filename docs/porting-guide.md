@@ -38,6 +38,7 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `JsonGuildFileManager` (`plugins/<Name>/data/<guildId>.json`) | the store's key-value table: namespace = the plugin's name, key = the guild ID, value = v3's document unchanged, changed under `store.lock("<Name>:<guildId>")` or in one `Store.update` (Economy's wallets) | B8, B11 |
 | `OptionData(CHANNEL).setChannelTypes(...)` | an `app_commands.Transformer` whose `channel_types` lists JDA's types and that passes on the `AppCommandChannel` (WelcomeGoodbye's `TextChannelOption`) | B5 |
 | `event.member.hasPermission(ADMINISTRATOR)` | `interaction.permissions.administrator` (Discord's resolved permissions; Administrator cannot be set per channel) | |
+| `setDefaultPermissions(DefaultMemberPermissions.enabledFor(...))` / `DefaultMemberPermissions.ENABLED` | `command.default_permissions = discord.Permissions(...)` / None (every member); `Permissions(0)`, like JDA's `DISABLED`, leaves the command to administrators | |
 | `GuildMemberRemoveEvent` / `GuildLeaveEvent` | `on_raw_member_remove` (also uncached members) / `on_guild_remove` | B3 |
 | kotlinx/Jackson YAML config | pydantic v2 models over PyYAML; unknown keys warn | B6 |
 | Coroutines, `launch`, scheduled executors | `asyncio` tasks, `discord.ext.tasks.loop` | |
@@ -176,12 +177,24 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   (BotInfo).
 - A config value that Discord would refuse at send time (a URL, a length) is validated in the
   model, so that the plugin fails at load with the key named (BotInfo's `source_url`).
-- v3 commands that differ only by their template share one callback that reads
-  `interaction.command.name`; `setup` adds one command per name of a table, and
+- Commands that differ only by their template share one callback that reads
+  `interaction.command.name` (CustomCommands), and
   `app_commands.default_permissions(administrator=True)` stands for v3's
-  `DefaultMemberPermissions.enabledFor(ADMINISTRATOR)` (CustomCommands).
+  `DefaultMemberPermissions.enabledFor(ADMINISTRATOR)` (WelcomeGoodbye, Economy, Giveaway).
+- Commands that the operator defines in the plugin's `config.yaml` (CustomCommands, since
+  `custom-commands-from-config`): one model per entry, each value checked against what Discord and
+  discord.py take (discord.py's `validate_name` for the name, the core's `is_command_name` for
+  localized names, `DESCRIPTION_MAX`, `discord.Locale`, `discord.Permissions.VALID_FLAGS`);
+  `setup` checks what needs several entries or the lang files (names unique in every locale, at
+  most 100 commands, templates that exist in the default locale and hold no `uid` or `model_key`)
+  and raises one `ConfigError` with a `<file>: <key>: <problem>` line each (`checks.py`). Names and
+  descriptions are localized with the core's `localized(default, translations)` instead of
+  `register.yaml`; `extras["guilds"]` limits a guild command to some guilds; a public reply sets
+  `extras["defer"] = False` and defers with `response.defer(thinking=True)`. A key whose default
+  Python cannot hold (zh-TW text) is required, and the bundled file holds it.
 - A public message that v3 rendered with `getCreateBuilder(key)` and no locale renders in the
-  default locale for every user, with v3's global keys `bot_id` and `bot_name` (CustomCommands).
+  default locale for every user (CustomCommands' posts and public replies); an ephemeral reply
+  follows the user's locale.
 - A whole operator template posted to the channel carries its `view` and `files` too; the fallback
   into the deferred response renders it again (CustomCommands' `_postable` and `_send`).
 - Bundled text that held a real account number in v3 ships an all-zero example under a comment
@@ -242,7 +255,8 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   warn about them, as about `enabled`.
 - v3's global placeholders, for templates that v3 rendered without a substitutor, are
   `global_values(interaction.client)` (moved into the core from BotInfo and CustomCommands by
-  Economy).
+  Economy). CustomCommands' operator templates get `placeholder_values(interaction)` since
+  `custom-commands-from-config`: the bot's keys and the user's and the channel's.
 - A v3 `component_prefix` whose IDs carried no fields (Economy's `economy@`) gets
   `ComponentIds("<package>", ("action",), legacy_prefix=...)` and a handler that ignores the
   fields; the core's decoder reads `economy@` alone or with v3's `<letter>:<value>` segments.
@@ -399,7 +413,12 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   unloads plugins without ever becoming ready.
 - **Reload re-runs setup.** `reload_extension` executes the plugin module again and calls the new
   `setup`; release what the old version holds (tasks, listeners outside a cog) in `teardown` or
-  `cog_unload`. A failed reload restores the old module and runs its `setup` again.
+  `cog_unload`. A failed reload restores the old module and runs its `setup` again, which reads the
+  plugin's files again: the file that broke the new version broke the old one too, and discord.py
+  then left the plugin unregistered. The core hands that setup a context that replays the config
+  and lang it loaded (`PluginContext.replaying`; discord.py 2.7.1 runs it while the plugin's
+  modules are out of `sys.modules`), and unloads the plugin cleanly when it still fails, as with a
+  broken template, which is parsed again (`custom-commands-from-config`).
 - **Command callbacks.** discord.py evaluates a callback's annotations when the command is built,
   so `import discord` must stay at runtime; ruff does not flag a move into `TYPE_CHECKING` while
   other `discord` imports remain, but the plugin then fails to load and its tests fail. Pass the
@@ -411,6 +430,19 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   `isinstance` check against a class imported at collection (AutoRole's `test_config.py`). The
   tests that run after them load the new modules too, so the plugin's `cog` fixture also uses
   `cast` (BotInfo's `conftest.py`).
+- **Reloading a real plugin in a test** works with an autouse fixture that puts the plugin's
+  `sys.modules` entries back after each test (`plugin_modules`); look the new cog up by name
+  (CustomCommands' `test_reload.py`).
+- **Command names.** discord.py's `app_commands.Command` refuses an apostrophe, which Discord takes
+  in names and localizations: check a configured name with discord.py's `validate_name`
+  (`discord.app_commands.commands`) and a localized one with the core's `is_command_name`.
+- **One command table.** The core keeps every plugin's commands, guild-limited ones included, in
+  discord.py's global table: discord.py refuses the 101st (`CommandLimitReached`) and a name that
+  another plugin registered first (`CommandAlreadyRegistered`), and the plugin that loads second
+  fails, in the order of the core config's `plugins` list.
+- **Public replies after a deferral.** A deferred response keeps the flags of the deferral: after
+  the command tree's ephemeral defer, no reply can be public. A public reply opts out
+  (`extras={"defer": False}`) and defers itself with `response.defer(thinking=True)`.
 - **Stopped views.** A discord.py view created outside a running event loop never reports
   `is_finished()`; tests that check rendered views must be `async`.
 - **Sent files are closed.** discord.py closes a message's `File` objects once `send` or an edit
@@ -647,7 +679,9 @@ Every deliberate difference, added by the change that introduces it.
 | CustomCommands | the deferred response was deleted together with the post, so a post the channel refused left the administrator with nothing | the message is posted first; when the channel takes no messages or refuses it, it replaces the deferred response and a warning is logged | port-simple-command |
 | CustomCommands | the commands needed the core's auto-defer; with `--no-auto-defer-interactions` the user saw "The application did not respond" | the command tree always defers the commands | port-simple-command |
 | CustomCommands | the bundled templates held real bank account numbers | they hold the example `000000000000`; operators' files keep theirs | port-simple-command |
-| CustomCommands | messages were rendered with the shared global substitutor, with the keys other plugins had written into it | each render gets `bot_id` and `bot_name` only | port-simple-command |
+| CustomCommands | messages were rendered with the shared global substitutor, with the keys other plugins had written into it | each render gets its own values: `bot_id` and `bot_name`, and since custom-commands-from-config the user's and the channel's | port-simple-command, custom-commands-from-config |
+| CustomCommands | five commands fixed in Kotlin: adding one needed changes to three Kotlin files and a new jar (inventory B3) | the commands come from `config.yaml` (bundled: v3's five), each with its localizations, template, permissions, reply (a channel post, a public or an ephemeral reply) and guilds, checked at load and followed by reloads (the owner's decision) | custom-commands-from-config |
+| CustomCommands | the names' localizations lived in `register.yaml` | they live in `config.yaml`; `register.yaml` is no longer bundled or read | custom-commands-from-config |
 | WelcomeGoodbye | commands in threads, voice channel chats, stage and announcement channels got no reply (`asTextChannel()` threw), a bind chosen with the option there was saved silently, and `invalid-channel` was never delivered | the commands answer everywhere; without the option there, the reply is `invalid-channel` | port-welcome-bye-guild |
 | WelcomeGoodbye | `%...%` in member, guild and channel names was expanded, and a self-reference stopped the welcome or bye message | names are inserted as written | port-welcome-bye-guild |
 | WelcomeGoodbye | the bye message used the user's placeholders only, so its `wbg@member_*` and unprefixed member keys stayed as written | they render when discord.py still knew the member | port-welcome-bye-guild |
