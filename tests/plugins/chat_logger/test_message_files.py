@@ -301,6 +301,28 @@ async def test_expired_files(
     assert ids(directory) == {third: []}
 
 
+@pytest.mark.xfail(strict=True, reason="Stored messages live in the plugin's own files")
+async def test_failed_commit(
+    open_files: Opener, directory: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Requirement: Stored messages live in the plugin's own files."""
+    monkeypatch.setattr(messages, "BUSY_TIMEOUT", 0.05)  # the wait for another program's lock
+    files = await open_files()
+    await files.add(at(5), 10, 30, 7, "a")
+    [path] = directory.glob("messages-*.db")
+    reader = sqlite3.connect(path, autocommit=False)  # a database browser, say
+    try:
+        reader.execute("SELECT count(*) FROM messages").fetchone()  # its read lock stays
+        with pytest.raises(sqlite3.OperationalError, match="locked"):
+            await files.pop(at(5))
+    finally:
+        reader.close()
+
+    await files.add(at(6), 10, 30, 7, "b")  # commits, without the deletion that failed
+
+    assert ids(directory) == {FIRST: [at(5), at(6)]}
+
+
 async def test_full_file(open_files: Opener, directory: Path) -> None:
     """Requirement: A new message file starts when the newest is full."""
     limit = 64 * 1024

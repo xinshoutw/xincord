@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 BATCH = 1000  # the messages that one transaction of the retention deletes at most
+BUSY_TIMEOUT = 5.0  # seconds a statement waits for another program's lock (sqlite3's default)
 
 # Earlier builds kept the messages in this table of the shared store, `data/xincord.db`; xincord
 # had no deployed data, so the table is dropped without its rows (its index goes with it).
@@ -110,7 +111,7 @@ def connect(path: Path) -> sqlite3.Connection:
     Raises:
         sqlite3.DatabaseError: The file is not a database; it is left as it is.
     """
-    connection = sqlite3.connect(path, autocommit=False)
+    connection = sqlite3.connect(path, autocommit=False, timeout=BUSY_TIMEOUT)
     try:
         for statement in SCHEMA:
             connection.execute(statement)

@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, cast
 
 import pytest
 
+from xincord.core import storage
 from xincord.core.storage import JSON, Store
 
 if TYPE_CHECKING:
@@ -170,3 +171,28 @@ async def test_same_key_same_lock() -> None:
     async with opened() as store:
         assert store.lock("guild:1") is store.lock("guild:1")
         assert store.lock("guild:1") is not store.lock("guild:2")
+
+
+@pytest.mark.xfail(strict=True, reason="Plugins can use their own tables")
+async def test_failed_commit_rolls_back(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Requirement: Plugins can use their own tables."""
+    monkeypatch.setattr(storage, "BUSY_TIMEOUT", 0.05)  # the wait for another connection's lock
+    path = tmp_path / "data" / "xincord.db"
+
+    async with opened(path) as store:
+        await store.run(lambda db: db.execute("CREATE TABLE plugin_rows (value INTEGER)"))
+        await store.run(lambda db: db.execute("INSERT INTO plugin_rows VALUES (1)"))
+        reader = sqlite3.connect(path, autocommit=False)  # a database browser, say
+        try:
+            reader.execute("SELECT count(*) FROM plugin_rows").fetchone()  # its read lock stays
+            with pytest.raises(sqlite3.OperationalError, match="locked"):
+                await store.run(lambda db: db.execute("DELETE FROM plugin_rows"))
+        finally:
+            reader.close()
+        await store.run(lambda db: db.execute("INSERT INTO plugin_rows VALUES (2)"))
+
+        rows = await store.run(
+            lambda db: db.execute("SELECT value FROM plugin_rows ORDER BY value").fetchall()
+        )
+
+    assert [row[0] for row in rows] == [1, 2]  # the failed deletion was never committed

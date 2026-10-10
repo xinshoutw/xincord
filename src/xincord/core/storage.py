@@ -12,6 +12,8 @@ if TYPE_CHECKING:
 
 type JSON = bool | int | float | str | list[JSON] | dict[str, JSON] | None
 
+BUSY_TIMEOUT = 5.0  # seconds a statement waits for another connection's lock (sqlite3's default)
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS kv (
     namespace TEXT NOT NULL,
@@ -48,7 +50,7 @@ class Store:
         def connect() -> sqlite3.Connection:
             if str(path) != ":memory:":
                 Path(path).parent.mkdir(parents=True, exist_ok=True)
-            connection = sqlite3.connect(path, autocommit=False)
+            connection = sqlite3.connect(path, autocommit=False, timeout=BUSY_TIMEOUT)
             try:
                 connection.execute(_SCHEMA)
                 connection.commit()
