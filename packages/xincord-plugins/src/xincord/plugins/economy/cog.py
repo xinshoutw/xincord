@@ -144,7 +144,7 @@ class Economy(commands.Cog):
             await self._no_permission(interaction)
             return
         wallet = await read(self.store, guild.id, target.id)
-        values = _user_values(interaction, target) | wallet_values(wallet)
+        values = _user_values(interaction, target) | _wallet_values(wallet)
         await self._reply(interaction, "balance", values)
 
     async def change_wallet(
@@ -167,7 +167,7 @@ class Economy(commands.Cog):
             return
         name = _command_name(interaction)
         before, after = await change(self.store, guild.id, member.id, OPERATIONS[name], value)
-        values = _user_values(interaction, member) | wallet_values(after)
+        values = _user_values(interaction, member) | _wallet_values(after)
         values |= {
             "economy_money_before": str(before.money),
             "economy_cost_before": str(before.cost),
@@ -209,7 +209,7 @@ class Economy(commands.Cog):
             return
         await interaction.response.defer(ephemeral=True, thinking=True)
         wallet = await read(self.store, guild.id, interaction.user.id)
-        values = _user_values(interaction, interaction.user) | wallet_values(wallet)
+        values = _user_values(interaction, interaction.user) | _wallet_values(wallet)
         await self._reply(interaction, "balance", values)
 
     def _is_admin(self, interaction: discord.Interaction) -> bool:
@@ -294,6 +294,6 @@ def _user_values(
     return {} if bot is None else actor_values(user, bot)
 
 
-def wallet_values(wallet: Wallet) -> dict[str, str]:
+def _wallet_values(wallet: Wallet) -> dict[str, str]:
     """The wallet's keys, v3's ``economy_money`` and ``economy_cost``."""
     return {"economy_money": str(wallet.money), "economy_cost": str(wallet.cost)}
