@@ -14,3 +14,54 @@ replies:
     must-under-category: {title: "語音頻道必須在類別(Category)下", color: 16711680}
     unbind-fail: {title: "取消綁定失敗，找不到設定記錄", color: 16711680}
     unbind-success: {title: "取消綁定成功", color: 65280}
+
+# The translated payload of the guild command; keys that are not listed here are not compared. 8 is
+# the Administrator permission; option type 1 is a subcommand, 3 a string and 7 a channel, and
+# channel type 2 is a voice channel. The texts come from v3's Register.kt and register.yaml: the
+# en-US option names of the formats are name-format-1 and name-format-2, unlike the base names.
+commands:
+  - type: 1
+    name: "dynamic-voice-channel"
+    description: "commands about dynamic voice channel"
+    default_member_permissions: 8
+    name_localizations: {"en-US": "dynamic-voice-channel", "zh-TW": "動態語音頻道"}
+    description_localizations: {"en-US": "Dynamic Voice Channel", "zh-TW": "動態語音頻道"}
+    options:
+      - type: 1
+        name: "bind"
+        description: "bind a voice channel"
+        name_localizations: {"en-US": "bind", "zh-TW": "綁定"}
+        description_localizations: {"en-US": "Bind a voice channel", "zh-TW": "綁定語音頻道"}
+        options:
+          - type: 7
+            name: "channel"
+            description: "voice channel to bind"
+            required: true
+            channel_types: [2]
+            name_localizations: {"en-US": "channel", "zh-TW": "頻道"}
+            description_localizations: {"en-US": "Voice channel", "zh-TW": "語音頻道"}
+          - type: 3
+            name: "format-name-1"
+            description: "format name 1"
+            required: true
+            name_localizations: {"en-US": "name-format-1", "zh-TW": "名稱格式1"}
+            description_localizations: {"en-US": "Name format 1", "zh-TW": "名稱格式1"}
+          - type: 3
+            name: "format-name-2"
+            description: "format name 2"
+            required: true
+            name_localizations: {"en-US": "name-format-2", "zh-TW": "名稱格式2"}
+            description_localizations: {"en-US": "Name format 2", "zh-TW": "名稱格式2"}
+      - type: 1
+        name: "unbind"
+        description: "unbind a voice channel"
+        name_localizations: {"en-US": "unbind", "zh-TW": "解綁"}
+        description_localizations: {"en-US": "Unbind a voice channel", "zh-TW": "解綁語音頻道"}
+        options:
+          - type: 7
+            name: "channel"
+            description: "voice channel to unbind"
+            required: true
+            channel_types: [2]
+            name_localizations: {"en-US": "channel", "zh-TW": "頻道"}
+            description_localizations: {"en-US": "Voice channel", "zh-TW": "語音頻道"}

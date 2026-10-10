@@ -5,8 +5,10 @@ Kotlin:
 """
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
+import discord
+from discord import app_commands
 from discord.ext import commands
 
 from xincord.core.placeholders import placeholder_values
@@ -15,14 +17,20 @@ from xincord.core.templates import render_message
 from .store import Binding, bind, unbind
 
 if TYPE_CHECKING:
-    import discord
-    from discord import app_commands
-
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
     from xincord.core.templates import Templates
 
 logger = logging.getLogger(__name__)
+
+
+class VoiceChannelOption(app_commands.Transformer[discord.Client]):
+    """v3's ``channel`` options: Discord offers voice channels only."""
+
+    @override
+    async def transform(self, interaction: discord.Interaction, value: object, /) -> object:
+        """Pass on the ``AppCommandChannel`` that Discord resolved."""
+        raise NotImplementedError
 
 
 class DynamicVoiceChannel(commands.Cog):

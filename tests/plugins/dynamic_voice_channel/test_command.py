@@ -1,0 +1,113 @@
+"""The registration of ``/dynamic-voice-channel`` and its two subcommands.
+
+Kotlin:
+    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/command/Register.kt:13-89
+    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/command/CmdFileSerializer.kt:7-54
+    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/Event.kt:56-68
+    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/resources/lang/en-US/register.yaml:1-24
+    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/resources/lang/zh-TW/register.yaml:1-24
+    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/util/GlobalUtil.kt:49-50
+    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/logger/InteractionLogger.kt:25-30
+"""
+
+from types import SimpleNamespace
+from typing import TYPE_CHECKING, Any, cast
+
+import discord
+import pytest
+from discord import app_commands
+
+from discord_fakes import FakeGuild, FakeInteraction, FakeMember
+from plugin_fakes import golden
+from xincord.plugins.dynamic_voice_channel.cog import VoiceChannelOption
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from xincord.core.bot import Bot
+    from xincord.core.command_tree import CommandTree
+    from xincord.plugins.dynamic_voice_channel.cog import DynamicVoiceChannel
+
+    # discord.py calls a cog command's function with the cog, its binding, and the options.
+    type Callback = Callable[..., Awaitable[None]]
+
+GOLDEN = golden("dynamic_voice_channel")
+REGISTERED = pytest.mark.xfail(
+    strict=True, reason="The command is a localized administrator guild command"
+)
+NAME = "dynamic-voice-channel"
+GUILD = FakeGuild(10)
+LOBBY = SimpleNamespace(
+    id=30, name="Lobby", type=discord.ChannelType.voice, category_id=20, guild_id=10
+)
+
+
+def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
+    """The entries of ``actual`` whose keys ``expected`` lists, in its options too."""
+    found = {key: actual.get(key) for key in expected}
+    if "options" in expected:
+        options = cast("list[dict[str, Any]]", actual.get("options") or [])
+        wanted = cast("list[dict[str, Any]]", expected["options"])
+        if len(options) == len(wanted):
+            found["options"] = [listed(*pair) for pair in zip(options, wanted, strict=True)]
+    return found
+
+
+@REGISTERED
+async def test_command_payload(bot: Bot) -> None:
+    """Requirement: The command is a localized administrator guild command."""
+    global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
+    expected: list[dict[str, Any]] = GOLDEN["commands"]
+
+    by_name = {entry["name"]: entry for entry in guild_payload}
+
+    assert [listed(by_name.get(wanted["name"], {}), wanted) for wanted in expected] == expected
+    assert [entry["name"] for entry in guild_payload] == [NAME]  # a guild command
+    assert global_payload == []
+
+
+@REGISTERED
+@pytest.mark.parametrize(
+    ("subcommand", "options"),
+    [("bind", (LOBBY, "A", "B")), ("unbind", (LOBBY,))],
+)
+async def test_command_callbacks(
+    bot: Bot, cog: DynamicVoiceChannel, subcommand: str, options: tuple[object, ...]
+) -> None:
+    """Requirement: The command is a localized administrator guild command."""
+    group = bot.tree.get_command(NAME)
+    assert isinstance(group, app_commands.Group)
+    command = group.get_command(subcommand)
+    assert isinstance(command, app_commands.Command)
+    assert command.binding is cog
+    data: dict[str, object] = {
+        "type": 1,
+        "name": NAME,
+        "options": [{"type": 1, "name": subcommand}],
+    }
+    interaction = FakeInteraction(
+        data, command=command, user=FakeMember(GUILD), guild=GUILD
+    ).as_interaction()
+
+    assert await cast("CommandTree", bot.tree).interaction_check(interaction)
+    await cast("Callback", command.callback)(cog, interaction, *options)
+
+    deferred, (method, _) = cast("FakeInteraction", interaction).sent
+    assert deferred == ("response.defer", {"ephemeral": True, "thinking": True})
+    assert method == "edit_original_response"
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="The command is a localized administrator guild command",
+)
+async def test_voice_channels_only() -> None:
+    """Requirement: The command is a localized administrator guild command."""
+    option = VoiceChannelOption()
+    interaction = FakeInteraction({"type": 1, "name": NAME}).as_interaction()
+
+    # Discord resolves the channel, which the transformer passes on as it is.
+    assert await option.transform(interaction, LOBBY) is LOBBY
+    assert option.type is discord.AppCommandOptionType.channel
+    assert option.channel_types == [discord.ChannelType.voice]  # JDA's cast took voice only
