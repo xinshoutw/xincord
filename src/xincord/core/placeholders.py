@@ -416,6 +416,29 @@ class InteractionLike(Protocol):
         ...
 
 
+class ClientLike(Protocol):
+    """The parts of :class:`discord.Client` that event values read."""
+
+    @property
+    def user(self) -> UserLike | None:
+        """The bot's user, once it has logged in."""
+        ...
+
+
+class EventLike(InteractionLike, Protocol):
+    """An interaction as v3's ``Placeholder.get(event)`` read it, such as a slash command."""
+
+    @property
+    def user(self) -> UserLike:
+        """The user, or the guild member, who triggered the interaction."""
+        ...
+
+    @property
+    def client(self) -> ClientLike:
+        """The client that received the interaction."""
+        ...
+
+
 # Discord option types: subcommand and group nest options; entities resolve to names as in JDA.
 SUBCOMMAND_TYPES = (1, 2)
 BOOLEAN_OPTION = 5
@@ -442,6 +465,15 @@ def interaction_values(interaction: InteractionLike) -> dict[str, str]:
     elif "name" in data:
         values |= _command_values(data)
     return values
+
+
+def placeholder_values(interaction: EventLike) -> dict[str, str]:
+    """Return v3's ``Placeholder.get(event)``: the acting user's keys and the interaction's.
+
+    Before the bot has logged in, the client has no user, and only the interaction's keys are
+    given.
+    """
+    raise NotImplementedError
 
 
 def _command_values(data: Mapping[str, object]) -> dict[str, str]:

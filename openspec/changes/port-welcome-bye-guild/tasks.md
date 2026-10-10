@@ -1,6 +1,6 @@
 ## 1. Core placeholders
 
-- [ ] 1.1 xfail tests for "Event values follow v3's Placeholder.get(event)" against a stub
+- [x] 1.1 xfail tests for "Event values follow v3's Placeholder.get(event)" against a stub
       `placeholder_values` in `xincord.core.placeholders`
 - [ ] 1.2 Move `placeholder_values` from _Example into the core, make _Example import it; remove
       the markers
