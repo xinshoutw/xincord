@@ -40,7 +40,6 @@ AFTER = {
     "remove-cost": Wallet(money=100, cost=-10),
     "set-cost": Wallet(money=100, cost=30),
 }
-ADMINS_ONLY = "Only administrators change wallets and see boards"
 
 
 def run(name: str, user: FakeMember, *, locale: discord.Locale = EN) -> FakeInteraction:
@@ -138,7 +137,6 @@ async def test_member_changes_a_wallet(
     assert await store.keys(NAMESPACE) == []
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=ADMINS_ONLY)
 @pytest.mark.parametrize("name", ["top-money", "top-cost"])
 async def test_member_asks_for_a_board(cog: Economy, store: Store, name: str) -> None:
     """Requirement: Only administrators change wallets and see boards."""
@@ -185,9 +183,6 @@ async def test_change_outside_a_guild(cog: Economy) -> None:
     assert interaction.sent == []
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The commands are localized guild commands"
-)
 async def test_board_outside_a_guild(cog: Economy) -> None:
     """Requirement: The commands are localized guild commands."""
     interaction = run("top-money", ADMIN)

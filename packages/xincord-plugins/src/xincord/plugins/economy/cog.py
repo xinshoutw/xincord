@@ -5,27 +5,29 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/MessageReplier.kt:13-69
 """
 
+from dataclasses import replace
 from typing import TYPE_CHECKING
 
+import discord
 from discord.ext import commands
 
-from xincord.core.placeholders import actor_values, global_values
-from xincord.core.templates import render_message
+from xincord.core.placeholders import actor_values, global_values, render
+from xincord.core.templates import TemplateError, render_message
 
-from .store import change, read
-from .wallet import OPERATIONS
+from .store import change, read, read_all
+from .wallet import OPERATIONS, rank
 
 if TYPE_CHECKING:
-    import discord
-
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
-    from xincord.core.templates import Message, Templates
+    from xincord.core.templates import Message, MessageTemplate, Templates
 
     from .config import Config
-    from .wallet import Wallet
+    from .wallet import Kind, Wallet
 
 BAD_VALUE = "Bad Value"  # v3's reply to a negative amount, the same in every locale
+# v3's boards and what each ranks.
+BOARDS: dict[str, Kind] = {"top-money": "money", "top-cost": "cost"}
 
 
 class Economy(commands.Cog):
@@ -88,8 +90,24 @@ class Economy(commands.Cog):
         await self._reply(interaction, name, values)
 
     async def show_board(self, interaction: discord.Interaction) -> None:
-        """Stub."""
-        raise NotImplementedError
+        """Show the guild's money or cost board to an administrator (v3's two board commands).
+
+        As in v3, a user whom ``admin_id`` does not list gets ``no-permission``, and the board is
+        the message named like the command, rendered with the user's values (v3's
+        ``Placeholder.get(event.user)``). Nothing is written; v3 created the guild's file.
+        """
+        guild = interaction.guild
+        if guild is None:  # guild commands run in guilds only, as v3's guard assumed
+            return
+        if not self._is_admin(interaction):
+            await self._no_permission(interaction)
+            return
+        name = _command_name(interaction)
+        wallets = await read_all(self.store, guild.id)
+        ranked = rank(wallets, BOARDS[name], self.config.board_user_show_limit)
+        template = self.templates.message(name, interaction.locale.value)
+        values = _user_values(interaction, interaction.user)
+        await _edit(interaction, _board(template, values, ranked))
 
     def _is_admin(self, interaction: discord.Interaction) -> bool:
         """Whether ``admin_id`` lists the user; Discord's Administrator does not count."""
@@ -112,6 +130,52 @@ async def _edit(interaction: discord.Interaction, message: Message) -> None:
     await interaction.edit_original_response(
         content=message.content, embeds=message.embeds, view=message.view, attachments=message.files
     )
+
+
+def check_boards(lang: Lang, templates: Templates) -> None:
+    """Check that each locale's board templates hold the template of the board's rows.
+
+    The rows come from the first embed's description, as in v3, which threw at each use without
+    one; here the plugin does not load.
+
+    Raises:
+        TemplateError: A board template has no first embed with a description, or it is a model.
+    """
+    for locale in lang.locales:
+        for name in BOARDS:
+            embeds = templates.message(name, locale).embeds
+            if not embeds or embeds[0].model_key is not None or not embeds[0].description:
+                path = lang.template(f"message/{name}", locale)
+                msg = f"{path}: the first embed needs a description, the template of the rows"
+                raise TemplateError(msg)
+
+
+def _board(
+    template: MessageTemplate, values: dict[str, str], ranked: list[tuple[int, int]]
+) -> Message:
+    """Render a board: one row per ranked wallet in the first embed, the only embed kept.
+
+    Each row renders the first embed's description with ``values`` and v3's ``index``,
+    ``name_mention`` and ``economy_board``; the rows replace that description, and the message keeps
+    only that embed, as v3's ``setEmbeds``. Without rows the embed has no description, as in v3.
+    """
+    row = template.embeds[0].description or ""  # check_boards made sure it is there
+    rows = "".join(
+        render(
+            row,
+            values
+            | {
+                "index": str(index),
+                "name_mention": f"<@{user_id}>",
+                "economy_board": str(amount),
+            },
+        )
+        for index, (user_id, amount) in enumerate(ranked, start=1)
+    )
+    message = render_message(template, values)
+    board = message.embeds[0].copy() if message.embeds else discord.Embed()
+    board.description = rows or None
+    return replace(message, embeds=(board,))
 
 
 def _command_name(interaction: discord.Interaction) -> str:

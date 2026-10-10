@@ -10,7 +10,7 @@ import discord
 
 from xincord.core.templates import Templates
 
-from .cog import Economy
+from .cog import Economy, check_boards
 from .config import Config
 
 if TYPE_CHECKING:
@@ -33,4 +33,5 @@ async def setup(bot: Bot) -> None:
     context = bot.plugin_context(__name__)
     lang = context.lang(DEFAULT_LOCALE)
     templates = Templates.load(lang)
+    check_boards(lang, templates)
     await bot.add_cog(Economy(context.config(Config), context.store, lang, templates))

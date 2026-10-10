@@ -47,7 +47,7 @@
 
 - [x] 9.1 xfail tests for "Administrators see the boards" and "Board templates are checked at
       load", against a stub `show_board` and a stub check
-- [ ] 9.2 Implement `show_board` and `check_boards`; remove the markers
+- [x] 9.2 Implement `show_board` and `check_boards`; remove the markers
 
 ## 10. Buttons
 

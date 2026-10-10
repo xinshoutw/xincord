@@ -41,8 +41,6 @@ WALLETS = {
     3: Wallet(money=20, cost=9),
     4: Wallet(money=1, cost=1),
 }
-SEEN = "Administrators see the boards"
-CHECKED = "Board templates are checked at load"
 
 
 def run(name: str, *, locale: discord.Locale = EN) -> FakeInteraction:
@@ -79,7 +77,6 @@ def operator_template(root: Path, locale: str, name: str, text: str) -> Path:
     return path
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=SEEN)
 @pytest.mark.parametrize("locale", [EN, ZH], ids=["en-US", "zh-TW"])
 @pytest.mark.parametrize("name", ["top-money", "top-cost"])
 async def test_board(cog: Economy, store: Store, name: str, locale: discord.Locale) -> None:
@@ -92,7 +89,6 @@ async def test_board(cog: Economy, store: Store, name: str, locale: discord.Loca
     assert edited(interaction) == ("", [GOLDEN["boards"][name][locale.value]])
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=SEEN)
 async def test_empty_board(cog: Economy, store: Store) -> None:
     """Requirement: Administrators see the boards."""
     interaction = run("top-cost")
@@ -105,7 +101,6 @@ async def test_empty_board(cog: Economy, store: Store) -> None:
     assert await store.keys(NAMESPACE) == []  # v3 created the guild's file
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=SEEN)
 async def test_operator_template(store: Store, tmp_path: Path) -> None:
     """Requirement: Administrators see the boards."""
     # As v3's setEmbeds: the rows replace the first embed's description, the user's values fill
@@ -135,11 +130,14 @@ async def test_operator_template(store: Store, tmp_path: Path) -> None:
     assert edited(interaction) == ("Board for admin", [{"title": "Board", "description": rows}])
 
 
-@pytest.mark.xfail(strict=True, reason=CHECKED)
 @pytest.mark.parametrize(
     "text",
-    ['embeds:\n  - title:\n      text: "Board"\n', 'content: "Board"\n'],
-    ids=["no-description", "no-embed"],
+    [
+        'embeds:\n  - title:\n      text: "Board"\n',
+        'content: "Board"\n',
+        'embeds:\n  - model_key: "board"\n    description: "%index%"\n',
+    ],
+    ids=["no-description", "no-embed", "model"],
 )
 async def test_missing_row_template(
     text: str, store: Store, tmp_path: Path, caplog: pytest.LogCaptureFixture
