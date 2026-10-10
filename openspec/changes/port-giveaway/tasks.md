@@ -21,7 +21,7 @@
 
 ## 5. End times
 
-- [ ] 5.1 xfail tests for "End times are read and shown in the configured zone" against stubs in
+- [x] 5.1 xfail tests for "End times are read and shown in the configured zone" against stubs in
       `times.py`
 - [ ] 5.2 Implement `parse_end_time` and `format_end_time`; remove the markers
 
