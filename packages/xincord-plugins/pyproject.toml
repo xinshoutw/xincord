@@ -15,6 +15,7 @@ BotInfo = "xincord.plugins.bot_info"
 SimpleCommand = "xincord.plugins.simple_command"
 WelcomeByeGuild = "xincord.plugins.welcome_bye_guild"
 IntervalPusher = "xincord.plugins.interval_pusher"
+Feedbacker = "xincord.plugins.feedbacker"
 
 [build-system]
 requires = ["uv_build>=0.12.24,<0.13"]

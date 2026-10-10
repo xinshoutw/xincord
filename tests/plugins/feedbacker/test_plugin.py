@@ -9,8 +9,6 @@ Kotlin:
 from importlib.resources import files
 from typing import TYPE_CHECKING
 
-import pytest
-
 from plugin_fakes import load_plugin
 from xincord.core.plugins import PluginInfo, discover
 
@@ -19,14 +17,12 @@ if TYPE_CHECKING:
 
     from xincord.core.storage import Store
 
-XFAIL = pytest.mark.xfail(strict=True, reason="The plugin installs as Feedbacker")
 TEMPLATES = ("message/ask-message.yaml", "message/print-result.yaml", "modal/fill-form.yaml")
 LANG_FILES = tuple(
     f"{locale}/{name}" for locale in ("en-US", "zh-TW") for name in ("register.yaml", *TEMPLATES)
 )
 
 
-@XFAIL
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as Feedbacker."""
     # No dependencies and no intents: Discord resolves the member option and the submitter, and
@@ -34,7 +30,6 @@ def test_discovered_by_name() -> None:
     assert discover(["Feedbacker"]) == [PluginInfo("Feedbacker", "xincord.plugins.feedbacker")]
 
 
-@XFAIL
 async def test_first_load_creates_the_files(store: Store, tmp_path: Path) -> None:
     """Requirement: The plugin installs as Feedbacker."""
     bot = await load_plugin("Feedbacker", tmp_path / "plugins", store)
