@@ -8,7 +8,7 @@ import asyncio
 import logging
 import re
 from functools import partial
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast, override
 
 import discord
 from discord import app_commands
@@ -258,6 +258,34 @@ class VoiceLogger(commands.Cog):
                 "VoiceLogger cannot read the audit log of %s (%s): %s", guild.name, guild.id, error
             )
             return None
+
+    @override
+    async def cog_load(self) -> None:
+        """Check the guilds at once when the plugin loads into a ready bot, as on a reload."""
+        if self.bot.is_ready():
+            await self.check_guilds()
+
+    @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        """Check the guilds when the bot is ready; this fires for each session."""
+        await self.check_guilds()
+
+    @commands.Cog.listener()
+    async def on_guild_remove(self, guild: discord.Guild) -> None:
+        """Delete the settings of a guild that the bot left or was removed from.
+
+        Raises:
+            NotImplementedError: Not implemented yet.
+        """
+        raise NotImplementedError
+
+    async def check_guilds(self) -> None:
+        """Delete the settings of the guilds that the bot left.
+
+        Raises:
+            NotImplementedError: Not implemented yet.
+        """
+        raise NotImplementedError
 
     async def _post(
         self, guild: discord.Guild, listen: Sequence[int], name: str, values: Mapping[str, str]

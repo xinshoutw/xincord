@@ -108,6 +108,24 @@ async def remove(store: Store, guild_id: int, channel_id: int) -> bool:
         return True
 
 
+async def forget(store: Store, guild_id: int) -> None:
+    """Delete the guild's settings.
+
+    Raises:
+        NotImplementedError: Not implemented yet.
+    """
+    raise NotImplementedError
+
+
+async def guild_ids(store: Store) -> list[int]:
+    """Return the guilds with settings, in order.
+
+    Raises:
+        NotImplementedError: Not implemented yet.
+    """
+    raise NotImplementedError
+
+
 async def _change(
     store: Store, guild_id: int, channel_id: int, change: Callable[[Setting], Setting]
 ) -> Setting:
