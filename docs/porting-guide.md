@@ -14,7 +14,7 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `enabled` key in each plugin config | the core config's `plugins` list; `setup(bot)` calls `bot.plugin_context(__name__)` for `config(Model)` and `lang(locale)` | B3, B6 |
 | "API plugins" (SQLiteAPI, GoogleSheetAPI, AudioAPI) | ordinary dependencies or nothing | B12 |
 | `PluginEventConfigure.load()`: export lang, read config, build the `StringLocalizer` | `setup(bot)`: `context.lang(DEFAULT_LOCALE)`, `context.config(Config)`, `Templates.load(lang)`, then `bot.add_cog`, `bot.tree.add_command(cog.command())` and `bot.route` | B3 |
-| `Placeholder.get(event)` / `Placeholder.get(member)` | `actor_values(interaction.user, bot) \| interaction_values(interaction)` / `actor_values(member, bot)`, plus the plugin's keys | B10 |
+| `Placeholder.get(event)` / `Placeholder.get(member)` | `placeholder_values(interaction)` (`actor_values(interaction.user, bot) \| interaction_values(interaction)`) / `actor_values(member, bot)`, plus the plugin's keys | B10 |
 | Load order from `depend` / `soft_depend` | `graphlib.TopologicalSorter`; a failing plugin disables only itself | B3 |
 | `GatewayIntent` presets | `discord.Intents` aggregated from enabled plugins before connecting | B4 |
 | `ListenerAdapter` overrides | `@commands.Cog.listener()` | B3 |
@@ -27,6 +27,10 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `checkComponentIdPrefix` / `checkModalIdPrefix` in every plugin listener | `bot.route(__name__, ids, handler)` in `setup`; the handler gets the interaction and a `ParsedId` | B9 |
 | `ComponentIdManager` (`{prefix}{a..z}:{value};...`) | `ComponentIds`: `{namespace}:1:{letter}={value};...` plus the permanent v3 decoder; `upgrade_view` rewrites legacy IDs | B9 |
 | JSON files and embedded MongoDB | SQLite (`sqlite3` + `asyncio.to_thread`), key-value table plus per-plugin tables | B8 |
+| `JsonGuildFileManager` (`plugins/<Name>/data/<guildId>.json`) | the store's key-value table: namespace = the plugin's name, key = the guild ID, value = v3's document unchanged, changed under `store.lock("<Name>:<guildId>")` | B8, B11 |
+| `OptionData(CHANNEL).setChannelTypes(...)` | an `app_commands.Transformer` whose `channel_types` lists JDA's types and that passes on the `AppCommandChannel` (WelcomeByeGuild's `TextChannelOption`) | B5 |
+| `event.member.hasPermission(ADMINISTRATOR)` | `interaction.permissions.administrator` (Discord's resolved permissions; Administrator cannot be set per channel) | |
+| `GuildMemberRemoveEvent` / `GuildLeaveEvent` | `on_raw_member_remove` (also uncached members) / `on_guild_remove` | B3 |
 | kotlinx/Jackson YAML config | pydantic v2 models over PyYAML; unknown keys warn | B6 |
 | Coroutines, `launch`, scheduled executors | `asyncio` tasks, `discord.ext.tasks.loop` | |
 | JLine console (`JLineManager`, `JLineAppender`), `--ignore-update` | prompt_toolkit console (`xincord.core.console`; logs print above the prompt through `patch_stdout`), SIGHUP reload, `/xincord reload`; no version check | B15 |
@@ -117,6 +121,22 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - Bundled text that held a real account number in v3 ships an all-zero example under a comment
   (SimpleCommand); operators' files under `plugins/<Name>/lang/` keep their values, because only
   missing lang files are exported.
+- v3's `Placeholder.get(event)` is `xincord.core.placeholders.placeholder_values(interaction)`
+  (moved from _Example by WelcomeByeGuild); `Placeholder.get(member)` stays
+  `actor_values(member, bot)`.
+- Per-guild data (v3's `JsonGuildFileManager`) is a document in the store's key-value table under
+  the plugin's name and the guild ID, in v3's JSON shape so that the deferred migration (B11) can
+  copy v3's files; a missing document or field reads as v3's default; read-only paths never write;
+  read-modify-write runs under `store.lock("<Name>:<guildId>")`, because discord.py runs handlers
+  concurrently. The data goes with `on_guild_remove` and, from `on_ready` and `cog_load` in a ready
+  bot, for every guild the bot is no longer in (WelcomeByeGuild's `store.py` and
+  `forget_left_guilds`).
+- A command option limited to some channel types uses an `app_commands.Transformer` with those
+  `channel_types` (WelcomeByeGuild's `TextChannelOption`); the handler checks the type again, and a
+  command that falls back to the current channel checks `interaction.channel` the same way.
+- A runtime Administrator check (v3's `member.hasPermission(ADMINISTRATOR)`) reads
+  `interaction.permissions.administrator`; replies v3 rendered in the guild's locale use
+  `(interaction.guild_locale or interaction.locale).value` (WelcomeByeGuild).
 
 ## Pitfalls
 
@@ -207,6 +227,26 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   (SimpleCommand's `_postable`).
 - **Global `core.hooksPath`.** prek refuses to install while a global `core.hooksPath` is set; use
   `git config --local core.hooksPath .git/hooks`.
+- **Channel option types.** A `discord.TextChannel` annotation offers text and announcement
+  channels (`channel_types` [0, 5]) and needs the channel in discord.py's cache; JDA's
+  `setChannelTypes(ChannelType.TEXT)` needs a `Transformer` with `channel_types` [text] over the
+  resolved `AppCommandChannel`. discord.py keeps announcement channels in `TextChannel` too: check
+  `channel.type`, not the class.
+- **Thread categories.** `Thread.category` raises `ClientException` when the parent channel is not
+  cached, and `getattr(thread, "category", None)` does not catch it (the core's
+  `interaction_values` does since port-welcome-bye-guild).
+- **Interaction guilds.** In a guild, `interaction.guild` is never None: discord.py creates a
+  placeholder for a guild it has not cached, without channels. The guild's preferred locale is
+  `interaction.guild_locale`, straight from the payload.
+- **Member removals.** `on_raw_member_remove` fires for every removal with the cached `Member` or
+  else the `User`; JDA ignored the bot's own removal, so skip `bot.user`. `on_guild_remove` fires
+  when the bot leaves or is removed, `on_guild_unavailable` during an outage.
+- **Guilds at ready.** At `on_ready`, `Client.guilds` holds every guild of the session's READY,
+  unavailable ones included, so data of guilds missing there belongs to guilds the bot left.
+- **Fakes hide discord.py.** Drive a new plugin once through discord.py's own objects in a scratch
+  script: `discord.Interaction(data=payload, state=bot._connection)` after setting
+  `state.user`, `command._invoke_with_namespace(...)`, and gateway payloads through
+  `state.parse_*` with `bot.loop` set. This found the thread category failure above.
 
 v3 behaviors never to reproduce: loading plugins in reverse dependency order, non-atomic JSON
 writes that silently reset corrupt files, recursive placeholder expansion, shared mutable
@@ -300,3 +340,13 @@ Every deliberate difference, added by the change that introduces it.
 | SimpleCommand | the commands needed the core's auto-defer; with `--no-auto-defer-interactions` the user saw "The application did not respond" | the command tree always defers the commands | port-simple-command |
 | SimpleCommand | the bundled templates held real bank account numbers | they hold the example `000000000000`; operators' files keep theirs | port-simple-command |
 | SimpleCommand | messages were rendered with the shared global substitutor, with the keys other plugins had written into it | each render gets `bot_id` and `bot_name` only | port-simple-command |
+| WelcomeByeGuild | commands in threads, voice channel chats, stage and announcement channels got no reply (`asTextChannel()` threw), a bind chosen with the option there was saved silently, and `invalid-channel` was never delivered | the commands answer everywhere; without the option there, the reply is `invalid-channel` | port-welcome-bye-guild |
+| WelcomeByeGuild | `%...%` in member, guild and channel names was expanded, and a self-reference stopped the welcome or bye message | names are inserted as written | port-welcome-bye-guild |
+| WelcomeByeGuild | the bye message used the user's placeholders only, so its `wbg@member_*` and unprefixed member keys stayed as written | they render when discord.py still knew the member | port-welcome-bye-guild |
+| WelcomeByeGuild | `invalid-channel`, `*-bind-already` and `*-unbind-empty` created the guild's data file | nothing is written unless a channel changes | port-welcome-bye-guild |
+| WelcomeByeGuild | bindings in `plugins/WelcomeByeGuild/data/<guildId>.json`, written in place; a corrupt file was reset, a non-numeric file name stopped the bot | v3's document in the SQLite store under the guild ID; v3's files are not read (migration deferred, B11) | port-welcome-bye-guild |
+| WelcomeByeGuild | a guild's file was deleted only on a leave event received while the plugin was enabled | also deleted when the bot is ready, for guilds it left while offline or while the plugin was off | port-welcome-bye-guild |
+| WelcomeByeGuild | `guild-only` was rendered with the global placeholders only | with the interaction's, like `no-permission` (guild commands never show it) | port-welcome-bye-guild |
+| WelcomeByeGuild | a welcome or bye message that Discord refused surfaced as JDA's exception log | a warning names the guild and the channel | port-welcome-bye-guild |
+| WelcomeByeGuild | the commands needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers them | port-welcome-bye-guild |
+| WelcomeByeGuild | the zh-TW `welcome` and `bye` texts had typos | corrected in the bundled files | port-welcome-bye-guild |

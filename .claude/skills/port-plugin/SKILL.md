@@ -49,7 +49,14 @@ Names: `<Plugin>` is the v3 name (`AutoRole`, `_Example`), `<kebab>` its kebab c
    templates or components (AutoRole) has no golden data.
 7. **Check the package.** `uv build --package xincord-plugins -o <scratch dir>` lists `config.yaml`
    and `lang/` in the wheel. Stronger: install both wheels in a scratch venv and run
-   `xincord --no-online` in an empty directory whose `config.yaml` enables the plugin.
+   `xincord --no-online` in an empty directory whose `config.yaml` enables the plugin. Then drive the
+   plugin once through discord.py's own objects in a scratch script (not committed): set
+   `bot._connection.user` to a `discord.ClientUser`, build `discord.Interaction(data=<payload>,
+   state=bot._connection)` and call `command._invoke_with_namespace(interaction, Namespace(...))`
+   with `Interaction.edit_original_response` patched; for listeners, set `bot.loop`, add a guild
+   with `state._add_guild_from_data(...)` and feed `state.parse_guild_member_add(...)` and the like.
+   WelcomeByeGuild's probe found a core failure (threads with an uncached parent) that the fakes
+   hid.
 8. **Document.** `docs/porting-guide.md`: differences rows, new pitfalls, convention changes. Audit
    the inventory: each behavior is a scenario with a test, or out of scope or a v3 difference in
    `design.md`, with the reason.
@@ -114,6 +121,18 @@ async def setup(bot: Bot) -> None:
 - Validate a value that Discord would refuse at send time (a URL, a length) in the model, so that
   the plugin fails at load with the key named (BotInfo's `source_url`).
 
+### Storage
+
+- `setup` passes `context.store` to the cog; the tests' `store` fixture is the same store.
+- Per-guild data (v3's `JsonGuildFileManager`, `plugins/<Name>/data/<guildId>.json`) is one
+  document per guild in the key-value table: namespace = the plugin's name, key = the guild ID in
+  decimal, value = v3's JSON document unchanged (its camelCase keys included), so that the deferred
+  migration (B11) can copy v3's files. A missing document or field reads as v3's default (Moshi's);
+  read-only paths never write (v3 created files there); read-modify-write runs under
+  `store.lock(f"{NAMESPACE}:{guild_id}")`, because discord.py runs handlers concurrently. Delete a
+  guild's data in `on_guild_remove` and, from `on_ready` and from `cog_load` in a ready bot, for every
+  guild that `bot.get_guild` does not know (WelcomeByeGuild's `store.py` and `forget_left_guilds`).
+
 ### Commands
 
 - Build commands in `setup` from the Lang: `Translator` reads the Lang from each string's extras,
@@ -139,7 +158,19 @@ async def setup(bot: Bot) -> None:
   then holds `default_member_permissions` 8 (SimpleCommand).
 - v3 commands that only differ by the template they show share one callback, the cog's bound
   method, which reads the base name from `interaction.command.name`; `setup` adds one command per
-  name of a module-level table (SimpleCommand's `COMMANDS` and `command(name)`).
+  name of a module-level table (SimpleCommand's `COMMANDS` and `command(name)`). Commands that
+  differ in their options share one callback per signature (WelcomeByeGuild's `bind_channel` and
+  `unbind_channel`, with a `COMMANDS` table of `CommandSpec(kind, description, option)`).
+- A channel option limited to JDA's channel types (`setChannelTypes(ChannelType.TEXT)`) is
+  `app_commands.Transform[app_commands.AppCommandChannel, <Transformer>] | None` with a Transformer
+  whose `type` is channel, whose `channel_types` lists the types and whose `transform` passes the
+  value on (WelcomeByeGuild's `TextChannelOption`): `discord.TextChannel` would also offer
+  announcement channels and need the cache. Check `channel.type` in the handler too.
+- v3's runtime `member.hasPermission(ADMINISTRATOR)` is `interaction.permissions.administrator`,
+  checked after `interaction.guild is None` (never true in a guild: discord.py creates a placeholder
+  guild). A reply v3 rendered in `event.guild.locale` uses
+  `(interaction.guild_locale or interaction.locale).value` (WelcomeByeGuild's `_guild` and
+  `_reply`).
 - A v3 reply posted with `event.channel.sendMessage(...)` after the defer: send it to
   `interaction.channel` when that has `send` (a `runtime_checkable` Protocol, so fakes need no
   discord base class; forums and categories have none), then `delete_original_response()`; on
@@ -156,7 +187,11 @@ async def setup(bot: Bot) -> None:
 - Gateway events are `@commands.Cog.listener()` methods on the cog (`on_member_join`, `on_ready`);
   discord.py adds them with the cog and removes them when the plugin unloads. Check what each event
   needs cached: `on_member_join` builds the member from the event, `on_member_remove` fires only
-  for cached members (use `on_raw_member_remove`).
+  for cached members (use `on_raw_member_remove`: its `user` is the cached `Member` or else the
+  `User`, its guild comes from `bot.get_guild(payload.guild_id)`, and JDA ignored the bot's own
+  removal, so skip `bot.user`). A message sent to a guild channel goes through a
+  `runtime_checkable` Protocol checked on the channel as `object`, and a refused one is a warning
+  that names the guild and the channel (WelcomeByeGuild's `_postable` and `_greet`).
 - `INTENTS` lists what the listeners need beyond discord.py's defaults:
   `discord.Intents(members=True)` for member events, and for `Guild.member_count`, which
   discord.py updates only from those events (BotInfo). The members intent is privileged: the
@@ -169,11 +204,12 @@ async def setup(bot: Bot) -> None:
 
 - `Templates.load(lang)` in `setup`, so a broken template disables the plugin at load. Render with
   `render_message(templates.message(name, interaction.locale.value), values, build_id=IDS.build)`.
-- v3's `Placeholder.get(event)` is `actor_values(interaction.user, bot) |
-  interaction_values(interaction)` (`placeholder_values` in the template's `cog.py`);
-  `Placeholder.get(member)` is `actor_values(member, bot)`. When a second plugin needs
-  `placeholder_values`, move it to `xincord.core.placeholders` (core change with a spec delta)
-  instead of copying it again.
+- v3's `Placeholder.get(event)` is `xincord.core.placeholders.placeholder_values(interaction)`
+  (`actor_values(interaction.user, bot) | interaction_values(interaction)`, moved into the core by
+  WelcomeByeGuild); `Placeholder.get(member)` and `Placeholder.get(user)` are
+  `actor_values(member_or_user, bot)`. v3's `putGuild`, `putUser`, `putMember`, `putEvent` and
+  `putTextChannel` with a prefix are `guild_values`, `user_values`, `member_values`,
+  `event_values` and `channel_values` with that prefix (WelcomeByeGuild's `values.py`).
 - Plugin keys keep v3's names (`_Example@option1`, `ga@title`) so operators' templates keep working.
 - A template that v3 rendered with `getCreateBuilder(key)` and no locale, such as a public message,
   renders in `lang.default_locale` for every user (SimpleCommand); one rendered with the user's
@@ -216,7 +252,13 @@ async def setup(bot: Bot) -> None:
   `test_replies.py`) or become fixtures in `conftest.py` (AutoRole's `guild`).
   A callback that reads the invoked command gets `FakeInteraction(command=SimpleNamespace(
   name=...))`. Close the `discord.File`s that a test receives (Components V2 templates with a
-  `file_path`), or the unclosed files fail the run.
+  `file_path`), or the unclosed files fail the run. For guild placeholders and guild commands,
+  `FakeInteraction` takes `guild`, `guild_locale` and `permissions`; `FakeGuild` takes `channels`
+  (`get_channel`), `preferred_locale`, `icon`, `rules_channel` and the other `GuildLike`
+  attributes, and `as_guild()` casts it; `FakeChannel` has `type` and `mention`; `FakeMember` has
+  the user and member attributes that placeholders read (`global_name`, `nick`, `avatar`, `roles`,
+  `joined_at`); a logged-in bot's user is `monkeypatch.setattr(Bot, "user",
+  property(lambda _bot: BOT_USER))` (WelcomeByeGuild's `test_members.py`).
   Call cog methods directly (`cog.example_command(...)`), check a command's wiring through
   `bot.tree.get_command(...)` (its `binding` is the cog), send components through
   `bot.on_interaction(...)`, which includes the routing, and run listeners with
