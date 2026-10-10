@@ -233,6 +233,79 @@ deleted); unknown actions without a response; no check of the bot's permissions 
 channel when the form is created; a double submission from two clients posting two reviews (the
 second deletion is a logged warning, as JDA logged it).
 
+### Inventory audit
+
+Every section of `docs/porting/analysis/inventory/Feedbacker.md` maps to this change:
+
+- Overview (1): the entry object, `info.yaml` and the name are "The plugin installs as Feedbacker"
+  ("Discovered by name"); `component_prefix: feedbacker@` is `IDS`'s legacy prefix ("v3's star
+  button", "v3's modal"); `author`, `coreApi` and `version` have no counterpart.
+- Lifecycle (2): exporting missing lang files and reading the config are "First load creates the
+  files" and "The config holds the replies"; the `enabled` check and its warning are the core's
+  `plugins` list; the `StringLocalizer` and the lazily built creators are `setup`'s Lang and
+  `Templates.load`; `reload()` is the core's reload, which replaces the cog; no unload work, no
+  background jobs; the state kept in the IDs is why v3's prompts keep working.
+- Slash commands (3): the guild command, its names, descriptions, localizations, the two required
+  options and no default permissions are "Command payload"; the ephemeral auto-defer and the edits
+  of the deferred response are "Command callback" and the create tests; the name filter is the
+  tree's routing; the `isFromGuild` guard has no counterpart (in a DM the permissions have no
+  Administrator); the Administrator check is "Member without Administrator"; the non-text submit
+  channel is "Not a text channel"; the prompt in the administrator's locale with the member's
+  values is "Form posted" in both locales; B2 is "Not a member"; `form_success` after the send is
+  "Form posted"; a failed send is "Channel refuses the form". The prompt's embed and five gray
+  buttons are the golden `ask` and `star_labels`.
+- Components (4): v3's four text fields in order, the encoding order of the templates' `uid` maps
+  and the 100-character limit are `IDS` and the IDs asserted in "Form posted" and the route tests;
+  order-independent parsing is the core's decoder. The star press: the user check is "Someone else
+  presses"; the restyle is "Pressed star highlighted", "Link buttons keep their style" and
+  "Components V2 form"; B3 is a "v3 behaved differently" entry and "Edit refused"; the modal in the
+  clicker's locale with `Placeholder.get(event)`, `fb_star_count` and `fb_submit_channel_id`, its
+  title, label, placeholder, 1024-character limit and optional input are "Modal opens". No timeouts:
+  kept. Forms older than v3's `ac6e90d`: out of scope (they lacked the submit channel). The
+  submission: the star count is "Star counts" and "Invalid star count"; the submitter's values and
+  B5 are "Feedback posted" and a "v3 behaved differently" entry; `fb_stars` and `fb_content` are
+  "Feedback posted", "Empty feedback" and "Placeholders in the feedback"; the channel lookup and B1
+  are "Channel gone"; the deferred edit and the review in the guild's locale are "Feedback posted"
+  in both locales; the concurrent deletion and B4 are "Feedback posted" (deleted after the post),
+  "Form already gone" and "Channel refuses the review". The review embed is the golden `review`;
+  JDA's field handling is the core's "Embed fields follow JDA"; a value over 1024 characters (an
+  operator's template) makes Discord refuse the review, which keeps the form.
+- Events (5): the command is the tree's; buttons and modals with the prefix are `bot.route` and
+  `handle` ("v3's star button", "v3's modal", "New IDs"); other actions are "Other action"; a
+  malformed ID is logged by the core's routing.
+- Configuration (6): `enabled` is the core's `plugins` list; the three required replies and kaml's
+  strict mode are "v3's file", "Bundled file" and "Invalid reply", with unknown keys warning (a
+  "v3 behaved differently" entry); the replies used as written are "Reply as written"; the
+  Dashboard toggle is the core's reload (B13).
+- Localization and templates (7): zh-TW as the default and en-US are `DEFAULT_LOCALE` and the
+  bundled files; the locale of each part is tested in the create, press and submit tests; the
+  whole-locale fallback is the core's per-file fallback; the v1 schema with `!ButtonsComponent` and
+  the modal schema are the core's templates; the placeholder table is checked by the golden IDs,
+  modal and review; YAML integers in `uid` are text through the core's schema; recursive expansion,
+  escapes and the global caches are the core's single-pass render and per-render values (B6 is
+  "Placeholders in the feedback").
+- Persistence (8): none; the IDs of existing prompts decode ("v3's star button", "v3's modal").
+- External dependencies (9): none.
+- Discord requirements (10): no intents ("Discovered by name"); the submit channel from the guild's
+  channel cache (`_text_channel`, "Channel gone"); the bot's permissions are in the smoke
+  checklist; rate limits are discord.py's.
+- Concurrency (11): the substitutor caches are per-render values; the press answers with the modal
+  before the edit ("Pressed star highlighted" checks the order); the submission posts, then
+  deletes; a double submission from two clients is kept and listed in this design.
+- Bugs and quirks (12): B1 to B7 are "v3 behaved differently" entries with scenarios; the behavior
+  to preserve is listed under "Kept on purpose"; the hard-coded values are `MAX_STARS` and the
+  bundled templates.
+- Testability (13): `stars_text` is `form.stars`; the codec with golden IDs is `IDS` in the create
+  and route tests; `restyle_rows` is `form.highlight`; `can_rate` is the check in `press_star`;
+  `is_admin` is the check in `create_form`; template rendering is the golden data; config
+  validation is `test_config.py`; the Discord doubles are the shared fakes.
+- Assessment (14): `member: discord.Member` became `discord.Member | discord.User` for B2;
+  `discord.TextChannel` became the `TextChannelOption` transformer for v3's `[TEXT]`; `rename`,
+  the Translator and the auto-defer are as suggested; the runtime check reads
+  `interaction.permissions` rather than `guild_permissions`, as WelcomeByeGuild; the raw dispatcher
+  is the core's `bot.route`; the modal, the bot's own message edit, the deferred update, the send
+  and the deletion are as suggested, with the deletion after a confirmed post.
+
 ## Risks / Trade-offs
 
 - A modal opened under v3 and submitted after the switch carries a v3 ID: the review is posted and
