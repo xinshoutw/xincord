@@ -25,7 +25,8 @@ Names: `<Plugin>` is the v3 name (`AutoRole`, `_Example`), `<kebab>` its kebab c
    - `design.md`: package, config schema, storage tables, component IDs (legacy prefix and v3 field
      order), "v3 behaved differently: ..." entries, user-visible changes, manual smoke checklist.
    - `tasks.md`: resources, one xfail task and one implementation task per requirement, then
-     conventions, docs and close.
+     conventions, docs and close. Requirements that one handler implements together may share a
+     pair of tasks, with one xfail mark per requirement (WelcomeByeGuild's 6.1 and 6.2).
    Run `openspec validate port-<kebab> --strict`, the gate, and commit
    (`docs(plugin-<kebab>): propose port-<kebab>`).
 3. **Resources.** Copy v3's `config.yaml` and lang files into the package (fix missing final

@@ -1,6 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after `port-simple-command`, the fifth plugin port. Core is complete. Read
+Updated 2026-10-10 after `port-welcome-bye-guild`, the sixth plugin port. Core is complete. Read
 this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and
 binding; do not re-open them unless you find a serious problem, and then ask the owner.
 
@@ -71,8 +71,11 @@ starting with Core. Motivation: easier maintenance and faster iteration.
     fallback), `Lang.command` and `Translator`.
   - `xincord.core.placeholders`: single-pass `render`, the v3 key families (`actor_values`,
     `user_values`, `member_values`, `guild_values`, `channel_values`, `event_values`,
-    `interaction_values` with JDA's `command_string`), Protocols that discord.py classes satisfy,
-    and JDA locale names (`resources/locales.yaml`, `locale_names`).
+    `interaction_values` with JDA's `command_string`), `placeholder_values(interaction)` (v3's
+    `Placeholder.get(event)`: the acting user's keys with the bot's and the interaction's),
+    Protocols that discord.py classes satisfy (`EventLike` and `ClientLike` for interactions), and
+    JDA locale names (`resources/locales.yaml`, `locale_names`). A thread whose parent channel is
+    not cached gives no `channel_category_name` (discord.py's `Thread.category` raises there).
   - `xincord.core.templates` (package: `base`, `schema`, `schema_v2`, `render`, `render_v2`,
     `__init__`): v1 message templates, Components V2 and modal templates, validated at load
     (`load_message`, `load_modal`, `Templates.load`) and rendered to
@@ -139,8 +142,8 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   for every port: `.claude/skills/port-plugin/SKILL.md`. Reuse in tests: `plugin_fakes.load_plugin`
   (real entry point, offline), `plugin_fakes.golden(<package>)`, `tests/support/discord_fakes.py`
   (`FakeInteraction` records `sent`; `buttons`, `embed_dict`); the `store` fixture is in
-  `tests/conftest.py`. When a second plugin needs v3's `Placeholder.get(event)`, move the
-  example's `placeholder_values` into `xincord.core.placeholders`.
+  `tests/conftest.py`. The example's `placeholder_values` moved into `xincord.core.placeholders`
+  with WelcomeByeGuild.
 - **BasicCalculator** (`xincord.plugins.basic_calculator`, no config): `calculator.py` is a pure
   evaluator with v3's shunting-yard pass and `BigDecimal` results (`BigDecimal(unscaled, scale)`),
   v3's defects fixed and size limits; `cog.py` runs it in `asyncio.to_thread`, posts the answer to
@@ -178,7 +181,23 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   and `ClosingChannel` (`tests/plugins/simple_command/test_post.py`) for discord.py's closed files.
   `_bot_values` now exists in BotInfo and SimpleCommand: a third plugin that needs v3's global keys
   moves it into `xincord.core.placeholders`.
-- **Still to build:** the plugins after SimpleCommand (section 5).
+- **WelcomeByeGuild** (`xincord.plugins.welcome_bye_guild`, `INTENTS = discord.Intents(members=True)`,
+  no config, en-US and zh-TW): the first plugin with data. `store.py` keeps v3's per-guild document
+  (`{"welcomeChannelId", "byeChannelId"}`, 0 = unbound) in the key-value table under the namespace
+  `WelcomeByeGuild` and the guild ID, read without writing and changed by `set_channel` under
+  `store.lock("WelcomeByeGuild:<id>")`; `values.py` builds v3's `wbg@` keys from the core families
+  (`command_values`, `member_event_values`) and checks text channels with a `runtime_checkable`
+  Protocol; `cog.py` has four guild commands with two shared callbacks (`bind_channel`,
+  `unbind_channel`, kind from the `COMMANDS` table), a `TextChannelOption` transformer that limits
+  the option to text channels (`channel_types` [0]), the runtime Administrator check through
+  `interaction.permissions`, replies in `interaction.guild_locale`, `on_member_join`,
+  `on_raw_member_remove` (skips the bot's own removal) and `on_guild_remove`, and
+  `forget_left_guilds` from `on_ready` and `cog_load`. Reuse: the per-guild data convention (skill,
+  "Storage"), `FakeGuild(channels=..., preferred_locale=..., icon=..., rules_channel=...)` with
+  `get_channel` and `as_guild()`, `FakeChannel(type=...)`, `FakeMember` with placeholder
+  attributes, `FakeInteraction(guild=, guild_locale=, permissions=)`, `Bot.user` patched as a
+  property, and the scratch probe through discord.py's own objects (skill step 7).
+- **Still to build:** the plugins after WelcomeByeGuild (section 5).
 
 ## 5. Status and next steps
 
@@ -188,18 +207,19 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `core-templates`, `core-components-v2`, `core-component-ids`, `core-plugin-loading`,
 `core-command-tree`, `core-component-routing`, `core-interaction-values`, `core-startup`,
 `core-reload`, `core-console`, `core-status-log`, `container`, `port-example`,
-`port-basic-calculator`, `port-auto-role`, `port-bot-info`, `port-simple-command`. Each one's
+`port-basic-calculator`, `port-auto-role`, `port-bot-info`, `port-simple-command`,
+`port-welcome-bye-guild`. Each one's
 `design.md` in `openspec/changes/archive/` records its decisions and "v3 behaved differently"
 notes; `docs/porting-guide.md` has the differences table.
 
 ### Next: the plugins
 
-Core is complete; _Example (the template), BasicCalculator, AutoRole, BotInfo and SimpleCommand
-are ported. Next: **WelcomeByeGuild** (`port-welcome-bye-guild`). Port the plugins in C1 order
-with the `port-plugin` skill (`.claude/skills/port-plugin/SKILL.md`), one OpenSpec change each
-(`port-<plugin-kebab>`): _Example (done), BasicCalculator (done), AutoRole (done), BotInfo (done,
-with the configurable AGPL source link of C3), SimpleCommand (done), then WelcomeByeGuild,
-IntervalPusher, Feedbacker, Economy, DynamicVoiceChannel, VoiceLogger, ChatLogger, Giveaway,
+Core is complete; _Example (the template), BasicCalculator, AutoRole, BotInfo, SimpleCommand and
+WelcomeByeGuild are ported. Next: **IntervalPusher** (`port-interval-pusher`). Port the plugins in
+C1 order with the `port-plugin` skill (`.claude/skills/port-plugin/SKILL.md`), one OpenSpec change
+each (`port-<plugin-kebab>`): _Example (done), BasicCalculator (done), AutoRole (done), BotInfo
+(done, with the configurable AGPL source link of C3), SimpleCommand (done), WelcomeByeGuild (done),
+then IntervalPusher, Feedbacker, Economy, DynamicVoiceChannel, VoiceLogger, ChatLogger, Giveaway,
 Ticket, TicketAddons, NtustManager, NtustCourse, MusicPlayer (with Lavalink in `compose.yaml`).
 Update `docs/porting-guide.md` after each one.
 
@@ -351,6 +371,26 @@ setup-uv v10.2.0, setup-node v7.1.0.
   overlap): pass the channel as `object` first (SimpleCommand's `_postable`).
 - `app_commands.default_permissions(administrator=True)` also applies to a built `Command`; the
   payload's `default_member_permissions` is then the integer 8.
+- A `discord.TextChannel` option annotation sends `channel_types` [0, 5] (announcement channels
+  too) and resolves the channel from the cache; a `Transformer` with `channel_types` [text] over
+  `AppCommandChannel` sends [0] and takes what Discord resolved. `Transform[...] | None` works as an
+  optional parameter. discord.py's `TextChannel` also stands for announcement channels: check
+  `.type`.
+- `Thread.category` raises `ClientException` when the parent channel is not cached, which
+  `getattr(..., None)` does not catch; `interaction_values` handles it now.
+- In a guild, `interaction.guild` is never None: discord.py builds a placeholder guild (no channels,
+  name `''`) when it has not cached the guild. `interaction.guild_locale` and
+  `interaction.permissions` come straight from the payload; the guild owner and administrators
+  get every permission there.
+- `on_raw_member_remove` is dispatched for every removal, even for an uncached guild; its `user` is
+  the cached `Member` when there was one. JDA ignored the bot's own removal.
+- At `on_ready`, `Client.guilds` holds every guild of READY, unavailable ones included (READY adds
+  them before their GUILD_CREATE), so stored data of other guilds belongs to guilds the bot left.
+- A scratch probe can drive real discord.py objects offline: set `bot._connection.user` to a
+  `ClientUser`, build `discord.Interaction(data=..., state=bot._connection)` and call
+  `command._invoke_with_namespace(...)` (patch `Interaction.edit_original_response`); set
+  `bot.loop`, add a guild with `state._add_guild_from_data(...)` and call `state.parse_*` for
+  gateway events (patch `Messageable.send`).
 
 **v3 behaviors never to reproduce:** loading plugins in reverse dependency order, non-atomic JSON
 writes that reset corrupt files, recursive placeholder expansion, shared mutable placeholder

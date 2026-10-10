@@ -120,3 +120,31 @@ here; delete a section once it is empty.
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-simple-command/design.md` (needs a token, a test guild and a member without Administrator).
 - At cutover, copy v3's `plugins/SimpleCommand/lang/` (with the real account numbers) into the bot's `plugins/SimpleCommand/lang/`; otherwise the commands post the example number.
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `SimpleCommand` enabled); an image build with the plugin enabled is still open.
+
+## WelcomeByeGuild (`port-welcome-bye-guild`)
+
+### User-visible changes
+- The four commands answer in threads, voice channel chats, stage and announcement channels (v3: no reply, and a bind chosen with the `channel` option there was saved silently); without the option there, the reply is `invalid-channel`.
+- `%...%` in member, guild and channel names is shown as written in replies and in the welcome and bye messages (v3 expanded it, and a self-reference stopped the message).
+- The bye message can use the `wbg@member_*` keys and v3's unprefixed member keys when discord.py still knew the member (v3: never; they stayed as written).
+- v3's bindings in `plugins/WelcomeByeGuild/data/*.json` are not read: after moving from v3 the channels must be bound again (data migration is deferred, B11).
+- Bindings of guilds the bot left while it was offline or while the plugin was off are deleted when the bot is ready, with one log line per guild (v3 kept their files).
+- A welcome or bye message that Discord refuses logs a warning that names the guild and the channel (v3: JDA's exception log).
+- `invalid-channel`, `*-bind-already` and `*-unbind-empty` no longer create data; the commands always answer (v3 needed the core's auto-defer switch).
+- No `plugins/WelcomeByeGuild/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list.
+- zh-TW copy in the bundled files (existing `plugins/WelcomeByeGuild/lang/` files keep v3's text): `welcome`'s last line 也不坊到處看看喔！ becomes 也不妨到處看看喔！, and `bye`'s description 但願我們會能未來的道路相見... becomes 但願我們能在未來的道路上相見...
+### Choices made without the owner
+- Where the bindings live: implemented v3's document per guild in the store's key-value table (namespace `WelcomeByeGuild`, key = guild ID), so that a later migration can copy v3's files; alternative: a plugin table with one column per channel.
+- Bye message keys: implemented the member keys when discord.py still knew the member; alternative: v3's user-only keys.
+- Bindings of guilds left while offline or disabled: implemented their deletion when the bot is ready; alternative: keep them until the bot leaves that guild again, as v3.
+- A channel where the bot cannot post: implemented v3's unchecked bind, with a log warning at each refused message; alternative: check View Channel, Send Messages and Embed Links when binding and tell the administrator (new copy).
+- zh-TW typos: implemented the two corrections above; alternative: keep v3's text.
+- `guild-only`: kept as a guard that guild commands never reach, rendered with the interaction's placeholders like `no-permission` (v3: global ones only); alternative: drop the check and its two templates.
+- Core API: implemented `placeholder_values(interaction)` (Protocols `EventLike`, `ClientLike`) in `xincord.core.placeholders`, moved from _Example, which now imports it; alternative: a copy per plugin.
+- Core fix: `interaction_values` gives no `channel_category_name` for a thread whose parent channel discord.py has not cached, where it raised and left the command unanswered (found by a probe through discord.py's own objects); alternative: none.
+- Core gap found in the audit, unchanged: v3's commons-text read `%key:-fallback%` as a fallback for a missing key, while the core's `render` leaves it as written (no shipped template uses it); alternative: support the syntax in `render`.
+### Manual checks
+- Smoke checklist in `openspec/changes/archive/2026-10-10-port-welcome-bye-guild/design.md` (needs a token, a test guild and a second account).
+- The bot's application must allow the Server Members intent in the developer portal (v3 always requested it); without it, startup stops with a privileged-intents error.
+- At cutover, bind the welcome and bye channels again in each guild listed in v3's `plugins/WelcomeByeGuild/data/`, or build the deferred migration first.
+- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `WelcomeByeGuild` enabled); an image build with the plugin enabled is still open.
