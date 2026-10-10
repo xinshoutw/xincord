@@ -8,19 +8,40 @@ Kotlin:
 
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    import discord
+import discord
 
+if TYPE_CHECKING:
     from xincord.core.templates import IdBuilder
 
     from .model import Draft
 
 
 def preview_embed(draft: Draft) -> discord.Embed:
-    """The panel's embed, v3's ``previewEmbed`` of a new panel: unset parts left out."""
-    raise NotImplementedError
+    """The panel's embed, v3's ``previewEmbed`` of a new panel: unset parts left out.
+
+    As JDA's ``setAuthor(null, ...)``, the icon goes with the author.
+    """
+    embed = discord.Embed(
+        title=draft.title or None, description=draft.description or None, color=draft.color
+    )
+    if draft.author:
+        embed.set_author(name=draft.author, icon_url=draft.author_icon_url or None)
+    return embed
 
 
 def preview_button(draft: Draft, build_id: IdBuilder) -> discord.ui.Button[discord.ui.View]:
-    """The builder's preview of the panel button, which opens the reason modal's preview."""
-    raise NotImplementedError
+    """The builder's preview of the panel button, which opens the reason modal's preview.
+
+    v3's preview button had no action, so pressing it failed (B1).
+    """
+    return _button(draft, build_id({"action": "create", "sub_action": "prev"}))
+
+
+def _button(draft: Draft, custom_id: str) -> discord.ui.Button[discord.ui.View]:
+    """A button with the draft's style, label and emoji, as v3's ``Button.of``."""
+    return discord.ui.Button[discord.ui.View](
+        style=discord.ButtonStyle(draft.button_style),
+        custom_id=custom_id,
+        label=draft.button_text or None,
+        emoji=discord.PartialEmoji.from_str(draft.button_emoji) if draft.button_emoji else None,
+    )

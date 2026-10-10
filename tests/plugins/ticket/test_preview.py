@@ -5,7 +5,6 @@ Kotlin:
 """
 
 import discord
-import pytest
 
 from discord_fakes import embed_dict
 from xincord.plugins.ticket.cog import IDS
@@ -16,7 +15,6 @@ RED = 4
 CUSTOM = "<:ticket:123456789012345678>"  # a custom emoji, which v3's Emoji.fromUnicode broke
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The preview shows the draft")
 def test_preview_of_a_draft() -> None:
     """Requirement: The preview shows the draft."""
     draft = Draft(
@@ -34,7 +32,6 @@ def test_preview_of_a_draft() -> None:
     assert button.custom_id == IDS.build({"action": "create", "sub_action": "prev"})
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The preview shows the draft")
 def test_preview_with_icon_description_and_emoji() -> None:
     """Requirement: The preview shows the draft."""
     draft = Draft(
@@ -58,7 +55,6 @@ def test_preview_with_icon_description_and_emoji() -> None:
     assert str(button.emoji) == CUSTOM
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The preview shows the draft")
 def test_icon_without_author() -> None:
     """Requirement: The preview shows the draft."""
     # JDA's setAuthor(null, ...) dropped the icon with the author.
