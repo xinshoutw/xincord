@@ -14,6 +14,7 @@ from .pusher import Pusher, get_status, open_session, rest_ping
 
 if TYPE_CHECKING:
     from .config import Config, Listener
+    from .pusher import Sleep
 
 
 class UptimeHeartbeat(commands.Cog):
@@ -24,6 +25,7 @@ class UptimeHeartbeat(commands.Cog):
         self.bot = bot
         self.listeners = config.listeners
         self.tasks: tuple[asyncio.Task[None], ...] = ()  # one loop per listener once loaded
+        self.sleep: Sleep = asyncio.sleep  # the delay between pushes, which tests replace
 
     @override
     async def cog_load(self) -> None:
@@ -60,6 +62,6 @@ class UptimeHeartbeat(commands.Cog):
                 listener,
                 get=lambda url: get_status(session, url),
                 ping=lambda: rest_ping(self.bot),
-                sleep=asyncio.sleep,
+                sleep=self.sleep,
             )
             await pusher.run()

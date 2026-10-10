@@ -9,7 +9,7 @@ Kotlin:
 import asyncio
 import json
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from discord.http import HTTPClient
 
@@ -160,19 +160,26 @@ async def test_independent_listeners(
     """Requirement: Each listener pushes at once, then after a fixed delay."""
     monitor.silent.add("/silent")
     monitor.statuses["/gone"] = 404
-    ready.set()
-
     cog = await load(
         tmp_path, store, monitor.url("/silent"), monitor.url("/gone"), monitor.url("/alive")
     )
-    tasks = cog.tasks
-    await monitor.received(3)
+    sleeping: set[asyncio.Task[Any]] = set()
+
+    async def sleep(_seconds: float) -> None:
+        """Wait for a next push that never comes, as the interval would, until the teardown."""
+        if (task := asyncio.current_task()) is not None:
+            sleeping.add(task)
+        await asyncio.Event().wait()
+
+    cog.sleep = sleep  # read when the loops start, at READY
+    ready.set()
+    _silent, gone, alive = cog.tasks
+    await until(lambda: {gone, alive} <= sleeping)  # v3 ended /gone's loop after its 404
+
+    assert {url.path for _, url in monitor.requests} == {"/silent", "/gone", "/alive"}
+    assert not any(task.done() for task in cog.tasks)  # /silent still waits for its answer
     refused = (
         f"UptimeHeartbeat listener 2: pushing to {monitor.root} failed with code 404 "
         "(the status monitor refused the push)"
     )
-    await until(lambda: refused in caplog.messages)
-
-    assert {url.path for _, url in monitor.requests} == {"/silent", "/gone", "/alive"}
-    # /silent waits for an answer, /gone and /alive for their next push: v3 ended /gone's loop.
-    assert not any(task.done() for task in tasks)
+    assert refused in caplog.messages
