@@ -12,7 +12,6 @@ Kotlin:
 from typing import TYPE_CHECKING, Any, cast
 
 import discord
-import pytest
 from discord import app_commands
 
 from discord_fakes import FakeChannel, FakeGuild, FakeInteraction, FakeMember
@@ -30,7 +29,6 @@ if TYPE_CHECKING:
     type Callback = Callable[[Feedbacker, discord.Interaction, object, object], Awaitable[None]]
 
 GOLDEN = golden("feedbacker")
-REGISTERED = pytest.mark.xfail(strict=True, reason="The command is a localized guild command")
 
 
 def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
@@ -38,7 +36,6 @@ def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
     return {key: actual.get(key) for key in expected}
 
 
-@REGISTERED
 async def test_command_payload(bot: Bot) -> None:
     """Requirement: The command is a localized guild command."""
     global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
@@ -54,7 +51,6 @@ async def test_command_payload(bot: Bot) -> None:
     assert "feedbacker" not in {entry["name"] for entry in global_payload}
 
 
-@REGISTERED
 async def test_command_callback(bot: Bot, cog: Feedbacker) -> None:
     """Requirement: The command is a localized guild command."""
     command = bot.tree.get_command("feedbacker")
@@ -81,9 +77,6 @@ async def test_command_callback(bot: Bot, cog: Feedbacker) -> None:
     assert done == ("edit_original_response", {"content": GOLDEN["config"]["form_success"]})
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The command is a localized guild command"
-)
 async def test_text_channels_only() -> None:
     """Requirement: The command is a localized guild command."""
     option = TextChannelOption()

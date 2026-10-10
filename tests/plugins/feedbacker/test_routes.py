@@ -26,7 +26,6 @@ V3_STAR = "feedbacker@a:submit_star;b:7;d:6;c:{count}"  # inventory section 4, a
 NEW_STAR = "feedbacker:1:a=submit_star;b=7;d=6;c={count}"
 COMPONENT = discord.InteractionType.component
 MODAL = discord.InteractionType.modal_submit
-ROUTED = pytest.mark.xfail(strict=True, reason="v3's forms keep working")
 
 
 def form(star_ids: str, sent: list[Sent]) -> FakeMessage:
@@ -78,7 +77,6 @@ def star_ids(view: object) -> list[str | None]:
     return [item.custom_id for item in view.children if isinstance(item, discord.ui.Button)]
 
 
-@ROUTED
 async def test_v3_star_button(bot: Bot) -> None:
     """Requirement: v3's forms keep working."""
     interaction = press(V3_STAR.format(count=3), V3_STAR)
@@ -93,7 +91,6 @@ async def test_v3_star_button(bot: Bot) -> None:
     assert IDS.upgrade(V3_STAR.format(count=3)) == NEW_STAR.format(count=3)
 
 
-@ROUTED
 async def test_v3_modal(bot: Bot) -> None:
     """Requirement: v3's forms keep working."""
     interaction = submit("feedbacker@a:submit_form;c:3;d:6", V3_STAR)
@@ -105,7 +102,6 @@ async def test_v3_modal(bot: Bot) -> None:
     assert IDS.upgrade("feedbacker@a:submit_form;c:3;d:6") == "feedbacker:1:a=submit_form;c=3;d=6"
 
 
-@ROUTED
 async def test_new_ids(bot: Bot) -> None:
     """Requirement: v3's forms keep working."""
     pressed = press(NEW_STAR.format(count=5), NEW_STAR)
@@ -118,7 +114,6 @@ async def test_new_ids(bot: Bot) -> None:
     assert methods(submitted) == ["response.defer", "channel.send", "message.delete"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="v3's forms keep working")
 @pytest.mark.parametrize(
     ("kind", "custom_id"),
     [

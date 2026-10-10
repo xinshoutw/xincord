@@ -58,12 +58,29 @@ class Postable(Protocol):
 
 
 class TextChannelOption(app_commands.Transformer[discord.Client]):
-    """v3's ``submit-channel`` option: Discord offers text channels only."""
+    """v3's ``submit-channel`` option: Discord offers text channels only, as JDA's ``TEXT``.
+
+    discord.py's ``discord.TextChannel`` annotation would also offer announcement channels and need
+    the channel in the cache; this passes on the channel that Discord resolved. WelcomeByeGuild has
+    the same transformer for its ``channel`` option.
+    """
+
+    @property
+    @override
+    def type(self) -> discord.AppCommandOptionType:
+        """A channel option."""
+        return discord.AppCommandOptionType.channel
+
+    @property
+    @override
+    def channel_types(self) -> list[discord.ChannelType]:
+        """Text channels only."""
+        return [discord.ChannelType.text]
 
     @override
     async def transform(self, interaction: discord.Interaction, value: object, /) -> object:
-        """Stub until the command exists."""
-        raise NotImplementedError
+        """Pass on the ``AppCommandChannel`` that Discord resolved."""
+        return value
 
 
 class Feedbacker(commands.Cog):
@@ -76,20 +93,52 @@ class Feedbacker(commands.Cog):
         self.templates = templates
 
     def command(self) -> app_commands.Command[Any, ..., None]:
-        """Build ``/feedbacker``, localized from ``register.yaml``."""
-        raise NotImplementedError
+        """Build ``/feedbacker``, localized from ``register.yaml``.
+
+        As in v3, a guild command that every member sees: ``create_form`` checks Administrator.
+        """
+        lang = self.lang
+        command: app_commands.Command[Any, ..., None] = app_commands.Command(
+            name=lang.command("feedbacker", "feedbacker.name"),
+            description=lang.command(
+                "Create a feedback form for a member", "feedbacker.description"
+            ),
+            callback=self.create_form,
+        )
+        app_commands.rename(
+            member=lang.command("member", "feedbacker.options.member.name"),
+            submit_channel=lang.command("submit-channel", "feedbacker.options.submit-channel.name"),
+        )(command)
+        return app_commands.describe(
+            member=lang.command("Specify the member", "feedbacker.options.member.description"),
+            submit_channel=lang.command(
+                "Specify the submit channel", "feedbacker.options.submit-channel.description"
+            ),
+        )(command)
 
     async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
-        """Send a star press or a submitted modal to its handler."""
-        raise NotImplementedError
+        """Send a form's star press or submitted modal to its handler; ``setup`` routes here.
+
+        As in v3, a press is a ``submit_star`` button and a submission a ``submit_form`` modal, in
+        v3's ID format too; anything else gets no response.
+        """
+        action = parsed.fields.get("action")
+        if interaction.type is discord.InteractionType.component and action == "submit_star":
+            await self.press_star(interaction, parsed.fields)
+        elif interaction.type is discord.InteractionType.modal_submit and action == "submit_form":
+            await self.submit_form(interaction, parsed.fields)
 
     async def create_form(
         self,
         interaction: discord.Interaction,
         member: discord.Member | discord.User,
-        submit_channel: app_commands.AppCommandChannel,
+        submit_channel: app_commands.Transform[app_commands.AppCommandChannel, TextChannelOption],
     ) -> None:
         """Post the form that asks ``member`` to rate the service, for an administrator.
+
+        ``member`` is a user option: discord.py passes the member that Discord resolved, or the
+        user when Discord resolved none, where a ``discord.Member`` annotation would fail before
+        the callback and leave the response "thinking", as v3's ``asMember!!`` did.
 
         As in v3, the form goes to the command's channel in the administrator's locale, and the
         response that the command tree deferred says whether it was posted. Where v3 left that

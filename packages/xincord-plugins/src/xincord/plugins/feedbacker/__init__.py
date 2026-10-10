@@ -10,7 +10,7 @@ import discord
 
 from xincord.core.templates import Templates
 
-from .cog import Feedbacker
+from .cog import IDS, Feedbacker
 from .config import Config
 
 if TYPE_CHECKING:
@@ -27,7 +27,13 @@ DEFAULT_LOCALE = "zh-TW"
 
 
 async def setup(bot: Bot) -> None:
-    """Load the config, the lang files and the templates, then add the cog."""
+    """Load the config, the lang files and the templates, then register the cog's handlers."""
     context = bot.plugin_context(__name__)
     lang = context.lang(DEFAULT_LOCALE)
-    await bot.add_cog(Feedbacker(context.config(Config), lang, Templates.load(lang)))
+    cog = Feedbacker(context.config(Config), lang, Templates.load(lang))
+    await bot.add_cog(cog)
+    # A guild command, as in v3. discord.py removes it when the plugin unloads.
+    bot.tree.add_command(cog.command())
+    # Star presses and submitted modals with IDS's IDs, v3's too, reach cog.handle; the core drops
+    # the route when the plugin unloads.
+    bot.route(__name__, IDS, cog.handle)

@@ -49,7 +49,7 @@
 ## 9. Command and routes
 
 - [x] 9.1 xfail tests for "The command is a localized guild command" and "v3's forms keep working"
-- [ ] 9.2 Build the command, register it and route `IDS` to `handle` in `setup`; remove the markers
+- [x] 9.2 Build the command, register it and route `IDS` to `handle` in `setup`; remove the markers
 
 ## 10. Conventions and docs
 
