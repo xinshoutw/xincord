@@ -71,11 +71,6 @@ async def add(scene: Scene, text: str) -> FakeInteraction:
     return interaction
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The add command opens the builder for a message",
-)
 async def test_added_buttons_draft(scene: Scene) -> None:
     """Requirement: The add command opens the builder for a message."""
     panel(scene)
@@ -111,11 +106,6 @@ async def test_added_buttons_draft(scene: Scene) -> None:
     assert session.draft.reason_title == GOLDEN["preview"]["en-US"]["reason-title"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The add command opens the builder for a message",
-)
 @pytest.mark.parametrize(
     ("text", "message", "reply"),
     [
@@ -149,11 +139,6 @@ async def test_refused_messages(scene: Scene, text: str, message: str, reply: st
     assert scene.cog.drafts == {}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The add command opens the builder for a message",
-)
 async def test_message_without_rows(scene: Scene) -> None:
     """Requirement: The add command opens the builder for a message."""
     panel(scene, components=[])
@@ -163,3 +148,14 @@ async def test_message_without_rows(scene: Scene) -> None:
     [(method, _)] = interaction.sent
     assert method == "edit_original_response"
     assert scene.session().target is not None
+
+
+async def test_channel_without_messages(scene: Scene) -> None:
+    """Requirement: The add command opens the builder for a message."""
+    interaction = scene.interaction({"type": 1, "name": "add-ticket"}, COMMAND)
+    interaction.channel = object()  # a forum or a category takes no messages
+
+    await scene.cog.add_ticket(interaction.as_interaction(), str(TARGET))
+
+    expected = {"content": f"Cannot find the message by id: {TARGET}"}
+    assert interaction.sent == [("edit_original_response", expected)]

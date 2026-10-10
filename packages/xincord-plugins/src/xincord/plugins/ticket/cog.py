@@ -6,8 +6,9 @@ Kotlin:
 """
 
 import logging
+import re
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import discord
 from discord import app_commands
@@ -30,6 +31,19 @@ if TYPE_CHECKING:
     from .model import Draft
 
 logger = logging.getLogger(__name__)
+
+MESSAGE_ID = re.compile(r"[0-9]{1,20}")  # a snowflake as /add-ticket's text option gives it
+ROW_SIZE = 5  # the components an action row holds at most
+
+
+@runtime_checkable
+class Fetching(Protocol):
+    """A channel that fetches its messages, as v3's ``retrieveMessageById``."""
+
+    async def fetch_message(self, message_id: int, /) -> discord.Message:
+        """The channel's message ``message_id``."""
+        ...
+
 
 # v3's fields in v3's order, the user ID in hex as v3 wrote it, and v3's prefix, so that v3's
 # panels and ticket channels keep working.
@@ -111,8 +125,37 @@ class Ticket(commands.Cog):
         await self._open(interaction, guild_id, Session(0, defaults(self.texts(interaction))))
 
     async def add_ticket(self, interaction: discord.Interaction, message_id: str) -> None:
-        """Edit the deferred response into the builder of a button for message ``message_id``."""
-        raise NotImplementedError
+        """Edit the deferred response into the builder of a button for message ``message_id``.
+
+        The message is looked for in the command's channel, as v3. It must be the bot's (v3 failed
+        silently at the confirmation), with a first row that takes a button (v3 compared its size
+        with five only, B16) and an embed (v3 stayed "thinking", B9); a text that is no ID (v3
+        stayed "thinking", B7) and an unknown message (v3 also stored a broken draft, B8) are
+        answered too.
+        """
+        guild_id = interaction.guild_id
+        if guild_id is None:  # guild commands run in guilds only
+            return
+        texts = self.texts(interaction)
+        found = await self._target(interaction, message_id.strip(), texts)
+        if isinstance(found, str):
+            await interaction.edit_original_response(content=found)
+            return
+        await self._open(interaction, guild_id, Session(0, defaults(texts), found))
+
+    async def _target(
+        self, interaction: discord.Interaction, text: str, texts: Texts
+    ) -> Target | str:
+        """The message that ``/add-ticket`` names, or the error that answers the command."""
+        if not MESSAGE_ID.fullmatch(text):
+            return texts.get("error.invalid-message-id", {"tt@message-id": text})
+        message = await _fetch(interaction.channel, int(text))
+        if message is None:
+            return texts.get("error.message-not-found", {"tt@message-id": text})
+        refused = _refusal(message, interaction.client.user)
+        if refused is not None:
+            return texts.get(refused)
+        return Target(message.id, message.embeds[0])
 
     async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
         """Send a press, a selection or a submission to its handler; ``setup`` routes here."""
@@ -164,3 +207,45 @@ class Ticket(commands.Cog):
     def public(self) -> Texts:
         """The texts of public messages (the control row, the archive's markers): zh-TW, as v3."""
         return Texts(self.lang, self.lang.default_locale)
+
+
+async def _fetch(channel: object, message_id: int) -> discord.Message | None:
+    """The channel's message ``message_id``, or None when Discord has none for the bot there."""
+    if not isinstance(channel, Fetching):  # a channel without messages has no such message
+        return None
+    try:
+        return await channel.fetch_message(message_id)
+    except discord.HTTPException:
+        return None
+
+
+def _refusal(message: discord.Message, bot: discord.ClientUser | None) -> str | None:
+    """The error key when ``/add-ticket`` cannot add a button to ``message``, else None."""
+    if bot is None or message.author.id != bot.id:
+        return "error.not-own-message"
+    if is_full(message):
+        return "error.message-full"
+    if not message.embeds:
+        return "error.no-embed"
+    return None
+
+
+def is_full(message: discord.Message) -> bool:
+    """Whether the message's first action row takes no more button: five components, or a select
+    (which fills its row).
+    """
+    row = first_row(message)
+    if row is None:
+        return False
+    children = row.children
+    return len(children) >= ROW_SIZE or not all(
+        isinstance(child, discord.Button) for child in children
+    )
+
+
+def first_row(message: discord.Message) -> discord.ActionRow | None:
+    """The message's first action row, v3's ``firstOrNull { it.type == ACTION_ROW }``."""
+    return next(
+        (component for component in message.components if isinstance(component, discord.ActionRow)),
+        None,
+    )
