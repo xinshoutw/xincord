@@ -149,20 +149,28 @@ class Giveaway(commands.Cog):
         self.drafts[interaction.user.id, guild_id] = Session(shown.id, draft)
 
     async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
-        """Send a builder press or submission to its handler; ``setup`` routes here.
+        """Send a press or a submission to its handler; ``setup`` routes here.
 
         As v3's ``onButtonInteraction`` and ``onModalInteraction``: buttons with the action
-        ``create`` drive the builder, and so do modals; anything else, select menus included, gets
-        no response.
+        ``create`` drive the builder, and so do modals; ``participate`` joins or leaves a giveaway.
+        Anything else, select menus included, gets no response.
         """
         action = parsed.fields.get("action")
         sub_action = parsed.fields.get("sub_action", "")
         data = cast("Mapping[str, object]", interaction.data or {})
         if interaction.type is discord.InteractionType.component:
-            if data.get("component_type") == BUTTON and action == "create":
+            if data.get("component_type") != BUTTON:
+                return
+            if action == "create":
                 await self.press(interaction, sub_action)
+            elif action == "participate":
+                await self.join(interaction, parsed.fields.get("giveaway_id"))
         elif interaction.type is discord.InteractionType.modal_submit and action == "create":
             await self.submit(interaction, sub_action)
+
+    async def join(self, interaction: discord.Interaction, giveaway_id: str | None) -> None:
+        """Add the user to the giveaway's participants, or remove them."""
+        raise NotImplementedError
 
     async def press(self, interaction: discord.Interaction, sub_action: str) -> None:
         """Handle a press of the builder's button ``sub_action``.

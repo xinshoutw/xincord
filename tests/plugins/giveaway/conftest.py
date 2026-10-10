@@ -23,6 +23,7 @@ from discord_fakes import (
 from plugin_fakes import Ready, load_plugin
 from xincord.core.bot import Bot
 from xincord.plugins.giveaway.cog import IDS, Session
+from xincord.plugins.giveaway.store import Giveaways
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Iterator, Mapping
@@ -30,14 +31,16 @@ if TYPE_CHECKING:
 
     from xincord.core.storage import Store
     from xincord.plugins.giveaway.cog import Giveaway
-    from xincord.plugins.giveaway.model import Draft
+    from xincord.plugins.giveaway.model import Draft, Instance
 
 PACKAGE = "xincord.plugins.giveaway"
 NOW = 1772244000  # 2026-02-28 10:00 in Asia/Taipei, the tests' clock
 GUILD = 10
 CHANNEL = 5  # the channel of the builder, where giveaways are posted
 USER = 7  # the administrator who builds the giveaway, unless a test says otherwise
+MEMBER = 8  # a member without Administrator, who joins giveaways
 BUILDER = 43  # the ID of the builder message that shows the user's draft
+POST = 500  # the ID of a giveaway's post
 COMPONENT = discord.InteractionType.component
 MODAL = discord.InteractionType.modal_submit
 
@@ -122,6 +125,7 @@ class Who:
 
 
 ME = Who()  # administrator 7 with an en-US client, on the builder message
+JOINER = Who(user=MEMBER, admin=False, message_id=POST)  # member 8 on the post
 
 
 @dataclass
@@ -184,6 +188,24 @@ class Scene:
         )
         await self.cog.handle(interaction.as_interaction(), IDS.parse(custom_id))
         return interaction
+
+    async def click(self, action: str, giveaway_id: str, who: Who = JOINER) -> FakeInteraction:
+        """``who`` presses a post's button ``action`` of the giveaway ``giveaway_id``."""
+        custom_id = IDS.build({"action": action, "giveaway_id": giveaway_id})
+        data = {"component_type": 2, "custom_id": custom_id}
+        interaction = self.interaction(data, COMPONENT, who)
+        await self.cog.handle(interaction.as_interaction(), IDS.parse(custom_id))
+        return interaction
+
+    async def add(self, instance: Instance) -> None:
+        """Store a giveaway, as a confirmation does."""
+        await Giveaways(self.store).add(instance)
+
+    async def stored(self, giveaway_id: str) -> Instance:
+        """Guild 10's stored giveaway ``giveaway_id``."""
+        found = await Giveaways(self.store).get(GUILD, giveaway_id)
+        assert found is not None
+        return found
 
     async def submit(
         self, sub_action: str, values: Mapping[str, str], who: Who = ME
