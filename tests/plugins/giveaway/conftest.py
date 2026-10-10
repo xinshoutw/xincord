@@ -6,13 +6,20 @@ as administrator 7 of guild 10, through the plugin's route handler.
 """
 
 import sys
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, cast
 
 import discord
 import pytest
 
-from discord_fakes import BOT_USER, FakeGuild, FakeInteraction, FakeMember, FakeMessage
+from discord_fakes import (
+    BOT_USER,
+    FakeChannel,
+    FakeGuild,
+    FakeInteraction,
+    FakeMember,
+    FakeMessage,
+)
 from plugin_fakes import Ready, load_plugin
 from xincord.core.bot import Bot
 from xincord.plugins.giveaway.cog import IDS, Session
@@ -28,6 +35,7 @@ if TYPE_CHECKING:
 PACKAGE = "xincord.plugins.giveaway"
 NOW = 1772244000  # 2026-02-28 10:00 in Asia/Taipei, the tests' clock
 GUILD = 10
+CHANNEL = 5  # the channel of the builder, where giveaways are posted
 USER = 7  # the administrator who builds the giveaway, unless a test says otherwise
 BUILDER = 43  # the ID of the builder message that shows the user's draft
 COMPONENT = discord.InteractionType.component
@@ -118,10 +126,15 @@ ME = Who()  # administrator 7 with an en-US client, on the builder message
 
 @dataclass
 class Scene:
-    """Guild 10 with Giveaway loaded, where users build giveaways."""
+    """Guild 10 with Giveaway loaded, where users build giveaways in ``channel``.
+
+    The channel records its messages in its own ``sent`` list; a test may replace it with one that
+    refuses messages, or with an object that takes none.
+    """
 
     bot: Bot
     store: Store
+    channel: object = field(default_factory=lambda: FakeChannel(id=CHANNEL))
 
     @property
     def cog(self) -> Giveaway:
@@ -152,6 +165,7 @@ class Scene:
             permissions=discord.Permissions(administrator=who.admin),
         )
         interaction.message = FakeMessage(sent=interaction.sent, id=who.message_id)
+        interaction.channel = self.channel
         return interaction
 
     def keep(self, draft: Draft, who: Who = ME) -> None:

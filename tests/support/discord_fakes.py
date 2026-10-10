@@ -151,17 +151,20 @@ class FakeChannel:
     id: int = 5
     name: str = "general"
     type: discord.ChannelType = discord.ChannelType.text
+    next_id: int = 500  # the ID of the next message sent to the channel
 
     @property
     def mention(self) -> str:
         """The mention markup."""
         return f"<#{self.id}>"
 
-    async def send(self, **fields: object) -> None:
-        """Record a message sent to the channel."""
+    async def send(self, **fields: object) -> FakeMessage:
+        """Record a message sent to the channel and return it, as discord.py does."""
         if self.error is not None:
             raise self.error
         self.sent.append(("channel.send", fields))
+        self.next_id += 1
+        return FakeMessage(sent=self.sent, id=self.next_id - 1, channel_id=self.id)
 
 
 @dataclass
@@ -289,6 +292,13 @@ class FakeMessage:
     flags: discord.MessageFlags = field(default_factory=discord.MessageFlags)
     error: Exception | None = None
     deleted: bool = False
+    channel_id: int = 5
+    guild_id: int = 10
+
+    @property
+    def jump_url(self) -> str:
+        """The message's URL, as discord.py builds it."""
+        return f"https://discord.com/channels/{self.guild_id}/{self.channel_id}/{self.id}"
 
     @property
     def channel(self) -> SimpleNamespace:

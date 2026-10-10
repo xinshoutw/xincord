@@ -249,3 +249,9 @@ post:
 post-buttons:
   styles: [3, 1, 2]
   actions: ["participate", "draw", "reroll"]
+
+# message/create-finished.yaml and create-failed.yaml without their %ga@jump-url% and %ga@error%,
+# and create-cancelled.yaml.
+created: {en-US: "Giveaway created successfully: ", zh-TW: "抽獎建立成功："}
+failed: {en-US: "Failed to create giveaway: ", zh-TW: "建立抽獎失敗："}
+cancelled: {en-US: "Giveaway setup cancelled.", zh-TW: "已取消建立抽獎流程。"}

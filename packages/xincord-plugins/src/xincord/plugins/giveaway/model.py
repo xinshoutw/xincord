@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     import random
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Callable, Collection, Iterable, Sequence
 
     from xincord.core.storage import JSON
 
@@ -73,6 +73,11 @@ class Instance:
     ended: bool = False
     participant_ids: tuple[int, ...] = ()
     winner_results: tuple[Winners, ...] = ()
+
+
+def new_id(taken: Collection[str], random_hex: Callable[[], str]) -> str:
+    """A new giveaway ID that ``taken`` lacks, from ``random_hex`` (a UUID's hex digits)."""
+    raise NotImplementedError
 
 
 def draw_winners(

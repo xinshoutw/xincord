@@ -14,7 +14,7 @@ Kotlin:
 
 import logging
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, NoReturn, cast
 
 import discord
 import pytest
@@ -43,7 +43,7 @@ components:
 class ClosingChannel(FakeChannel):
     """A channel that refuses every message after closing its files, as discord.py's send does."""
 
-    async def send(self, **fields: object) -> None:
+    async def send(self, **fields: object) -> NoReturn:
         """Close the message's files, then fail as Discord does without permissions."""
         for file in cast("Sequence[discord.File]", fields["files"]):
             file.close()
