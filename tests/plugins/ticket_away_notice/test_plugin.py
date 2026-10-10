@@ -9,7 +9,6 @@ from importlib.resources import files
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 from plugin_fakes import load_plugin
 from xincord.core.plugins import PluginInfo, discover
@@ -23,7 +22,6 @@ if TYPE_CHECKING:
 NOTICE = "lang/zh-TW/message/not-online.yaml"
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as TicketAwayNotice")
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as TicketAwayNotice."""
     assert discover(["TicketAwayNotice"]) == [
@@ -35,7 +33,6 @@ def test_discovered_by_name() -> None:
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as TicketAwayNotice")
 async def test_the_bot_requests_the_intents(bot: Bot) -> None:
     """Requirement: The plugin installs as TicketAwayNotice."""
     assert bot.loaded == ("TicketAwayNotice",)
@@ -43,7 +40,6 @@ async def test_the_bot_requests_the_intents(bot: Bot) -> None:
     assert bot.intents.presences
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as TicketAwayNotice")
 async def test_first_load_writes_the_files(store: Store, tmp_path: Path) -> None:
     """Requirement: The plugin installs as TicketAwayNotice."""
     bot = await load_plugin("TicketAwayNotice", tmp_path / "plugins", store)

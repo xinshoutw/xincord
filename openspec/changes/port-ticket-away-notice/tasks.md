@@ -8,7 +8,7 @@
 
 - [x] 2.1 xfail tests for "The plugin installs as TicketAwayNotice" and "The config names the
       guild, the owner, the prefixes and the delay", loading the plugin through its entry point
-- [ ] 2.2 Add the package, its `setup`, the members and presences intents, the config model and
+- [x] 2.2 Add the package, its `setup`, the members and presences intents, the config model and
       the `TicketAwayNotice` entry point; remove the markers
 
 ## 3. Watching and the delay

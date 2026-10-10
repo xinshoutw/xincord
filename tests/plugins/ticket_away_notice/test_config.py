@@ -26,9 +26,6 @@ delay_millis: 2000
 """
 
 
-@pytest.mark.xfail(
-    strict=True, reason="The config names the guild, the owner, the prefixes and the delay"
-)
 @pytest.mark.parametrize("quoting", ["unquoted", "quoted"])
 async def test_v3_config_file(
     quoting: str, tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
@@ -45,9 +42,6 @@ async def test_v3_config_file(
         assert f"unknown key {key}" not in caplog.text
 
 
-@pytest.mark.xfail(
-    strict=True, reason="The config names the guild, the owner, the prefixes and the delay"
-)
 async def test_bundled_config(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -59,9 +53,6 @@ async def test_bundled_config(
     assert "user_id: Input should be greater than 0" in caplog.text
 
 
-@pytest.mark.xfail(
-    strict=True, reason="The config names the guild, the owner, the prefixes and the delay"
-)
 @pytest.mark.parametrize(
     ("change", "error"),
     [
