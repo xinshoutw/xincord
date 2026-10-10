@@ -33,8 +33,6 @@ if TYPE_CHECKING:
 
 GOLDEN = golden("giveaway")
 NAME = "create-giveaway"
-REASON = "The command opens the builder"
-COMMAND = "The command is a localized administrator guild command"
 
 
 def run(locale: str = "en-US", message_id: int = 43) -> FakeInteraction:
@@ -79,7 +77,6 @@ def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
     return {key: actual.get(key) for key in expected}
 
 
-@pytest.mark.xfail(strict=True, reason=COMMAND)
 async def test_command_payload(bot: Bot) -> None:
     """Requirement: The command is a localized administrator guild command."""
     global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
@@ -91,7 +88,6 @@ async def test_command_payload(bot: Bot) -> None:
     assert NAME not in {entry["name"] for entry in global_payload}
 
 
-@pytest.mark.xfail(strict=True, reason=COMMAND)
 async def test_command_callback(bot: Bot, cog: Giveaway) -> None:
     """Requirement: The command is a localized administrator guild command."""
     command = bot.tree.get_command(NAME)
@@ -109,7 +105,6 @@ async def test_command_callback(bot: Bot, cog: Giveaway) -> None:
     assert edited == "edit_original_response"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_builder(cog: Giveaway, locale: str) -> None:
     """Requirement: The command opens the builder."""
@@ -125,7 +120,6 @@ async def test_builder(cog: Giveaway, locale: str) -> None:
     assert rows(fields["view"]) == expected_rows(locale)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(("locale", "shown"), [("en-GB", "en-US"), ("zh-CN", "zh-TW")])
 async def test_builder_language(cog: Giveaway, locale: str, shown: str) -> None:
     """Requirement: The command opens the builder."""
@@ -140,7 +134,6 @@ async def test_builder_language(cog: Giveaway, locale: str, shown: str) -> None:
     assert rows(fields["view"]) == expected_rows(shown)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_new_draft(cog: Giveaway) -> None:
     """Requirement: The command opens the builder."""
     await cog.create_giveaway(run(message_id=43).as_interaction())
@@ -149,3 +142,14 @@ async def test_new_draft(cog: Giveaway) -> None:
     await cog.create_giveaway(run(message_id=44).as_interaction())
 
     assert cog.drafts == {(7, 10): Session(44, Draft())}
+
+
+async def test_outside_guild(cog: Giveaway) -> None:
+    """Requirement: The command opens the builder."""
+    interaction = run()
+    interaction.guild = None  # a guild command never runs there
+
+    await cog.create_giveaway(interaction.as_interaction())
+
+    assert interaction.sent == []
+    assert cog.drafts == {}

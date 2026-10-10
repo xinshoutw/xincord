@@ -51,7 +51,7 @@
 
 - [x] 10.1 xfail tests for "The command opens the builder" and "The command is a localized
       administrator guild command"
-- [ ] 10.2 Build and register the command and its callback; remove the markers
+- [x] 10.2 Build and register the command and its callback; remove the markers
 
 ## 11. Drafts
 

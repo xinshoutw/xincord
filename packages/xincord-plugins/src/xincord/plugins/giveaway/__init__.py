@@ -31,4 +31,7 @@ async def setup(bot: Bot) -> None:
     context = bot.plugin_context(__name__)
     config = context.config(Config)
     lang = context.lang(config.default_locale)
-    await bot.add_cog(Giveaway(bot, config, context.store, lang, Templates.load(lang)))
+    cog = Giveaway(bot, config, context.store, lang, Templates.load(lang))
+    await bot.add_cog(cog)
+    # A guild command, as in v3. discord.py removes it when the plugin unloads.
+    bot.tree.add_command(cog.command())
