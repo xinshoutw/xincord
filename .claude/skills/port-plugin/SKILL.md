@@ -164,11 +164,13 @@ async def setup(bot: Bot) -> None:
   `enabled` (`SET_ASIDE`), so that the bundled one is written.
 - Checks that need several entries or the lang files run in `setup` after the config loads and
   raise one `ConfigError` with a `<file>: <key>: <problem>` line per problem, as `parse_model`
-  formats them (CustomCommands' `checks.py`: unique names per locale, a count limit, templates
-  that exist and need no component IDs or models).
-- A failed reload sets the previous version up again with the config and lang that it loaded (the
-  core replays them); templates and other files are read again, and a plugin whose previous
-  version fails too is unloaded until a later reload loads it.
+  formats them (CustomCommands' `checks.py`: unique names per locale, the room left of Discord's
+  100 commands, templates that exist and render once at load with no values, ID builder or
+  models, their files closed).
+- A failed reload sets the previous version up again with the config, lang and templates that it
+  loaded (the core replays them; `Templates.load` parses a `Lang`'s templates once); other files
+  are read again, and a plugin whose previous version fails too is unloaded with its dependents
+  until a full reload loads them.
 - Keys of a v3 feature that is not ported (Economy's Google Sheets keys, decision B12) are not
   fields: v3's files load and warn about each of them, as about `enabled`.
 - v3's camelCase keys (Giveaway's `defaultLocale`, `autoDrawIntervalSeconds`) are snake_case
@@ -261,7 +263,9 @@ async def setup(bot: Bot) -> None:
   descriptions as `localized(default, translations)` (the core's; no `register.yaml`),
   `extras["guilds"]` for a guild list (the core uploads such a command to those guilds only) and,
   for a public reply, `extras["defer"] = False` and `response.defer(thinking=True)` in the
-  callback: after the tree's ephemeral deferral no reply can be public.
+  callback: after the tree's ephemeral deferral no reply can be public. A configured name passes
+  discord.py's `validate_name` and the core's `is_command_name` (discord.py's pattern lets a final
+  line break through); a response that Discord refuses is deleted with a warning.
 - A channel option limited to JDA's channel types (`setChannelTypes(ChannelType.TEXT)`) is
   `app_commands.Transform[app_commands.AppCommandChannel, <Transformer>] | None` with a Transformer
   whose `type` is channel, whose `channel_types` lists the types and whose `transform` passes the

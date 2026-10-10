@@ -5,8 +5,8 @@
 # (`/xincord reload CustomCommands`): the bot uploads the changed commands. An entry's keys:
 #   name: 1 to 32 characters: lower-case letters, digits, - and _; unique.
 #   description: 1 to 100 characters.
-#   localizations: optional; per Discord locale (zh-TW, en-US, ja, ...), the name and the
-#     description that clients in that language show.
+#   localizations: optional; per Discord locale (zh-TW, en-US, ja, ...; quote "no", which YAML
+#     reads as false), the name and the description that clients in that language show.
 #   template: optional; the template's file name without .yaml, by default the command's name.
 #   permissions: optional; the permissions that members need to see the command, by discord.py's
 #     names (administrator, manage_guild, manage_messages, ...), by default [administrator];

@@ -185,13 +185,16 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   `custom-commands-from-config`): one model per entry, each value checked against what Discord and
   discord.py take (discord.py's `validate_name` for the name, the core's `is_command_name` for
   localized names, `DESCRIPTION_MAX`, `discord.Locale`, `discord.Permissions.VALID_FLAGS`);
-  `setup` checks what needs several entries or the lang files (names unique in every locale, at
-  most 100 commands, templates that exist in the default locale and hold no `uid` or `model_key`)
-  and raises one `ConfigError` with a `<file>: <key>: <problem>` line each (`checks.py`). Names and
-  descriptions are localized with the core's `localized(default, translations)` instead of
-  `register.yaml`; `extras["guilds"]` limits a guild command to some guilds; a public reply sets
-  `extras["defer"] = False` and defers with `response.defer(thinking=True)`. A key whose default
-  Python cannot hold (zh-TW text) is required, and the bundled file holds it.
+  `setup` checks what needs several entries or the lang files (names unique in every locale, no
+  more commands than the room left of Discord's 100, counted with
+  `bot.tree.get_commands(type=discord.AppCommandType.chat_input)`, and templates that exist in the
+  default locale and render once at load with no values, ID builder or models) and raises one
+  `ConfigError` with a `<file>: <key>: <problem>` line each (`checks.py`). Names and descriptions
+  are localized with the core's `localized(default, translations)` instead of `register.yaml`;
+  `extras["guilds"]` limits a guild command to some guilds; a public reply sets
+  `extras["defer"] = False` and defers with `response.defer(thinking=True)`; a response that
+  Discord refuses is deleted with a warning, so that no public "thinking" message stays. A key
+  whose default Python cannot hold (zh-TW text) is required, and the bundled file holds it.
 - A public message that v3 rendered with `getCreateBuilder(key)` and no locale renders in the
   default locale for every user (CustomCommands' posts and public replies); an ephemeral reply
   follows the user's locale.
@@ -415,10 +418,12 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   `setup`; release what the old version holds (tasks, listeners outside a cog) in `teardown` or
   `cog_unload`. A failed reload restores the old module and runs its `setup` again, which reads the
   plugin's files again: the file that broke the new version broke the old one too, and discord.py
-  then left the plugin unregistered. The core hands that setup a context that replays the config
-  and lang it loaded (`PluginContext.replaying`; discord.py 2.7.1 runs it while the plugin's
-  modules are out of `sys.modules`), and unloads the plugin cleanly when it still fails, as with a
-  broken template, which is parsed again (`custom-commands-from-config`).
+  then left the plugin unregistered. The core hands that setup a context that replays the config,
+  lang and templates it loaded (`PluginContext.replaying`, and `Templates.load` parses a `Lang`'s
+  templates once; discord.py 2.7.1 runs that setup while the plugin's modules are out of
+  `sys.modules`). When it still fails (a file the plugin reads itself), the core unloads the
+  plugin, its modules and the plugins that depend on it, uploads the commands without theirs, and
+  a full reload loads them again (`custom-commands-from-config`).
 - **Command callbacks.** discord.py evaluates a callback's annotations when the command is built,
   so `import discord` must stay at runtime; ruff does not flag a move into `TYPE_CHECKING` while
   other `discord` imports remain, but the plugin then fails to load and its tests fail. Pass the
@@ -434,8 +439,15 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   `sys.modules` entries back after each test (`plugin_modules`); look the new cog up by name
   (CustomCommands' `test_reload.py`).
 - **Command names.** discord.py's `app_commands.Command` refuses an apostrophe, which Discord takes
-  in names and localizations: check a configured name with discord.py's `validate_name`
-  (`discord.app_commands.commands`) and a localized one with the core's `is_command_name`.
+  in names and localizations, and its pattern ends in `$`, which lets a final line break through
+  that Discord refuses with the guild's whole upload: check a configured name with discord.py's
+  `validate_name` (`discord.app_commands.commands`) and the core's `is_command_name` (Discord's
+  rules: letters, numbers, `-`, `_`, `'` and the Devanagari and Thai scripts), a localized one with
+  `is_command_name`.
+- **Rendering at load.** A template that the plugin can never post (a `uid` without an ID builder,
+  a `model_key` without models, a missing `file_path`, six rows) fails `render_message` with
+  `TemplateError` or discord.py's `ValueError`; render it once in `setup` with no values and close
+  its files (CustomCommands' `checks._render_problem`).
 - **One command table.** The core keeps every plugin's commands, guild-limited ones included, in
   discord.py's global table: discord.py refuses the 101st (`CommandLimitReached`) and a name that
   another plugin registered first (`CommandAlreadyRegistered`), and the plugin that loads second
