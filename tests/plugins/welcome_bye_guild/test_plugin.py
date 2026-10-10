@@ -10,7 +10,6 @@ Kotlin:
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 from xincord.core.plugins import PluginInfo, discover
 
@@ -19,7 +18,6 @@ if TYPE_CHECKING:
 
     from xincord.core.bot import Bot
 
-XFAIL = pytest.mark.xfail(strict=True, reason="The plugin installs as WelcomeByeGuild")
 MESSAGES = (
     "welcome",
     "bye",
@@ -42,7 +40,6 @@ LANG_FILES = tuple(
 )
 
 
-@XFAIL
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as WelcomeByeGuild."""
     assert discover(["WelcomeByeGuild"]) == [
@@ -54,14 +51,12 @@ def test_discovered_by_name() -> None:
     ]
 
 
-@XFAIL
 async def test_the_bot_requests_the_members_intent(bot: Bot) -> None:
     """Requirement: The plugin installs as WelcomeByeGuild."""
     assert bot.loaded == ("WelcomeByeGuild",)
     assert bot.intents.members
 
 
-@XFAIL
 async def test_first_load_creates_the_lang_files(bot: Bot, tmp_path: Path) -> None:
     """Requirement: The plugin installs as WelcomeByeGuild."""
     directory = tmp_path / "plugins" / "WelcomeByeGuild"

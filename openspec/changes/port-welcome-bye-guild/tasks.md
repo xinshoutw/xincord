@@ -13,7 +13,7 @@
 ## 3. Installation
 
 - [x] 3.1 xfail tests for "The plugin installs as WelcomeByeGuild"
-- [ ] 3.2 Add the package, its `setup` and the `WelcomeByeGuild` entry point; remove the markers
+- [x] 3.2 Add the package, its `setup` and the `WelcomeByeGuild` entry point; remove the markers
 
 ## 4. Storage
 
