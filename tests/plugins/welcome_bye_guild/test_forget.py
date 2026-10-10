@@ -9,8 +9,6 @@ Kotlin (v3 deleted them only on a GuildLeaveEvent received while the plugin was 
 import logging
 from typing import TYPE_CHECKING
 
-import pytest
-
 from discord_fakes import FakeGuild
 from plugin_fakes import dispatch, load_plugin
 from xincord.core.bot import Bot
@@ -19,10 +17,10 @@ from xincord.plugins.welcome_bye_guild.store import NAMESPACE, set_channel
 if TYPE_CHECKING:
     from pathlib import Path
 
+    import pytest
+
     from xincord.core.storage import Store
 
-REASON = "Channels are forgotten with the guild"
-FORGET = pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 # Guild 10 is available and guild 20 unavailable (an outage); the bot left guild 30.
 GUILDS = {10: FakeGuild(10), 20: FakeGuild(20, unavailable=True)}
 
@@ -34,7 +32,6 @@ async def bind_three(store: Store) -> None:
     await set_channel(store, 30, "welcome", 3)
 
 
-@FORGET
 async def test_bot_leaves(bot: Bot, store: Store) -> None:
     """Requirement: Channels are forgotten with the guild."""
     await bind_three(store)
@@ -44,7 +41,6 @@ async def test_bot_leaves(bot: Bot, store: Store) -> None:
     assert await store.keys(NAMESPACE) == ["20", "30"]
 
 
-@FORGET
 async def test_left_while_offline(
     bot: Bot, store: Store, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -59,7 +55,6 @@ async def test_left_while_offline(
     assert "WelcomeByeGuild deleted the channels of guild 30, which the bot left" in caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 async def test_loaded_into_a_ready_bot(
     store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

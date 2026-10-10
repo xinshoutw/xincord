@@ -6,7 +6,7 @@ Kotlin:
 """
 
 import logging
-from typing import TYPE_CHECKING, NamedTuple, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, NamedTuple, Protocol, override, runtime_checkable
 
 import discord
 from discord.ext import commands
@@ -14,7 +14,7 @@ from discord.ext import commands
 from xincord.core.placeholders import placeholder_values
 from xincord.core.templates import render_message
 
-from .store import read, set_channel
+from .store import forget, guild_ids, read, set_channel
 from .values import TextChannelLike, command_values, member_event_values, text_channel
 
 if TYPE_CHECKING:
@@ -77,15 +77,38 @@ class WelcomeByeGuild(commands.Cog):
         self.lang = lang
         self.templates = templates
 
-    @commands.Cog.listener()
-    async def on_guild_remove(self, guild: discord.Guild) -> None:
-        """Stub until guilds are forgotten."""
-        raise NotImplementedError
+    @override
+    async def cog_load(self) -> None:
+        """Forget the left guilds at once when the plugin loads into a ready bot, as on a reload."""
+        if self.bot.is_ready():
+            await self.forget_left_guilds()
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        """Stub until guilds are forgotten."""
-        raise NotImplementedError
+        """Forget the guilds that the bot left while offline; this fires for each session."""
+        await self.forget_left_guilds()
+
+    @commands.Cog.listener()
+    async def on_guild_remove(self, guild: discord.Guild) -> None:
+        """Delete the channels of a guild that the bot left or was removed from, as v3 did.
+
+        discord.py does not fire this during an outage (``on_guild_unavailable``).
+        """
+        await forget(self.store, guild.id)
+
+    async def forget_left_guilds(self) -> None:
+        """Delete the channels of the guilds the bot is no longer in.
+
+        v3 deleted them only when it saw the bot leave a guild while the plugin was enabled. By
+        ``on_ready``, discord.py knows every guild of the session, unavailable ones included.
+        """
+        for guild_id in await guild_ids(self.store):
+            if self.bot.get_guild(guild_id) is None:
+                await forget(self.store, guild_id)
+                logger.info(
+                    "WelcomeByeGuild deleted the channels of guild %s, which the bot left",
+                    guild_id,
+                )
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:

@@ -42,7 +42,7 @@
 ## 8. Forgetting guilds
 
 - [x] 8.1 xfail tests for "Channels are forgotten with the guild"
-- [ ] 8.2 Implement `on_guild_remove`, `on_ready`, `cog_load` and `forget_left_guilds`; remove the
+- [x] 8.2 Implement `on_guild_remove`, `on_ready`, `cog_load` and `forget_left_guilds`; remove the
       markers
 
 ## 9. Commands
