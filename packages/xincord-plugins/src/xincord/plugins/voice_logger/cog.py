@@ -170,6 +170,15 @@ class VoiceLogger(commands.Cog):
         actor = {} if bot is None else actor_values(member, bot)
         await self._post(guild, listen, name, actor | values)
 
+    @commands.Cog.listener()
+    async def on_gateway_voice_channel_status_update(self, payload: dict[str, object]) -> None:
+        """Post a voice channel's status change to the listen channels that detect the channel.
+
+        Raises:
+            NotImplementedError: Not implemented yet.
+        """
+        raise NotImplementedError
+
     async def _post(
         self, guild: discord.Guild, listen: Sequence[int], name: str, values: Mapping[str, str]
     ) -> None:

@@ -144,3 +144,77 @@ voice:
         - {name: "`退出頻道`", value: "<#30> (Room A)", inline: false}
         - {name: "`進入類別`", value: "<#21>", inline: false}
         - {name: "`進入頻道`", value: "<#32> (Room B)", inline: false}
+
+# The status logs per locale for member 7 in Room A (30, category 20) of guild 10: the status
+# Gaming set, changed to Chill, then cleared.
+status:
+  en-US:
+    new:
+      title: "☛ New Voice Status"
+      url: "https://discord.com/channels/10/30"
+      thumbnail: {url: "https://cdn.example/default.png"}
+      color: 974848
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "`Member`", value: "<@7>", inline: false}
+        - {name: "`Category`", value: "<#20>", inline: false}
+        - {name: "`Channel`", value: "<#30>", inline: false}
+        - {name: "`--> Content <--`", value: "Gaming", inline: false}
+    update:
+      title: "☛ Voice Status Updated"
+      url: "https://discord.com/channels/10/30"
+      thumbnail: {url: "https://cdn.example/default.png"}
+      color: 13684736
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "`Member`", value: "<@7>", inline: false}
+        - {name: "`Category`", value: "<#20>", inline: false}
+        - {name: "`Channel`", value: "<#30>", inline: false}
+        - {name: "`--> Before <--`", value: "Gaming", inline: false}
+        - {name: "`==> After <==`", value: "Chill", inline: false}
+    delete:
+      title: "☛ Voice Status Deleted"
+      url: "https://discord.com/channels/10/30"
+      thumbnail: {url: "https://cdn.example/default.png"}
+      color: 12591136
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "`Member`", value: "<@7>", inline: false}
+        - {name: "`Category`", value: "<#20>", inline: false}
+        - {name: "`Channel`", value: "<#30>", inline: false}
+        - {name: "`--> Status <--`", value: "Chill", inline: false}
+  zh-TW:
+    new:
+      title: "☛ 新增語音狀態"
+      url: "https://discord.com/channels/10/30"
+      thumbnail: {url: "https://cdn.example/default.png"}
+      color: 974848
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "`使用者`", value: "<@7>", inline: false}
+        - {name: "`類別`", value: "<#20>", inline: false}
+        - {name: "`頻道`", value: "<#30>", inline: false}
+        - {name: "`--> 狀態 <--`", value: "Gaming", inline: false}
+    update:
+      title: "☛ 變更語音狀態"
+      url: "https://discord.com/channels/10/30"
+      thumbnail: {url: "https://cdn.example/default.png"}
+      color: 13684736
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "`使用者`", value: "<@7>", inline: false}
+        - {name: "`類別`", value: "<#20>", inline: false}
+        - {name: "`頻道`", value: "<#30>", inline: false}
+        - {name: "`--> 變更前 <--`", value: "Gaming", inline: false}
+        - {name: "`==> 變更後 <==`", value: "Chill", inline: false}
+    delete:
+      title: "☛ 移除語音狀態"
+      url: "https://discord.com/channels/10/30"
+      thumbnail: {url: "https://cdn.example/default.png"}
+      color: 12591136
+      footer: {text: "❖ ORDERLY SERVER ❖"}
+      fields:
+        - {name: "`使用者`", value: "<@7>", inline: false}
+        - {name: "`類別`", value: "<#20>", inline: false}
+        - {name: "`頻道`", value: "<#30>", inline: false}
+        - {name: "`--> 狀態 <--`", value: "Chill", inline: false}

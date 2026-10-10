@@ -242,13 +242,16 @@ def voice_state(channel: FakeChannel | None) -> discord.VoiceState:
 class FakeRest:
     """The REST requests of discord.py's HTTP client, recorded instead of sent.
 
-    Each is recorded in ``sent`` as ``("<method> <path>", {"json": <body>})`` and answers ``{}``
-    at once; one whose ``"<method> <path>"`` is in ``errors`` raises that error instead. Pass
-    ``sent`` to the fake channels to see their calls in order with the requests.
+    Each is recorded in ``sent`` as ``("<method> <path>", {"json": <body>})``, with ``"params"``
+    too when the request has query parameters, and answers at once: with the next of the answers
+    that ``answers`` holds for its ``"<method> <path>"``, else ``{}``. One whose
+    ``"<method> <path>"`` is in ``errors`` raises that error instead. Pass ``sent`` to the fake
+    channels to see their calls in order with the requests.
     """
 
     sent: list[Sent] = field(default_factory=list[Sent])
     errors: dict[str, Exception] = field(default_factory=dict[str, Exception])
+    answers: dict[str, list[object]] = field(default_factory=dict[str, list[object]])
 
     def install(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Replace ``HTTPClient.request`` with the recorder for the test."""
@@ -258,8 +261,12 @@ class FakeRest:
             key = f"{route.method} {route.url.removeprefix(Route.BASE)}"
             if (error := recorded.errors.get(key)) is not None:
                 raise error
-            recorded.sent.append((key, {"json": fields.get("json")}))
-            return {}
+            request: dict[str, object] = {"json": fields.get("json")}
+            if "params" in fields:
+                request["params"] = fields["params"]
+            recorded.sent.append((key, request))
+            answers = recorded.answers.get(key)
+            return answers.pop(0) if answers else {}
 
         monkeypatch.setattr(HTTPClient, "request", request)
 
@@ -334,6 +341,11 @@ class FakeRole:
         return self.default
 
 
+def _no_members() -> list[FakeMember]:
+    """An empty member list, for ``FakeGuild.members`` (``FakeMember`` comes later)."""
+    return []
+
+
 @dataclass
 class FakeGuild:
     """A guild with its roles, channels, member count and the bot's permissions there.
@@ -359,6 +371,7 @@ class FakeGuild:
     description: str | None = None
     owner_id: int | None = None
     owner: FakeMember | None = None  # when cached
+    members: list[FakeMember] = field(default_factory=_no_members)  # as Discord has them
 
     @property
     def me(self) -> SimpleNamespace | None:
@@ -372,6 +385,13 @@ class FakeGuild:
     def get_channel(self, channel_id: int, /) -> FakeChannel | None:
         """The guild's cached channel with that ID, if any."""
         return next((channel for channel in self.channels if channel.id == channel_id), None)
+
+    async def fetch_member(self, member_id: int, /) -> FakeMember:
+        """The member with that ID from ``members``, as Discord answers; NotFound otherwise."""
+        found = next((member for member in self.members if member.id == member_id), None)
+        if found is None:
+            raise not_found()
+        return found
 
     @property
     def voice_channels(self) -> list[FakeChannel]:
