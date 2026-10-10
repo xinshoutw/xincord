@@ -79,8 +79,18 @@ class Pusher:
     sleep: Sleep
 
     async def run(self) -> None:
-        """Push at once, then again ``interval`` seconds after each attempt, until a 404."""
-        raise NotImplementedError
+        """Push at once, then again ``interval`` seconds after each attempt, until a 404.
+
+        The delay follows each attempt, as v3's ``delay`` did, so the period is the interval plus
+        the request time; ``discord.ext.tasks.loop`` would schedule from each start instead.
+        """
+        logger.info(
+            "IntervalPusher listener %d started (every %d seconds)",
+            self.number,
+            self.listener.interval,
+        )
+        while await self.push():
+            await self.sleep(self.listener.interval)
 
     async def url(self) -> str:
         """The listener's URL with the REST ping in place of ``%ping%``, or ``-1`` if it fails.

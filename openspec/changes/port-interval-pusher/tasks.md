@@ -35,7 +35,7 @@
 
 - [x] 7.1 xfail tests for "Each listener pushes at once, then after a fixed delay" against a stub
       `Pusher.run` (the independent listeners are tested with the cog, in 8.1)
-- [ ] 7.2 Implement `Pusher.run`; remove the markers
+- [x] 7.2 Implement `Pusher.run`; remove the markers
 
 ## 8. Lifecycle
 

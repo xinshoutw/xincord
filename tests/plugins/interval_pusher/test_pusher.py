@@ -226,10 +226,6 @@ async def test_unexpected_error(caplog: pytest.LogCaptureFixture) -> None:
     assert str(record.exc_info[1]) == "unexpected"
 
 
-LOOP = "Each listener pushes at once, then after a fixed delay"
-
-
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=LOOP)
 async def test_first_push_at_once(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Each listener pushes at once, then after a fixed delay."""
     fakes = Fakes(stop_after=2)
@@ -242,7 +238,6 @@ async def test_first_push_at_once(caplog: pytest.LogCaptureFixture) -> None:
     assert caplog.messages == ["IntervalPusher listener 1 started (every 60 seconds)"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=LOOP)
 async def test_fixed_delay() -> None:
     """Requirement: Each listener pushes at once, then after a fixed delay."""
     fakes = Fakes(push_seconds=30, stop_after=3)
@@ -254,7 +249,6 @@ async def test_fixed_delay() -> None:
     assert fakes.starts == [0, 90, 180]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=LOOP)
 async def test_every_attempt_is_followed_by_the_delay() -> None:
     """Requirement: Each listener pushes at once, then after a fixed delay."""
     failures = (500, aiohttp.ClientConnectionError("refused"), 521, ValueError("unexpected"))
@@ -267,9 +261,6 @@ async def test_every_attempt_is_followed_by_the_delay() -> None:
     assert [call for call in fakes.calls if call.startswith("sleep")] == ["sleep 5"] * 5
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The status code decides what follows"
-)
 async def test_not_found_ends_the_loop() -> None:
     """Requirement: The status code decides what follows."""
     fakes = Fakes(answers=(200, 404), stop_after=10)
