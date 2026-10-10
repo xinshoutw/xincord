@@ -430,7 +430,11 @@ async def setup(bot: Bot) -> None:
   over `guild.filesize_limit` linked, and the webhook deleted whatever happened; its URL holds its
   token, so error texts pass `xincord.plugins.redaction.redact` (Ticket's `archive.py`).
 - A user's text posted publicly pings only what the plugin means to (Ticket's opener: the staff
-  roles through `AllowedMentions(roles=[...])`).
+  roles through `AllowedMentions(users=False, roles=[...])`).
+- A component put on a message before its record is stored comes off again when the store fails
+  (Ticket's `Panels.add(..., place)` and the view rebuilt from the fetched message), or the next
+  one takes the same custom ID, which Discord refuses. A reply that repeats a string option cuts
+  it: options take 6000 characters, replies 2000.
 
 ### Templates and placeholders
 

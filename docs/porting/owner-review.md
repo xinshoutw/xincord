@@ -413,3 +413,47 @@ here; delete a section once it is empty.
 - Migrate a copy of the stopped v3 directory: `migrate_v3` now moves the renamed plugins' directories, so restoring `config.v3.yaml` alone no longer brings v3 back (the report lists the moves to reverse), and a running v3 would recreate the old directories.
 - A guild's permission overrides for `/feedbacker` (Server Settings, Integrations) do not carry over to `/feedback`, which gets a new command ID: set them again where they were used.
 - Found in this change's review, unchanged: `migrate_v3` counts a plugin as enabled only with `enabled: true`, a key v3 added in 3.3.0 (`ea14fbf`); on a 3.2.x directory, as the local copy in `XsDiscordBotKt/Server/` may be, it lists almost nothing, so check the `plugins` list after migrating.
+
+## Ticket (`port-ticket`)
+
+### User-visible changes
+- en-US users get English replies, errors and builder defaults; zh-TW users get v3's four English errors in Chinese (message not found, message full, category not found, button empty). The texts live in the new `plugins/Ticket/lang/<locale>/text.yaml`, which operators can edit.
+- New texts: session expired, invalid message ID, not the bot's message, no embed, invalid color, refused change, create failed, ticket failed, lock failed, delete failed.
+- The builder's preview button opens the reason modal (v3: the press failed); the builder keeps working after 15 minutes; an older builder message answers that the session expired (v3: nothing happened).
+- zh-TW administrators can change the button's text and emoji (v3's zh-TW modal could not); the reason modal's title is in the user's own language (v3 swapped them).
+- Colors accept `#RRGGBB`, `0xRRGGBB` and `RRGGBB`; a bad color, an empty button, or a value that Discord refuses (an invalid emoji, a bad icon URL) answers an error and keeps the draft; custom emojis work on buttons; clearing the title, description or author removes it.
+- `/add-ticket` answers at once for a non-numeric ID, another user's message, a message without an embed, and a first row that is full or holds a select; an added button keeps the message's other rows and embeds.
+- Confirming answers failures and keeps the builder (v3 deleted it first and failed silently).
+- Ticket channels get an overwrite that lets the bot see them (v3 needed Administrator or a staff role); a reason too long for one message arrives in several (v3: the channel had no controls); a missing panel or category answers v3's error (v3: "thinking" forever).
+- The opener pings the staff roles only: `@everyone` and other mentions typed in a reason no longer ping (v3 pinged them).
+- Lock and unlock answer at once and report failures (v3: the press failed when the member had left).
+- The archive pings nobody, splits long messages, links files over the guild's upload limit, renames authors whose name Discord refuses for webhooks, deletes its empty thread when the webhook cannot be made, and reports every failure (v3 hung).
+- Panels of guilds the bot left while offline are deleted at READY (v3 deleted them only when it saw the leave).
+- `/add-ticket` with a text that is no message ID shows at most 100 characters of it in the error.
+### Choices made without the owner
+- TicketAwayNotice: kept v3's channel name, the member's username, so TicketAwayNotice's default prefixes (`客服單-`, `ticket-`) still do not match Ticket's channels; alternative: name ticket channels `ticket-<username>`.
+- Texts: `text.yaml` per locale, replies in the user's locale (zh-TW where the plugin has no files, as v3's templates) and public texts (control row, archive markers) in zh-TW; alternative: v3's Chinese texts for every user.
+- Builder defaults follow the administrator's language; alternative: v3's zh-TW defaults for everyone.
+- v3's four English errors translated for zh-TW; alternative: keep them in English.
+- Lock and unlock: kept v3's no permission check (anyone in the channel, the member included); alternative: staff only, as save and delete.
+- Delete by a non-staff member: kept v3's silent acknowledgement; alternative: the admin-only text, as save answers.
+- No config: the archive's thread names and markers use the host's zone (UTC in the container); alternative: a `timeZone` key as Giveaway's.
+- The category's overwrites are copied only when the bot is an administrator or holds every permission they set (JDA's fallback); alternative: always copy and let Discord refuse.
+- A ticket channel whose opener is refused is deleted; alternative: keep it without controls, as v3.
+- Drafts are per user and guild; alternative: v3's one per user.
+- Webhook names that Discord refuses fall back to the username, then the user ID; files over the upload limit are linked; alternative: fail the archive, as v3.
+- A Discord refusal inside a started thread is marked and the archive goes on, other errors (a lost connection) stop it; alternative: v3's catch-all.
+- Channels without overwrites or deletion (not guild channels) answer lock-failed or delete-failed with a fixed English reason; alternative: no answer.
+- `confirm-add.yaml`, which v3 never used, ships unchanged; v3's `plugins/Ticket/config.yaml` is left unread.
+- An opener that fails without a Discord refusal (a lost connection, an unload) leaves the channel without its control row and the member's reply "thinking"; only Discord's refusals delete the channel and answer, as in the other plugins; alternative: clean up after any failure.
+- The archive holds one message's files in memory (up to about 1 GB for ten files at boost level 3), where JDA streamed them; alternative: stream the files.
+- `/add-ticket` on a v3 panel before the v3 data import gives the new button index 0, the v3 button's, so both open the new entry and the core's ID upgrade fails at each press; implemented nothing special (the import comes first); alternative: refuse `/add-ticket` on messages with v3 Ticket buttons.
+### Manual checks
+- Smoke checklist in `openspec/changes/archive/2026-10-11-port-ticket/design.md`.
+- The archive copies other members' messages only with the Message Content intent enabled in the developer portal (as in v3; the plugin does not request it, so the bot connects without it).
+- The bot needs Manage Channels and Manage Roles where tickets open, and View Channel, Send Messages, Send Messages in Threads, Create Public Threads and Manage Webhooks in the archive channel; Read Message History in the ticket.
+- Before cutover, set `TZ` in `compose.yaml` (for example `Asia/Taipei`) so that the archive's times match v3's host.
+- After the v3 data import, press a v3 panel and a v3 control row: they work and their IDs are rewritten. Deleting a ticket from a v3 control row logs the core's failed upgrade once, since the message is gone.
+- Run the v3 data import before anyone uses `/add-ticket` on a v3 panel (see the choice above).
+- Unverified without Discord: Discord's exact webhook username rules, and how a long archive behaves near Discord's rate limits.
+- Packaging was checked: the wheel's lang files, `xincord --no-online` from the built wheels, and the compose image with the fourteen ported plugins; a discord.py probe walked every flow with HTTP recorded (archived design, "Checks").

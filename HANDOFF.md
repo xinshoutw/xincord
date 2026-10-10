@@ -1,11 +1,12 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-11 after `chat-logger-split-storage` (the owner's third follow-up change:
-ChatLogger keeps 5 years of messages by default in its own SQLite files under `data/ChatLogger/`,
-a new file starting when the newest is full; with it, a data directory per plugin in the core and
-a core fix that rolls back a failed commit), which followed `custom-commands-from-config`,
+Updated 2026-10-11 after `port-ticket`, the fourteenth plugin port (ticket panels, ticket channels
+with their overwrites, and archives through webhooks), which followed `chat-logger-split-storage`
+(the owner's third follow-up change: ChatLogger keeps 5 years of messages by default in its own
+SQLite files under `data/ChatLogger/`; with it, a data directory per plugin in the core and a core
+fix that rolls back a failed commit), `custom-commands-from-config`,
 `uptime-heartbeat-keep-pushing`, `rename-plugins` (the owner's plugin renames) and
-`port-giveaway`, the thirteenth plugin port.
+`port-giveaway`.
 Core is complete. Read this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The
 decisions are accepted and binding; do not re-open them unless you find a serious problem, and then
 ask the owner.
@@ -248,7 +249,8 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   v3's timeouts); `xincord-plugins` declares aiohttp and yarl. `logs.py` holds the owner's log
   rules: `origin(url)` (scheme, host and port, all that a line shows of a URL), `redact(text,
   *urls)` (URLs in error texts and tracebacks cut to their origin, and the listener URL's
-  `private_parts` removed wherever they appear) and `Failures` (one for the pushes, one for the
+  `private_parts` removed wherever they appear; these three live in `xincord.plugins.redaction`,
+shared with Ticket since port-ticket) and `Failures` (one for the pushes, one for the
   pings: each kind of failure is logged once per episode, the rest at debug level, and an episode
   ends after three successes in a row with one info line). `config.py`'s models hide their input
   in validation errors. `cog.py` creates one task per listener in `cog_load`, each awaiting
@@ -389,11 +391,27 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   `FakeInteraction.original`, `FakeChannel.send` returning a `FakeMessage` with `jump_url`,
   `FakeChannel.get_partial_message`, and the script check that every `text.yaml` fragment is in the
   Kotlin sources.
+- **Ticket** (`xincord.plugins.ticket`, no intents, no config, en-US and zh-TW plus `text.yaml`):
+  the first plugin that creates channels for members, sets overwrites and posts through webhooks.
+  Pure modules: `model.py` (`Draft`, `Entry`, `Controls`, v3's Moshi entry, colors), `drafts.py`
+  (defaults and the builder's changes), `texts.py` (`Texts`, `units`, `clip`, `chunks`,
+  `readable_error`), `tickets.py` (`category_of`, `can_copy` = JDA's `trySync`, `overwrites`,
+  `opener`), `views.py`. `store.py`: `Panels`, v3's `{"<message ID>": [entry, ...]}` per guild,
+  appended under the guild's lock after a `place` callback puts the button on the message (and
+  takes it off again when the store fails). `targets.py` (the `/add-ticket` checks), `archive.py`
+  (thread, webhook, forwarding, flattening, failures over Protocols in `channels.py`),
+  `controls.py` (`ControlRow`: lock, unlock, delete, save and its select), `ids.py`, `cog.py`
+  (commands, builder sessions per user and guild with the builder message's ID, confirmation,
+  tickets, routes, left guilds). A changed draft is kept only once Discord took the builder that
+  shows it (`_screen`). Channel names are the member's username, TicketAwayNotice's contract
+  (the archived design, "Channel names"). Reuse: `xincord.plugins.redaction`, the overwrite map
+  of `tickets.overwrites`, the webhook pattern of `archive.py`, `discord_fakes.FakeCategory`,
+  hashable `FakeMember`, `bad_request()`, `button_rows()`, the scene's `click` and `refuse_edit`.
 - **Plugin names** (`rename-plugins`): the six ported plugins that the owner renamed carry their new
   names everywhere but the inventories, Kotlin citations, legacy component ID prefixes and
   placeholder keys (porting guide, "Plugin names"); `migrate_v3.RENAMED` maps all nine v3 names.
   Reuse: the capability rename recipe and the image check with every plugin (section 7).
-- **Still to build:** the plugins after Giveaway and the owner's follow-up changes (section 5).
+- **Still to build:** the plugins after Ticket and the owner's follow-up changes (section 5).
 
 ## 5. Status and next steps
 
@@ -407,7 +425,7 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `port-welcome-bye-guild`, `port-interval-pusher`, `port-feedbacker`, `port-economy`,
 `port-dynamic-voice-channel`, `port-voice-logger`, `port-chat-logger`, `port-giveaway`,
 `rename-plugins`, `uptime-heartbeat-keep-pushing`, `custom-commands-from-config`,
-`chat-logger-split-storage`. Each one's
+`chat-logger-split-storage`, `port-ticket`. Each one's
 `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
@@ -415,8 +433,11 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 ### Next: the plugins
 
 Core is complete; Example (the template), Calculator, AutoRole, BotInfo, CustomCommands,
-WelcomeGoodbye, UptimeHeartbeat, Feedback, Economy, DynamicVoiceChannel, VoiceLogger, ChatLogger
-and Giveaway are ported. Next: **Ticket** (`port-ticket`).
+WelcomeGoodbye, UptimeHeartbeat, Feedback, Economy, DynamicVoiceChannel, VoiceLogger, ChatLogger,
+Giveaway and Ticket are ported. Next: **TicketAwayNotice** (`port-ticket-away-notice`, v3
+TicketAddons): it posts its notice in new channels whose names start with its prefixes; Ticket names
+its channels after the member's username (see the archived `port-ticket` design, "Channel names",
+and the review queue's question about a `ticket-` prefix).
 The owner renamed nine plugins on 2026-10-10 (`docs/porting/decisions.md`, Amendment 1; the table
 in `docs/porting-guide.md`, "Plugin names"), and `rename-plugins` applied the renames to the ported
 ones. A port of a renamed plugin uses the new name for the entry point, `plugins/<Name>/`, the
@@ -427,8 +448,8 @@ Port the plugins in C1 order with the `port-plugin` skill (`.claude/skills/port-
 one OpenSpec change each (`port-<plugin-kebab>`): Example (done), Calculator (done),
 AutoRole (done), BotInfo (done, with the configurable AGPL source link of C3), CustomCommands
 (done), WelcomeGoodbye (done), UptimeHeartbeat (done), Feedback (done), Economy (done),
-DynamicVoiceChannel (done), VoiceLogger (done), ChatLogger (done), Giveaway (done), then Ticket,
-TicketAwayNotice (v3 TicketAddons), NtustAnnouncements (v3 NtustManager), NtustCourseWatch (v3
+DynamicVoiceChannel (done), VoiceLogger (done), ChatLogger (done), Giveaway (done), Ticket (done),
+then TicketAwayNotice (v3 TicketAddons), NtustAnnouncements (v3 NtustManager), NtustCourseWatch (v3
 NtustCourse), MusicPlayer (with Lavalink in `compose.yaml`). Update `docs/porting-guide.md` after
 each one.
 
@@ -539,6 +560,10 @@ Answered on 2026-10-10 (afternoon), from the review queue (the answered items we
    `plugins/Giveaway/config.yaml` (or `TZ` in `compose.yaml`): the container's zone is UTC, so typed
    end times would be read 8 hours off. Whether v3's running giveaways come along is up to the v3
    data import.
+6. **Ticket** (review queue, "Ticket"): whether ticket channels should take a `ticket-` prefix so
+   that TicketAwayNotice's default prefixes match them; the Message Content intent for the archive;
+   `TZ` for the archive's times; the v3 data import before anyone uses `/add-ticket` on v3 panels
+   (until then a new button takes index 0, the v3 button's, and both open the new entry).
 
 ## 7. Verified facts and pitfalls
 
@@ -857,6 +882,25 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - `docker compose run --rm -T -v <script>:/probe.py:ro --entrypoint python bot /probe.py` runs a
   scratch script in the image as uid 1000 against the named volume (`docker compose down -v`
   afterwards).
+
+- `TextChannel.create_thread(name=...)` without a message creates a private thread unless
+  `type=discord.ChannelType.public_thread` is given (JDA's `createThreadChannel(name)` was public).
+- `InteractionResponse.edit_message` marks the response done only after Discord answered: when it
+  raises `HTTPException`, `response.send_message` still answers (Ticket's refused drafts).
+- `View.from_message` gives each item its row and `add_item` appends to `children`; `to_components`
+  sorts by row when sending, so check the payload's order.
+- A `@dataclass` with `eq=True` is unhashable: a fake used as an overwrite key needs `__hash__`
+  (`FakeMember`). `discord.Object(id, type=discord.User)` hashes and compares equal to the member.
+- `Guild._create_channel` sends an `Object(type=Role)` key as a member overwrite; drop such keys
+  when copying a category's overwrites. Without the members intent only the bot's member is
+  cached: `guild.get_member` misses and `fetch_member` costs a request.
+- `Attachment.to_file()` downloads through `HTTPClient.get_from_cdn` (patch it in probes) and reads
+  the whole file into memory; a recorded webhook answer needs whole attachment objects.
+- `Message.edit()` sends `suppress_embeds` as its `suppress` argument, False by default: the core's
+  upgrade of v3 IDs shows embeds that were suppressed.
+- Discord refuses a webhook message's username with `@`, `#`, `:`, three backticks, `discord` or
+  `clyde`, `everyone` or `here`, or over 80 characters; a string option takes up to 6000
+  characters, a reply at most 2000.
 
 **v3 behaviors never to reproduce:** loading plugins in reverse dependency order, non-atomic JSON
 writes that reset corrupt files, recursive placeholder expansion, shared mutable placeholder
