@@ -6,7 +6,7 @@ Kotlin:
 """
 
 from dataclasses import replace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import discord
 from discord.ext import commands
@@ -19,6 +19,8 @@ from .store import change, read, read_all
 from .wallet import OPERATIONS, rank
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
@@ -115,8 +117,22 @@ class Economy(commands.Cog):
         await _edit(interaction, _board(template, values, ranked))
 
     async def handle(self, interaction: discord.Interaction, _parsed: ParsedId) -> None:
-        """Stub."""
-        raise NotImplementedError
+        """Show the presser's wallet for a button with an Economy ID; ``setup`` routes them here.
+
+        v3 checked only the ``economy@`` prefix, so the ID's fields do not matter. As in v3's
+        ``deferReply(true)``, the response is deferred ephemerally and then shows ``balance``;
+        other components, modals and presses outside a guild get no answer. Reading writes nothing;
+        v3 created the wallet.
+        """
+        guild = interaction.guild
+        # Only button presses carry this type: v3 left selects and modals unanswered.
+        kind = cast("Mapping[str, object]", interaction.data or {}).get("component_type")
+        if guild is None or kind != discord.ComponentType.button.value:
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        wallet = await read(self.store, guild.id, interaction.user.id)
+        values = _user_values(interaction, interaction.user) | wallet_values(wallet)
+        await self._reply(interaction, "balance", values)
 
     def _is_admin(self, interaction: discord.Interaction) -> bool:
         """Whether ``admin_id`` lists the user; Discord's Administrator does not count."""

@@ -29,7 +29,6 @@ ZH = discord.Locale.taiwan_chinese
 GUILD = FakeGuild(id=10)
 BOB = FakeMember(GUILD, id=7, name="bob")  # not an administrator: buttons are for everyone
 NEW_ID = "economy:1:a=balance"
-SHOWN = "Economy buttons show the presser's wallet"
 
 
 def press(
@@ -60,7 +59,6 @@ async def give_bob(store: Store) -> None:
     await change(store, 10, BOB.id, OPERATIONS["set-cost"], 990)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=SHOWN)
 @pytest.mark.parametrize("locale", [EN, ZH], ids=["en-US", "zh-TW"])
 @pytest.mark.parametrize("custom_id", [NEW_ID, "economy:1:", "economy@"])
 async def test_button(cog: Economy, store: Store, custom_id: str, locale: discord.Locale) -> None:
@@ -73,7 +71,6 @@ async def test_button(cog: Economy, store: Store, custom_id: str, locale: discor
     assert shown(interaction) == [GOLDEN["balance"][locale.value]]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=SHOWN)
 async def test_no_wallet_yet(cog: Economy, store: Store) -> None:
     """Requirement: Economy buttons show the presser's wallet."""
     interaction = press()
@@ -85,7 +82,6 @@ async def test_no_wallet_yet(cog: Economy, store: Store) -> None:
     assert await store.keys(NAMESPACE) == []  # v3 created the wallet
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=SHOWN)
 async def test_outside_a_guild(cog: Economy) -> None:
     """Requirement: Economy buttons show the presser's wallet."""
     interaction = press()
@@ -96,12 +92,15 @@ async def test_outside_a_guild(cog: Economy) -> None:
     assert interaction.sent == []
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=SHOWN)
 async def test_select_menu_or_modal(cog: Economy) -> None:
     """Requirement: Economy buttons show the presser's wallet."""
     select = press(component_type=3)
-    modal = press()
-    modal.type = discord.InteractionType.modal_submit
+    modal = FakeInteraction(
+        {"custom_id": NEW_ID, "components": []},  # a submission's data has no component type
+        type=discord.InteractionType.modal_submit,
+        user=BOB,
+        guild=GUILD,
+    )
 
     await cog.handle(select.as_interaction(), IDS.parse(NEW_ID))
     await cog.handle(modal.as_interaction(), IDS.parse(NEW_ID))

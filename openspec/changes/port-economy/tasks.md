@@ -52,7 +52,7 @@
 ## 10. Buttons
 
 - [x] 10.1 xfail tests for "Economy buttons show the presser's wallet" against a stub `handle`
-- [ ] 10.2 Implement `handle`; remove the markers
+- [x] 10.2 Implement `handle`; remove the markers
 
 ## 11. Commands
 
