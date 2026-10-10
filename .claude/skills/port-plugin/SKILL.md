@@ -261,11 +261,16 @@ async def setup(bot: Bot) -> None:
   params=...)`, because `Guild.audit_logs` drops their `options`, and matched by type, channel and
   time (`status.match`), never as the guild's newest entry; `guild.fetch_member` stands for JDA's
   `retrieveMemberById`.
+- State that mirrors Discord's (VoiceLogger's tracked voice statuses) is forgotten at each READY
+  (`on_ready` fires for each new session) and a guild's on `on_guild_unavailable` and
+  `on_guild_remove`, as JDA rebuilt its cache. Logs of one entity whose handling waits for
+  different times (a second audit log read) run under a per-entity `store.lock(...)`, whose waiters
+  go in arrival order.
 - Messages to channels that a command set up (VoiceLogger's listen channels) go through
-  `bot.get_partial_messageable(id, guild_id=...)` and a `Postable` cast (the `send` overloads take no
-  view union): no cache needed, archived threads reached; a `discord.NotFound` forgets the channel's
-  settings, another refusal is a warning naming the guild and the channel, and the other channels
-  still get the message (VoiceLogger's `_post`).
+  `bot.get_partial_messageable(id, guild_id=...)` and a `Postable` cast (the `send` overloads take
+  no view union): no cache needed, archived threads reached; a `discord.NotFound` forgets the
+  channel's settings, another refusal is a warning naming the guild and the channel, and the other
+  channels still get the message (VoiceLogger's `_post`).
 - Problems the operator must fix (a missing role or permission) are `logger.warning` lines from
   `logging.getLogger(__name__)` that name the plugin; Discord errors on one item are logged and the
   others still handled.

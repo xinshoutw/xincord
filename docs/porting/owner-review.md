@@ -268,3 +268,37 @@ here; delete a section once it is empty.
 - Two members who join an empty lobby at the same instant may both stay in the lobby without a room (discord.py may parse both joins before the plugin sees the first); watch whether it happens.
 - After a discord.py upgrade, check the room requests: the positions use discord.py's undocumented `HTTPClient.request` and `Route`.
 - Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `DynamicVoiceChannel` enabled); an image build with the plugin enabled is still open.
+
+## VoiceLogger (`port-voice-logger`)
+
+### User-visible changes
+- `/voice-logger setting` answers in every channel (voice and stage chats, threads, announcement channels), which can then be listen channels (v3: no reply outside plain text channels).
+- A listen channel's first allow or block selection keeps the allow mode after a restart (v3 switched it to the block mode, which logs every voice channel); "Delete" deletes only that channel's settings (v3: the guild's whole file, so the guild's other listen channels lost theirs at the next restart).
+- The switch embed's `Channel Join` shows the joined channel (v3: an earlier join's channel or the placeholder); a channel outside categories shows `-` in the category fields (v3: an earlier event's category or the placeholder).
+- A status change names the member of its own audit log entry (type 192 for a set or changed status, 193 for a cleared one, same channel, within 30 seconds, not an entry of an earlier status); without one (a status that Discord clears by itself, no View Audit Log, a member who left) the log shows `-` and no thumbnail (v3: whoever last set any status in the guild, or no log at all).
+- As in v3, statuses set before the bot's session started (or the plugin reloaded) are unknown: their first change is logged as a new status, and their clear is not logged.
+- A channel's status logs keep their order, even when one waits 2 seconds for its audit log entry.
+- A listen channel that refuses a log no longer stops the others (a warning in the bot's log); a deleted listen channel is forgotten at its next log.
+- A list longer than 1024 characters ends with `...` instead of breaking that channel's menu for good.
+- Channel names and statuses are shown as written (v3 expanded `%...%` in them).
+- Settings of a guild the bot leaves are deleted at once, and deleted channels are dropped from the lists when the bot is ready (v3 did both at its next start).
+- v3's `plugins/VoiceLogger/setting/*.json` are not read: listen channels must be set up again (the data migration is deferred, B11). No `plugins/VoiceLogger/config.yaml`.
+### Choices made without the owner
+- Status events, which discord.py 2.7.1 drops: implemented a core method, `Bot.relay_gateway_event(name)`, that adds a parser to discord.py's internal parser table and dispatches `gateway_voice_channel_status_update`; alternative: `enable_debug_events=True` with discord.py's public `on_socket_raw_receive` (every gateway message parsed twice), or `on_audit_log_entry_create` with the moderation intent (discord.py drops the channel and the status of types 192 and 193).
+- Earlier statuses: implemented tracking them in memory from the events, unknown ones empty, forgotten at each READY and when a guild becomes unavailable or is left, as JDA's cache; alternative: Discord's Request Channel Info (gateway opcode 43) for each guild at READY.
+- Attribution: implemented the newest audit log entry of the change's type and channel within 30 seconds, leaving out type-192 entries of another status, the same status first, read again once after 2 seconds; alternative: v3's newest type-192 entry of the guild, a longer wait, or also bounding the entries by the channel's previous event.
+- A change without an entry: implemented the log with `-` as the member; alternative: no log, as v3 when the audit log had no type-192 entry.
+- A channel without a category: implemented `-`; alternative: an empty field.
+- Long lists: implemented the lines that fit and `...`; alternative: refusing additions past the limit (new copy).
+- Listen channels: implemented any channel where the command runs; alternative: text and voice channels only, as v3's code intended, with a new refusal message.
+- Posting: implemented partial messageables (no cache), a 404 forgetting the listen channel; alternative: v3's cache lookup, skipping missing channels.
+- Checks at READY: kept v3's pruning of left guilds and of deleted list entries; deleted listen channels are forgotten at their next log instead (an archived thread is not cached at READY); alternative: v3's start-up pruning of missing listen channels.
+- Leaving a guild: implemented deleting its settings at once; alternative: v3's deletion at the next start.
+- Core API: `Bot.relay_gateway_event` (spec delta on `core-plugins`, tested in `tests/core/test_gateway.py`); alternative: a VoiceLogger-only hook into discord.py.
+### Manual checks
+- Smoke checklist in `openspec/changes/archive/2026-10-10-port-voice-logger/design.md` (needs a token, a test guild and a second account).
+- The bot needs View Audit Log for the members of status changes, and View Channel, Send Messages and Embed Links in the listen channels.
+- Unverified without a real guild: Discord's `VOICE_CHANNEL_STATUS_UPDATE` payload (null or empty for a cleared status), whether Discord sends it when it clears a status by itself, whether type-192 and 193 entries carry `options.channel_id` and `options.status` as documented (or the channel in `target_id`), whether `options.status` is exactly the gateway's text (if not, set statuses show `-`), and how soon after the gateway event the entries exist.
+- After a discord.py upgrade, check the relay (discord.py's internal `ConnectionState.parsers`) and the audit log request (`HTTPClient.request` and `Route`); if discord.py starts parsing the event, the relay still runs after its parser.
+- At cutover, set the listen channels up again in each guild listed in v3's `plugins/VoiceLogger/setting/`, or build the deferred migration first.
+- Packaging was checked without Docker (wheel contents, and `xincord --no-online` from the built wheels with `VoiceLogger` enabled); an image build with the plugin enabled is still open.

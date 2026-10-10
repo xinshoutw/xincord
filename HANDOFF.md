@@ -1,6 +1,6 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-10 after `port-dynamic-voice-channel`, the tenth plugin port. Core is complete. Read
+Updated 2026-10-10 after `port-voice-logger`, the eleventh plugin port. Core is complete. Read
 this file first, then `docs/porting/decisions.md` and `AGENTS.md`. The decisions are accepted and
 binding; do not re-open them unless you find a serious problem, and then ask the owner.
 
@@ -108,7 +108,9 @@ starting with Core. Motivation: easier maintenance and faster iteration.
     returns a one-line summary: without a plugin it re-reads `CORE_CONFIG`, unloads plugins that
     left the list (dependents first), reloads the loaded ones and loads new ones; with a plugin it
     reloads it and its dependents. Reloads are serialized by a lock and upload every scope with
-    force when the bot is ready.
+    force when the bot is ready. `relay_gateway_event(name)` (since port-voice-logger) adds a
+    parser to discord.py's parser table for a gateway event it does not parse and dispatches
+    `gateway_<name in lower case>` with Discord's payload, after discord.py's own parser if any.
   - `xincord.core.admin.Xincord`: the global, guild-only `/xincord` group (administrators see it by
     default); `reload [plugin]` runs for the application owner only and replies ephemerally with
     the summary; `plugin` autocompletes loaded plugins. `setup_hook` registers it.
@@ -265,7 +267,28 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   `cloning` and `gate` for interleavings), `voice_state(channel)`, `FakeGuild.voice_channels`,
   `FakeRest` (REST requests recorded in the channels' `sent` list), the `cast` cog fixture and the
   voice probe (skill step 7).
-- **Still to build:** the plugins after DynamicVoiceChannel (section 5).
+- **VoiceLogger** (`xincord.plugins.voice_logger`, `INTENTS = discord.Intents(voice_states=True)`,
+  en-US and zh-TW, no config): the first plugin with a gateway event that discord.py drops
+  (`VOICE_CHANNEL_STATUS_UPDATE`, relayed with the core's `relay_gateway_event`) and with the audit
+  log. `settings.py` is pure (`Setting`, `detects`, `targets`, `list_text` bounded to 1024 UTF-16
+  code units); `store.py` keeps v3's document per guild, `{"<listen channel>": {"allow_mode",
+  "allow", "block"}}` (namespace `VoiceLogger`), one entry changed at a time under the guild's lock,
+  no write for no change; `logs.py` is pure (`Place`, read before awaiting, `voice_change`,
+  `UNKNOWN_MEMBER`); `status.py` has `parse_update`, `classify`, `match` and `find_actor` (the
+  audit log reader and `sleep` passed in); `cog.py` has the group with `setting`, `handle` for the
+  menu's buttons and entity select menus (each answer replaces the message with
+  `response.edit_message`), `on_voice_state_update`, `on_gateway_voice_channel_status_update`
+  (statuses tracked in memory per guild and forgotten at READY, on an outage and on a leave; one
+  channel's logs under `store.lock("VoiceLogger:status:<id>")`; the audit log read raw through
+  `Route`, entries of another status left out; `guild.fetch_member`), `_post` through
+  `bot.get_partial_messageable` (a 404 forgets the listen channel), `on_guild_remove` and
+  `check_guilds` (keys that are not guild IDs skipped with a warning). Reuse:
+  `plugin_fakes.gateway` and `parsers`, `FakeRest.answers` and its recorded `params`,
+  `FakeGuild.members` and `fetch_member`, `FakeInteraction.guild_id` and `channel_id`,
+  `FakeVoiceChannel.jump_url`, the `channels` fixture (partial messageables), a dataclass fixture
+  (`Scene`) when a test needs more than five fixtures, and the gateway probe (skill step 7).
+  ChatLogger has v3's same settings scheme: reuse `settings.py` and `store.py`.
+- **Still to build:** the plugins after VoiceLogger (section 5).
 
 ## 5. Status and next steps
 
@@ -277,19 +300,20 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 `core-reload`, `core-console`, `core-status-log`, `container`, `port-example`,
 `port-basic-calculator`, `port-auto-role`, `port-bot-info`, `port-simple-command`,
 `port-welcome-bye-guild`, `port-interval-pusher`, `port-feedbacker`, `port-economy`,
-`port-dynamic-voice-channel`. Each one's `design.md` in `openspec/changes/archive/` records its
-decisions and "v3 behaved differently" notes; `docs/porting-guide.md` has the differences table.
+`port-dynamic-voice-channel`, `port-voice-logger`. Each one's `design.md` in
+`openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
+`docs/porting-guide.md` has the differences table.
 
 ### Next: the plugins
 
 Core is complete; _Example (the template), BasicCalculator, AutoRole, BotInfo, SimpleCommand,
-WelcomeByeGuild, IntervalPusher, Feedbacker, Economy and DynamicVoiceChannel are ported. Next:
-**VoiceLogger** (`port-voice-logger`).
+WelcomeByeGuild, IntervalPusher, Feedbacker, Economy, DynamicVoiceChannel and VoiceLogger are
+ported. Next: **ChatLogger** (`port-chat-logger`).
 Port the plugins in C1 order with the `port-plugin` skill (`.claude/skills/port-plugin/SKILL.md`),
 one OpenSpec change each (`port-<plugin-kebab>`): _Example (done), BasicCalculator (done),
 AutoRole (done), BotInfo (done, with the configurable AGPL source link of C3), SimpleCommand
 (done), WelcomeByeGuild (done), IntervalPusher (done), Feedbacker (done), Economy (done),
-DynamicVoiceChannel (done), then VoiceLogger, ChatLogger, Giveaway, Ticket, TicketAddons,
+DynamicVoiceChannel (done), VoiceLogger (done), then ChatLogger, Giveaway, Ticket, TicketAddons,
 NtustManager, NtustCourse, MusicPlayer (with Lavalink in `compose.yaml`).
 Update `docs/porting-guide.md` after each one.
 
@@ -343,8 +367,9 @@ its user-visible changes, the choices made without the owner and the manual chec
 2. **Production version (F1)** is unknown; it matters only if a data migration is ever needed.
    The local copy (`XsDiscordBotKt/Server/`) runs Economy 3.2.1, whose wallets are the legacy
    single `plugins/Economy/data/data.json`; Economy reads no v3 file until that migration exists.
-3. **Lavalink image** (arm64, compose details) and **VoiceLogger status events** (audit types
-   192/193, maybe raw gateway handling): verify when those plugins start.
+3. **Lavalink image** (arm64, compose details): verify when MusicPlayer starts. **VoiceLogger
+   status events** were built in port-voice-logger (the core relays the gateway event; the audit
+   log is read raw); what needs a real guild is in `docs/porting/owner-review.md`.
 
 ## 7. Verified facts and pitfalls
 
@@ -398,6 +423,12 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - `Store.update` writes its function's result even when nothing changed, and stores `null` for a
   missing key when the function returns None: changes that may find nothing to do use
   `store.lock` with `get`, `put` and `delete` (DynamicVoiceChannel's `store.py`).
+- Without the project's hooks, run `ruff check --fix` before `ruff format`: a fix that removes an
+  import leaves a blank line that only the formatter removes, and the gate's format check fails.
+- ruff counts pytest fixtures as arguments (PLR0913, PLR0917: at most five); bundle them in a
+  dataclass fixture (VoiceLogger's `Scene`).
+- `field(default_factory=list[X])` evaluates `X` when the dataclass is created: for a class defined
+  later in the module, pass a small factory function (`discord_fakes._no_members`).
 - aiohttp's `RawTestServer.close()` waits for the requests still in flight: answer them first, or
   the teardown waits for the client's timeout (`http_fakes.Monitor.close`). Autouse fixtures are
   torn down after the fixtures a test requests.
@@ -519,6 +550,15 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - A bare `app_commands.Group(...)` takes its `module` from the frame that creates it: build it in
   the plugin's module, so that unloading the plugin removes it.
 - `AsyncWebhookAdapter.request` gets `session` as a keyword: a probe's replacement must accept it.
+- discord.py 2.7.1 drops `VOICE_CHANNEL_STATUS_UPDATE` (no parser: "Unknown event" at debug level)
+  and has no `VoiceChannel.status`; its `AuditLogAction` lacks 192 and 193, so `AuditLogEntry` names
+  them `unknown_192`, gives no `target` and drops their `options`. `ConnectionState.parsers` is the
+  table that `DiscordWebSocket.received_message` looks events up in, the same dictionary for every
+  connection. Discord documents (2026-04-20) that voice statuses are not part of channel objects.
+- `on_voice_state_update`'s `after` is the cached voice state, updated in place by later events
+  (`before` is a copy): a join and a leave parsed before the listener runs reach it as no change.
+- `interaction.response.edit_message(...)` keeps what it is not given: `embeds=()` and `view=None`
+  clear them, as JDA's `MessageEditData.fromCreateData` replaced the whole message.
 - A scratch probe can drive real discord.py objects offline: set `bot._connection.user` to a
   `ClientUser`, build `discord.Interaction(data=..., state=bot._connection)` and call
   `command._invoke_with_namespace(...)` (patch `Interaction.edit_original_response`); set
