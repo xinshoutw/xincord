@@ -105,7 +105,7 @@ v3's `buildUrl` caught `CancellationException` and the next request logged a spu
 ### Loop
 
 `Pusher(number, listener, get, ping, sleep).run()` logs
-`IntervalPusher listener 1 started (every 60 seconds)` at info level, then runs
+`IntervalPusher listener 1 started (every 60 s)` at info level, then runs
 `while await self.push(): await self.sleep(interval)`: the first push at once and a fixed delay
 after each attempt, so the period is the interval plus the request time, as v3's `delay` after each
 iteration. `discord.ext.tasks.loop` is not used: it schedules from each start (a fixed rate).
@@ -190,8 +190,7 @@ another endpoint that shows the requests it receives):
    `plugins/IntervalPusher/config.yaml` is the bundled default, and nothing is pushed.
 2. Add the monitor's push URL with `ping=%ping%` and `interval: 60`, then run
    `/xincord reload IntervalPusher`: the log shows `IntervalPusher listener 1 started (every 60
-   seconds)`, and the monitor turns up at once with a ping in milliseconds, then about every 60
-   seconds.
+   s)`, and the monitor turns up at once with a ping in milliseconds, then about every 60 seconds.
 3. Restart with `--level DEBUG`: each push logs `IntervalPusher listener 1 pushed <url>` with the
    ping, and the first push comes right after `Bot ready`.
 4. Add a second listener with a wrong push token and reload: one warning with code 404 names

@@ -235,7 +235,7 @@ async def test_first_push_at_once(caplog: pytest.LogCaptureFixture) -> None:
 
     push = ["ping", f"get {PUSHED}"]
     assert fakes.calls == [*push, "sleep 60", *push, "sleep 60"]
-    assert caplog.messages == ["IntervalPusher listener 1 started (every 60 seconds)"]
+    assert caplog.messages == ["IntervalPusher listener 1 started (every 60 s)"]
 
 
 async def test_fixed_delay() -> None:

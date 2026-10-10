@@ -85,7 +85,7 @@ class Pusher:
         the request time; ``discord.ext.tasks.loop`` would schedule from each start instead.
         """
         logger.info(
-            "IntervalPusher listener %d started (every %d seconds)",
+            "IntervalPusher listener %d started (every %d s)",
             self.number,
             self.listener.interval,
         )
