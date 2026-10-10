@@ -2,7 +2,7 @@
 
 - [x] 1.1 Move VoiceLogger's `settings.py` and `store.py` into `xincord.plugins.listen_channels`
       (`ListenSettings`, bound to a plugin's namespace); VoiceLogger and its tests follow, green
-- [ ] 1.2 Move the menu, its components, the posts and the checks at READY into `ListenChannels`;
+- [x] 1.2 Move the menu, its components, the posts and the checks at READY into `ListenChannels`;
       VoiceLogger's cog keeps its command, the voice and status code; its tests stay green
 
 ## 2. Resources

@@ -1,14 +1,13 @@
-"""The settings menu, its components, the voice and status listeners and the checks at READY.
+"""The command, the voice and status listeners, and the shared listen channel code's wiring.
 
 Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:29-439
+    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:29-350
 """
 
 import asyncio
 import logging
-import re
 from functools import partial
-from typing import TYPE_CHECKING, Any, Protocol, cast, override
+from typing import TYPE_CHECKING, Any, override
 
 import discord
 from discord import app_commands
@@ -16,24 +15,21 @@ from discord.ext import commands
 from discord.http import Route
 
 from xincord.core.component_ids import ComponentIds
-from xincord.core.placeholders import actor_values, global_values, placeholder_values
-from xincord.core.templates import render_message
-from xincord.plugins.listen_channels.settings import list_text, targets
-from xincord.plugins.listen_channels.store import DataError, ListenSettings
+from xincord.core.placeholders import actor_values, global_values
+from xincord.plugins.listen_channels.menu import ListenChannels, Menu
+from xincord.plugins.listen_channels.settings import targets
+from xincord.plugins.listen_channels.store import ListenSettings
 
 from .logs import UNKNOWN_MEMBER, Place, voice_change
 from .status import ENTRIES, classify, find_actor, parse_update
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
     from datetime import datetime
 
     from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
-    from xincord.core.templates import Message, Templates
-    from xincord.plugins.listen_channels.settings import Setting
-    from xincord.plugins.listen_channels.store import Kind
+    from xincord.core.templates import Templates
 
     from .logs import VoiceChannelLike
     from .status import Sleep
@@ -45,27 +41,6 @@ NAMESPACE = "VoiceLogger"  # the plugin's name: its settings in the store and it
 IDS = ComponentIds("voice_logger", ("action",), legacy_prefix="voice-logger@")
 ROOT = "voice-logger"  # v3's command, and the root of its register.yaml keys
 MENU = "voice-logger@setting"  # the settings menu's template
-BUTTON = 2  # the component type of a button
-ENTITY_SELECTS = frozenset({5, 6, 7, 8})  # user, role, mentionable and channel select menus
-# The buttons that show a list's select menu, and the select menus that add to a list.
-SELECTS = {"modify_allow_btn": "modify-allow", "modify_block_btn": "modify-block"}
-MENUS: dict[str | None, Kind] = {"modify_allow_menu": "allow", "modify_block_menu": "block"}
-SNOWFLAKE = re.compile(r"[0-9]+")
-
-
-class Postable(Protocol):
-    """A channel that takes messages, as the plugin posts its logs."""
-
-    async def send(
-        self,
-        *,
-        content: str | None = None,
-        embeds: Sequence[discord.Embed] = (),
-        view: discord.ui.View | discord.ui.LayoutView | None = None,
-        files: Sequence[discord.File] = (),
-    ) -> object:
-        """Send a message to the channel."""
-        ...
 
 
 class VoiceLogger(commands.Cog):
@@ -75,9 +50,10 @@ class VoiceLogger(commands.Cog):
         """Keep the bot, the store and what ``setup`` loaded."""
         self.bot = bot
         self.store = store
-        self.settings = ListenSettings(store, NAMESPACE)
         self.lang = lang
-        self.templates = templates
+        self.settings = ListenSettings(store, NAMESPACE)
+        # The menu, its components, the posts and the checks at READY, shared with ChatLogger.
+        self.listen = ListenChannels(bot, self.settings, Menu(lang, templates, IDS, "vl", MENU))
         # Each guild's voice channel statuses from Discord's updates in this session, as JDA's
         # cache kept them; empty ones are left out.
         self.statuses: dict[int, dict[int, str]] = {}
@@ -105,60 +81,12 @@ class VoiceLogger(commands.Cog):
         return group
 
     async def show_settings(self, interaction: discord.Interaction) -> None:
-        """Edit the deferred response into the current channel's settings menu (v3's ``setting``).
-
-        Nothing is written: a channel without settings shows v3's default, the allow mode with
-        empty lists. The command works in every channel; v3's ``Placeholder.get(event)`` threw
-        outside text channels.
-        """
-        where = _where(interaction)
-        if where is None:  # guild commands run in guilds only, as v3's handler assumed
-            return
-        message = self._menu(interaction, await self.settings.read_setting(*where))
-        # The command tree deferred the response ephemerally, as v3's core did.
-        await interaction.edit_original_response(
-            content=message.content,
-            embeds=message.embeds,
-            view=message.view,
-            attachments=message.files,
-        )
+        """Edit the deferred response into the channel's settings menu (v3's ``setting``)."""
+        await self.listen.show(interaction)
 
     async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
-        """Send a press or a choice in the settings menu to its handler; ``setup`` routes here.
-
-        As v3's two handlers, buttons take the button actions and entity select menus the select
-        actions, in v3's ID format too; anything else gets no response (v3 threw for an unknown
-        select action). Each answer replaces the menu's whole message, as JDA's
-        ``MessageEditData.fromCreateData`` did; v3's ``deferEdit`` and edit became one request.
-        """
-        where = _where(interaction)
-        if where is None:  # the menu exists in guilds only
-            return
-        data = cast("Mapping[str, object]", interaction.data or {})
-        kind, action = data.get("component_type"), parsed.fields.get("action")
-        if kind == BUTTON:
-            await self._press(interaction, where, action)
-        elif kind in ENTITY_SELECTS and action in MENUS:
-            ids = _ids(data.get("values"))
-            setting = await self.settings.add_channels(*where, MENUS[action], ids)
-            await _edit(interaction, self._menu(interaction, setting))
-
-    async def _press(
-        self, interaction: discord.Interaction, where: tuple[int, int], action: str | None
-    ) -> None:
-        """Toggle the mode, show a list's select menu, or delete the settings, as v3's buttons."""
-        if action == "toggle_btn":
-            await _edit(interaction, self._menu(interaction, await self.settings.toggle(*where)))
-        elif action in SELECTS:
-            await _edit(interaction, self._render(interaction, SELECTS[action]))
-        elif action == "delete_btn":
-            await self.settings.remove(*where)
-            await _edit(interaction, self._render(interaction, "delete"))
-
-    def _render(self, interaction: discord.Interaction, name: str) -> Message:
-        """Template ``name`` in the user's locale with v3's ``Placeholder.get(event)``."""
-        template = self.templates.message(name, interaction.locale.value)
-        return render_message(template, placeholder_values(interaction), build_id=IDS.build)
+        """Change the settings from the menu's buttons and select menus; ``setup`` routes here."""
+        await self.listen.handle(interaction, parsed)
 
     @commands.Cog.listener()
     async def on_voice_state_update(
@@ -180,7 +108,7 @@ class VoiceLogger(commands.Cog):
         listen = targets(await self.settings.read_settings(guild.id), sides)
         bot = self.bot.user
         actor = {} if bot is None else actor_values(member, bot)
-        await self._post(guild, listen, name, actor | values)
+        await self.listen.post(guild, listen, name, actor | values)
 
     @commands.Cog.listener()
     async def on_gateway_voice_channel_status_update(self, payload: dict[str, object]) -> None:
@@ -242,7 +170,7 @@ class VoiceLogger(commands.Cog):
             if member is None or bot is None
             else actor_values(member, bot)
         )
-        await self._post(guild, listen, name, actor | values)
+        await self.listen.post(guild, listen, name, actor | values)
 
     async def _status_member(
         self, guild: discord.Guild, channel_id: int, status: str, at: datetime
@@ -282,7 +210,7 @@ class VoiceLogger(commands.Cog):
     async def cog_load(self) -> None:
         """Check the guilds at once when the plugin loads into a ready bot, as on a reload."""
         if self.bot.is_ready():
-            await self.check_guilds()
+            await self.listen.check_guilds()
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
@@ -291,7 +219,7 @@ class VoiceLogger(commands.Cog):
         A new session's channels hold no status, so JDA's cache started empty again.
         """
         self.statuses.clear()
-        await self.check_guilds()
+        await self.listen.check_guilds()
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: discord.Guild) -> None:
@@ -308,133 +236,7 @@ class VoiceLogger(commands.Cog):
         """Forget the guild's statuses during an outage: its channels come back without them."""
         self.statuses.pop(guild.id, None)
 
-    async def check_guilds(self) -> None:
-        """Delete the settings of the guilds that the bot left, and check the others' lists.
-
-        By ``on_ready``, discord.py knows every guild of the session, unavailable ones included.
-        v3's ``JsonManager`` deleted the files of the guilds it did not know at its first use,
-        inside a loop that then threw. An unavailable guild (an outage) is left alone: discord.py
-        knows it without its channels.
-        """
-        for guild_id in await self.settings.guild_ids():
-            guild = self.bot.get_guild(guild_id)
-            if guild is None:
-                await self.settings.forget(guild_id)
-                logger.info(
-                    "VoiceLogger deleted the settings of guild %s, which the bot left", guild_id
-                )
-            elif not guild.unavailable:
-                await self._check(guild)
-
-    async def _check(self, guild: discord.Guild) -> None:
-        """Drop the channels that ``guild`` no longer has from its lists, as v3's startup did.
-
-        Listen channels are not checked: a deleted one is forgotten when a log finds it gone,
-        and a thread is not cached while it is archived. A guild whose settings cannot be read is
-        skipped with an error, so that the others are still checked.
-        """
-        known = {channel.id for channel in guild.channels}
-        try:
-            dropped = await self.settings.prune(guild.id, known)
-        except DataError:
-            logger.exception("VoiceLogger cannot check the settings of guild %s", guild.id)
-            return
-        if dropped:
-            logger.info(
-                "VoiceLogger dropped the deleted channels %s from the lists of %s (%s)",
-                ", ".join(map(str, dropped)),
-                guild.name,
-                guild.id,
-            )
-
-    async def _post(
-        self, guild: discord.Guild, listen: Sequence[int], name: str, values: Mapping[str, str]
-    ) -> None:
-        """Send template ``name`` to each listen channel of ``listen``, in the guild's locale.
-
-        v3 used ``guild.locale``; the templates fall back to zh-TW. Each channel gets its own
-        render, because discord.py closes a message's files once sent, and is reached without
-        the cache. A channel that Discord no longer has loses its settings; a refusal is a
-        warning; the other channels still get the log. v3 stopped at the first missing channel
-        and threw for channels other than text and voice channels.
-        """
-        template = self.templates.message(name, guild.preferred_locale.value)
-        for channel_id in listen:
-            partial = self.bot.get_partial_messageable(channel_id, guild_id=guild.id)
-            channel = cast("Postable", partial)  # send's overloads never take a view union
-            message = render_message(template, values, build_id=IDS.build)
-            try:
-                await channel.send(
-                    content=message.content or None,
-                    embeds=message.embeds,
-                    view=message.view,
-                    files=message.files,
-                )
-            except discord.NotFound:
-                await self.settings.remove(guild.id, channel_id)
-                logger.info(
-                    "VoiceLogger forgot the listen channel %s of %s (%s), which no longer exists",
-                    channel_id,
-                    guild.name,
-                    guild.id,
-                )
-            except discord.HTTPException as error:
-                logger.warning(
-                    "VoiceLogger cannot post in the listen channel %s of %s (%s): %s",
-                    channel_id,
-                    guild.name,
-                    guild.id,
-                    error,
-                )
-
-    def _menu(self, interaction: discord.Interaction, setting: Setting) -> Message:
-        """v3's settings menu for ``setting``, in the user's locale.
-
-        The values are v3's ``Placeholder.get(event)``, the mode and both lists, each in the
-        locale's line format from ``placeholder.yaml``.
-        """
-        locale = interaction.locale.value
-        values = placeholder_values(interaction)
-        empty = self.lang.text("placeholder.empty", locale)
-        lists = {
-            f"vl_{kind}_list_format": list_text(
-                ids,
-                self.lang.text(f"placeholder.{kind}_list_format", locale),
-                empty,
-                values,
-                f"{kind}list",
-            )
-            for kind, ids in (("allow", setting.allow), ("block", setting.block))
-        }
-        mode = {"vl_channel_mode": "ALLOW" if setting.allow_mode else "BLOCK"}
-        template = self.templates.message(MENU, locale)
-        return render_message(template, values | mode | lists, build_id=IDS.build)
-
-
-async def _edit(interaction: discord.Interaction, message: Message) -> None:
-    """Replace the component's whole message with ``message``."""
-    await interaction.response.edit_message(
-        content=message.content,
-        embeds=message.embeds,
-        view=message.view,
-        attachments=message.files,
-    )
-
-
-def _ids(values: object) -> list[int]:
-    """The channel and category IDs that a select menu sent, as Discord's decimal strings."""
-    entries = cast("list[object]", values) if isinstance(values, list) else []
-    return [
-        int(entry) for entry in entries if isinstance(entry, str) and SNOWFLAKE.fullmatch(entry)
-    ]
-
 
 def _place(channel: VoiceChannelLike | None) -> Place | None:
     """What the logs show of a voice state's channel, if the member is in one."""
     return None if channel is None else Place.of(channel)
-
-
-def _where(interaction: discord.Interaction) -> tuple[int, int] | None:
-    """The guild and the channel of ``interaction``, the listen channel's place, if in a guild."""
-    guild_id, channel_id = interaction.guild_id, interaction.channel_id
-    return None if guild_id is None or channel_id is None else (guild_id, channel_id)
