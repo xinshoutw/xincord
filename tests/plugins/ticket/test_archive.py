@@ -262,11 +262,6 @@ async def saving(scene: Scene, history: Sequence[Message]) -> Channel:
     return target
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The archive copies the conversation into a thread",
-)
 async def test_forwarded_messages(cog: Ticket) -> None:
     """Requirement: The archive copies the conversation into a thread."""
     source, target = channels(
@@ -295,11 +290,6 @@ async def test_forwarded_messages(cog: Ticket) -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The archive copies the conversation into a thread",
-)
 async def test_long_messages_and_large_files(cog: Ticket) -> None:
     """Requirement: The archive copies the conversation into a thread."""
     large, small = Attached("video.mp4", size=LIMIT + 1), Attached("log.txt", size=LIMIT)
@@ -324,11 +314,6 @@ async def test_long_messages_and_large_files(cog: Ticket) -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The archive copies the conversation into a thread",
-)
 async def test_names_discord_refuses(cog: Ticket) -> None:
     """Requirement: The archive copies the conversation into a thread."""
     source, target = channels(
@@ -344,11 +329,6 @@ async def test_names_discord_refuses(cog: Ticket) -> None:
     assert [fields["username"] for fields in sends(target.sent)] == ["bob", "8"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The archive copies the conversation into a thread",
-)
 @pytest.mark.parametrize(
     ("author", "expected"),
     [
@@ -384,11 +364,6 @@ HEART, VS16 = chr(0x2764), chr(0xFE0F)
 THUMBS, TONE = chr(0x1F44D), chr(0x1F3FD)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The archive copies the conversation into a thread",
-)
 @pytest.mark.parametrize(
     ("name", "kept"),
     [
@@ -402,6 +377,7 @@ THUMBS, TONE = chr(0x1F44D), chr(0x1F3FD)
         ("x" * 79 + ZWJ + "y", "x" * 78),
         ("x" * 79 + HEART + VS16, "x" * 79),
         ("x" * 78 + THUMBS + TONE, "x" * 78),
+        ("x" + ACUTE * 100, ""),  # one character too long for the name
     ],
     ids=[
         "short",
@@ -414,6 +390,7 @@ THUMBS, TONE = chr(0x1F44D), chr(0x1F3FD)
         "joiner",
         "variation",
         "modifier",
+        "cluster",
     ],
 )
 def test_thread_name(name: str, kept: str) -> None:
@@ -422,11 +399,6 @@ def test_thread_name(name: str, kept: str) -> None:
     assert thread_name(name, NOW, UTC) == kept + SUFFIX
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The archive copies the conversation into a thread",
-)
 def test_thread_name_in_a_zone() -> None:
     """Requirement: The archive copies the conversation into a thread."""
     taipei = timezone(timedelta(hours=8))
@@ -436,11 +408,6 @@ def test_thread_name_in_a_zone() -> None:
     assert thread_name("bob", NOW, None) == f"bob-{local}"  # the host's zone, as v3
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The archive copies the conversation into a thread",
-)
 @pytest.mark.parametrize(
     ("milliseconds", "counter", "name"),
     [
@@ -455,11 +422,6 @@ def test_webhook_name(milliseconds: int, counter: int, name: str) -> None:
     assert webhook_name(milliseconds, counter) == name
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The archive copies the conversation into a thread",
-)
 @pytest.mark.parametrize(
     ("locale", "texts"),
     [
@@ -489,11 +451,6 @@ async def test_saved(scene: Scene, locale: str, texts: dict[str, str]) -> None:
     assert target.sent[-1] == ("webhook.delete", {})
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The archive copies the conversation into a thread",
-)
 async def test_upload_limit_of_the_guild(scene: Scene) -> None:
     """Requirement: The archive copies the conversation into a thread."""
     large = Attached("video.mp4", size=11)

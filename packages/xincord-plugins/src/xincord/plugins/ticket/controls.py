@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 import discord
 
+from .archive import Options, archive
 from .channels import cached_channel
 from .ids import IDS
 from .model import Controls
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
 
     from xincord.core.i18n import Lang
 
+    from .channels import ArchiveTarget, History
     from .model import Entry
     from .store import Panels
 
@@ -235,8 +237,19 @@ class ControlRow:
     async def _save(
         self, interaction: discord.Interaction, source: CheckedChannel, target: CheckedChannel
     ) -> None:
-        """Archive ``source`` into a new thread of ``target`` and tell the user how it went."""
-        raise NotImplementedError
+        """Archive ``source`` into a new thread of ``target`` and tell the user how it went.
+
+        A new ephemeral answer, v3's ``deferReply``, so that the select stays usable; it says that
+        the archive is under way, then where it went. The markers use the default locale, as v3's.
+        """
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        texts = self.texts(interaction)
+        await interaction.edit_original_response(content=texts.get("reply.saving"))
+        guild = cast("discord.Guild", interaction.guild)  # members act in guilds
+        options = Options(self.public, self.clock(), self.zone, guild.filesize_limit)
+        thread = await archive(cast("History", source), cast("ArchiveTarget", target), options)
+        saved = texts.get("reply.saved", {"tt@thread": thread.mention})
+        await interaction.edit_original_response(content=saved)
 
     async def _staff_entry(
         self, interaction: discord.Interaction, fields: Mapping[str, str]
