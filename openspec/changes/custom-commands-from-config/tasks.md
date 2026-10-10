@@ -23,7 +23,7 @@
 
 ## 5. Commands from the config
 
-- [ ] 5.1 xfail tests for "The plugin installs as CustomCommands", "Commands come from the config"
+- [x] 5.1 xfail tests for "The plugin installs as CustomCommands", "Commands come from the config"
       and "Config changes apply on reload"
 - [ ] 5.2 Read the config in `setup`, build the commands from its entries and drop the bundled
       `register.yaml`; remove the markers

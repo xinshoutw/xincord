@@ -1,4 +1,4 @@
-"""The registration of the five commands.
+"""The registration of the commands that the config lists: v3's five by default.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/command/Register.kt:9-60
@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
     import discord
 
+    from conftest import Operator
     from discord_fakes import Sent
     from xincord.core.bot import Bot
     from xincord.core.command_tree import CommandTree
@@ -30,6 +31,33 @@ if TYPE_CHECKING:
 
 GOLDEN = golden("custom_commands")
 NAMES = ("cub-none-card", "tsib-none-card", "ctcb-none-card", "ctcb-remit", "chpytwtp-remit")
+RULES = """\
+commands:
+  - name: rules
+    description: Post the rules
+    localizations:
+      en-US: {name: rules-us, description: Post the rules (US)}
+      ja: {name: kisoku}
+    permissions: [manage_guild, manage_messages]
+"""
+RULES_PAYLOAD: dict[str, Any] = {
+    "type": 1,
+    "name": "rules",
+    "description": "Post the rules",
+    "options": [],
+    "name_localizations": {"en-US": "rules-us", "ja": "kisoku"},
+    "description_localizations": {"en-US": "Post the rules (US)"},
+    "default_member_permissions": 8224,  # Manage Server (32) and Manage Messages (8192)
+}
+EVERY_MEMBER = """\
+commands:
+  - {name: help, description: Show the help, permissions: []}
+"""
+SOME_GUILDS = """\
+commands:
+  - {name: shop, description: Open the shop, guilds: [1]}
+  - {name: help, description: Show the help}
+"""
 
 
 def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
@@ -65,3 +93,41 @@ async def test_command_callback(bot: Bot, cog: CustomCommands, name: str) -> Non
     assert [method for method, _ in sent[1:]] == ["channel.send", "delete_original_response"]
     embeds = cast("Sequence[discord.Embed]", sent[1][1]["embeds"])
     assert [embed_dict(embed) for embed in embeds] == [GOLDEN["messages"][name]]
+
+
+@pytest.mark.xfail(strict=True, reason="Commands come from the config")
+async def test_operators_command(operator: Operator) -> None:
+    """Requirement: Commands come from the config."""
+    operator.template("rules", 'content: "Be nice"\n')
+    bot = await operator.load(RULES)
+
+    _, guild_payload = await cast("CommandTree", bot.tree).payloads()
+
+    assert [listed(entry, RULES_PAYLOAD) for entry in guild_payload] == [RULES_PAYLOAD]
+
+
+@pytest.mark.xfail(strict=True, reason="Commands come from the config")
+async def test_every_member(operator: Operator) -> None:
+    """Requirement: Commands come from the config."""
+    operator.template("help", 'content: "Ask in #help"\n')
+    bot = await operator.load(EVERY_MEMBER)
+
+    _, guild_payload = await cast("CommandTree", bot.tree).payloads()
+
+    assert [(entry["name"], entry["default_member_permissions"]) for entry in guild_payload] == [
+        ("help", None)
+    ]
+
+
+@pytest.mark.xfail(strict=True, reason="Commands come from the config")
+async def test_some_guilds(operator: Operator) -> None:
+    """Requirement: Commands come from the config."""
+    operator.template("shop", 'content: "Welcome"\n')
+    operator.template("help", 'content: "Ask in #help"\n')
+    bot = await operator.load(SOME_GUILDS)
+    tree = cast("CommandTree", bot.tree)
+
+    first, second = (await tree.payloads(1))[1], (await tree.payloads(2))[1]
+
+    assert [entry["name"] for entry in first] == ["shop", "help"]
+    assert [entry["name"] for entry in second] == ["help"]
