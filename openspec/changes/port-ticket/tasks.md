@@ -106,7 +106,7 @@
 
 ## 20. Archive
 
-- [ ] 20.1 xfail tests for "The archive copies the conversation into a thread" against stubs in
+- [x] 20.1 xfail tests for "The archive copies the conversation into a thread" against stubs in
        `archive.py`
 - [ ] 20.2 Implement the names, the forwarding and the archive; remove the markers
 - [ ] 20.3 xfail tests for "Threads started in the ticket are flattened"

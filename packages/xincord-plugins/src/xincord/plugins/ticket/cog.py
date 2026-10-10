@@ -8,6 +8,7 @@ Kotlin:
 import logging
 import re
 import sqlite3
+import time
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
@@ -114,6 +115,8 @@ class Ticket(ControlRow, commands.Cog):
         self.panels = Panels(store)
         # Each user's draft per guild, by user ID and guild ID; v3's StepManager.steps, per user.
         self.drafts: dict[tuple[int, int], Session] = {}
+        self.clock = time.time
+        self.zone = None  # the host's, as v3's ZoneId.systemDefault()
 
     def commands(self) -> tuple[app_commands.Command[Any, ..., None], ...]:
         """Build v3's ``/create-ticket`` and ``/add-ticket``, localized from ``register.yaml``.

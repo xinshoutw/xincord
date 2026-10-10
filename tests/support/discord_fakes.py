@@ -48,6 +48,16 @@ class FakeUser:
         """The mention markup."""
         return f"<@{self.id}>"
 
+    @property
+    def display_name(self) -> str:
+        """The global name, else the username, as discord.py's ``User.display_name``."""
+        return self.global_name or self.name
+
+    @property
+    def display_avatar(self) -> FakeAsset:
+        """The avatar, else the default one."""
+        return self.avatar or self.default_avatar
+
 
 BOT_USER = FakeUser(id=99, name="xincord", bot=True)
 
@@ -511,6 +521,7 @@ class FakeGuild:
     owner: FakeMember | None = None  # when cached
     members: list[FakeMember] = field(default_factory=_no_members)  # as Discord has them
     cached_members: list[FakeMember] = field(default_factory=_no_members)  # as discord.py has them
+    filesize_limit: int = 10 * 1024 * 1024  # the upload limit of the guild's boost tier, in bytes
 
     @property
     def me(self) -> FakeMe | None:

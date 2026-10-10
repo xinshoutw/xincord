@@ -20,7 +20,8 @@ from .tickets import is_staff, viewing
 from .views import control_row, save_select
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Callable, Mapping, Sequence
+    from datetime import tzinfo
 
     from discord.abc import Snowflake
 
@@ -118,6 +119,8 @@ class ControlRow:
 
     lang: Lang
     panels: Panels
+    clock: Callable[[], float]  # the archive's time, in seconds since the epoch
+    zone: tzinfo | None  # the time zone of the archive's names and markers; None: the host's
 
     def texts(self, interaction: discord.Interaction) -> Texts:
         """The texts of a reply to the user who acted: their locale, else zh-TW (v3's templates).
