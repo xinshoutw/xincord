@@ -10,6 +10,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/resources/lang/en-US/message/on-status-new.yaml:1-21
 """
 
+import asyncio
 import logging
 from dataclasses import dataclass
 from datetime import timedelta
@@ -20,7 +21,7 @@ import pytest
 from discord.utils import time_snowflake, utcnow
 
 from discord_fakes import FakeGuild, FakeMember, FakeVoiceChannel, embed_dict, forbidden
-from plugin_fakes import dispatch, gateway, golden
+from plugin_fakes import dispatch, gateway, golden, until
 from xincord.plugins.voice_logger.status import CLEARED, SET
 from xincord.plugins.voice_logger.store import add_channels, toggle
 
@@ -275,3 +276,69 @@ async def test_typed_text_stays(scene: Scene) -> None:
 
     [posted] = scene.posts(5)
     assert posted["fields"][3]["value"] == typed
+
+
+SESSION = pytest.mark.xfail(
+    strict=True, reason="Status changes are posted in order from the current session"
+)
+
+
+@SESSION
+async def test_a_change_waits_for_its_entry(
+    scene: Scene, cog: VoiceLogger, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Requirement: Status changes are posted in order from the current session."""
+    # A status that Discord clears by itself has no entry at first, and a member sets a new one.
+    await scene.listen(5, [30])
+    scene.answer(
+        [entry(7, status="Gaming")], [], [entry(7, kind=CLEARED)], [entry(7, status="Again")]
+    )
+    await scene.update("Gaming")
+    gate, waits = asyncio.Event(), list[float]()
+
+    async def sleep(seconds: float) -> None:
+        waits.append(seconds)
+        if len(waits) == 1:  # the clear waits until the test lets it read again
+            await gate.wait()
+
+    monkeypatch.setattr(cog, "sleep", sleep)
+    cleared = asyncio.create_task(scene.update(None))
+    await until(lambda: bool(waits))
+    again = asyncio.create_task(scene.update("Again"))
+    # Room for the new status to be posted first, which must not happen; a store read takes
+    # milliseconds.
+    await asyncio.wait({again}, timeout=0.2)
+    gate.set()
+    await asyncio.gather(cleared, again)
+
+    expected = GOLDEN["status"]["en-US"]
+    new, delete = expected["new"]["title"], expected["delete"]["title"]
+    assert [post["title"] for post in scene.posts(5)] == [new, delete, new]
+
+
+@SESSION
+async def test_a_new_session_or_an_outage(scene: Scene) -> None:
+    """Requirement: Status changes are posted in order from the current session."""
+    # JDA rebuilt its cache from the new session's channels, which hold no status.
+    await scene.listen(5, [30])
+    scene.answer(*[[entry(7, status="Gaming")]] * 3)
+
+    await scene.update("Gaming")
+    await dispatch(scene.bot, "ready")
+    await scene.update("Gaming")
+    await dispatch(scene.bot, "guild_unavailable", scene.guild.as_guild())
+    await scene.update("Gaming")
+
+    assert scene.posts(5) == [GOLDEN["status"]["en-US"]["new"]] * 3
+
+
+@SESSION
+async def test_the_bot_leaves(scene: Scene, cog: VoiceLogger) -> None:
+    """Requirement: Status changes are posted in order from the current session."""
+    await scene.listen(5, [30])
+    scene.answer([entry(7, status="Gaming")])
+    await scene.update("Gaming")
+
+    await dispatch(scene.bot, "guild_remove", scene.guild.as_guild())
+
+    assert cog.statuses == {}
