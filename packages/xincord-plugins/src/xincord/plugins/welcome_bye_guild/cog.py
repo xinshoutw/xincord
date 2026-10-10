@@ -78,6 +78,16 @@ class WelcomeByeGuild(commands.Cog):
         self.templates = templates
 
     @commands.Cog.listener()
+    async def on_guild_remove(self, guild: discord.Guild) -> None:
+        """Stub until guilds are forgotten."""
+        raise NotImplementedError
+
+    @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        """Stub until guilds are forgotten."""
+        raise NotImplementedError
+
+    @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
         """Welcome a member, bots too as in v3, in the guild's welcome channel.
 
