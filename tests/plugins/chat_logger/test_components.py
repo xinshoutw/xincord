@@ -37,7 +37,6 @@ if TYPE_CHECKING:
 GOLDEN = golden("chat_logger")
 LOCALES = {"en-US": discord.Locale.american_english, "zh-TW": discord.Locale.taiwan_chinese}
 BUTTON, CHANNEL_SELECT = 2, 8  # component types
-REASON = "The settings components change the settings"
 
 
 def settings(store: Store) -> ListenSettings:
@@ -90,7 +89,6 @@ def fields_of(edited: dict[str, Any]) -> list[str]:
     return [str(field.value) for field in embed.fields]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_toggle(cog: ChatLogger, store: Store) -> None:
     """Requirement: The settings components change the settings."""
     await settings(store).add_channels(10, 5, "allow", [30])
@@ -105,7 +103,6 @@ async def test_toggle(cog: ChatLogger, store: Store) -> None:
     assert len(edited["view"].children) == 4  # v3's buttons again
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 @pytest.mark.parametrize("kind", ["allow", "block"])
 async def test_modify_a_list(cog: ChatLogger, store: Store, locale: str, kind: str) -> None:
@@ -142,7 +139,6 @@ async def test_modify_a_list(cog: ChatLogger, store: Store, locale: str, kind: s
     )
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_delete(cog: ChatLogger, store: Store, locale: str) -> None:
     """Requirement: The settings components change the settings."""
@@ -160,7 +156,6 @@ async def test_delete(cog: ChatLogger, store: Store, locale: str) -> None:
     assert edited["view"] is None  # no components left
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 async def test_v3_ids(bot: Bot, store: Store) -> None:
     """Requirement: The settings components change the settings."""
     old, new = component("chat-logger@a:toggle_btn"), component("chat_logger:1:a=toggle_btn")
@@ -175,7 +170,6 @@ async def test_v3_ids(bot: Bot, store: Store) -> None:
     assert IDS.upgrade("chat-logger@a:toggle_btn") == "chat_logger:1:a=toggle_btn"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(
     ("custom_id", "values"),
     [

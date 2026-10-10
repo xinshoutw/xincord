@@ -55,11 +55,6 @@ def edited(interaction: FakeInteraction) -> tuple[dict[str, Any], list[list[obje
     return embed_dict(embed), buttons
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The settings menu shows the channel's settings",
-)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_menu(cog: ChatLogger, store: Store, locale: str) -> None:
     """Requirement: The settings menu shows the channel's settings."""
@@ -73,11 +68,6 @@ async def test_menu(cog: ChatLogger, store: Store, locale: str) -> None:
     assert buttons == GOLDEN["menu"][locale]["buttons"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The settings menu shows the channel's settings",
-)
 async def test_channel_without_settings(cog: ChatLogger, store: Store) -> None:
     """Requirement: The settings menu shows the channel's settings."""
     interaction = command(FakeChannel(id=6, name="other"))
@@ -89,11 +79,6 @@ async def test_channel_without_settings(cog: ChatLogger, store: Store) -> None:
     assert await store.keys(NAMESPACE) == []  # v3 kept the default in memory only
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The settings menu shows the channel's settings",
-)
 async def test_long_list(cog: ChatLogger, store: Store) -> None:
     """Requirement: The settings menu shows the channel's settings."""
     # v3 threw for a field over 1024 characters, after saving, so the menu never opened again.

@@ -10,7 +10,7 @@ import discord
 
 from xincord.core.templates import Templates
 
-from .cog import ChatLogger
+from .cog import IDS, ChatLogger
 from .config import Config
 
 if TYPE_CHECKING:
@@ -35,3 +35,6 @@ async def setup(bot: Bot) -> None:
     templates = Templates.load(lang)
     cog = ChatLogger(bot, context.config(Config), context.store, lang, templates)
     await bot.add_cog(cog)
+    # The menu's buttons and select menus with IDS's IDs, v3's too, reach cog.handle; the core
+    # drops the route when the plugin unloads.
+    bot.route(__name__, IDS, cog.handle)

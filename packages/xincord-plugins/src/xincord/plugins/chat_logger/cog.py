@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 from discord.ext import commands
 
 from xincord.core.component_ids import ComponentIds
+from xincord.plugins.listen_channels.menu import ListenChannels, Menu
+from xincord.plugins.listen_channels.store import ListenSettings
 
 if TYPE_CHECKING:
     import discord
@@ -38,12 +40,14 @@ class ChatLogger(commands.Cog):
         self.config = config
         self.store = store
         self.lang = lang
-        self.templates = templates
+        self.settings = ListenSettings(store, NAMESPACE)
+        # The menu, its components, the posts and the checks at READY, shared with VoiceLogger.
+        self.listen = ListenChannels(bot, self.settings, Menu(lang, templates, IDS, "cl", MENU))
 
     async def show_settings(self, interaction: discord.Interaction) -> None:
         """Edit the deferred response into the channel's settings menu (v3's ``setting``)."""
-        raise NotImplementedError
+        await self.listen.show(interaction)
 
     async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
         """Change the settings from the menu's buttons and select menus; ``setup`` routes here."""
-        raise NotImplementedError
+        await self.listen.handle(interaction, parsed)
