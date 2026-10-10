@@ -60,7 +60,13 @@ Names: `<Plugin>` is the v3 name (`AutoRole`, `_Example`), `<kebab>` its kebab c
    WelcomeByeGuild's probe found a core failure (threads with an uncached parent) that the fakes
    hid. A plugin that calls Discord's REST API on its own (IntervalPusher's ping) logs in against a
    local server: point `discord.http.Route.BASE` at it, call `bot.http.static_login(...)` inside
-   `async with bot`, run `setup_hook`, and set `bot._ready` for READY.
+   `async with bot`, run `setup_hook`, and set `bot._ready` for READY. For interactions, record
+   HTTP instead of answering it: replace `discord.http.HTTPClient.request` (the bot's REST calls)
+   and `discord.webhook.async_.AsyncWebhookAdapter.request` (interaction callbacks, which must
+   return `{"interaction": {"id": ...}}`, follow-ups and `@original` edits), give the payload
+   `attachment_size_limit`, run commands with `await bot.tree._call(interaction)` (defer,
+   transformers, callback) and components and modals with `await bot.on_interaction(interaction)`
+   (Feedbacker's probe; it checked the modal's label payload and the core's legacy upgrade).
 8. **Document.** `docs/porting-guide.md`: differences rows, new pitfalls, convention changes. Audit
    the inventory: each behavior is a scenario with a test, or out of scope or a v3 difference in
    `design.md`, with the reason.
@@ -124,7 +130,11 @@ async def setup(bot: Bot) -> None:
 - A plugin whose only v3 key was `enabled` ships no `config.yaml` and never calls
   `context.config`.
 - Validate a value that Discord would refuse at send time (a URL, a length) in the model, so that
-  the plugin fails at load with the key named (BotInfo's `source_url`).
+  the plugin fails at load with the key named (BotInfo's `source_url`; Feedbacker's replies are
+  `Annotated[str, StringConstraints(pattern=r"\S", max_length=2000)]`).
+- v3 keys without a default stay required (IntervalPusher's `listeners`, Feedbacker's replies). A
+  new key is optional, so that v3's files load; a text default is English, because Python files
+  hold no CJK, and the bundled file can hold the zh-TW text (Feedbacker's `form_failure`).
 
 ### Storage
 
@@ -171,6 +181,10 @@ async def setup(bot: Bot) -> None:
   whose `type` is channel, whose `channel_types` lists the types and whose `transform` passes the
   value on (WelcomeByeGuild's `TextChannelOption`): `discord.TextChannel` would also offer
   announcement channels and need the cache. Check `channel.type` in the handler too.
+- A user option that v3 read with `asMember` is `discord.Member | discord.User`: discord.py passes
+  the user when Discord resolved no member, where a `discord.Member` annotation raises before the
+  callback and leaves the deferred response "thinking". Check the member against `MemberLike` in
+  the callback and answer (Feedbacker's `create_form`).
 - v3's runtime `member.hasPermission(ADMINISTRATOR)` is `interaction.permissions.administrator`,
   checked after `interaction.guild is None` (never true in a guild: discord.py creates a placeholder
   guild). A reply v3 rendered in `event.guild.locale` uses
@@ -236,6 +250,8 @@ async def setup(bot: Bot) -> None:
   `putTextChannel` with a prefix are `guild_values`, `user_values`, `member_values`,
   `event_values` and `channel_values` with that prefix (WelcomeByeGuild's `values.py`).
 - Plugin keys keep v3's names (`_Example@option1`, `ga@title`) so operators' templates keep working.
+- The core trims embed field names and values as JDA did and gives an empty one U+200E, which
+  Discord would refuse otherwise (Feedbacker's empty feedback): no plugin-side workaround.
 - A template that v3 rendered with `getCreateBuilder(key)` and no locale, such as a public message,
   renders in `lang.default_locale` for every user (SimpleCommand); one rendered with the user's
   locale uses `interaction.locale.value`. Without a substitutor, v3 used only its global keys:
@@ -254,6 +270,19 @@ async def setup(bot: Bot) -> None:
   logs it with the plugin's name and upgrades legacy IDs on the message afterwards.
 - `interaction.response.edit_message(view=...)` changes only the components; content and embeds
   stay.
+- A plugin with v3 components routes them all to one `handle(interaction, parsed)` that dispatches
+  on `interaction.type` and `parsed.fields["action"]`, as v3's `onButtonInteraction` and
+  `onModalInteraction` did; other actions get no response. The core parses v3's IDs and upgrades
+  the message after the handler, so the handler compares the pressed ID as it came (Feedbacker).
+- A button that opens a modal answers `interaction.response.send_modal(render_modal(
+  templates.modal(name, interaction.locale.value), values, build_id=IDS.build))`; the modal's
+  `uid` keeps v3's keys, so its ID is routed like a button. Read the submission with
+  `modal_values(interaction.data)` (labels and action rows). To change the button's message after
+  the modal, edit `interaction.message` with the bot's token: rebuild its view with
+  `View.from_message` (`LayoutView.from_message` when `message.flags.components_v2`), stop it and
+  `message.edit(view=...)` (Feedbacker's `highlight`). A submission that posts elsewhere defers
+  (`response.defer()`, a deferred message update) and reports a failure with
+  `followup.send(..., ephemeral=True)`.
 
 ### Tests
 
@@ -284,6 +313,11 @@ async def setup(bot: Bot) -> None:
   the user and member attributes that placeholders read (`global_name`, `nick`, `avatar`, `roles`,
   `joined_at`); a logged-in bot's user is `monkeypatch.setattr(Bot, "user",
   property(lambda _bot: BOT_USER))` (WelcomeByeGuild's `test_members.py`).
+  For components and modals: `FakeMessage` (components built with `discord.ActionRow(payload)`,
+  `flags`, edits and deletion into `sent`, `channel.fetch_message` until deleted, `error`),
+  `FakeResponse.send_message` and `send_modal`, `FakeInteraction.followup` and `not_found()`;
+  route v3 IDs through `bot.on_interaction` to see the core's upgrade (Feedbacker's
+  `test_routes.py`).
   Call cog methods directly (`cog.example_command(...)`), check a command's wiring through
   `bot.tree.get_command(...)` (its `binding` is the cog), send components through
   `bot.on_interaction(...)`, which includes the routing, and run listeners with

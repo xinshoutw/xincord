@@ -26,6 +26,11 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `Placeholder` / commons-text substitutor | single-level `%key%` substitution with a fresh context per render | B10 |
 | `checkComponentIdPrefix` / `checkModalIdPrefix` in every plugin listener | `bot.route(__name__, ids, handler)` in `setup`; the handler gets the interaction and a `ParsedId` | B9 |
 | `ComponentIdManager` (`{prefix}{a..z}:{value};...`) | `ComponentIds`: `{namespace}:1:{letter}={value};...` plus the permanent v3 decoder; `upgrade_view` rewrites legacy IDs | B9 |
+| `event.replyModal(ModalCreator...)` and `ModalInteractionEvent.getValue(id)` | `interaction.response.send_modal(render_modal(...))` and `modal_values(interaction.data)[id]` (`xincord.core.templates`) | B10 |
+| `event.deferEdit()` on a modal submission, then the bot's own sends | `interaction.response.defer()` (a deferred message update), then `interaction.followup.send(..., ephemeral=True)` for a reply | B5 |
+| `component.withStyle(...)` on the message's rows, `editOriginalComponents` | `View.from_message(...)` (`LayoutView` for Components V2), change the items, `view.stop()`, `interaction.message.edit(view=...)` (Feedbacker's `highlight`) | |
+| `getOption("member").asMember` | a `discord.Member \| discord.User` option, checked against `MemberLike`: discord.py passes the user when Discord resolved no member | |
+| JDA's `addField`: trimmed name and value, U+200E for an empty one | the core's `render_message` does the same | B10 |
 | JSON files and embedded MongoDB | SQLite (`sqlite3` + `asyncio.to_thread`), key-value table plus per-plugin tables | B8 |
 | `JsonGuildFileManager` (`plugins/<Name>/data/<guildId>.json`) | the store's key-value table: namespace = the plugin's name, key = the guild ID, value = v3's document unchanged, changed under `store.lock("<Name>:<guildId>")` | B8, B11 |
 | `OptionData(CHANNEL).setChannelTypes(...)` | an `app_commands.Transformer` whose `channel_types` lists JDA's types and that passes on the `AppCommandChannel` (WelcomeByeGuild's `TextChannelOption`) | B5 |
@@ -149,6 +154,18 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - Outgoing HTTP goes through aiohttp, one `ClientSession` per loop opened after READY and closed
   with the loop (IntervalPusher's `open_session`); tests send it to `http_fakes.Monitor`, a local
   server.
+- A plugin with v3 components lists v3's fields in v3's order in `ComponentIds`, with v3's
+  `component_prefix` as `legacy_prefix`, and routes them to one `handle` that dispatches on the
+  interaction type and the `action` field; other actions get no response, as in v3. The core parses
+  v3's IDs and upgrades the message afterwards (Feedbacker).
+- A button that opens a modal answers with `interaction.response.send_modal(render_modal(...))`
+  and may edit its own message afterwards with the bot's token; the modal's submission is routed
+  like a button and read with `modal_values(interaction.data)` (Feedbacker's `press_star` and
+  `submit_form`).
+- Replies kept in a plugin's `config.yaml` (v3's Feedbacker) are `Annotated[str,
+  StringConstraints(pattern=r"\S", max_length=2000)]`: Discord refuses an empty message or one over
+  2000 characters. New optional replies get English defaults (no CJK in Python) and zh-TW texts in
+  the bundled file.
 
 ## Pitfalls
 
@@ -273,6 +290,22 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   script: `discord.Interaction(data=payload, state=bot._connection)` after setting
   `state.user`, `command._invoke_with_namespace(...)`, and gateway payloads through
   `state.parse_*` with `bot.loop` set. This found the thread category failure above.
+- **Member options.** A `discord.Member` annotation makes discord.py raise a `TransformerError`
+  before the callback when Discord resolved no member (a user outside the guild), and the deferred
+  response stays "thinking"; annotate `discord.Member | discord.User` and check the member in the
+  callback.
+- **Modal submissions.** discord.py parses a submission only for a `Modal` it dispatches; the core
+  stops its modals, so plugins read `interaction.data` with `modal_values`. `defer()` on a
+  submission sends a deferred message update (type 6), after which `followup.send(...,
+  ephemeral=True)` can still tell the user something.
+- **Empty embed fields.** Discord refuses an embed field whose name or value is empty; JDA sent
+  U+200E instead and trimmed both with Java's `trim`, and the core's renderer now does the same
+  (an empty optional modal input is the common case).
+- **Views from messages.** `View.from_message` refuses a Components V2 message (`ValueError`); use
+  `LayoutView.from_message` when the message has the `components_v2` flag, as the core's upgrade
+  does.
+- **Deleted messages and legacy IDs.** After a handler that deletes the message of a v3 ID (a v3
+  modal opened before the switch), the core's upgrade cannot fetch it and logs an error.
 
 v3 behaviors never to reproduce: loading plugins in reverse dependency order, non-atomic JSON
 writes that silently reset corrupt files, recursive placeholder expansion, shared mutable
@@ -385,3 +418,13 @@ Every deliberate difference, added by the change that introduces it.
 | IntervalPusher | the bundled `config.yaml` held a listener on the owner's status domain | it lists no listeners and shows an example on `status.example.com` in a comment | port-interval-pusher |
 | IntervalPusher | a config without `listeners` or with an unknown key stopped the whole bot, even with the plugin disabled | only IntervalPusher is disabled, unknown keys warn, and the file is read only when `plugins` lists it | port-interval-pusher |
 | IntervalPusher | log lines did not say which listener (`Status Monitor refused the connection! (Code: 404)!`) | English lines that number the listener, at v3's levels | port-interval-pusher |
+| Feedbacker | a missing submit channel was reported through the interaction hook before anything acknowledged the submission, so the member saw a failed modal | the submission is acknowledged; the member gets `form_submit_failure` and the form stays | port-feedbacker |
+| Feedbacker | the form was deleted while its review was posted, so a refused review lost the feedback | the form is deleted only after the review is posted; a refused review keeps it and tells the member | port-feedbacker |
+| Feedbacker | a `member` option naming a user outside the guild, or a channel refusing the form, left the administrator's response "thinking" | `form_failure` and a log warning | port-feedbacker |
+| Feedbacker | `SubmitChannel must be TextChannel` and `Submit channel not found` were hard-coded English | `form_failure` and `form_submit_failure` in `config.yaml`: zh-TW in the bundled file, English defaults for v3's files | port-feedbacker |
+| Feedbacker | the star restyle was queued on the interaction hook before the modal acknowledged the press | the bot edits its own message after the modal opened; a refused edit is logged | port-feedbacker |
+| Feedbacker | the feedback was expanded as placeholders, and `%fb_content%` in it made the modal fail | the feedback is shown as typed | port-feedbacker |
+| Feedbacker | a submission without a member wrote its values into the global placeholders | each render has its own values | port-feedbacker |
+| Feedbacker | a star count above 5 or below 0 threw after the member had typed a feedback | the press fails before the modal opens | port-feedbacker |
+| Feedbacker | the command needed the core's auto-defer, which `--no-auto-defer-interactions` turned off | the command tree always defers it | port-feedbacker |
+| Feedbacker | a config without one of the three replies, or with an unknown key, stopped the whole bot even with the plugin disabled | only Feedbacker is disabled, unknown keys warn, and a blank reply or one over 2000 characters is refused at load | port-feedbacker |
