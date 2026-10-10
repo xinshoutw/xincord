@@ -2,7 +2,7 @@
 
 - [x] 1.1 Bundle v3's en-US and zh-TW lang files (LF line endings, B2 and B13 fixed) with the new
       `text.yaml` (v3's texts from the Kotlin code)
-- [ ] 1.2 Move UptimeHeartbeat's URL redaction into the shared package `xincord.plugins.redaction`
+- [x] 1.2 Move UptimeHeartbeat's URL redaction into the shared package `xincord.plugins.redaction`
 
 ## 2. Installation
 

@@ -14,8 +14,10 @@ import aiohttp
 import discord
 from discord.http import Route
 
+from xincord.plugins.redaction import origin, redact
+
 from .config import PING
-from .logs import Failures, origin, redact
+from .logs import Failures
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
