@@ -34,7 +34,7 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `Placeholder.globalSubstitutor`, used by `getCreateBuilder(key, locale)` without a substitutor | `global_values(interaction.client)` (`bot_id`, `bot_name`; `xincord.core.placeholders`) | B10 |
 | Kotlin `Int` amounts (32 bits, wrapping) | Python `int`: exact and unbounded; JSON keeps them exact (Economy) | |
 | JDA's `addField`: trimmed name and value, U+200E for an empty one | the core's `render_message` does the same | B10 |
-| JSON files and embedded MongoDB | SQLite (`sqlite3` + `asyncio.to_thread`), key-value table plus per-plugin tables | B8 |
+| JSON files and embedded MongoDB | SQLite (`sqlite3` + `asyncio.to_thread`), key-value table plus per-plugin tables; data kept for years in the plugin's own files under `data/<Name>/` (ChatLogger's messages) | B8 |
 | `JsonGuildFileManager` (`plugins/<Name>/data/<guildId>.json`) | the store's key-value table: namespace = the plugin's name, key = the guild ID, value = v3's document unchanged, changed under `store.lock("<Name>:<guildId>")` or in one `Store.update` (Economy's wallets) | B8, B11 |
 | `OptionData(CHANNEL).setChannelTypes(...)` | an `app_commands.Transformer` whose `channel_types` lists JDA's types and that passes on the `AppCommandChannel` (WelcomeGoodbye's `TextChannelOption`) | B5 |
 | `event.member.hasPermission(ADMINISTRATOR)` | `interaction.permissions.administrator` (Discord's resolved permissions; Administrator cannot be set per channel) | |
@@ -71,7 +71,7 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `MessageUpdateEvent` (every `MESSAGE_UPDATE`, the message cached or not) | `on_raw_message_edit(payload)` with `payload.message`, the updated message that discord.py builds from the payload (since 2.5); `on_message_edit` needs the cached message | B3 |
 | `MessageDeleteEvent` / `MessageBulkDeleteEvent` | `on_raw_message_delete(payload)` / `on_raw_bulk_message_delete(payload)`, uncached messages too; discord.py never splits a bulk deletion | B3 |
 | `Message.contentRaw` and `getEmbeds()` | `message.content` and `message.embeds`; an embed's `type` is `rich` for bots' and webhooks' embeds and a preview type (`link`, `article`, `image`, `video`, `gifv`) for the ones Discord adds from links | |
-| SQLiteAPI's `SQLiteFileManager` (ChatLogger: a file per guild, a table per channel) | a plugin table in the core store through `Store.run`, named `<Plugin>_<table>` (`ChatLogger_messages`), each operation one transaction | B8, B12 |
+| SQLiteAPI's `SQLiteFileManager` (ChatLogger: a file per guild, a table per channel) | the plugin's own SQLite files in `PluginContext.data_directory` (`data/<Name>/`): ChatLogger's `messages-<UTC second>.db`, each holding a range of message IDs, a new one when the newest reaches `max_file_size_mb`, one connection each on the plugin's own thread (`MessageFiles`); each operation one transaction | B8, B12 |
 | Code that v3 copied between plugins (VoiceLogger's and ChatLogger's `ChannelData`, `JsonManager` and settings menu) | a package under `xincord.plugins` without an entry point that both plugins import (`xincord.plugins.listen_channels`: `ListenSettings`, `ListenChannels`) | B3 |
 | An in-memory builder session per user and guild that renders through the slash command's `InteractionHook` (Giveaway's `StepManager`) | the cog's drafts per user and guild with the builder message's ID; each press or submission answers with `response.edit_message(...)` (type 7), so the builder outlives the 15-minute hook and an older builder answers that the session expired (Giveaway) | |
 | `event.message.editMessage(...)` and `event.reply(...).setEphemeral(true)` on a post's button | `response.defer()` at once, then `edit_original_response(...)` with the whole post (the component's message, through the press's webhook, which no channel rate limit delays) and `followup.send(..., ephemeral=True)`; every press from the post shows it as stored, refusals included (Giveaway's joins and draws) | B5 |
@@ -303,11 +303,17 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   imported, so it holds no state. What differs is passed in (`ListenSettings(store, namespace)`,
   `Menu(lang, templates, ids, key, template)`); each plugin builds its command group in its own
   module, so that unloading the plugin removes it.
-- Data that grows with the guilds' traffic (ChatLogger's messages) is a plugin table in the core
-  store, `<Plugin>_<table>` through `Store.run`, each operation one transaction, and is bounded: a
-  background task deletes what is older than the configured retention at READY and every hour, in
-  batches, so that the store's single database thread, which every plugin shares, is never held
-  long (decision B8, settled in port-chat-logger).
+- Data that grows with the guilds' traffic and is kept for years (ChatLogger's messages, five years
+  by default) lives in the plugin's own SQLite files under `context.data_directory`
+  (`data/<Name>/`, in the `data` volume; the core never creates it), on a thread of the plugin's
+  own with one connection per file, opened in `cog_load` and closed in `cog_unload` after the work
+  under way (ChatLogger's `MessageFiles`). Files hold ranges of snowflakes and are named after the
+  UTC second where each starts (`files.py`): every operation goes to the one file holding its ID;
+  a new file starts after the newest stored ID once the newest file's page count reaches the size
+  limit, so no row moves; the retention deletes the files whose range ended before it and the
+  other files' older rows in batches, at READY and every hour (decisions B8 and the owner's
+  2026-10-10 answer, `chat-logger-split-storage`). Small plugin tables that need queries can still
+  live in the core store (`<Plugin>_<table>` through `Store.run`).
 - Tests of message events feed discord.py's own parsers: `tests/support/payloads.py` builds the
   payloads, `plugin_fakes.add_guild` caches a guild, and `plugin_fakes.gateway` runs the listeners
   that the parsers dispatched (ChatLogger's `scene` fixture).
@@ -574,6 +580,19 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   for the test, also where other fixtures request it (ChatLogger's `config`).
 - **Batched deletions.** SQLite's `DELETE` takes no `LIMIT` unless it was compiled with it: delete a
   batch through a subquery of IDs (ChatLogger's `PRUNE`).
+- **Unclosed SQLite connections.** Since Python 3.13, `sqlite3` warns (`ResourceWarning`) when a
+  connection is collected without `close()`, and pytest's `filterwarnings = error` turns the
+  warning into a failure of whichever test runs when the collector does: close every connection,
+  and unload in each test what it loaded (ChatLogger's `load` fixture removes the cog, whose
+  `cog_unload` closes the files).
+- **Renaming SQLite files.** SQLite names a file's journal after the path its connection opened:
+  never rename an open database. Build a new file under a temporary name, close it, rename it, then
+  open it (ChatLogger's `create_file`).
+- **SQLite file size.** `PRAGMA page_count` times `PRAGMA page_size` is the file's size, answered
+  without a scan; deleted rows leave free pages (`PRAGMA freelist_count`) that later rows of that
+  file reuse, and the file never shrinks without `VACUUM`. With `autocommit=False`, Python opens a
+  new (deferred, lock-free) transaction right after each commit: read such pragmas inside the
+  work's transaction, before its commit.
 
 - **Re-imported plugin modules in tests.** A failed load (an invalid config) makes discord.py drop
   the plugin's modules; later loads import new classes, and frozen dataclasses from the old and the
@@ -770,8 +789,9 @@ Every deliberate difference, added by the change that introduces it.
 | VoiceLogger | the values stayed in the member's shared substitutor, mixed between the status handler and the voice handler | each log renders with its own values | port-voice-logger |
 | VoiceLogger | the settings of a left guild were deleted at the next start only; an unknown select menu action threw; an unreadable file was replaced by `{}`; the command needed the core's auto-defer | they are deleted on leave and at READY; no response; an error without overwriting; the command tree always defers the command | port-voice-logger |
 | VoiceLogger | settings in `plugins/VoiceLogger/setting/<guildId>.json` | v3's document per guild in the SQLite store; v3's files are not read (migration deferred, B11) | port-voice-logger |
-| ChatLogger | settings in `plugins/ChatLogger/setting/<guildId>.json` and messages in `data/<guildId>.db`, one table per channel | v3's settings documents in the store and one table, `ChatLogger_messages`, in `data/xincord.db`; v3's files are not read (migration deferred, B11) | port-chat-logger |
-| ChatLogger | messages were stored forever, deleted ones' too | they are kept `retention_days` days (30 by default), and a deleted message's text leaves the store once its deletion is handled | port-chat-logger |
+| ChatLogger | settings in `plugins/ChatLogger/setting/<guildId>.json` and messages in `plugins/ChatLogger/data/<guildId>.db`, one table per channel, growing forever | v3's settings documents in the store; the messages in `data/ChatLogger/messages-<UTC second>.db`, files of message ID ranges split at `max_file_size_mb` (256 MiB) and deleted whole once expired; v3's files are read only by the planned `xincord migrate` | port-chat-logger, chat-logger-split-storage |
+| ChatLogger | messages were stored forever, deleted ones' too | they are kept `retention_days` days (1826, 5 years, by default), and a deleted message's text leaves its file once its deletion is handled | port-chat-logger, chat-logger-split-storage |
+| ChatLogger | the database connections were never closed (their keys were listen channel IDs) | the message files open when the plugin loads and close when it unloads, after the work under way | chat-logger-split-storage |
 | ChatLogger | `log_all: false` froze the logged channels to those that had a table; its start-up `DROP TABLE` always failed; leaving a guild deleted nothing (wrong key) | it stores the detected channels' messages; one table; a left guild's messages are deleted with `log_all: false` | port-chat-logger |
 | ChatLogger | edits and deletions in threads were never posted, and the block mode never detected threads | threads are logged, detected through their channel and its category or by their own ID | port-chat-logger |
 | ChatLogger | the deletion of a message whose author had left, or of a webhook's message, was not logged | it is logged with the stored author's mention and `-` | port-chat-logger |

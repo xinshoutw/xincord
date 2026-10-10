@@ -50,7 +50,7 @@
 
 - [x] 7.1 The wheel ships the plugin's files; image check (`docker compose build`, `docker compose
       run --rm -T bot --no-online` with ChatLogger, a probe that stores messages into the volume)
-- [ ] 7.2 Porting guide rows and conventions, port-plugin skill notes; audit the scenarios against
+- [x] 7.2 Porting guide rows and conventions, port-plugin skill notes; audit the scenarios against
       the tests and `design.md`
 - [ ] 7.3 Push the work so far (CI green); cross-review (a subagent); record its findings in the
       deltas and `design.md`

@@ -182,16 +182,26 @@ import copies it as it is, and later edits compare against it.
 ### Tests
 
 - `tests/plugins/chat_logger/test_files.py`: the names, `route`, `next_start` and `expired`.
-- `test_message_files.py`: `MessageFiles` against a temporary directory with a small size limit
-  (16 KiB and 4,000-character texts, a page each): the first file, routing, splits, late messages,
-  reopening, a failing split, closing after the work under way and refusing later work, whole files
-  expiring. Rows are read back through separate read-only connections.
-- The plugin's tests read the rows from `data/ChatLogger/` the same way (`Scene.rows`); a `load`
-  fixture loads the plugin and removes its cog at the end of each test, closing its files (Python
-  3.13+ warns about unclosed connections, which pytest turns into errors), and an autouse
-  `plugin_modules` fixture lets a test reload the plugin.
+- `test_message_files.py`: `MessageFiles` in a temporary directory, with a size limit of 1 byte
+  (every message stored in the newest file starts the next one, which makes the ranges exact) or
+  64 KiB with 4,000-character texts (about a page each): no file before the first message, the
+  first file, routing, splits, late messages, reopening, other names, a corrupt file, a failing
+  split (before and after the rename, and a leftover temporary file), closing after the work under
+  way, work after closing, whole files expiring. Rows are read back through connections of the
+  test's own.
+- `test_storage.py`: the plugin's side (the first file through discord.py's parsers, the old table
+  dropped, a split at `max_file_size_mb: 1` with edits and deletions in both files, unload,
+  reload, failed load); `test_retention.py`: the 5-year default and expired files at READY.
+- `conftest.py`: the `load` fixture removes the cog of every plugin a test loaded, closing its files
+  (Python 3.13+ warns about connections collected unclosed, and pytest turns the warning into an
+  error); the autouse `plugin_modules` fixture lets a test reload the plugin; `Scene.rows` reads the
+  files; `write_file` writes a file as an earlier run left it.
 - The core: `test_plugins.py` (the context's directory) and `test_startup.py` (the program's
   `data/`).
+- Found while reviewing the implementation, fixed test-first (tasks 6.3 and 6.4): a corrupt
+  temporary file left by a failed attempt blocked its name, and a new file that failed after its
+  rename stayed under its name, where a restart would have read its range away from the messages
+  that the full file took meanwhile.
 
 ## v3 behaved differently
 

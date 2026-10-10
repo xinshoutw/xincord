@@ -73,7 +73,10 @@ new one, and `xincord.core.migrate_v3.RENAMED` already maps the v3 name.
    return `{"interaction": {"id": ...}}`, follow-ups and `@original` edits), give the payload
    `attachment_size_limit`, run commands with `await bot.tree._call(interaction)` (defer,
    transformers, callback) and components and modals with `await bot.on_interaction(interaction)`
-   (Feedback's probe; it checked the modal's label payload and the core's legacy upgrade).
+   (Feedback's probe; it checked the modal's label payload and the core's legacy upgrade). A
+   plugin that writes under `data/` is checked in the image too: `docker compose run --rm -T -v
+   <probe>:/probe.py:ro --entrypoint python bot /probe.py` writes into the named volume as uid 1000
+   (ChatLogger's message files).
    For voice and channel work, give `_add_guild_from_data` the category and voice channels
    (`parent_id`), feed `state.parse_voice_state_update(...)` with a `member` payload, and answer the
    recorded `POST /guilds/{id}/channels` with the body plus an `id` so that `clone()` returns a
@@ -180,7 +183,9 @@ async def setup(bot: Bot) -> None:
 
 ### Storage
 
-- `setup` passes `context.store` to the cog; the tests' `store` fixture is the same store.
+- `setup` passes `context.store` to the cog; the tests' `store` fixture is the same store. A
+  plugin with files of its own gets `context.data_directory` too (ChatLogger's cog takes the
+  context); `plugin_fakes.load_plugin` puts it beside the plugins root, under `tmp_path`.
 - Per-guild data (v3's `JsonGuildFileManager`, `plugins/<Name>/data/<guildId>.json`) is one
   document per guild in the key-value table: namespace = the plugin's name, key = the guild ID in
   decimal, value = v3's JSON document unchanged (its camelCase keys included), so that the v3 data
@@ -205,13 +210,21 @@ async def setup(bot: Bot) -> None:
 - Settings that v3 kept per channel inside a guild's file (`{"<channelId>": {...}}`) stay one
   document per guild; each change reads it under the guild's lock, rewrites the one entry in v3's
   shape and keeps the others as they were (the shared `ListenSettings._change` and `remove`).
-- Data that grows with the guilds' traffic (ChatLogger's messages, v3's SQLiteAPI files) is a
-  plugin table, `<Plugin>_<table>`, created in `setup` with `CREATE TABLE IF NOT EXISTS` through
-  `Store.run`; each operation is one `run` (a read, a comparison and an update together), and the
-  SQL stays in module constants (ruff's S608 refuses SQL built with f-strings). Bound it: a config
-  key (`retention_days`) and a background task that deletes the older rows at READY and every hour,
-  in batches through a subquery, since the store's one thread serves every plugin (ChatLogger's
-  `messages.py`). A snowflake gives its creation time (`discord.utils.time_snowflake`).
+- Data that grows with the guilds' traffic and is kept for years (ChatLogger's messages, v3's
+  SQLiteAPI files) lives in the plugin's own SQLite files under `context.data_directory`
+  (`data/<Name>/`, in the data volume; the core does not create it). Follow ChatLogger's
+  `messages.MessageFiles`: one `ThreadPoolExecutor(max_workers=1)` made in `open` and shut down in
+  `close`, one connection per file made and used on that thread only, each method one job and each
+  job's work in a file one transaction (`transaction`); `cog_load` opens the files (and closes them
+  again when its checks fail), `cog_unload` closes them after cancelling the loops, and work that
+  comes after `close` raises. Files cover ranges of snowflakes named by their start (`files.py`);
+  a new file starts once the newest file's page count reaches the limit, above every stored ID, so
+  that no row moves, built under a temporary name and renamed closed. Bound it: a config key
+  (`retention_days`) and a background task that deletes whole expired files, then older rows in
+  batches through a subquery, at READY and every hour. SQL stays in module constants (ruff's S608
+  refuses SQL built with f-strings). A snowflake gives its creation time
+  (`discord.utils.time_snowflake`, `snowflake_time`). Small tables that need queries can still be
+  plugin tables in the core store (`<Plugin>_<table>` through `Store.run`).
 - Records that concurrent presses and a background loop change, where a press may change nothing
   (Giveaway's joins and draws), run a pure transition under the guild's `store.lock`: read the
   document, parse only the entry needed, write only when the transition changed it
@@ -571,6 +584,11 @@ async def setup(bot: Bot) -> None:
   dispatched. ChatLogger's `scene` fixture bundles the bot, the store, the REST recorder, the cached
   guild and the posts per listen channel; a `config` fixture that the `bot` fixture reads lets a
   test load the plugin with another `config.yaml` through `pytest.mark.parametrize("config", ...)`.
+- A plugin that holds files or threads unloads in each test what it loaded: ChatLogger's `load`
+  fixture removes the cog at the end (its `cog_unload` closes the files), because Python warns
+  about a `sqlite3` connection collected unclosed and pytest fails whichever test is running then.
+  `Scene.rows` reads the message files through connections of the test's own, and `write_file`
+  writes one as an earlier run left it.
 - ruff, pyright, pytest and coverage already cover `packages/` and `tests/`; nothing to configure
   per plugin.
 - A plugin whose tests load invalid configs and compare its frozen dataclasses needs an autouse
