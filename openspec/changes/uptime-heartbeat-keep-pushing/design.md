@@ -43,6 +43,8 @@ failure lasts; the core's messages (see Risks).
   each outcome to `Pusher.failed` or `Pusher.worked`, which log it (v3's status handling, in
   `follow` until now); each `Pusher` has a `Failures` for its pushes and one for its pings;
   `Pusher.endpoint` is the origin of the configured URL.
+- `xincord-plugins` declares `yarl>=1.25.1`, the version installed with aiohttp, because `logs.py`
+  imports it (as it declares aiohttp).
 - `config.py`: the models hide their input in validation errors, and an unreadable URL gets a fixed
   message. `cog.py`: the loops' `sleep` is an attribute that tests replace. The bundled
   `config.yaml`: its comment.

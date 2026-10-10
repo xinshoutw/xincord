@@ -54,5 +54,6 @@ None.
 
 `packages/xincord-plugins/src/xincord/plugins/uptime_heartbeat/` (`pusher.py`, a new `logs.py`,
 `cog.py` docstrings, the bundled `config.yaml` comment) and its tests. No core change, no new
-dependency, no config key. Operators see different log lines (listed in `design.md`), and a
+package and no config key: `xincord-plugins` also declares yarl, which aiohttp installs, since
+`logs.py` imports it. Operators see different log lines (listed in `design.md`), and a
 listener whose token is wrong or whose monitor is paused keeps sending one request per interval.

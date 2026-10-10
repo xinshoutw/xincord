@@ -869,12 +869,14 @@ source = { editable = "packages/xincord-plugins" }
 dependencies = [
     { name = "aiohttp" },
     { name = "xincord" },
+    { name = "yarl" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.14.4" },
     { name = "xincord", editable = "." },
+    { name = "yarl", specifier = ">=1.25.1" },
 ]
 
 [[package]]
