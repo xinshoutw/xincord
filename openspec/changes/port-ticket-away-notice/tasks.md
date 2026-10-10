@@ -26,7 +26,7 @@
 
 ## 5. Unload
 
-- [ ] 5.1 xfail tests for "Pending notices end with the plugin"
+- [x] 5.1 xfail tests for "Pending notices end with the plugin"
 - [ ] 5.2 Cancel the waiting notices in `cog_unload`; remove the markers
 
 ## 6. Ready check

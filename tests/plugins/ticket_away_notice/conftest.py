@@ -213,9 +213,10 @@ async def scene(bot: Bot, rest: FakeRest) -> AsyncGenerator[Scene]:
     add_guild(bot, payloads.guild(GUILD, channels=[general], members=[owner]))
     add_guild(bot, payloads.guild(OTHER_GUILD, members=[owner]))
     created = Scene(bot, rest, Clock())
-    created.cog.sleep = created.clock.sleep
+    cog = created.cog
+    cog.sleep = created.clock.sleep
     yield created
-    left = list(created.cog.notices)
+    left = list(cog.notices)  # the cog may have left the bot
     for task in left:
         task.cancel()
     await asyncio.gather(*left, return_exceptions=True)
