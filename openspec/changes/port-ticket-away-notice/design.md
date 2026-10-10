@@ -49,11 +49,12 @@ through the Web Dashboard (B13).
 - The bundled `config.yaml` holds 0 for `guild_id` and `user_id` (v3's file held the shop's real
   guild and owner IDs), v3's prefixes `客服單-` and `ticket-` and v3's 2000 ms, with comments that
   name the intents and give placeholder IDs. The bundled `not-online.yaml` keeps v3's text and
-  footer (`❖ ORDERLY SERVER ❖`, as in the other plugins' bundled templates) with example values for
-  the shop's name and its two channel IDs, written by a script that replaced them in v3's file; the text moves from the embed title into the description, where
-  Discord shows channel mentions as links (in a title they show as raw `<#...>` text, inventory
-  section 7). An operator's v3 file, moved by `migrate_v3`, keeps its title: `export_lang` writes
-  missing files only.
+  footer (`❖ ORDERLY SERVER ❖`, as in the other plugins' bundled templates) with example values
+  for the shop's name and its two channel IDs, written by a script that replaced them in v3's
+  file; the text moves from the embed title into the description, where Discord shows channel
+  mentions as links (in a title they show as raw `<#...>` text, inventory section 7). An
+  operator's v3 file, moved by `migrate_v3`, keeps its title: `export_lang` writes missing files
+  only.
 
 ### Config
 
@@ -84,7 +85,8 @@ listener holds nothing up.
 A notice is an `asyncio` task kept in the cog's `notices` set until it ends (see "Problems" for its
 failures). It:
 
-1. reads the owner (`user_id`) from `guild.get_member`, else `await guild.fetch_member` (v3's
+1. checks that the guild and the channel are still cached (see 4), then reads the owner
+   (`user_id`) from `guild.get_member`, else `await guild.fetch_member` (v3's
    `retrieveMemberById`); a member from Discord's REST API has no presence, so discord.py reports
    it `offline`, as JDA did;
 2. returns unless `member.status is discord.Status.offline` (online, idle and do not disturb post
@@ -228,15 +230,50 @@ and channel IDs; the text in the description), and operator log warnings (Englis
   (F2). The intent is requested for the whole bot as soon as the plugin is enabled.
 - Requesting the privileged presences intent without the developer portal's permission makes
   Discord close the gateway (4014): the whole bot then does not connect.
-- An owner that discord.py has not cached (a large guild still being chunked after a start or an
-  outage) is read through REST without a presence and counts as offline, as in v3: a notice may
-  then appear while the owner is online. `guild.query_members(user_ids=..., presences=True)` would
-  ask the gateway for the presence instead.
+- An owner that discord.py has not cached is read through REST without a presence and counts as
+  offline, as in v3. A large guild's `GUILD_CREATE` carries its online members with their presences
+  before the chunks arrive, so this concerns guilds so large that Discord leaves the online members
+  out, where a notice may then appear while the owner is online;
+  `guild.query_members(user_ids=..., presences=True)` would ask the gateway for the presence.
 - A notice that waits during a reload or an unload is dropped.
 - Each matching channel starts its own notice, as in v3: a burst of new channels makes a burst of
   member lookups (only for an uncached owner) and notices, whose rate limits discord.py waits out.
 - discord.py drops a `CHANNEL_CREATE` for a guild it has not cached, and Discord sends no event for
   a private channel that the bot cannot see: such channels get no notice, as in v3.
+
+## Cross-review (a subagent, 2026-10-11)
+
+A review of the pushed work (other paths into the notice, repeated or concurrent events, state left
+behind), with probes through discord.py's own parsers, found no high-severity problem and four
+others, all fixed in this change (tasks 8.3 to 8.10):
+
+1. (medium) The bot's own threads got the notice: Ticket's archive starts a thread named after the
+   ticket channel, in another channel, so once a ticket channel's name matched a prefix (the
+   owner's open question about `ticket-`, or a renamed ticket), the notice landed in the archive
+   between the forwarded messages. v3 never posted in threads (B2). Threads that the bot starts are
+   skipped now; channels carry no creator, and the bot's own channels (Ticket's tickets) are meant
+   to get the notice.
+2. (low) A listener that discord.py scheduled before an unload or a reload ran after `cog_unload`
+   (`Cog._eject` removes the listeners first, but the task was already created) and started a
+   notice that nothing cancelled, posted with the old config. The cog now starts nothing once it
+   unloaded.
+3. (low) `check_notice` let through two templates that can never be posted: more than ten embeds
+   (discord.py raises at each send) and one that renders an empty message (Discord refuses it).
+   Both keep the plugin from loading now.
+4. (low) kaml read an unquoted `- 2024` in v3's `prefix` as text; pydantic refused the number.
+   Numbers in `prefix` are read as text now; YAML 1.1 still reads `- no` as a boolean and `- 007`
+   as 7, so such prefixes need quotes. The tests now also match v3's Chinese prefix against a
+   channel name.
+
+The review also found sound: reloads, failed reloads and hot loads (the waiting notice cancelled,
+the new cog posting, no task left); discord.py's `Member.status`, `get_channel_or_thread`,
+`thread_create` dispatch and cache drops (archived threads, deleted channels with their threads,
+left guilds); the channel kinds that take messages; presences from `GUILD_CREATE` surviving the
+chunks; `send` with no view, no files and no content; files closed after sends and after a load
+check that fails midway; cancellation of tasks that have not started or are finishing; an owner
+leaving, the bot leaving and a guild going unavailable during the wait; Ticket's channel names
+(usernames hold no `-`); the other plugins with the presences intent on; the scenarios' tests; and
+no real IDs or shop name in the package, the tests or the commits.
 
 ## Checks
 

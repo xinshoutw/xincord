@@ -44,9 +44,21 @@
 
 ## 8. Review
 
-- [ ] 8.1 Gate passes, push, CI green (before the review)
-- [ ] 8.2 Cross-review the change (other paths into the notice, repeated or concurrent events,
-      state left behind) and fix its findings xfail-first
+- [x] 8.1 Gate passes, push, CI green (before the review)
+- [x] 8.2 Cross-review the change (other paths into the notice, repeated or concurrent events,
+      state left behind) and fix its findings xfail-first (8.3 to 8.10; design, "Cross-review")
+- [ ] 8.3 xfail test for "The bot's own thread" (found in the review: Ticket's archive starts a
+      thread named after the ticket channel, which got the notice once the channel's name matched)
+- [ ] 8.4 Skip the threads that the bot starts; remove the marker
+- [ ] 8.5 xfail test for "Event after the unload" (found in the review: a listener that discord.py
+      scheduled before an unload ran after `cog_unload` and started a notice nothing cancelled)
+- [ ] 8.6 Start no notice once the cog unloaded; remove the marker
+- [ ] 8.7 xfail tests for templates that Discord refuses (found in the review: eleven embeds and an
+      empty message loaded, then failed at every notice)
+- [ ] 8.8 Refuse them at load; remove the markers
+- [ ] 8.9 xfail test for a v3 prefix that YAML reads as a number (found in the review: kaml read
+      `- 2024` as text, pydantic refused it), with tests for v3's Chinese prefix
+- [ ] 8.10 Read numbers in `prefix` as text; remove the marker
 
 ## 9. Close
 
