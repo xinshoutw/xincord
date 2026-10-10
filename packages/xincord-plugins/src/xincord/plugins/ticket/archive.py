@@ -27,6 +27,7 @@ if TYPE_CHECKING:
         ArchiveThread,
         Author,
         History,
+        StartedThread,
         Webhook,
     )
     from .texts import Texts
@@ -87,9 +88,19 @@ class _Copy:
     options: Options
 
     async def channel(self, source: History) -> None:
-        """Forward the channel's messages, oldest first."""
+        """Forward the channel's messages, oldest first, each followed by the thread it started,
+        which is flattened once (v3's ``processedThreadIds``)."""
+        flattened: set[int] = set()
         async for message in source.history(limit=None, oldest_first=True):
             await self.forward(message)
+            started = message.thread
+            if started is not None and started.id not in flattened:
+                flattened.add(started.id)
+                await self.flatten(started)
+
+    async def flatten(self, started: StartedThread) -> None:
+        """Forward the messages of a thread that a message started, between markers."""
+        raise NotImplementedError
 
     async def forward(self, message: ArchivedMessage) -> None:
         """Send a message with text or files under its author's name and avatar.

@@ -102,3 +102,14 @@ preview:
       color: 65535
     button: "Contact Us"
     reason-title: "Do you have any questions we can help with?"
+
+# The markers of a flattened thread (Ticket.kt:719-746), as the tests render them: thread
+# "question", started at 2026-02-28 01:00:00 UTC by Bobby (cached) or member 8 (not cached), its
+# last message at 01:45:00.
+archive:
+  start: "【Thread 開始】\n作者: Bobby\n名稱: question\n開始時間: 2026-02-28 01:00:00"
+  end: "【Thread 結束】\n作者: Bobby\n名稱: question\n最後一則訊息時間: 2026-02-28 01:45:00"
+  end-without-messages: "【Thread 結束】\n作者: Bobby\n名稱: question\n最後一則訊息時間: 無訊息"
+  start-by-id: "【Thread 開始】\n作者: 8\n名稱: question\n開始時間: 2026-02-28 01:00:00"
+  end-by-id: "【Thread 結束】\n作者: 8\n名稱: question\n最後一則訊息時間: 2026-02-28 01:45:00"
+  error: "【Thread 攤平失敗】\n作者: Bobby\n名稱: question\n錯誤: 403 Forbidden (error code: 0): Missing Permissions"

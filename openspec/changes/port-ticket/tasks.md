@@ -109,7 +109,7 @@
 - [x] 20.1 xfail tests for "The archive copies the conversation into a thread" against stubs in
        `archive.py`
 - [x] 20.2 Implement the names, the forwarding and the archive; remove the markers
-- [ ] 20.3 xfail tests for "Threads started in the ticket are flattened"
+- [x] 20.3 xfail tests for "Threads started in the ticket are flattened"
 - [ ] 20.4 Implement the flattening; remove the markers
 - [ ] 20.5 xfail tests for "A failed archive is reported and cleans up"
 - [ ] 20.6 Implement the failure paths and `readable_error`; remove the markers

@@ -8,6 +8,7 @@ Kotlin:
 """
 
 import io
+import logging
 import re
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta, timezone
@@ -16,7 +17,16 @@ from typing import TYPE_CHECKING, cast
 import discord
 import pytest
 
-from discord_fakes import FakeAsset, FakeChannel, FakeGuild, FakeMember, FakeRole, FakeUser
+from discord_fakes import (
+    FakeAsset,
+    FakeChannel,
+    FakeGuild,
+    FakeMember,
+    FakeRole,
+    FakeUser,
+    forbidden,
+    server_error,
+)
 from plugin_fakes import golden
 from xincord.plugins.ticket.archive import (
     Options,
@@ -460,3 +470,168 @@ async def test_upload_limit_of_the_guild(scene: Scene) -> None:
     await scene.handle(scene.selection(SELECT, [str(TARGET)]))
 
     assert sends(target.sent) == [forwarded("see\n" + large.url, "Bobby", BOB_AVATAR)]
+
+
+MARKERS = GOLDEN["archive"]
+# The times of the thread's start and of its messages; the snowflakes hold them.
+STARTED = discord.utils.time_snowflake(datetime(2026, 2, 28, 1, 0, tzinfo=UTC))
+FIRST = discord.utils.time_snowflake(datetime(2026, 2, 28, 1, 30, tzinfo=UTC))
+LAST = discord.utils.time_snowflake(datetime(2026, 2, 28, 1, 45, tzinfo=UTC))
+
+
+def marker(text: str) -> dict[str, object]:
+    """A marker in the archive thread, under the webhook's own name and avatar, as v3."""
+    return {
+        "content": text,
+        "username": None,
+        "avatar_url": None,
+        "files": [],
+        "mentions": NO_PINGS,
+        "thread": ARCHIVE,
+        "wait": True,
+    }
+
+
+def started(*messages: Message, error: Exception | None = None) -> Thread:
+    """Thread "question" of member 8 (Bobby, cached), started at 01:00 with ``messages``."""
+    return Thread(STARTED, owner=BOB, messages=list(messages), error=error)
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Threads started in the ticket are flattened"
+)
+async def test_a_started_thread(cog: Ticket) -> None:
+    """Requirement: Threads started in the ticket are flattened."""
+    thread = started(Message(FIRST, ALICE, "first"), Message(LAST, BOB, "second"))
+    source, target = channels([Message(1, BOB, "look", thread=thread), Message(2, ALICE, "next")])
+
+    await archive(source, target, options(cog))
+
+    assert sends(target.sent) == [
+        forwarded("look", "Bobby", BOB_AVATAR),
+        marker(MARKERS["start"]),
+        forwarded("first", "alice", ALICE_AVATAR),
+        forwarded("second", "Bobby", BOB_AVATAR),
+        marker(MARKERS["end"]),
+        forwarded("next", "alice", ALICE_AVATAR),
+    ]
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Threads started in the ticket are flattened"
+)
+async def test_flattened_once(cog: Ticket) -> None:
+    """Requirement: Threads started in the ticket are flattened."""
+    # The last message counts for the end marker, though it holds an embed only.
+    thread = started(Message(FIRST, BOB, "first"), Message(LAST, ALICE))
+    source, target = channels(
+        [
+            Message(1, BOB, thread=thread),  # its own embed only: the thread is still flattened
+            Message(2, BOB, "again", thread=thread),
+        ]
+    )
+
+    await archive(source, target, options(cog))
+
+    assert sends(target.sent) == [
+        marker(MARKERS["start"]),
+        forwarded("first", "Bobby", BOB_AVATAR),
+        marker(MARKERS["end"]),
+        forwarded("again", "Bobby", BOB_AVATAR),
+    ]
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Threads started in the ticket are flattened"
+)
+async def test_threads_in_threads(cog: Ticket) -> None:
+    """Requirement: Threads started in the ticket are flattened."""
+    inner = started(Message(FIRST, ALICE, "deeper"))
+    thread = Thread(STARTED, owner=None, messages=[Message(LAST, BOB, "inside", thread=inner)])
+    source, target = channels([Message(1, BOB, "look", thread=thread)])
+
+    await archive(source, target, options(cog))
+
+    # A thread's own threads stay as they are; an owner whom discord.py has not cached shows as
+    # their ID, as v3.
+    assert sends(target.sent) == [
+        forwarded("look", "Bobby", BOB_AVATAR),
+        marker(MARKERS["start-by-id"]),
+        forwarded("inside", "Bobby", BOB_AVATAR),
+        marker(MARKERS["end-by-id"]),
+    ]
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Threads started in the ticket are flattened"
+)
+async def test_a_thread_without_messages(cog: Ticket) -> None:
+    """Requirement: Threads started in the ticket are flattened."""
+    source, target = channels([Message(1, BOB, "look", thread=started())])
+
+    await archive(source, target, options(cog))
+
+    assert sends(target.sent)[1:] == [
+        marker(MARKERS["start"]),
+        marker(MARKERS["end-without-messages"]),
+    ]
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Threads started in the ticket are flattened"
+)
+@pytest.mark.parametrize("read", [0, 1], ids=["at-once", "after-a-message"])
+async def test_a_thread_that_fails(cog: Ticket, read: int) -> None:
+    """Requirement: Threads started in the ticket are flattened."""
+    messages = [Message(FIRST, ALICE, "first")][:read]
+    thread = started(*messages, error=forbidden())
+    source, target = channels([Message(1, BOB, "look", thread=thread), Message(2, ALICE, "next")])
+
+    await archive(source, target, options(cog))
+
+    # The error marker and the end marker without a time; the archive goes on, as v3.
+    assert sends(target.sent) == [
+        forwarded("look", "Bobby", BOB_AVATAR),
+        marker(MARKERS["start"]),
+        *[forwarded("first", "alice", ALICE_AVATAR)][:read],
+        marker(MARKERS["error"]),
+        marker(MARKERS["end-without-messages"]),
+        forwarded("next", "alice", ALICE_AVATAR),
+    ]
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Threads started in the ticket are flattened"
+)
+async def test_a_refused_start_marker(cog: Ticket) -> None:
+    """Requirement: Threads started in the ticket are flattened."""
+    thread = started(Message(FIRST, ALICE, "first"))
+    source, target = channels([Message(1, BOB, "look", thread=thread)])
+    target.refused = {MARKERS["start"]: forbidden()}
+
+    await archive(source, target, options(cog))
+
+    assert sends(target.sent)[1:] == [
+        marker(MARKERS["error"]),
+        marker(MARKERS["end-without-messages"]),
+    ]
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Threads started in the ticket are flattened"
+)
+async def test_a_refused_error_marker(cog: Ticket, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Threads started in the ticket are flattened."""
+    thread = started(error=forbidden())
+    source, target = channels([Message(1, BOB, "look", thread=thread)])
+    target.refused = {MARKERS["error"]: server_error()}
+
+    with caplog.at_level(logging.WARNING):
+        await archive(source, target, options(cog))
+
+    # Logged, and the end marker still goes, as v3.
+    assert sends(target.sent)[1:] == [
+        marker(MARKERS["start"]),
+        marker(MARKERS["end-without-messages"]),
+    ]
+    assert f"Ticket cannot mark the failure of thread {STARTED} in thread {ARCHIVE}" in caplog.text
