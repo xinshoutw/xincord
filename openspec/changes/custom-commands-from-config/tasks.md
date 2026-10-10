@@ -42,7 +42,7 @@
 ## 8. Validation
 
 - [x] 8.1 xfail tests for "The config is validated at load"
-- [ ] 8.2 Implement the value rules in the models and the checks in `setup`; remove the markers
+- [x] 8.2 Implement the value rules in the models and the checks in `setup`; remove the markers
 
 ## 9. Migration
 

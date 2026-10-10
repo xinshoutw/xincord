@@ -79,7 +79,6 @@ async def refused(operator: Operator, config: str, caplog: pytest.LogCaptureFixt
     return caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason="The config is validated at load")
 @pytest.mark.parametrize(
     ("entry", "key"),
     ENTRIES,
@@ -96,7 +95,6 @@ async def test_invalid_values(
     assert f"config.yaml: {key}" in log
 
 
-@pytest.mark.xfail(strict=True, reason="The config is validated at load")
 @pytest.mark.parametrize(
     ("first", "second", "key"),
     DUPLICATES,
@@ -114,7 +112,6 @@ async def test_duplicate_names(
     assert f"config.yaml: {key}: " in log
 
 
-@pytest.mark.xfail(strict=True, reason="The config is validated at load")
 async def test_too_many_commands(operator: Operator, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config is validated at load."""
     entries = "".join(
@@ -126,7 +123,6 @@ async def test_too_many_commands(operator: Operator, caplog: pytest.LogCaptureFi
     assert "config.yaml: commands: 101 commands" in log
 
 
-@pytest.mark.xfail(strict=True, reason="The config is validated at load")
 async def test_missing_template(operator: Operator, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config is validated at load."""
     operator.template("rules", 'content: "Be nice"\n', locale="en-US")
@@ -136,7 +132,6 @@ async def test_missing_template(operator: Operator, caplog: pytest.LogCaptureFix
     assert "config.yaml: commands.0.template: " in log
 
 
-@pytest.mark.xfail(strict=True, reason="The config is validated at load")
 @pytest.mark.parametrize(("template", "key"), UNPOSTABLE, ids=["uid", "model_key", "v2-uid"])
 async def test_template_that_cannot_be_posted(
     operator: Operator, caplog: pytest.LogCaptureFixture, template: str, key: str
@@ -150,7 +145,6 @@ async def test_template_that_cannot_be_posted(
     assert f"en-US/message/faq.yaml: {key}: " in log
 
 
-@pytest.mark.xfail(strict=True, reason="The config is validated at load")
 async def test_missing_commands(operator: Operator, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The config is validated at load."""
     log = await refused(operator, "enabled: true\n", caplog)

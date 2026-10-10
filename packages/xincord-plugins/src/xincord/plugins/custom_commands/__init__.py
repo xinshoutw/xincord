@@ -13,6 +13,7 @@ import discord
 
 from xincord.core.templates import Templates
 
+from .checks import check
 from .cog import CustomCommands
 from .config import Config
 
@@ -30,11 +31,15 @@ async def setup(bot: Bot) -> None:
     """Load the lang files, the templates and the config, then add the cog and its commands.
 
     The lang files load first, so that the templates are written even when the config is broken.
+    The config is checked against itself and the templates (``checks.check``), so that a mistake
+    disables the plugin with its key named.
     """
     context = bot.plugin_context(__name__)
     lang = context.lang(DEFAULT_LOCALE)
     templates = Templates.load(lang)
-    cog = CustomCommands(context.config(Config), lang, templates)
+    config = context.config(Config)
+    check(config, lang, templates, context.directory / "config.yaml")
+    cog = CustomCommands(config, lang, templates)
     await bot.add_cog(cog)
     # Guild commands, as in v3, in the config's order. discord.py removes them when the plugin
     # unloads.
