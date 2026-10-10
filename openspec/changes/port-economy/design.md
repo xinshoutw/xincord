@@ -41,6 +41,23 @@ deleting the wallets of guilds the bot left; new commands, history or currency f
 - `config.yaml` holds `admin_id: []` and `board_user_show_limit: 10`, with comments: the
   administrators are user IDs, at least one is needed, and an example list. v3's file shipped two
   real user IDs and the Google OAuth setup notes, which are gone.
+- uv_build ships every file in the package. Checked on 2026-10-10: the wheel from
+  `uv build --package xincord-plugins` lists the five modules, `config.yaml`, the 22 lang files and
+  the `Economy` entry point. `xincord --no-online`, run from a scratch virtual environment with both
+  wheels and `plugins: [Economy]`, writes `plugins/Economy/config.yaml` (the bundled file) and the
+  22 lang files and exits with 1, naming `admin_id`; with an operator's `admin_id` it loads the
+  plugin and exits with 0; with v3's `config.yaml` it warns about `enabled` and the eight Google
+  Sheets keys and exits with 0.
+- A scratch probe drove the plugin through discord.py's own objects (`discord.Interaction` built
+  from gateway payloads, the tree's `_call` and `Bot.on_interaction`), with `HTTPClient.request`
+  and the webhook adapter's `request` recorded: every command deferred with type 5 and the
+  ephemeral flag and then edited `@original`; `add-money` and `remove-money` (zh-TW) showed the
+  amounts before and after; a user option that Discord resolved without a member changed that
+  user's wallet, by 2^53 exactly; `set-cost` with -1 answered `Bad Value`; a user outside
+  `admin_id` got `no-permission` for a change and for naming someone in `balance`; both boards
+  listed the wallets in order in both locales; a v3 `economy@` button deferred ephemerally and
+  showed the presser's wallet, and the core fetched the message and patched its button's ID to
+  `economy:1:`.
 
 ### Config
 
