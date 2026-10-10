@@ -3,7 +3,7 @@
 Discord's REST requests are recorded instead of sent, and the bot has its user, as after a login.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from xincord.core.storage import Store
+    from xincord.plugins.voice_logger.cog import VoiceLogger
 
 
 @pytest.fixture(autouse=True)
@@ -38,3 +39,16 @@ async def bot(store: Store, tmp_path: Path) -> Bot:
     The plugin's settings are in ``store``, the same store as the tests'.
     """
     return await load_plugin("VoiceLogger", tmp_path / "plugins", store)
+
+
+@pytest.fixture
+def cog(bot: Bot) -> VoiceLogger:
+    """The loaded plugin's cog.
+
+    No isinstance check: a load that fails, as into a ready bot whose check raises, makes
+    discord.py import the plugin's modules again, so the class differs from the one imported
+    when the tests were collected.
+    """
+    found = bot.get_cog("VoiceLogger")
+    assert found is not None
+    return cast("VoiceLogger", found)

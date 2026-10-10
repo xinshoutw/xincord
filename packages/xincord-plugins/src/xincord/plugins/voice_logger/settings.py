@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
+    from collections.abc import Iterable, Mapping, Sequence
 
 
 @dataclass(frozen=True)
@@ -51,3 +51,14 @@ def targets(
         for listen, setting in settings.items()
         if any(detects(setting, channel, category) for channel, category in pairs)
     ]
+
+
+def list_text(
+    ids: Sequence[int], line: str, empty: str, values: Mapping[str, str], prefix: str
+) -> str:
+    """v3's list field: ``line`` rendered for each ID, or ``empty`` for an empty list.
+
+    Raises:
+        NotImplementedError: Not implemented yet.
+    """
+    raise NotImplementedError

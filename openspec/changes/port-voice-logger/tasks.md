@@ -27,7 +27,7 @@
 
 ## 6. Settings menu
 
-- [ ] 6.1 xfail tests for "The settings menu shows the channel's settings" against stubs
+- [x] 6.1 xfail tests for "The settings menu shows the channel's settings" against stubs
       (`list_text`, `show_settings`)
 - [ ] 6.2 Implement `list_text` and `show_settings`; remove the markers
 

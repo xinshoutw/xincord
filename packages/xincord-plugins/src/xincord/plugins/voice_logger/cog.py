@@ -8,10 +8,17 @@ from typing import TYPE_CHECKING
 
 from discord.ext import commands
 
+from xincord.core.component_ids import ComponentIds
+
 if TYPE_CHECKING:
+    import discord
+
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
     from xincord.core.templates import Templates
+
+# v3's only field, in v3's prefix, so that v3's menus keep working.
+IDS = ComponentIds("voice_logger", ("action",), legacy_prefix="voice-logger@")
 
 
 class VoiceLogger(commands.Cog):
@@ -23,3 +30,11 @@ class VoiceLogger(commands.Cog):
         self.store = store
         self.lang = lang
         self.templates = templates
+
+    async def show_settings(self, interaction: discord.Interaction) -> None:
+        """Edit the deferred response into the current channel's settings menu.
+
+        Raises:
+            NotImplementedError: Not implemented yet.
+        """
+        raise NotImplementedError

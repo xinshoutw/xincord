@@ -104,6 +104,16 @@ class FakeInteraction:
     permissions: discord.Permissions = field(default_factory=discord.Permissions.none)
 
     @property
+    def guild_id(self) -> int | None:
+        """The guild's ID, in a guild."""
+        return cast("int | None", getattr(self.guild, "id", None))
+
+    @property
+    def channel_id(self) -> int | None:
+        """The ID of the channel the interaction came from."""
+        return cast("int | None", getattr(self.channel, "id", None))
+
+    @property
     def response(self) -> FakeResponse:
         """The response, recording into ``sent``."""
         return FakeResponse(self.sent)
