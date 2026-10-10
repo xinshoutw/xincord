@@ -661,6 +661,15 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - **Edits clear suppressed embeds.** `Message.edit()` sends the message's flags with
   `suppress_embeds` set to its `suppress` argument, False by default: an edit (the core's upgrade
   of v3 IDs) shows embeds that were suppressed.
+- **Undoing a placed component.** When a button goes onto a message before its record is stored
+  and the store then fails, put the earlier view back: `Message.edit` leaves the fetched message
+  as it was, so `View.from_message` on it rebuilds the earlier view; a button left without its
+  record would make the next one take the same custom ID, which Discord refuses (Ticket's
+  `/add-ticket`, found in its review).
+- **Echoed options.** A string option takes up to 6000 characters, and a reply at most 2000: cut
+  what a reply repeats of it (Ticket's invalid message ID shows 100 characters).
+- **Files in memory.** `Attachment.to_file()` reads the whole file into memory before the upload;
+  JDA streamed it (Ticket's archive keeps one message's files at a time).
 - **Webhook URLs in errors.** A webhook's URL holds its token, and aiohttp's connect timeout names
   the whole URL: cut URLs in error texts to their origin before showing or logging them
   (`xincord.plugins.redaction.redact`, shared since port-ticket).
