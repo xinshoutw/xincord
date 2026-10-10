@@ -15,6 +15,7 @@ from discord.ext import commands
 from xincord.core.placeholders import placeholder_values
 from xincord.core.templates import render_message
 
+from .rooms import check as check_guild
 from .rooms import create as create_room
 from .rooms import delete as delete_room
 from .store import NAMESPACE, Binding, bind, forget, guild_ids, unbind
@@ -232,19 +233,24 @@ class DynamicVoiceChannel(commands.Cog):
         await forget(self.store, guild.id)
 
     async def check_guilds(self) -> None:
-        """Delete the data of the guilds that the bot is no longer in.
+        """Delete the data of the guilds that the bot left, and check the available guilds' data.
 
         By ``on_ready``, discord.py knows every guild of the session, unavailable ones included.
         v3's ``JsonManager`` deleted the file of a guild it did not know when it first loaded,
-        unavailable ones included, inside a loop that then threw.
+        unavailable ones included, inside a loop that then threw. An unavailable guild (an outage)
+        is left alone: discord.py knows it without its channels.
         """
         for guild_id in await guild_ids(self.store):
-            if self.bot.get_guild(guild_id) is None:
+            guild = self.bot.get_guild(guild_id)
+            if guild is None:
                 await forget(self.store, guild_id)
                 logger.info(
                     "DynamicVoiceChannel deleted the data of guild %s, which the bot left",
                     guild_id,
                 )
+            elif not guild.unavailable:
+                async with self._voice_lock(guild_id):
+                    await check_guild(self.store, guild)
 
     def _voice_lock(self, guild_id: int) -> asyncio.Lock:
         """The lock of the guild's voice changes; the store keeps it across reloads."""

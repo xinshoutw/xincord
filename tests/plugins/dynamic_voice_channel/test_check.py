@@ -10,7 +10,6 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 from discord_fakes import FakeChannel, FakeGuild, FakeVoiceChannel, forbidden
 from plugin_fakes import dispatch, load_plugin
@@ -26,13 +25,11 @@ from xincord.plugins.dynamic_voice_channel.store import (
 if TYPE_CHECKING:
     from pathlib import Path
 
+    import pytest
+
     from discord_fakes import FakeRest, Sent
     from xincord.core.storage import Store
 
-# A test that loads the plugin cannot reach a stub: the checks are new behavior of on_ready.
-CHECKS = pytest.mark.xfail(
-    strict=True, reason="Bindings and rooms are checked when the bot is ready"
-)
 VALID = Binding(20, "Lobby", "| %dvc@custom_name%")
 STALE = (
     Binding(21, "Gone"),  # the category is gone
@@ -74,7 +71,6 @@ async def store_guild(store: Store, guild_id: int) -> None:
         await track(store, guild_id, room, owner)
 
 
-@CHECKS
 async def test_stale_bindings(
     bot: Bot,
     store: Store,
@@ -98,7 +94,6 @@ async def test_stale_bindings(
         assert "guild (10)" in warning
 
 
-@CHECKS
 async def test_rooms_after_a_restart(
     bot: Bot, store: Store, rest: FakeRest, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -115,7 +110,6 @@ async def test_rooms_after_a_restart(
     assert [channel.id for channel in guild.voice_channels] == [30, 51]
 
 
-@CHECKS
 async def test_unavailable_guild(
     bot: Bot, store: Store, rest: FakeRest, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -133,7 +127,6 @@ async def test_unavailable_guild(
     assert await read_rooms(store, 20) == {50: 7, 51: 8, 52: 9}
 
 
-@CHECKS
 async def test_deletion_refused(
     bot: Bot,
     store: Store,
@@ -158,7 +151,6 @@ async def test_deletion_refused(
     assert "guild (10)" in record.getMessage()
 
 
-@CHECKS
 async def test_checked_when_loaded_into_a_ready_bot(
     store: Store, rest: FakeRest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

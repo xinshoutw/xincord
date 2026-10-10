@@ -1,27 +1,31 @@
 """Rooms: a lobby joined alone becomes the member's room, and a copy takes its place.
 
-Rooms are deleted once they are empty.
+Rooms are deleted once they are empty, and a guild's bindings and rooms are checked when the bot
+is ready.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/DynamicVoiceChannel.kt:94-135
+    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/JsonManager.kt:44-87
 """
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import discord
 from discord.http import Route
 
 from .names import room_name, room_values
-from .store import find, read_bindings, read_rooms, track, untrack
+from .store import drop, find, read_bindings, read_rooms, track, untrack
 
 if TYPE_CHECKING:
-    from collections.abc import Coroutine
+    from collections.abc import Coroutine, Mapping
 
     from discord.channel import VocalGuildChannel
     from discord.ext import commands
 
     from xincord.core.storage import Store
+
+    from .store import Binding
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +34,35 @@ COPY_POSITION = 0
 ROOM_POSITION = 1
 # What the member may do in their room, on top of the lobby's overwrites (JDA's bits 4 and 28).
 OWNER = discord.PermissionOverwrite(manage_channels=True, manage_permissions=True)
+
+
+@runtime_checkable
+class Room(Protocol):
+    """A voice channel, as the plugin deletes rooms."""
+
+    @property
+    def id(self) -> int:
+        """The channel ID."""
+        ...
+
+    @property
+    def name(self) -> str:
+        """The channel's name."""
+        ...
+
+    @property
+    def guild(self) -> discord.Guild:
+        """The channel's guild."""
+        ...
+
+    @property
+    def voice_states(self) -> Mapping[int, object]:
+        """The voice states of the members in the channel, by member ID."""
+        ...
+
+    async def delete(self, *, reason: str | None = None) -> None:
+        """Delete the channel."""
+        ...
 
 
 async def create(
@@ -81,7 +114,7 @@ async def create(
     )
 
 
-async def delete(store: Store, channel: VocalGuildChannel) -> None:
+async def delete(store: Store, channel: Room) -> None:
     """Delete ``channel`` if it is an empty room of the plugin, and forget it.
 
     Emptiness is checked last, right before the request, so that a member who joined meanwhile
@@ -100,6 +133,52 @@ async def delete(store: Store, channel: VocalGuildChannel) -> None:
         _refused("delete the room", channel, error)
         return
     await untrack(store, guild.id, channel.id)
+
+
+async def check(store: Store, guild: discord.Guild) -> None:
+    """Drop the guild's stale bindings, delete its empty rooms and forget its missing ones.
+
+    As v3's startup did, a binding goes when its category is gone or holds no voice channel with
+    the lobby's exact name, with a warning. v3 never looked at its rooms again: rooms that emptied
+    while the bot was away stayed, and so did the records of deleted ones.
+    """
+    stale: list[Binding] = []
+    for binding in await read_bindings(store, guild.id):
+        if (reason := _missing(guild, binding)) is not None:
+            logger.warning(
+                "DynamicVoiceChannel unbound the lobby %r of category %s in %s (%s): %s",
+                binding.default_name,
+                binding.category_id,
+                guild.name,
+                guild.id,
+                reason,
+            )
+            stale.append(binding)
+    if stale:
+        await drop(store, guild.id, {binding.key for binding in stale})
+    for room_id in await read_rooms(store, guild.id):
+        channel = guild.get_channel(room_id)
+        if isinstance(channel, Room):
+            await delete(store, channel)
+        else:  # deleted while the bot was away
+            await untrack(store, guild.id, room_id)
+
+
+def _missing(guild: discord.Guild, binding: Binding) -> str | None:
+    """Why ``binding``'s lobby no longer exists in ``guild``, or None when it does.
+
+    JDA's ``getVoiceChannelsByName(name, false)`` matched voice channels by exact name, stage
+    channels excluded.
+    """
+    category = guild.get_channel(binding.category_id)
+    if category is None or category.type is not discord.ChannelType.category:
+        return "the category does not exist"
+    if not any(
+        channel.category_id == binding.category_id and channel.name == binding.default_name
+        for channel in guild.voice_channels
+    ):
+        return "the category has no voice channel with that name"
+    return None
 
 
 async def _patch(bot: commands.Bot, channel: VocalGuildChannel, **fields: object) -> None:
@@ -122,7 +201,7 @@ async def _attempt(
         _refused(action, channel, error)
 
 
-def _refused(action: str, channel: VocalGuildChannel, error: discord.HTTPException) -> None:
+def _refused(action: str, channel: Room, error: discord.HTTPException) -> None:
     """Log that Discord refused ``action`` on ``channel``, naming the guild and the channel."""
     guild = channel.guild
     logger.warning(
