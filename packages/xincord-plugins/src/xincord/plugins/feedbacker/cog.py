@@ -5,14 +5,16 @@ Kotlin:
 """
 
 import logging
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, cast, runtime_checkable
 
 import discord
 from discord.ext import commands
 
 from xincord.core.component_ids import ComponentIds
-from xincord.core.placeholders import MemberLike, actor_values
-from xincord.core.templates import render_message
+from xincord.core.placeholders import MemberLike, actor_values, placeholder_values
+from xincord.core.templates import render_message, render_modal
+
+from .form import highlight, star_count
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -130,8 +132,39 @@ class Feedbacker(commands.Cog):
             raise FormError(msg) from error
 
     async def press_star(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
-        """Open the feedback modal for the rated member and highlight the pressed star."""
-        raise NotImplementedError
+        """Open the feedback modal for the rated member, then highlight the pressed star.
+
+        Anyone else gets ``form_not_you``. As in v3, the modal is rendered in the member's locale
+        with the press's values and the star count and the submit channel of the button's ID.
+        """
+        if fields["user_id"] != str(interaction.user.id):
+            await interaction.response.send_message(self.config.form_not_you, ephemeral=True)
+            return
+        count = fields["star_count"]
+        star_count(count)  # a bad count fails now, not after the member typed a feedback
+        values = placeholder_values(interaction) | {
+            "fb_star_count": count,
+            "fb_submit_channel_id": fields["submit_channel_id"],
+        }
+        template = self.templates.modal("fill-form", interaction.locale.value)
+        await interaction.response.send_modal(render_modal(template, values, build_id=IDS.build))
+        await _highlight(interaction)
+
+
+async def _highlight(interaction: discord.Interaction) -> None:
+    """Edit the pressed form so that its pressed star stands out; a refusal is logged.
+
+    v3 queued this edit on the interaction's hook before the modal acknowledged the press, which
+    Discord may refuse; the bot edits its own message instead, after the modal opened.
+    """
+    message = cast("discord.Message", interaction.message)  # every component interaction has one
+    pressed = str(cast("Mapping[str, object]", interaction.data or {}).get("custom_id", ""))
+    try:
+        await message.edit(view=highlight(message, pressed))
+    except discord.HTTPException as error:
+        logger.warning(
+            "Feedbacker cannot highlight the pressed star on message %s: %s", message.id, error
+        )
 
 
 def _postable(channel: object) -> Postable | None:

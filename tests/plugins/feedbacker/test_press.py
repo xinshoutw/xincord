@@ -29,7 +29,6 @@ EN = discord.Locale.american_english
 ZH = discord.Locale.taiwan_chinese
 PRIMARY = discord.ButtonStyle.primary
 SECONDARY = discord.ButtonStyle.secondary
-XFAIL = pytest.mark.xfail(strict=True, raises=NotImplementedError)
 
 
 def star_id(count: object) -> str:
@@ -97,7 +96,6 @@ def styles(view: object) -> list[tuple[str | None, discord.ButtonStyle]]:
     ]
 
 
-@XFAIL(reason="Only the rated member presses a star")
 async def test_someone_else_presses(cog: Feedbacker) -> None:
     """Requirement: Only the rated member presses a star."""
     interaction = press(3, user_id=8)
@@ -108,7 +106,6 @@ async def test_someone_else_presses(cog: Feedbacker) -> None:
     assert interaction.sent == [("response.send_message", reply)]
 
 
-@XFAIL(reason="A star opens the feedback modal")
 @pytest.mark.parametrize("locale", [EN, ZH])
 async def test_modal_opens(cog: Feedbacker, locale: discord.Locale) -> None:
     """Requirement: A star opens the feedback modal."""
@@ -136,7 +133,6 @@ async def test_modal_opens(cog: Feedbacker, locale: discord.Locale) -> None:
     assert modal.is_finished()  # the core routes its submission, not discord.py
 
 
-@XFAIL(reason="A star opens the feedback modal")
 async def test_pressed_star_highlighted(cog: Feedbacker) -> None:
     """Requirement: A star opens the feedback modal."""
     interaction = press(3, pressed=5)
@@ -155,7 +151,6 @@ async def test_pressed_star_highlighted(cog: Feedbacker) -> None:
     assert view.is_finished()
 
 
-@XFAIL(reason="A star opens the feedback modal")
 async def test_edit_refused(cog: Feedbacker, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A star opens the feedback modal."""
     interaction = press(3, error=forbidden())
@@ -169,11 +164,10 @@ async def test_edit_refused(cog: Feedbacker, caplog: pytest.LogCaptureFixture) -
     assert "Missing Permissions" in caplog.text
 
 
-@XFAIL(reason="A star opens the feedback modal")
 async def test_link_buttons_keep_their_style() -> None:
     """Requirement: A star opens the feedback modal."""
     link: dict[str, object] = {"type": 2, "style": 5, "url": "https://example.com", "label": "x"}
-    message = FakeMessage([row(*stars_payload(), link)])
+    message = FakeMessage([row(*stars_payload()), row(link)])
 
     view = highlight(message.as_message(), star_id(2))
 
@@ -181,7 +175,6 @@ async def test_link_buttons_keep_their_style() -> None:
     assert styles(view)[-1] == (None, discord.ButtonStyle.link)
 
 
-@XFAIL(reason="A star opens the feedback modal")
 async def test_components_v2_form() -> None:
     """Requirement: A star opens the feedback modal."""
     container: dict[str, object] = {
@@ -209,7 +202,6 @@ async def test_components_v2_form() -> None:
     assert view.is_finished()
 
 
-@XFAIL(reason="Stars follow v3's text")
 async def test_invalid_star_count_fails_the_press(cog: Feedbacker) -> None:
     """Requirement: Stars follow v3's text."""
     interaction = press(6)

@@ -38,7 +38,7 @@
 
 - [x] 7.1 xfail tests for "Only the rated member presses a star" and "A star opens the feedback
       modal", against stubs `press_star` and `highlight`
-- [ ] 7.2 Implement them; remove the markers
+- [x] 7.2 Implement them; remove the markers
 
 ## 8. Submitting a feedback
 
