@@ -12,14 +12,14 @@ from discord.ext import commands
 
 from xincord.core.component_ids import ComponentIds
 
+from .texts import Texts
+
 if TYPE_CHECKING:
     import discord
 
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
     from xincord.core.templates import Templates
-
-    from .texts import Texts
 
 logger = logging.getLogger(__name__)
 
@@ -44,10 +44,14 @@ class Ticket(commands.Cog):
         self.templates = templates
 
     def texts(self, interaction: discord.Interaction) -> Texts:
-        """The texts of a reply to the user who acted: their locale, else zh-TW (v3's templates)."""
-        raise NotImplementedError
+        """The texts of a reply to the user who acted: their locale, else zh-TW (v3's templates).
+
+        ``Lang.text`` falls back per key to zh-TW, which v3 showed every locale without lang files:
+        its templates fell back to zh-TW and its texts were Chinese.
+        """
+        return Texts(self.lang, interaction.locale.value)
 
     @property
     def public(self) -> Texts:
         """The texts of public messages (the control row, the archive's markers): zh-TW, as v3."""
-        raise NotImplementedError
+        return Texts(self.lang, self.lang.default_locale)

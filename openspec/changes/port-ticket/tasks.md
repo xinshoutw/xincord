@@ -12,7 +12,7 @@
 ## 3. Texts
 
 - [x] 3.1 xfail tests for "Texts follow the reader" against a stub `Texts.get`
-- [ ] 3.2 Implement `Texts` and the cog's user and public texts; remove the markers
+- [x] 3.2 Implement `Texts` and the cog's user and public texts; remove the markers
 
 ## 4. Stored panels
 

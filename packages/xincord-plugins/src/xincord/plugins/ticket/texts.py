@@ -8,6 +8,8 @@ Kotlin:
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from xincord.core.placeholders import render
+
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
@@ -25,4 +27,4 @@ class Texts:
 
     def get(self, key: str, values: Mapping[str, str] | None = None) -> str:
         """The text ``key`` of ``text.yaml`` with its ``%tt@...%`` values, inserted as written."""
-        raise NotImplementedError
+        return render(self.lang.text(f"{TEXT}.{key}", self.locale), values or {})
