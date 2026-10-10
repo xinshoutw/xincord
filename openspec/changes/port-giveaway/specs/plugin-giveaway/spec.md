@@ -370,11 +370,11 @@ footer. Join SHALL be disabled once closed, Draw once drawn, Reroll until drawn.
 - **THEN** each field holds at most 1024 characters and the embed at most 6000
 
 ### Requirement: Members join and leave
-Join / Leave SHALL add the user to the participants or remove them, update the post through the
-press and tell the user ephemerally, in the giveaway's language, that they joined or left. A
-giveaway that is drawn or whose end time has come SHALL answer that it is closed; a press on a
-message other than the giveaway's post SHALL be acknowledged without change; an unknown giveaway
-SHALL answer `Giveaway not found.`.
+Join / Leave SHALL acknowledge the press at once, add the user to the participants or remove them,
+show the stored giveaway in the post through the press and tell the user ephemerally, in the
+giveaway's language, that they joined or left. A giveaway that is drawn or whose end time has come
+SHALL answer that it is closed; a press on another message than the post SHALL change nothing; an
+unknown giveaway SHALL answer `Giveaway not found.`.
 
 #### Scenario: Join and leave
 - **WHEN** user 7 presses Join / Leave twice
@@ -397,11 +397,22 @@ SHALL answer `Giveaway not found.`.
 - **WHEN** two users press Join / Leave at the same time
 - **THEN** both are stored as participants
 
+#### Scenario: Acknowledged at once
+- **WHEN** a press arrives while the guild's giveaways are being changed
+- **THEN** it is acknowledged before it waits for them, so Discord's three seconds never run out
+
+#### Scenario: Stale post
+- **WHEN** the post still shows a drawn giveaway as running, as after a restart during a draw, and
+  someone presses Join / Leave or Draw Winners
+- **THEN** the post shows the giveaway as stored, Reroll enabled, and the user gets the closed or
+  already drawn text
+
 ### Requirement: The creator or an administrator draws and administrators reroll
 Draw Winners SHALL be allowed to the creator and administrators once the end time has come, Reroll
-to administrators once drawn. Each SHALL draw every prize from the participants, mark the giveaway
-drawn at that time and store it before updating the post through the press, then send v3's
-`draw-result` ephemerally. Refusals SHALL get v3's texts in the giveaway's language.
+to administrators once drawn. Each SHALL acknowledge the press at once, draw every prize from the
+participants, mark the giveaway drawn at that time and store it before showing it in the post
+through the press, then send v3's `draw-result` ephemerally. Refusals SHALL get v3's texts in the
+giveaway's language, the post showing the stored giveaway.
 
 #### Scenario: Draw
 - **WHEN** the creator, or an administrator, presses Draw Winners after the end time

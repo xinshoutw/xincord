@@ -148,6 +148,12 @@
 - [x] 25.7 xfail test for "Long error" (found during the review: a long error text made
       `create-failed` exceed Discord's 2000 characters, and the user got nothing)
 - [x] 25.8 Cut the error to 1000 characters; remove the marker
+- [x] 25.9 xfail tests for "Acknowledged at once" and "Stale post" (found in the cross-review:
+      presses answered only after the guild's lock and the store, which a burst on a large
+      document kept past Discord's three seconds; a drawn giveaway whose post was never
+      refreshed kept Reroll disabled for good)
+- [ ] 25.10 Defer each post press first, then show the stored giveaway in the post on every press
+      from it, with replies and refusals as ephemeral follow-ups; remove the markers
 
 ## 26. Close
 

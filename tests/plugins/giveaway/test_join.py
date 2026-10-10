@@ -12,9 +12,10 @@ from typing import TYPE_CHECKING, Any, cast
 import discord
 import pytest
 
-from discord_fakes import embed_dict
+from discord_fakes import FakeResponse, embed_dict
 from plugin_fakes import golden
-from xincord.plugins.giveaway.model import Draft, Instance, Prize
+from xincord.plugins.giveaway.model import Draft, Instance, Prize, Winners
+from xincord.plugins.giveaway.store import Giveaways
 
 if TYPE_CHECKING:
     from conftest import Scene
@@ -125,3 +126,65 @@ async def test_joins_at_once(scene: Scene) -> None:
     )
 
     assert sorted((await scene.stored(GIVEAWAY.id)).participant_ids) == [8, 9, 10]
+
+
+STALE = "Members join and leave"
+DRAWN = replace(
+    GIVEAWAY,
+    config=replace(GIVEAWAY.config, end_at=NOW - 60),
+    participant_ids=(111,),
+    ended=True,
+    ended_at=NOW - 30,
+    winner_results=(Winners("Nitro", (111,)),),
+)
+
+
+@pytest.mark.xfail(strict=True, reason=STALE)
+@pytest.mark.parametrize(
+    ("action", "giveaway", "user"),
+    [("participate", GIVEAWAY, 8), ("draw", DRAWN, 7)],
+    ids=["join", "draw"],
+)
+async def test_acknowledged_at_once(
+    scene: Scene, monkeypatch: pytest.MonkeyPatch, action: str, giveaway: Instance, user: int
+) -> None:
+    """Requirement: Members join and leave."""
+    await scene.add(giveaway)
+    order: list[str] = []
+    defer, change = FakeResponse.defer, Giveaways.change
+
+    async def deferring(response: FakeResponse, **fields: bool) -> None:
+        order.append("defer")
+        await defer(response, **fields)
+
+    async def changing(giveaways: Giveaways, *args: Any) -> Any:  # noqa: ANN401 - passed through
+        order.append("change")
+        return await change(giveaways, *args)
+
+    monkeypatch.setattr(FakeResponse, "defer", deferring)
+    monkeypatch.setattr(Giveaways, "change", changing)
+    await scene.click(action, GIVEAWAY.id, scene.who(user=user, message_id=500))
+
+    # Acknowledged before the press waits for the guild's lock and the store.
+    assert order == ["defer", "change"]
+
+
+@pytest.mark.xfail(strict=True, reason=STALE)
+@pytest.mark.parametrize(
+    ("action", "user", "reply"), [("participate", 8, "closed"), ("draw", 7, "drawn")]
+)
+async def test_stale_post(scene: Scene, action: str, user: int, reply: str) -> None:
+    """Requirement: Members join and leave."""
+    await scene.add(DRAWN)  # drawn, but its post still shows it running, as after a restart
+
+    clicked = await scene.click(action, GIVEAWAY.id, scene.who(user=user, message_id=500))
+
+    deferred, (edited, post), (followup, told_) = clicked.sent
+    assert deferred == ("response.defer", {"ephemeral": False, "thinking": False})
+    assert edited == "edit_original_response"
+    view = post["view"]
+    assert isinstance(view, discord.ui.View)
+    disabled = [item.disabled for item in view.children if isinstance(item, discord.ui.Button)]
+    assert disabled == [True, True, False]  # Reroll enabled again
+    assert followup == "followup.send"
+    assert told_ == {"content": GOLDEN["replies"]["en-US"][reply], "ephemeral": True}
