@@ -78,6 +78,10 @@ class Pusher:
     ping: Ping
     sleep: Sleep
 
+    async def run(self) -> None:
+        """Push at once, then again ``interval`` seconds after each attempt, until a 404."""
+        raise NotImplementedError
+
     async def url(self) -> str:
         """The listener's URL with the REST ping in place of ``%ping%``, or ``-1`` if it fails.
 

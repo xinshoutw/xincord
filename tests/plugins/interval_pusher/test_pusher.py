@@ -23,21 +23,32 @@ URL = "https://status.example.com/api/push/xxxxxxxxxx?status=up&msg=OK&ping=%pin
 PUSHED = URL.replace("%ping%", "42")
 
 
+class Stop(Exception):  # noqa: N818 - it ends the loop, it reports no error
+    """Raised by the fake sleep to end a loop that would push forever."""
+
+
 @dataclass
 class Fakes:
-    """Stand in for the monitor and Discord's REST ping; record what the loop asks for, in order.
+    """Stand in for the monitor, Discord's REST ping and the clock; record the loop's calls.
 
     The monitor answers the pushes with ``answers`` in turn, repeating the last one; an exception
-    is raised instead.
+    is raised instead. Each push takes ``push_seconds`` on the fake clock ``now``, and the sleep
+    after the ``stop_after``-th push raises :class:`Stop`.
     """
 
     answers: tuple[int | Exception, ...] = (200,)
     ping_ms: int | Exception = 42
+    push_seconds: float = 0
+    stop_after: int = 1
     calls: list[str] = field(default_factory=list[str])
+    starts: list[float] = field(default_factory=list[float])  # the clock when each push began
+    now: float = 0
     pushes: int = 0
 
     async def get(self, url: str) -> int:
         self.calls.append(f"get {url}")
+        self.starts.append(self.now)
+        self.now += self.push_seconds
         answer = self.answers[min(self.pushes, len(self.answers) - 1)]
         self.pushes += 1
         if isinstance(answer, Exception):
@@ -52,6 +63,9 @@ class Fakes:
 
     async def sleep(self, seconds: float) -> None:
         self.calls.append(f"sleep {seconds}")
+        self.now += seconds
+        if self.pushes >= self.stop_after:
+            raise Stop
 
     def pusher(self, url: str = URL, interval: int = 60) -> Pusher:
         """Listener 1, pushing ``url`` every ``interval`` seconds through these fakes."""
@@ -210,3 +224,57 @@ async def test_unexpected_error(caplog: pytest.LogCaptureFixture) -> None:
     assert record.getMessage() == f"IntervalPusher listener 1: pushing to {URL} failed"
     assert record.exc_info is not None  # the traceback, for a failure nobody expected
     assert str(record.exc_info[1]) == "unexpected"
+
+
+LOOP = "Each listener pushes at once, then after a fixed delay"
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=LOOP)
+async def test_first_push_at_once(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Each listener pushes at once, then after a fixed delay."""
+    fakes = Fakes(stop_after=2)
+
+    with caplog.at_level(logging.INFO), pytest.raises(Stop):
+        await fakes.pusher(interval=60).run()
+
+    push = ["ping", f"get {PUSHED}"]
+    assert fakes.calls == [*push, "sleep 60", *push, "sleep 60"]
+    assert caplog.messages == ["IntervalPusher listener 1 started (every 60 seconds)"]
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=LOOP)
+async def test_fixed_delay() -> None:
+    """Requirement: Each listener pushes at once, then after a fixed delay."""
+    fakes = Fakes(push_seconds=30, stop_after=3)
+
+    with pytest.raises(Stop):
+        await fakes.pusher(interval=60).run()
+
+    # The delay follows each attempt, as v3's: not a fixed rate (0, 60, 120).
+    assert fakes.starts == [0, 90, 180]
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=LOOP)
+async def test_every_attempt_is_followed_by_the_delay() -> None:
+    """Requirement: Each listener pushes at once, then after a fixed delay."""
+    failures = (500, aiohttp.ClientConnectionError("refused"), 521, ValueError("unexpected"))
+    fakes = Fakes(answers=(*failures, 200), stop_after=5)
+
+    with pytest.raises(Stop):
+        await fakes.pusher(interval=5).run()
+
+    assert fakes.pushes == 5
+    assert [call for call in fakes.calls if call.startswith("sleep")] == ["sleep 5"] * 5
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="The status code decides what follows"
+)
+async def test_not_found_ends_the_loop() -> None:
+    """Requirement: The status code decides what follows."""
+    fakes = Fakes(answers=(200, 404), stop_after=10)
+
+    await fakes.pusher().run()  # returns: no Stop from a third sleep
+
+    assert fakes.pushes == 2
+    assert [call for call in fakes.calls if call.startswith("sleep")] == ["sleep 60"]
