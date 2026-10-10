@@ -13,7 +13,7 @@
 
 ## 3. Installation
 
-- [ ] 3.1 xfail tests for "The plugin installs as Feedbacker"
+- [x] 3.1 xfail tests for "The plugin installs as Feedbacker"
 - [ ] 3.2 Add the package, its `setup` and the `Feedbacker` entry point; remove the markers
 
 ## 4. Config
