@@ -147,7 +147,7 @@
 - [x] 25.6 Log the failure and post the other drawn giveaways; remove the marker
 - [x] 25.7 xfail test for "Long error" (found during the review: a long error text made
       `create-failed` exceed Discord's 2000 characters, and the user got nothing)
-- [ ] 25.8 Cut the error to 1000 characters; remove the marker
+- [x] 25.8 Cut the error to 1000 characters; remove the marker
 
 ## 26. Close
 

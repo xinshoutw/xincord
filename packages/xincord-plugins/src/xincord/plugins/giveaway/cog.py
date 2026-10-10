@@ -25,6 +25,7 @@ from xincord.core.templates import modal_values, render_message, render_modal
 
 from .channels import postable
 from .drafts import problem, remove_last_prize, submit, switch_policy
+from .inputs import clip
 from .model import DataError, Draft, Drawer, Instance, draw, join, new_id
 from .store import Giveaways
 from .texts import Texts, language, post_buttons, post_embed, preview, result
@@ -47,6 +48,7 @@ logger = logging.getLogger(__name__)
 IDS = ComponentIds("giveaway", ("action", "sub_action", "giveaway_id"), legacy_prefix="giveaway@")
 BUTTON = 2  # the component type of a button, which v3's onButtonInteraction took
 FIRST_PASS = 5  # v3's initial delay of the automatic draw, in seconds after READY
+ERROR_MAX = 1000  # the most of an error's text that create-failed shows, within Discord's 2000
 GUILD_ID = re.compile(r"[0-9]+")  # the store's keys, unless someone edited them
 
 type Sleep = Callable[[float], Awaitable[object]]
@@ -498,7 +500,8 @@ class Giveaway(commands.Cog):
                 key[1],
                 error,
             )
-            failed = self._render(interaction, "create-failed", {"ga@error": str(error)})
+            reason = {"ga@error": clip(str(error), ERROR_MAX)}
+            failed = self._render(interaction, "create-failed", reason)
             await interaction.followup.send(
                 content=failed.content, embeds=failed.embeds, ephemeral=True
             )
