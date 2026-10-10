@@ -157,6 +157,9 @@
 - [x] 25.11 xfail test for end times past 9999 in UTC (found in the cross-review: 9999-12-31 23:59
       in a zone west of UTC was accepted, and showing it then failed every builder press)
 - [x] 25.12 Refuse end times that cannot be shown; remove the marker
+- [x] 25.13 xfail test for broken documents in the automatic draw (found in the cross-review: a
+      broken guild document was logged with a traceback at every pass)
+- [ ] 25.14 Log each broken document or entry once; remove the marker
 
 ## 26. Close
 

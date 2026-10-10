@@ -20,6 +20,7 @@ import pytest
 from discord_fakes import FakeChannel, FakeGuild, embed_dict, forbidden, not_found
 from plugin_fakes import WAIT, golden
 from xincord.plugins.giveaway.model import Draft, Instance, Prize, draw_winners
+from xincord.plugins.giveaway.store import Giveaways
 
 if TYPE_CHECKING:
     import discord
@@ -223,6 +224,7 @@ async def test_post_gone(draws: Draws, caplog: pytest.LogCaptureFixture) -> None
     assert len(announced(draws, 6)) == 1  # the other giveaway is still handled
 
 
+@pytest.mark.xfail(strict=True, reason="Due giveaways are drawn automatically")
 async def test_broken_data(draws: Draws, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Due giveaways are drawn automatically."""
     scene = draws.scene
@@ -240,8 +242,35 @@ async def test_broken_data(draws: Draws, caplog: pytest.LogCaptureFixture) -> No
         await scene.cog.draw_due()
 
     assert (await scene.stored(DUE.id)).ended
+    # Each broken document or entry is a warning once, not a traceback at every pass.
+    assert caplog.text.count("Giveaway skips guild 11 in the automatic draw") == 1
+    assert caplog.text.count("Giveaway skips guild 10, giveaway broken in the automatic draw") == 1
+    assert "Traceback" not in caplog.text
+
+
+async def test_store_fails_for_a_guild(
+    draws: Draws, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: Due giveaways are drawn automatically."""
+    scene = draws.scene
+    draws.guilds[11] = FakeGuild(11)
+    await scene.add(replace(DUE, id="0000000000000011", guild_id=11))
+    await scene.add(DUE)
+    draw_due = Giveaways.draw_due
+
+    async def failing(
+        giveaways: Giveaways, guild_id: int, now: int, rng: random.Random
+    ) -> list[Instance]:
+        if guild_id == 11:
+            message = "database is locked"
+            raise sqlite3.OperationalError(message)
+        return await draw_due(giveaways, guild_id, now, rng)
+
+    monkeypatch.setattr(Giveaways, "draw_due", failing)
+    await scene.cog.draw_due()
+
     assert "Giveaway cannot draw the due giveaways of guild 11" in caplog.text
-    assert caplog.text.count("Giveaway skips the giveaway broken of guild 10") == 1
+    assert (await scene.stored(DUE.id)).ended  # the other guild is handled
 
 
 async def test_failed_pass(
