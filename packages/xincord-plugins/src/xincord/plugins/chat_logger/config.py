@@ -26,3 +26,8 @@ class Config(Model):
     log_all: bool = True
     # How many days a message's text is kept; edits and deletions of older messages are not logged.
     retention_days: Annotated[int, Field(ge=RETENTION_MIN, le=RETENTION_MAX)] = 30
+
+    @property
+    def max_file_size_mb(self) -> int:
+        """The size in MiB from which a new message file starts."""
+        raise NotImplementedError

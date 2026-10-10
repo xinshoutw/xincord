@@ -12,6 +12,7 @@ import sqlite3
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
+import pytest
 from discord.utils import time_snowflake, utcnow
 
 from plugin_fakes import WAIT, load_plugin
@@ -19,8 +20,6 @@ from xincord.core.bot import Bot
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-    import pytest
 
     from conftest import Scene
     from plugin_fakes import Ready
@@ -69,12 +68,13 @@ async def stored(scene: Scene) -> list[int]:
     return [row[0] for row in await scene.rows()]
 
 
+@pytest.mark.xfail(strict=True, reason="Stored messages are kept for the retention period")
 async def test_old_messages(scene: Scene) -> None:
     """Requirement: Stored messages are kept for the retention period."""
-    old, recent = ago(31), ago(29)
+    old, recent = ago(1827), ago(1825)
     await store_messages(scene, old, recent)
 
-    await scene.cog.prune()  # retention_days 30, the bundled default
+    await scene.cog.prune()  # retention_days 1826 (5 years), the bundled default
 
     assert await stored(scene) == [recent]
 
@@ -84,7 +84,7 @@ async def test_every_hour(scene: Scene, ready: Ready) -> None:
     hours = Hours()
     scene.cog.sleep = hours.sleep
     [loop] = scene.cog.tasks  # started when the plugin loaded
-    first, second, recent = ago(40), ago(35), ago(1)
+    first, second, recent = ago(1900), ago(1850), ago(1)
     await store_messages(scene, first, recent)
 
     await ready.waiters(1)  # nothing is deleted before READY, as under --no-online
@@ -122,7 +122,8 @@ async def test_failure(
     await hours.asleep()
 
     assert len(calls) == 2  # the loop goes on
-    assert "ChatLogger cannot delete the messages older than 30 days" in caplog.text
+    days = scene.cog.config.retention_days
+    assert f"ChatLogger cannot delete the messages older than {days} days" in caplog.text
     assert caplog.records[-1].levelno == logging.ERROR
     assert not loop.done()
 
