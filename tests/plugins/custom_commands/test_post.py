@@ -27,11 +27,17 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
 
+    from conftest import Operator
     from discord_fakes import Sent
     from xincord.core.storage import Store
 
 GOLDEN = golden("custom_commands")
 NAMES = ("cub-none-card", "tsib-none-card", "ctcb-none-card", "ctcb-remit", "chpytwtp-remit")
+# An operator's command that posts one of v3's templates under another name.
+PAY = """\
+commands:
+  - {name: pay, description: Pay us, template: ctcb-remit}
+"""
 LINK_BUTTON = """\
 content: "Pay here"
 components:
@@ -149,6 +155,28 @@ async def test_bot_placeholders(store: Store, tmp_path: Path) -> None:
     sent = await run(cog)
 
     assert sent[0][1]["content"] == "xincord (99)"
+
+
+@pytest.mark.xfail(strict=True, reason="A command posts its message in the channel")
+async def test_user_placeholders(store: Store, tmp_path: Path) -> None:
+    """Requirement: A command posts its message in the channel."""
+    cog = await load_with('content: "%user_name% in %channel_name%"\n', tmp_path, store)
+
+    sent = await run(cog)
+
+    assert sent[0][1]["content"] == "alice in general"
+
+
+@pytest.mark.xfail(strict=True, reason="A command posts its message in the channel")
+async def test_template_key(operator: Operator) -> None:
+    """Requirement: A command posts its message in the channel."""
+    bot = await operator.load(PAY)
+    cog = bot.get_cog("CustomCommands")
+    assert isinstance(cog, CustomCommands)
+
+    sent = await run(cog, "pay")
+
+    assert embeds(sent[0][1]) == [GOLDEN["messages"]["ctcb-remit"]]
 
 
 async def test_link_button(store: Store, tmp_path: Path) -> None:

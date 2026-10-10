@@ -30,7 +30,7 @@
 
 ## 6. Templates and placeholders
 
-- [ ] 6.1 xfail tests for "A command posts its message in the channel": the template key and the
+- [x] 6.1 xfail tests for "A command posts its message in the channel": the template key and the
       user's placeholders
 - [ ] 6.2 Implement `template` and `placeholder_values`; remove the markers
 
