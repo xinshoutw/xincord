@@ -8,7 +8,6 @@ import pytest
 
 from xincord.plugins.uptime_heartbeat.logs import Failures, origin, redact
 
-REPEATS = "A failure is logged when it starts, changes or ends"
 # A URL with a quote in its path: Python's repr, which aiohttp's texts use, then quotes it with ".
 QUOTED = "https://status.example.com/api/push/it's?ping=42"
 
@@ -80,7 +79,6 @@ def test_redact(text: str, expected: str) -> None:
     assert redact(text) == expected
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REPEATS)
 def test_repeated_failure_is_not_new() -> None:
     """Requirement: A failure is logged when it starts, changes or ends."""
     failures = Failures()
@@ -89,7 +87,6 @@ def test_repeated_failure_is_not_new() -> None:
     assert (failures.kind, failures.count) == (500, 3)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REPEATS)
 def test_another_kind_is_new() -> None:
     """Requirement: A failure is logged when it starts, changes or ends."""
     failures = Failures()
@@ -98,7 +95,6 @@ def test_another_kind_is_new() -> None:
     assert [failures.add(kind) for kind in kinds] == [True, False, True, False, True, True]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REPEATS)
 def test_clear() -> None:
     """Requirement: A failure is logged when it starts, changes or ends."""
     failures = Failures()

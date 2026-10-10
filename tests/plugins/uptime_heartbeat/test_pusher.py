@@ -23,7 +23,6 @@ TOKEN = "xxxxxxxxxx"  # the push token: in the URL's path, never in a log line
 URL = f"https://status.example.com/api/push/{TOKEN}?status=up&msg=OK&ping=%ping%"
 PUSHED = URL.replace("%ping%", "42")
 ENDPOINT = "https://status.example.com"  # the URL's origin, all that the logs show of it
-REPEATS = "A failure is logged when it starts, changes or ends"
 
 
 class Stop(Exception):  # noqa: N818 - it ends the loop, it reports no error
@@ -358,7 +357,6 @@ async def run_logged(fakes: Fakes, caplog: pytest.LogCaptureFixture) -> None:
         await fakes.pusher().run()
 
 
-@pytest.mark.xfail(strict=True, reason=REPEATS)
 async def test_repeated_failure(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A failure is logged when it starts, changes or ends."""
     await run_logged(Fakes(answers=(500,), stop_after=3), caplog)
@@ -371,7 +369,6 @@ async def test_repeated_failure(caplog: pytest.LogCaptureFixture) -> None:
     ]
 
 
-@pytest.mark.xfail(strict=True, reason=REPEATS)
 async def test_another_kind_of_failure(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A failure is logged when it starts, changes or ends."""
     refused = aiohttp.ClientConnectionError("Cannot connect to host status.example.com:443")
@@ -387,7 +384,6 @@ async def test_another_kind_of_failure(caplog: pytest.LogCaptureFixture) -> None
     ]
 
 
-@pytest.mark.xfail(strict=True, reason=REPEATS)
 @pytest.mark.parametrize(("failures", "count"), [(1, "1 failed push"), (2, "2 failed pushes")])
 async def test_pushing_works_again(
     failures: int, count: str, caplog: pytest.LogCaptureFixture
@@ -406,7 +402,6 @@ async def test_pushing_works_again(
     ]
 
 
-@pytest.mark.xfail(strict=True, reason=REPEATS)
 async def test_ping_fails_repeatedly(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A failure is logged when it starts, changes or ends."""
     fakes = Fakes(pings=(TimeoutError(), TimeoutError(), TimeoutError(), 42), stop_after=4)

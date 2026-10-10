@@ -7,7 +7,7 @@ Kotlin:
 import logging
 import time
 import traceback
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import aiohttp
@@ -15,7 +15,7 @@ import discord
 from discord.http import Route
 
 from .config import PING
-from .logs import origin, redact
+from .logs import Failures, origin, redact
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -80,6 +80,10 @@ class Pusher:
     get: Get
     ping: Ping
     sleep: Sleep
+    # The failures since the pushes and the pings last worked: only a new one is logged at its
+    # level (the owner's decision of 2026-10-10; v3 logged every failure).
+    pushes: Failures = field(default_factory=Failures)
+    pings: Failures = field(default_factory=Failures)
 
     @property
     def endpoint(self) -> str:
@@ -113,20 +117,25 @@ class Pusher:
         try:
             ping = await self.ping()
         except PING_ERRORS as error:
-            logger.warning(
+            logger.log(
+                logging.WARNING if self.pings.add(type(error)) else logging.DEBUG,
                 "UptimeHeartbeat listener %d could not measure the REST ping, "
                 "so %%ping%% is -1: %s",
                 self.number,
                 describe(error),
             )
             ping = NO_PING
+        else:
+            if self.pings.clear():
+                logger.info("UptimeHeartbeat listener %d measures the REST ping again", self.number)
         return build_url(template, ping)
 
     async def push(self) -> None:
-        """Push once and log the outcome at v3's levels; no failure stops the listener.
+        """Push once and log the outcome; no failure stops the listener.
 
-        A cancelled push raises ``CancelledError``, which is no ``Exception``, and logs nothing;
-        v3 caught the cancellation while it waited for the ping and logged a spurious failure.
+        A new failure is logged at v3's level, a repeated one at debug level. A cancelled push
+        raises ``CancelledError``, which is no ``Exception``, and logs nothing; v3 caught the
+        cancellation while it waited for the ping and logged a spurious failure.
         """
         try:
             url = await self.url()
@@ -134,33 +143,45 @@ class Pusher:
         except NETWORK_ERRORS as error:
             # A network error needs no traceback. Its text can name the URL (aiohttp's connect
             # timeout does), so its URLs are cut to their origin too.
-            self.failed(logging.ERROR, f": {redact(describe(error))}")
+            self.failed(type(error), logging.ERROR, f": {redact(describe(error))}")
             return
         except Exception as error:  # noqa: BLE001 - logged with its traceback below
             # Unexpected: the traceback shows where it failed. It is part of the message, with its
             # URLs cut to their origin: logger.exception would print the error's text as it is.
-            self.failed(logging.ERROR, f"\n{redact(format_traceback(error))}")
+            self.failed(type(error), logging.ERROR, f"\n{redact(format_traceback(error))}")
             return
         if status in SUCCESS:
-            logger.debug(
-                "UptimeHeartbeat listener %d pushed to %s (code %d)",
-                self.number,
-                self.endpoint,
-                status,
-            )
+            self.worked(status)
         elif status in WARNINGS:
-            self.failed(logging.WARNING, f" with code {status} ({WARNINGS[status]})")
+            self.failed(status, logging.WARNING, f" with code {status} ({WARNINGS[status]})")
         else:
-            self.failed(logging.ERROR, f" with code {status}")
+            self.failed(status, logging.ERROR, f" with code {status}")
 
-    def failed(self, level: int, detail: str) -> None:
-        """Log a failed push at ``level``: the listener, the URL's origin, then ``detail``."""
+    def failed(self, kind: object, level: int, detail: str) -> None:
+        """Log a failed push: at ``level`` when its ``kind`` is new, else at debug level.
+
+        The line names the listener and the URL's origin, then ``detail``.
+        """
         logger.log(
-            level,
+            level if self.pushes.add(kind) else logging.DEBUG,
             "UptimeHeartbeat listener %d: pushing to %s failed%s",
             self.number,
             self.endpoint,
             detail,
+        )
+
+    def worked(self, status: int) -> None:
+        """Log a push that worked, after one info line when failed pushes came before it."""
+        if failed := self.pushes.clear():
+            logger.info(
+                "UptimeHeartbeat listener %d: pushing to %s works again after %d failed %s",
+                self.number,
+                self.endpoint,
+                failed,
+                "push" if failed == 1 else "pushes",
+            )
+        logger.debug(
+            "UptimeHeartbeat listener %d pushed to %s (code %d)", self.number, self.endpoint, status
         )
 
 

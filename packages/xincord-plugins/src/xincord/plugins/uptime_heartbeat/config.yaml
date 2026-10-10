@@ -3,7 +3,8 @@
 # Each listener sends an HTTP GET to its url once the bot is ready, then again `interval` seconds
 # (from 1) after each attempt, typically to an Uptime Kuma push monitor. %ping% in the url becomes
 # the bot's Discord REST ping in milliseconds, or -1 when it cannot be measured. A failed push never
-# stops a listener. The log shows only each url's scheme, host and port.
+# stops a listener. The log shows only each url's scheme, host and port, and logs a failure when it
+# starts or changes, then once when pushing works again.
 # Example:
 #   - url: "https://status.example.com/api/push/<token>?status=up&msg=OK&ping=%ping%"
 #     interval: 60

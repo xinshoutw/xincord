@@ -58,8 +58,14 @@ class Failures:
 
     def add(self, kind: object) -> bool:
         """Count a failure of ``kind``; return whether it is new: the first, or another kind."""
-        raise NotImplementedError
+        new = kind != self.kind
+        self.kind = kind
+        self.count += 1
+        return new
 
     def clear(self) -> int:
         """The step worked: forget its failures and return how many there were."""
-        raise NotImplementedError
+        count = self.count
+        self.kind = None
+        self.count = 0
+        return count

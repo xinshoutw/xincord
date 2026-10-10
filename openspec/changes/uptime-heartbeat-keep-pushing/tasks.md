@@ -17,7 +17,7 @@
 
 - [x] 3.1 xfail tests for "A failure is logged when it starts, changes or ends" and "The URL carries
       the REST ping": `Failures` against a stub in `logs.py`, repeated pushes and pings
-- [ ] 3.2 Implement `Failures` and use it for the pushes and the pings; remove the markers
+- [x] 3.2 Implement `Failures` and use it for the pushes and the pings; remove the markers
 
 ## 4. Checks and docs
 
