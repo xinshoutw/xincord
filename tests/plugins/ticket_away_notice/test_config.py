@@ -101,9 +101,6 @@ def test_v3_prefixes() -> None:
     assert v3.watches(111111111111111111, GOLDEN["chinese_channel"])
 
 
-@pytest.mark.xfail(
-    strict=True, reason="The config names the guild, the owner, the prefixes and the delay"
-)
 async def test_numbers_as_prefixes(tmp_path: Path, store: Store) -> None:
     """Requirement: The config names the guild, the owner, the prefixes and the delay."""
     # YAML reads both as numbers; v3's kaml read them as the text that the file holds.

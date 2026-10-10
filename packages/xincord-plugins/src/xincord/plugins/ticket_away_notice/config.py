@@ -6,7 +6,7 @@ Kotlin:
 
 from typing import Annotated
 
-from pydantic import Field, PositiveInt
+from pydantic import ConfigDict, Field, PositiveInt
 
 from xincord.core.config import Model
 
@@ -19,6 +19,10 @@ class Config(Model):
     v3's ``enabled`` key is gone: the core config's ``plugins`` list enables the plugin. The
     bundled file holds 0 for both IDs, so the plugin waits for the operator.
     """
+
+    # v3's kaml read an unquoted prefix such as 2024 as the text in the file, where YAML gives a
+    # number; YAML 1.1 still reads no as a boolean and 007 as 7, which need quotes.
+    model_config = ConfigDict(coerce_numbers_to_str=True)
 
     # v3 read the IDs as Strings and refused blank ones; its files hold unquoted 18-digit numbers,
     # and pydantic reads quoted ones too.
