@@ -1,0 +1,76 @@
+# The texts that v3 wrote in its code (Giveaway.kt, StepData.kt and StepManager.kt).
+# The plugin fills the %ga@...% placeholders; their values are inserted as written.
+
+# The builder's preview embed.
+preview:
+  title: "🎁 %ga@title%"
+  draft: "🎁 Giveaway Draft"
+  description: "Description"
+  end-time: "End Time"
+  prizes: "Prizes"
+  no-prizes: "No prize yet"
+  policy: "Winner Policy"
+  allow-duplicate: "Duplicate winners allowed"
+  unique: "Unique winners across prizes"
+  slots: "Total Winner Slots"
+  sponsor: "Sponsor"
+  not-set: "Not set"
+  footer: "Configure step by step, then click Confirm Create"
+
+# The giveaway's public post and its buttons.
+post:
+  title: "🎉 %ga@title%"
+  description: "Press the button below to join."
+  status: "Status"
+  running: "Running"
+  ready: "Ready to draw"
+  drawn: "Drawn"
+  participants: "Participants"
+  policy: "Winner Policy"
+  allow-duplicate: "Duplicates allowed across prizes"
+  unique: "Unique winners across prizes"
+  prizes: "Prizes"
+  results: "Winner Results"
+  not-drawn: "Not drawn yet"
+  sponsor: "Sponsor"
+  footer: "Giveaway ID: %ga@id%"
+  join: "Join / Leave"
+  draw: "Draw Winners"
+  reroll: "Reroll"
+
+# A line of the prize lists, and the name the prize modal suggests.
+prize: "%ga@index%. %ga@prize-name% (%ga@winner-count% winner(s))"
+new-prize: "Prize %ga@index%"
+# A prize that drew nobody.
+not-enough: "(not enough participants)"
+
+# The header and the body of a draw's result.
+result:
+  drawn: "Draw finished"
+  rerolled: "Reroll finished"
+  no-participants: "There are no participants."
+
+reply:
+  joined: "You joined the giveaway."
+  left: "You left the giveaway."
+
+error:
+  expired: "Your setup session expired. Please run /create-giveaway again."
+  title: "Giveaway title cannot be empty."
+  end-time: "Please provide an end time."
+  end-time-format: "Invalid time format. Use yyyy-MM-dd HH:mm."
+  end-time-past: "End time must be in the future."
+  prize-name: "Prize name cannot be empty."
+  winner-count: "Winner count must be an integer between 1 and 50."
+  thumbnail: "Invalid thumbnail URL. Please provide a valid http(s) URL."
+  no-prize: "No prize to remove."
+  no-title: "Please set giveaway title first."
+  no-end-time: "Please set an end time in the future."
+  no-prizes: "Please add at least one prize."
+  not-admin: "Administrator permission is required to finish creation."
+  not-found: "Giveaway not found."
+  closed: "This giveaway is closed."
+  not-allowed: "Only creator/admin can do this."
+  drawn: "Already drawn. Use reroll."
+  too-early: "Too early to draw winners (<t:%ga@end%:R>)."
+  not-drawn: "Giveaway not drawn yet."

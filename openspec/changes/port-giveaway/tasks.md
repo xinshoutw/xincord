@@ -1,6 +1,6 @@
 ## 1. Resources
 
-- [ ] 1.1 Bundle v3's en-US and zh-TW lang files with the new `text.yaml` (v3's texts from the
+- [x] 1.1 Bundle v3's en-US and zh-TW lang files with the new `text.yaml` (v3's texts from the
       Kotlin code), and `config.yaml` with v3's keys and `timeZone`
 
 ## 2. Installation

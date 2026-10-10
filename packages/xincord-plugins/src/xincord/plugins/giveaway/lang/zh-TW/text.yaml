@@ -1,0 +1,76 @@
+# The texts that v3 wrote in its code (Giveaway.kt, StepData.kt and StepManager.kt).
+# The plugin fills the %ga@...% placeholders; their values are inserted as written.
+
+# The builder's preview embed.
+preview:
+  title: "🎁 %ga@title%"
+  draft: "🎁 抽獎建立預覽"
+  description: "抽獎說明"
+  end-time: "結束時間"
+  prizes: "獎品清單"
+  no-prizes: "尚未新增獎品"
+  policy: "中獎限制"
+  allow-duplicate: "允許跨獎品重複中獎"
+  unique: "跨獎品不可重複中獎"
+  slots: "總中獎名額"
+  sponsor: "主辦/贊助"
+  not-set: "未設定"
+  footer: "使用下方按鈕逐步設定，最後按「確認建立」"
+
+# The giveaway's public post and its buttons.
+post:
+  title: "🎉 %ga@title%"
+  description: "按下下方按鈕參加抽獎。"
+  status: "狀態"
+  running: "進行中"
+  ready: "可開獎"
+  drawn: "已開獎"
+  participants: "參與人數"
+  policy: "中獎限制"
+  allow-duplicate: "每個獎品可重複中獎"
+  unique: "跨獎品不得重複中獎"
+  prizes: "獎品"
+  results: "中獎結果"
+  not-drawn: "尚未開獎"
+  sponsor: "主辦 / 贊助"
+  footer: "Giveaway ID: %ga@id%"
+  join: "參加 / 退出"
+  draw: "手動開獎"
+  reroll: "重抽"
+
+# A line of the prize lists, and the name the prize modal suggests.
+prize: "%ga@index%. %ga@prize-name% (%ga@winner-count% 位)"
+new-prize: "獎品 %ga@index%"
+# A prize that drew nobody.
+not-enough: "（名額不足）"
+
+# The header and the body of a draw's result.
+result:
+  drawn: "開獎完成"
+  rerolled: "重抽完成"
+  no-participants: "目前沒有任何參與者。"
+
+reply:
+  joined: "你已成功參加抽獎。"
+  left: "你已取消參加抽獎。"
+
+error:
+  expired: "建立流程已過期，請重新執行 /create-giveaway。"
+  title: "抽獎名稱不能為空。"
+  end-time: "請輸入結束時間。"
+  end-time-format: "時間格式錯誤，請使用 yyyy-MM-dd HH:mm。"
+  end-time-past: "結束時間必須是未來時間。"
+  prize-name: "獎品名稱不能為空。"
+  winner-count: "中獎人數需為 1 到 50 的整數。"
+  thumbnail: "縮圖網址格式錯誤，請輸入有效的 http(s) URL。"
+  no-prize: "目前沒有可刪除的獎品。"
+  no-title: "請先設定抽獎名稱。"
+  no-end-time: "請設定未來的結束時間。"
+  no-prizes: "請至少新增一個獎品。"
+  not-admin: "你已失去管理員權限，無法完成建立。"
+  not-found: "找不到該抽獎，可能已被刪除。"
+  closed: "抽獎已截止，無法再參加。"
+  not-allowed: "只有建立者或管理員可執行此操作。"
+  drawn: "此抽獎已開獎，可使用重抽。"
+  too-early: "尚未到開獎時間（<t:%ga@end%:R>）。"
+  not-drawn: "抽獎尚未開獎，不能重抽。"
