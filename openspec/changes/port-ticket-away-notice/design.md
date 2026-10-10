@@ -155,12 +155,15 @@ owner's question about a `ticket-` prefix is in the review queue's Ticket sectio
   `CHANNEL_CREATE`, `THREAD_CREATE`, `PRESENCE_UPDATE`, `CHANNEL_DELETE`, `GUILD_DELETE` and
   `GUILD_MEMBER_REMOVE` payloads, so that the plugin gets discord.py's channels, threads and members
   with their statuses; `discord_fakes.FakeRest` records the REST requests (the notices' `POST
-  /channels/{id}/messages`, the member lookups) and answers them. `payloads.guild` gains `members`
-  and `presences`, `payloads.channel` a `guild_id`, and `payloads.presence` builds a presence.
-- The delay runs on a fake `sleep` that records the delay and waits until the test wakes it, so
-  that a test can change the cache during the wait; nothing sleeps in real time.
+  /channels/{id}/messages`, the member lookups) and answers them, and now keeps a multipart
+  upload's parts (`form`). `payloads.guild` gains `members` and `presences`, `payloads.channel` a
+  `guild_id` (and a voice channel's bitrate and user limit), and `payloads.presence` builds a
+  presence.
+- The delay runs on a fake `sleep` (the scene's `Clock`) that records the delay and waits until the
+  test wakes it, so that a test can change the cache during the wait; nothing sleeps in real time.
 - Golden data (`tests/fixtures/plugins/ticket_away_notice/golden.yaml`): the bundled notice's
-  embed, v3's prefixes and an operator's v3-style template with example values. No CJK text is
+  embed, v3's config with placeholder IDs (unquoted and quoted) and an operator's notice in v3's
+  layout with its embed; `hours.txt` is a file that an operator's notice attaches. No CJK text is
   typed in Python.
 
 ## v3 behaved differently
@@ -230,15 +233,68 @@ and channel IDs; the text in the description), and operator log warnings (Englis
   then appear while the owner is online. `guild.query_members(user_ids=..., presences=True)` would
   ask the gateway for the presence instead.
 - A notice that waits during a reload or an unload is dropped.
-- Two channels created at once start two notices; there is no deduplication, as in v3.
+- Each matching channel starts its own notice, as in v3: a burst of new channels makes a burst of
+  member lookups (only for an uncached owner) and notices, whose rate limits discord.py waits out.
 - discord.py drops a `CHANNEL_CREATE` for a guild it has not cached, and Discord sends no event for
   a private channel that the bot cannot see: such channels get no notice, as in v3.
+
+## Checks
+
+- Package: the `xincord-plugins` wheel holds `ticket_away_notice/config.yaml` and
+  `lang/zh-TW/message/not-online.yaml` and the `TicketAwayNotice` entry point; `xincord
+  --no-online` from a scratch venv with both wheels and `plugins: [TicketAwayNotice]` exits 1 with
+  the bundled config (`guild_id` and `user_id` named, both files written) and 0 once the IDs are
+  set.
+- Image: `docker compose build`, then `docker compose run --rm -T bot --no-online` with the fifteen
+  ported plugins enabled (example IDs for Economy and TicketAwayNotice), exits 0 with every one
+  loaded; `docker compose down -v` and removing `bot/` cleaned up.
+- Probe (a scratch script that feeds discord.py's own gateway code, `DiscordWebSocket.
+  received_message`, with HTTP recorded): the bot requests both intents; the owner's presence from
+  `GUILD_CREATE` and `PRESENCE_UPDATE` reaches the cached member; an online owner gets no notice; an
+  offline one gets it in a text channel, a voice channel's chat and a new thread, not in a category,
+  a forum, another guild or a channel without a prefix; a channel deleted and an owner turned idle
+  during the wait get none; an uncached owner is looked up twice through `GET
+  /guilds/{guild}/members/{user}`; the notice's body is the embed with `content` null and
+  `allowed_mentions` for users only; unloading the extension during the wait cancels the notice.
+
+## Inventory audit
+
+Every section of `docs/porting/analysis/inventory/TicketAddons.md` maps to this change:
+
+- Overview (1): the plugin and its name, "The plugin installs as TicketAwayNotice"; the
+  relationship to Ticket is "Channel names (Ticket)" and the scenario "Name without a prefix".
+- Lifecycle (2): config loading is "The config names the guild, the owner, the prefixes and the
+  delay"; `reload()` is a new cog; the lazy `MessageCreator` is `Templates.load` in `setup`;
+  the uncancellable `queueAfter` is "Pending notices end with the plugin" and the checks after the
+  wait; the `enabled` warning is the core's `plugins` list.
+- Commands (3) and components (4): none, so no commands, IDs or routes.
+- Events (5): the guild filter (B1), the prefix filter, the channel kinds (B2), the member lookup,
+  the offline check and the delayed send are "New channels whose names start with a prefix are
+  watched" and "The notice waits for the delay while the owner is offline"; a failed lookup is
+  "Problems with notices are reported"; the presence accuracy (B3) is the intents decision.
+- Configuration (6): the config requirement; B4 is a "v3 behaved differently" entry; kaml's strict
+  mode is the core's unknown-key warning.
+- Localization and templates (7): zh-TW for everyone with the global placeholders, the bundled
+  example and an operator's v3 file are the notice scenarios; the raw mentions in the title are a
+  "v3 behaved differently" entry.
+- Persistence (8) and external dependencies (9): none.
+- Discord requirements (10): the intents, the developer portal setting (smoke checklist) and the
+  permissions (a refused notice is a warning); bursts are under Risks.
+- Concurrency (11): the notice tasks, the checks after the wait and the cancellation at unload; a
+  reload swaps the whole cog.
+- Bugs and quirks (12): B1 to B4 and the hard-coded values are "v3 behaved differently" entries;
+  the behaviors to preserve are scenarios.
+- Testability (13): `Config.watches` is tested alone; the statuses, the delay on an injected
+  `sleep`, the member lookup and the template through discord.py's parsers and golden data.
+- Assessment (14): `on_guild_channel_create` and `on_thread_create`, the intents, the cache then
+  `fetch_member`, the delay as a task, and the forced zh-TW are the decisions above.
 
 ## Manual smoke checklist
 
 On a test guild, with a bot token, the Presence and Server Members intents allowed for the bot in
 the Discord developer portal, a second account as the owner and `plugins: [TicketAwayNotice]` in
-`config.yaml`:
+`config.yaml`; the bot needs View Channel, Send Messages and Embed Links in the new channels
+(inventory section 10):
 
 1. Start the bot with the bundled config: TicketAwayNotice does not load, and the error names
    `guild_id` and `user_id`; `plugins/TicketAwayNotice/` holds `config.yaml` and
