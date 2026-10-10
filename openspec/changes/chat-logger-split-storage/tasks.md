@@ -14,9 +14,9 @@
 
 ## 3. File names and ranges
 
-- [ ] 3.1 xfail tests for "Stored messages live in the plugin's own files" and "A new message file
-      starts when the newest is full": names, routing, the next start and the expired files against
-      stubs in `files.py`
+- [x] 3.1 xfail tests for "Stored messages live in the plugin's own files" and "A new message file
+      starts when the newest is full": names, routing and the next start against stubs in
+      `files.py`
 - [ ] 3.2 Implement `files.py`; remove the markers
 
 ## 4. Message files
@@ -37,8 +37,8 @@
 
 ## 6. Expired files
 
-- [ ] 6.1 xfail tests for "Stored messages are kept for the retention period": whole files expiring
-      in `MessageFiles.prune` and through the plugin at READY
+- [ ] 6.1 xfail tests for "Stored messages are kept for the retention period": `files.expired` and
+      whole files expiring in `MessageFiles.prune` and through the plugin at READY
 - [ ] 6.2 Delete the expired files; remove the markers
 
 ## 7. Checks and docs
