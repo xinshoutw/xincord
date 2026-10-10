@@ -6,16 +6,20 @@ Kotlin:
 """
 
 import logging
-from typing import TYPE_CHECKING
+from importlib.resources import files
+from typing import TYPE_CHECKING, cast
 
 import pytest
+import yaml
 
 from plugin_fakes import golden, load_plugin
+from xincord.plugins.ticket_away_notice.config import Config
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from xincord.core.storage import Store
+    from xincord.plugins.ticket_away_notice.cog import TicketAwayNotice
 
 GOLDEN = golden("ticket_away_notice")
 VALID = """\
@@ -85,3 +89,28 @@ async def test_invalid_values(
 
     assert bot.loaded == ()
     assert error in caplog.text
+
+
+def test_v3_prefixes() -> None:
+    """Requirement: The config names the guild, the owner, the prefixes and the delay."""
+    v3 = Config.model_validate(yaml.safe_load(GOLDEN["v3_config"]["unquoted"]))
+    text = files("xincord.plugins.ticket_away_notice").joinpath("config.yaml").read_text("utf-8")
+    bundled = Config.model_validate({**yaml.safe_load(text), "guild_id": 1, "user_id": 2})
+
+    assert bundled.prefix == v3.prefix  # v3's two prefixes, the Chinese one first
+    assert v3.watches(111111111111111111, GOLDEN["chinese_channel"])
+
+
+@pytest.mark.xfail(
+    strict=True, reason="The config names the guild, the owner, the prefixes and the delay"
+)
+async def test_numbers_as_prefixes(tmp_path: Path, store: Store) -> None:
+    """Requirement: The config names the guild, the owner, the prefixes and the delay."""
+    # YAML reads both as numbers; v3's kaml read them as the text that the file holds.
+    config = VALID.replace('prefix: ["ticket-"]', "prefix:\n  - 2024\n  - 1.5")
+
+    bot = await load_plugin("TicketAwayNotice", tmp_path / "plugins", store, config=config)
+
+    cog = bot.get_cog("TicketAwayNotice")
+    assert cog is not None
+    assert cast("TicketAwayNotice", cog).config.prefix == ("2024", "1.5")

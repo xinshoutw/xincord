@@ -56,7 +56,7 @@
 - [x] 8.7 xfail tests for templates that Discord refuses (found in the review: eleven embeds and an
       empty message loaded, then failed at every notice)
 - [x] 8.8 Refuse them at load; remove the markers
-- [ ] 8.9 xfail test for a v3 prefix that YAML reads as a number (found in the review: kaml read
+- [x] 8.9 xfail test for a v3 prefix that YAML reads as a number (found in the review: kaml read
       `- 2024` as text, pydantic refused it), with tests for v3's Chinese prefix
 - [ ] 8.10 Read numbers in `prefix` as text; remove the marker
 

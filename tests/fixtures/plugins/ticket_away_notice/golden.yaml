@@ -42,3 +42,6 @@ operator_embed:
   author: {name: "範例商店"}
   title: "營業時間參考請看 <#111111111111111111> \n如果老闆沒有馬上回你代表人不在，請等老闆回覆訊息，並且先說出需要購買的商品還有 <#222222222222222222>"
   footer: {text: "❖ xincord ❖"}
+
+# A channel named after v3's first prefix, as another ticket system named its channels.
+chinese_channel: "客服單-001"

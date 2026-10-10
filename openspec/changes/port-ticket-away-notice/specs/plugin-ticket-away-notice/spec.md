@@ -29,15 +29,20 @@ while the config waits for the operator.
 
 ### Requirement: The config names the guild, the owner, the prefixes and the delay
 `config.yaml` SHALL keep v3's keys, none with a default: `guild_id` and `user_id`, positive
-integers that may be quoted as in v3; `prefix`, a non-empty list of strings; `delay_millis`, 1 to
-9223372036854775807 milliseconds. The bundled file SHALL hold v3's prefixes and delay and 0 for
-both IDs, so that the plugin loads once the operator sets them. A v3 file SHALL load with a warning
-that names `enabled`; an invalid file SHALL disable only this plugin, with an error naming the key.
+integers, quoted or not; `prefix`, a non-empty list of texts, numbers read as text as v3 did;
+`delay_millis`, 1 to 9223372036854775807 ms. The bundled file SHALL hold v3's prefixes and delay
+and 0 for both IDs, so that the plugin loads once the operator sets them. A v3 file SHALL load with
+a warning naming `enabled`; an invalid file SHALL disable only this plugin, naming the key.
 
 #### Scenario: v3 config file
 - **WHEN** `config.yaml` is v3's: `enabled: true`, both IDs as 18-digit numbers, quoted or not, two
   prefixes and `delay_millis: 2000`
-- **THEN** the plugin loads and logs a warning that names `enabled`
+- **THEN** the plugin loads and logs a warning that names `enabled`, and v3's Chinese prefix, which
+  the bundled file keeps, matches a channel named after it
+
+#### Scenario: Numbers as prefixes
+- **WHEN** `prefix` lists an unquoted `2024`, which YAML reads as a number
+- **THEN** the plugin loads with the prefix `2024`, as v3 read it
 
 #### Scenario: Bundled config
 - **WHEN** the plugin loads with the bundled `config.yaml`
