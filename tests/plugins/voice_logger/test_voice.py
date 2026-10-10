@@ -15,7 +15,8 @@ import pytest
 
 from discord_fakes import FakeGuild, FakeMember, FakeVoiceChannel, embed_dict, voice_state
 from plugin_fakes import dispatch, golden
-from xincord.plugins.voice_logger.store import add_channels, toggle
+from xincord.plugins.listen_channels.store import ListenSettings
+from xincord.plugins.voice_logger.cog import NAMESPACE
 
 if TYPE_CHECKING:
     from discord_fakes import FakeChannel
@@ -24,6 +25,11 @@ if TYPE_CHECKING:
 
 GOLDEN = golden("voice_logger")
 LOCALES = {"en-US": discord.Locale.american_english, "zh-TW": discord.Locale.taiwan_chinese}
+
+
+def settings(store: Store) -> ListenSettings:
+    """VoiceLogger's listen channel settings in ``store``."""
+    return ListenSettings(store, NAMESPACE)
 
 
 def voice_guild(locale: discord.Locale = LOCALES["en-US"]) -> FakeGuild:
@@ -69,7 +75,7 @@ async def test_join(
     bot: Bot, store: Store, channels: dict[int, FakeChannel], locale: str, who: str
 ) -> None:
     """Requirement: Voice channel changes are logged."""
-    await add_channels(store, 10, 5, "allow", [20])  # the category of Room A
+    await settings(store).add_channels(10, 5, "allow", [20])  # the category of Room A
     guild = voice_guild(LOCALES[locale])
     member = FakeMember(guild, id=7, bot=who == "bot")  # bots are logged too, as in v3
 
@@ -83,7 +89,7 @@ async def test_leave_without_a_category(
     bot: Bot, store: Store, channels: dict[int, FakeChannel], locale: str
 ) -> None:
     """Requirement: Voice channel changes are logged."""
-    await toggle(store, 10, 5)  # the block mode, nothing blocked: every channel
+    await settings(store).toggle(10, 5)  # the block mode, nothing blocked: every channel
     guild = voice_guild(LOCALES[locale])
 
     await move(bot, FakeMember(guild, id=7), room(guild, 33), None)
@@ -97,9 +103,9 @@ async def test_switch(
     bot: Bot, store: Store, channels: dict[int, FakeChannel], locale: str
 ) -> None:
     """Requirement: Voice channel changes are logged."""
-    await add_channels(store, 10, 5, "allow", [30])
-    await add_channels(store, 10, 6, "allow", [32])
-    await add_channels(store, 10, 7, "allow", [33])
+    await settings(store).add_channels(10, 5, "allow", [30])
+    await settings(store).add_channels(10, 6, "allow", [32])
+    await settings(store).add_channels(10, 7, "allow", [33])
     guild = voice_guild(LOCALES[locale])
 
     await move(bot, FakeMember(guild, id=7), room(guild, 30), room(guild, 32))
@@ -112,7 +118,7 @@ async def test_switch(
 
 async def test_same_channel(bot: Bot, store: Store, channels: dict[int, FakeChannel]) -> None:
     """Requirement: Voice channel changes are logged."""
-    await toggle(store, 10, 5)
+    await settings(store).toggle(10, 5)
     guild = voice_guild()
     room_a = room(guild, 30)
     # discord.py's before is a copy of the voice state, with an equal channel.
@@ -128,7 +134,7 @@ async def test_not_detected(bot: Bot, store: Store, channels: dict[int, FakeChan
     """Requirement: Voice channel changes are logged."""
     guild = voice_guild()
     await move(bot, FakeMember(guild, id=7), None, room(guild, 30))  # no settings at all
-    await add_channels(store, 10, 5, "allow", [99])
+    await settings(store).add_channels(10, 5, "allow", [99])
 
     await move(bot, FakeMember(guild, id=7), None, room(guild, 30))
 

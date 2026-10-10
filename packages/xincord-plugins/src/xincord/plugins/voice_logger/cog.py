@@ -18,22 +18,11 @@ from discord.http import Route
 from xincord.core.component_ids import ComponentIds
 from xincord.core.placeholders import actor_values, global_values, placeholder_values
 from xincord.core.templates import render_message
+from xincord.plugins.listen_channels.settings import list_text, targets
+from xincord.plugins.listen_channels.store import DataError, ListenSettings
 
 from .logs import UNKNOWN_MEMBER, Place, voice_change
-from .settings import list_text, targets
 from .status import ENTRIES, classify, find_actor, parse_update
-from .store import (
-    NAMESPACE,
-    DataError,
-    add_channels,
-    forget,
-    guild_ids,
-    prune,
-    read_setting,
-    read_settings,
-    remove,
-    toggle,
-)
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -43,14 +32,15 @@ if TYPE_CHECKING:
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
     from xincord.core.templates import Message, Templates
+    from xincord.plugins.listen_channels.settings import Setting
+    from xincord.plugins.listen_channels.store import Kind
 
     from .logs import VoiceChannelLike
-    from .settings import Setting
     from .status import Sleep
-    from .store import Kind
 
 logger = logging.getLogger(__name__)
 
+NAMESPACE = "VoiceLogger"  # the plugin's name: its settings in the store and its locks
 # v3's only field, in v3's prefix, so that v3's menus keep working.
 IDS = ComponentIds("voice_logger", ("action",), legacy_prefix="voice-logger@")
 ROOT = "voice-logger"  # v3's command, and the root of its register.yaml keys
@@ -85,6 +75,7 @@ class VoiceLogger(commands.Cog):
         """Keep the bot, the store and what ``setup`` loaded."""
         self.bot = bot
         self.store = store
+        self.settings = ListenSettings(store, NAMESPACE)
         self.lang = lang
         self.templates = templates
         # Each guild's voice channel statuses from Discord's updates in this session, as JDA's
@@ -123,7 +114,7 @@ class VoiceLogger(commands.Cog):
         where = _where(interaction)
         if where is None:  # guild commands run in guilds only, as v3's handler assumed
             return
-        message = self._menu(interaction, await read_setting(self.store, *where))
+        message = self._menu(interaction, await self.settings.read_setting(*where))
         # The command tree deferred the response ephemerally, as v3's core did.
         await interaction.edit_original_response(
             content=message.content,
@@ -149,7 +140,7 @@ class VoiceLogger(commands.Cog):
             await self._press(interaction, where, action)
         elif kind in ENTITY_SELECTS and action in MENUS:
             ids = _ids(data.get("values"))
-            setting = await add_channels(self.store, *where, MENUS[action], ids)
+            setting = await self.settings.add_channels(*where, MENUS[action], ids)
             await _edit(interaction, self._menu(interaction, setting))
 
     async def _press(
@@ -157,11 +148,11 @@ class VoiceLogger(commands.Cog):
     ) -> None:
         """Toggle the mode, show a list's select menu, or delete the settings, as v3's buttons."""
         if action == "toggle_btn":
-            await _edit(interaction, self._menu(interaction, await toggle(self.store, *where)))
+            await _edit(interaction, self._menu(interaction, await self.settings.toggle(*where)))
         elif action in SELECTS:
             await _edit(interaction, self._render(interaction, SELECTS[action]))
         elif action == "delete_btn":
-            await remove(self.store, *where)
+            await self.settings.remove(*where)
             await _edit(interaction, self._render(interaction, "delete"))
 
     def _render(self, interaction: discord.Interaction, name: str) -> Message:
@@ -186,7 +177,7 @@ class VoiceLogger(commands.Cog):
         name, values = change
         guild = member.guild
         sides = [(place.id, place.category_id) for place in (joined, left) if place is not None]
-        listen = targets(await read_settings(self.store, guild.id), sides)
+        listen = targets(await self.settings.read_settings(guild.id), sides)
         bot = self.bot.user
         actor = {} if bot is None else actor_values(member, bot)
         await self._post(guild, listen, name, actor | values)
@@ -231,7 +222,9 @@ class VoiceLogger(commands.Cog):
         The audit log and the member are read only when a listen channel detects the channel; v3
         read them first, for nothing.
         """
-        listen = targets(await read_settings(self.store, guild.id), [(place.id, place.category_id)])
+        listen = targets(
+            await self.settings.read_settings(guild.id), [(place.id, place.category_id)]
+        )
         if not listen:
             return
         old, new = change
@@ -308,7 +301,7 @@ class VoiceLogger(commands.Cog):
         fire this during an outage (``on_guild_unavailable``).
         """
         self.statuses.pop(guild.id, None)
-        await forget(self.store, guild.id)
+        await self.settings.forget(guild.id)
 
     @commands.Cog.listener()
     async def on_guild_unavailable(self, guild: discord.Guild) -> None:
@@ -323,10 +316,10 @@ class VoiceLogger(commands.Cog):
         inside a loop that then threw. An unavailable guild (an outage) is left alone: discord.py
         knows it without its channels.
         """
-        for guild_id in await guild_ids(self.store):
+        for guild_id in await self.settings.guild_ids():
             guild = self.bot.get_guild(guild_id)
             if guild is None:
-                await forget(self.store, guild_id)
+                await self.settings.forget(guild_id)
                 logger.info(
                     "VoiceLogger deleted the settings of guild %s, which the bot left", guild_id
                 )
@@ -342,7 +335,7 @@ class VoiceLogger(commands.Cog):
         """
         known = {channel.id for channel in guild.channels}
         try:
-            dropped = await prune(self.store, guild.id, known)
+            dropped = await self.settings.prune(guild.id, known)
         except DataError:
             logger.exception("VoiceLogger cannot check the settings of guild %s", guild.id)
             return
@@ -378,7 +371,7 @@ class VoiceLogger(commands.Cog):
                     files=message.files,
                 )
             except discord.NotFound:
-                await remove(self.store, guild.id, channel_id)
+                await self.settings.remove(guild.id, channel_id)
                 logger.info(
                     "VoiceLogger forgot the listen channel %s of %s (%s), which no longer exists",
                     channel_id,

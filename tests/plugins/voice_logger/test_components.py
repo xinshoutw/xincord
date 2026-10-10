@@ -25,9 +25,9 @@ from discord_fakes import (
     embed_dict,
 )
 from plugin_fakes import golden
-from xincord.plugins.voice_logger.cog import IDS
-from xincord.plugins.voice_logger.settings import Setting
-from xincord.plugins.voice_logger.store import NAMESPACE, add_channels, read_setting, read_settings
+from xincord.plugins.listen_channels.settings import Setting
+from xincord.plugins.listen_channels.store import ListenSettings
+from xincord.plugins.voice_logger.cog import IDS, NAMESPACE
 
 if TYPE_CHECKING:
     from xincord.core.bot import Bot
@@ -37,6 +37,11 @@ if TYPE_CHECKING:
 GOLDEN = golden("voice_logger")
 LOCALES = {"en-US": discord.Locale.american_english, "zh-TW": discord.Locale.taiwan_chinese}
 BUTTON, CHANNEL_SELECT = 2, 8  # component types
+
+
+def settings(store: Store) -> ListenSettings:
+    """VoiceLogger's listen channel settings in ``store``."""
+    return ListenSettings(store, NAMESPACE)
 
 
 def component(
@@ -90,12 +95,12 @@ def fields_of(edited: dict[str, Any]) -> list[str]:
 
 async def test_toggle(cog: VoiceLogger, store: Store) -> None:
     """Requirement: The settings components change the settings."""
-    await add_channels(store, 10, 5, "allow", [30])
+    await settings(store).add_channels(10, 5, "allow", [30])
     interaction = component("voice_logger:1:a=toggle_btn")
 
     await use(cog, interaction)
 
-    assert await read_setting(store, 10, 5) == Setting(allow_mode=False, allow=(30,))
+    assert await settings(store).read_setting(10, 5) == Setting(allow_mode=False, allow=(30,))
     edited = edit(interaction)
     assert fields_of(edited) == ["<BLOCK>", "<#30> (`30`)", "Empty"]
     assert isinstance(edited["view"], discord.ui.View)
@@ -126,7 +131,7 @@ async def test_modify_a_list(cog: VoiceLogger, store: Store, locale: str, kind: 
     chosen = component(select.custom_id, values=["30", "20"], locale=LOCALES[locale])
     await use(cog, chosen)
 
-    stored = await read_setting(store, 10, 5)
+    stored = await settings(store).read_setting(10, 5)
     assert (stored.allow if kind == "allow" else stored.block) == (30, 20)
     lines = "<#30> (`30`)\n<#20> (`20`)"
     empty = GOLDEN["menu"][locale]["embed"]["fields"][2]["value"]  # the locale's empty text
@@ -138,14 +143,14 @@ async def test_modify_a_list(cog: VoiceLogger, store: Store, locale: str, kind: 
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_delete(cog: VoiceLogger, store: Store, locale: str) -> None:
     """Requirement: The settings components change the settings."""
-    await add_channels(store, 10, 5, "allow", [30])
-    await add_channels(store, 10, 6, "block", [31])
+    await settings(store).add_channels(10, 5, "allow", [30])
+    await settings(store).add_channels(10, 6, "block", [31])
     interaction = component("voice_logger:1:a=delete_btn", locale=LOCALES[locale])
 
     await use(cog, interaction)
 
     # v3 deleted the guild's whole file, so channel 6 lost its settings at the next start.
-    assert await read_settings(store, 10) == {6: Setting(block=(31,))}
+    assert await settings(store).read_settings(10) == {6: Setting(block=(31,))}
     edited = edit(interaction)
     [embed] = cast("tuple[discord.Embed, ...]", edited["embeds"])
     assert embed_dict(embed) == GOLDEN["delete"][locale]
@@ -157,9 +162,9 @@ async def test_v3_ids(bot: Bot, store: Store) -> None:
     old, new = component("voice-logger@a:toggle_btn"), component("voice_logger:1:a=toggle_btn")
 
     await bot.on_interaction(old.as_interaction())
-    assert await read_setting(store, 10, 5) == Setting(allow_mode=False)
+    assert await settings(store).read_setting(10, 5) == Setting(allow_mode=False)
     await bot.on_interaction(new.as_interaction())
-    assert await read_setting(store, 10, 5) == Setting(allow_mode=True)
+    assert await settings(store).read_setting(10, 5) == Setting(allow_mode=True)
 
     # The menu is ephemeral: the core does not upgrade its IDs, and the handler edits it once.
     assert [method for method, _ in old.sent] == ["response.edit_message"]

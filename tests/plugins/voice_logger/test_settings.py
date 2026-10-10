@@ -5,7 +5,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:278-350
 """
 
-from xincord.plugins.voice_logger.settings import Setting, detects, targets
+from xincord.plugins.listen_channels.settings import Setting, detects, targets
 
 # Voice channels as (ID, category ID): 30 of category 22, 31 of category 20, 32 of category 21
 # and 33 outside categories.

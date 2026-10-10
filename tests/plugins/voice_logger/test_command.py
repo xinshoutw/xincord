@@ -16,8 +16,7 @@ from discord import app_commands
 
 from discord_fakes import FakeChannel, FakeGuild, FakeInteraction, FakeMember
 from plugin_fakes import golden
-from xincord.plugins.voice_logger.cog import IDS
-from xincord.plugins.voice_logger.store import NAMESPACE
+from xincord.plugins.voice_logger.cog import IDS, NAMESPACE
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable

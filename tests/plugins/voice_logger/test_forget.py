@@ -11,7 +11,8 @@ from typing import TYPE_CHECKING
 from discord_fakes import FakeGuild
 from plugin_fakes import dispatch, load_plugin
 from xincord.core.bot import Bot
-from xincord.plugins.voice_logger.store import NAMESPACE, forget, guild_ids, toggle
+from xincord.plugins.listen_channels.store import ListenSettings
+from xincord.plugins.voice_logger.cog import NAMESPACE
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -21,29 +22,34 @@ if TYPE_CHECKING:
     from xincord.core.storage import Store
 
 
+def settings(store: Store) -> ListenSettings:
+    """VoiceLogger's listen channel settings in ``store``."""
+    return ListenSettings(store, NAMESPACE)
+
+
 async def settle_three(store: Store) -> None:
     """Settings of listen channel 5 in each of the guilds 10, 20 and 30, without lists."""
     for guild_id in (10, 20, 30):
-        await toggle(store, guild_id, 5)
+        await settings(store).toggle(guild_id, 5)
 
 
 async def test_forget(store: Store) -> None:
     """Requirement: Settings are forgotten with the guild."""
     await settle_three(store)
 
-    await forget(store, 10)
+    await settings(store).forget(10)
 
     assert await store.keys(NAMESPACE) == ["20", "30"]
-    await forget(store, 10)  # nothing left to delete
+    await settings(store).forget(10)  # nothing left to delete
     assert await store.keys(NAMESPACE) == ["20", "30"]
 
 
 async def test_guild_ids(store: Store) -> None:
     """Requirement: Settings are forgotten with the guild."""
     for guild_id in (12, 9, 10):
-        await toggle(store, guild_id, 5)
+        await settings(store).toggle(guild_id, 5)
 
-    assert await guild_ids(store) == [9, 10, 12]
+    assert await settings(store).guild_ids() == [9, 10, 12]
 
 
 async def test_the_bot_leaves(bot: Bot, store: Store) -> None:

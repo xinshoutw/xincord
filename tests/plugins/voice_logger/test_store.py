@@ -12,21 +12,19 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from xincord.plugins.voice_logger.settings import Setting
-from xincord.plugins.voice_logger.store import (
-    NAMESPACE,
-    DataError,
-    add_channels,
-    read_setting,
-    read_settings,
-    remove,
-    toggle,
-)
+from xincord.plugins.listen_channels.settings import Setting
+from xincord.plugins.listen_channels.store import DataError, ListenSettings
+from xincord.plugins.voice_logger.cog import NAMESPACE
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from xincord.core.storage import JSON, Store
+
+
+def settings(store: Store) -> ListenSettings:
+    """VoiceLogger's listen channel settings in ``store``."""
+    return ListenSettings(store, NAMESPACE)
 
 
 def writes(store: Store, monkeypatch: pytest.MonkeyPatch) -> list[str]:
@@ -49,7 +47,7 @@ def writes(store: Store, monkeypatch: pytest.MonkeyPatch) -> list[str]:
 
 async def test_first_selection(store: Store) -> None:
     """Requirement: Settings are kept per guild in v3's documents."""
-    setting = await add_channels(store, 10, 5, "allow", [30, 40])
+    setting = await settings(store).add_channels(10, 5, "allow", [30, 40])
 
     # v3 saved a first selection with allow_mode false while its menu showed the allow mode.
     assert setting == Setting(allow_mode=True, allow=(30, 40), block=())
@@ -59,13 +57,13 @@ async def test_first_selection(store: Store) -> None:
     entry = document["5"]
     assert isinstance(entry, dict)
     assert list(entry) == ["allow_mode", "allow", "block"]  # Moshi's field order
-    assert await read_setting(store, 10, 5) == setting
+    assert await settings(store).read_setting(10, 5) == setting
 
 
 async def test_listen_channel_without_settings(store: Store) -> None:
     """Requirement: Settings are kept per guild in v3's documents."""
-    assert await read_setting(store, 10, 5) == Setting(allow_mode=True, allow=(), block=())
-    assert await read_settings(store, 10) == {}
+    assert await settings(store).read_setting(10, 5) == Setting(allow_mode=True, allow=(), block=())
+    assert await settings(store).read_settings(10) == {}
     assert await store.keys(NAMESPACE) == []
 
 
@@ -77,10 +75,12 @@ async def test_toggling_and_adding(store: Store) -> None:
         NAMESPACE, "10", {"5": {"allow_mode": True, "allow": [30, 40, 30], "block": []}, "6": other}
     )
 
-    assert (await toggle(store, 10, 5)).allow_mode is False
-    assert (await toggle(store, 10, 5)).allow_mode is True
-    assert await add_channels(store, 10, 5, "allow", [40, 50]) == Setting(allow=(30, 40, 50))
-    assert await add_channels(store, 10, 5, "block", [60]) == Setting(
+    assert (await settings(store).toggle(10, 5)).allow_mode is False
+    assert (await settings(store).toggle(10, 5)).allow_mode is True
+    assert await settings(store).add_channels(10, 5, "allow", [40, 50]) == Setting(
+        allow=(30, 40, 50)
+    )
+    assert await settings(store).add_channels(10, 5, "block", [60]) == Setting(
         allow=(30, 40, 50), block=(60,)
     )
 
@@ -88,7 +88,7 @@ async def test_toggling_and_adding(store: Store) -> None:
         "5": {"allow_mode": True, "allow": [30, 40, 50], "block": [60]},
         "6": other,  # entries that a change does not touch stay as they were
     }
-    assert await read_settings(store, 10) == {
+    assert await settings(store).read_settings(10) == {
         5: Setting(allow=(30, 40, 50), block=(60,)),
         6: Setting(allow_mode=False, block=(31,)),
     }
@@ -96,7 +96,7 @@ async def test_toggling_and_adding(store: Store) -> None:
 
 async def test_toggling_a_channel_without_settings(store: Store) -> None:
     """Requirement: Settings are kept per guild in v3's documents."""
-    assert await toggle(store, 10, 5) == Setting(allow_mode=False)
+    assert await settings(store).toggle(10, 5) == Setting(allow_mode=False)
 
     assert await store.get(NAMESPACE, "10") == {
         "5": {"allow_mode": False, "allow": [], "block": []}
@@ -105,36 +105,36 @@ async def test_toggling_a_channel_without_settings(store: Store) -> None:
 
 async def test_nothing_to_change(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Settings are kept per guild in v3's documents."""
-    await add_channels(store, 10, 5, "allow", [30, 40])
+    await settings(store).add_channels(10, 5, "allow", [30, 40])
     written = writes(store, monkeypatch)
 
-    assert await add_channels(store, 10, 5, "allow", [40, 30]) == Setting(allow=(30, 40))
-    assert not await remove(store, 10, 6)  # no entry
-    assert not await remove(store, 11, 5)  # no document
+    assert await settings(store).add_channels(10, 5, "allow", [40, 30]) == Setting(allow=(30, 40))
+    assert not await settings(store).remove(10, 6)  # no entry
+    assert not await settings(store).remove(11, 5)  # no document
 
     assert written == []
 
 
 async def test_removing(store: Store) -> None:
     """Requirement: Settings are kept per guild in v3's documents."""
-    await add_channels(store, 10, 5, "allow", [30])
-    await add_channels(store, 10, 6, "block", [31])
+    await settings(store).add_channels(10, 5, "allow", [30])
+    await settings(store).add_channels(10, 6, "block", [31])
 
-    assert await remove(store, 10, 5)
+    assert await settings(store).remove(10, 5)
     assert await store.get(NAMESPACE, "10") == {
         "6": {"allow_mode": True, "allow": [], "block": [31]}
     }
-    assert await remove(store, 10, 6)
+    assert await settings(store).remove(10, 6)
     assert await store.keys(NAMESPACE) == []  # the last entry takes the document with it
 
 
 async def test_concurrent_changes(store: Store) -> None:
     """Requirement: Settings are kept per guild in v3's documents."""
     await asyncio.gather(
-        *(add_channels(store, 10, channel, "allow", [30]) for channel in range(1, 21))
+        *(settings(store).add_channels(10, channel, "allow", [30]) for channel in range(1, 21))
     )
 
-    assert sorted(await read_settings(store, 10)) == list(range(1, 21))
+    assert sorted(await settings(store).read_settings(10)) == list(range(1, 21))
 
 
 @pytest.mark.parametrize(
@@ -154,11 +154,11 @@ async def test_unreadable_settings(store: Store, document: JSON) -> None:
     """Requirement: Settings are kept per guild in v3's documents."""
     await store.put(NAMESPACE, "10", document)
     calls: list[Callable[[], Awaitable[object]]] = [
-        lambda: read_settings(store, 10),
-        lambda: read_setting(store, 10, 5),
-        lambda: toggle(store, 10, 5),
-        lambda: add_channels(store, 10, 5, "block", [31]),
-        lambda: remove(store, 10, 5),
+        lambda: settings(store).read_settings(10),
+        lambda: settings(store).read_setting(10, 5),
+        lambda: settings(store).toggle(10, 5),
+        lambda: settings(store).add_channels(10, 5, "block", [31]),
+        lambda: settings(store).remove(10, 5),
     ]
 
     for call in calls:

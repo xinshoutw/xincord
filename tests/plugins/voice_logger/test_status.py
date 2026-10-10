@@ -22,8 +22,9 @@ from discord.utils import time_snowflake, utcnow
 
 from discord_fakes import FakeGuild, FakeMember, FakeVoiceChannel, embed_dict, forbidden
 from plugin_fakes import dispatch, gateway, golden, until
+from xincord.plugins.listen_channels.store import ListenSettings
+from xincord.plugins.voice_logger.cog import NAMESPACE
 from xincord.plugins.voice_logger.status import CLEARED, SET
-from xincord.plugins.voice_logger.store import add_channels, toggle
 
 if TYPE_CHECKING:
     from discord_fakes import FakeChannel, FakeRest
@@ -35,6 +36,11 @@ GOLDEN = golden("voice_logger")
 LOCALES = {"en-US": discord.Locale.american_english, "zh-TW": discord.Locale.taiwan_chinese}
 STATUS = "VOICE_CHANNEL_STATUS_UPDATE"
 AUDIT = "GET /guilds/10/audit-logs"
+
+
+def settings(store: Store) -> ListenSettings:
+    """VoiceLogger's listen channel settings in ``store``."""
+    return ListenSettings(store, NAMESPACE)
 
 
 @dataclass
@@ -53,7 +59,7 @@ class Scene:
 
     async def listen(self, channel_id: int, allowed: list[int]) -> None:
         """Make ``channel_id`` a listen channel that allows the channels or categories given."""
-        await add_channels(self.store, 10, channel_id, "allow", allowed)
+        await settings(self.store).add_channels(10, channel_id, "allow", allowed)
 
     def answer(self, *entries: list[dict[str, object]]) -> None:
         """Answer the next reads of the audit log with these entries, one list per read."""
@@ -171,7 +177,7 @@ async def test_changed_and_cleared_status(scene: Scene, locale: str) -> None:
 
 async def test_nothing_to_log(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Voice channel status changes are logged."""
-    await toggle(scene.store, 10, 5)  # the block mode, nothing blocked: every channel
+    await settings(scene.store).toggle(10, 5)  # the block mode, nothing blocked: every channel
     scene.answer([entry(7, status="Gaming")])
     await scene.update("Gaming")
     scene.rest.sent.clear()

@@ -16,8 +16,8 @@ import pytest
 
 from discord_fakes import FakeChannel, FakeGuild, FakeInteraction, FakeMember, embed_dict
 from plugin_fakes import golden
-from xincord.plugins.voice_logger.settings import list_text
-from xincord.plugins.voice_logger.store import NAMESPACE
+from xincord.plugins.listen_channels.settings import list_text
+from xincord.plugins.voice_logger.cog import NAMESPACE
 
 if TYPE_CHECKING:
     from xincord.core.storage import JSON, Store
