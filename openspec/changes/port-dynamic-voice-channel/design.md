@@ -202,12 +202,16 @@ in-memory predicate removed nothing).
 
 - `tests/plugins/dynamic_voice_channel/`: `test_plugin.py`, `test_store.py`, `test_names.py`,
   `test_replies.py` (bind and unbind), `test_command.py`, `test_create.py`, `test_delete.py`,
-  `test_forget.py` and `test_check.py`; `conftest.py` loads the plugin and records Discord's REST
-  requests by patching `discord.http.HTTPClient.request` (IntervalPusher's pattern).
+  `test_forget.py` and `test_check.py`; `conftest.py` loads the plugin, records Discord's REST
+  requests with `FakeRest` (autouse), gives the bot its user (autouse) and finds the cog with
+  `cast`, because a test that loads the plugin into a ready bot could fail and re-import it.
 - `tests/support/discord_fakes.py`: `FakeVoiceChannel` (a `FakeChannel` with a guild, a category,
   `voice_states`, `clone`, `delete` and `set_permissions` that record into `sent` or raise from
-  `errors`, and an optional gate that holds `clone`), `FakeGuild.voice_channels` and a
-  `voice_state(channel)` helper.
+  `errors`, and `cloning` and `gate` to hold a copy in progress), `FakeGuild.voice_channels`,
+  `voice_state(channel)` and `FakeRest`, which replaces `HTTPClient.request` and records each
+  request as `("<method> <path>", {"json": <body>})` in the same list as the channels' calls.
+- The checks at READY are new behavior of `on_ready`, which the left-guild tests also run, so their
+  xfail tests had no stub to raise and failed on their assertions.
 - `tests/fixtures/plugins/dynamic_voice_channel/golden.yaml`: v3's embeds per locale, the en-US
   `unbind-fail` corrected, and the translated command payload.
 
@@ -304,11 +308,12 @@ Every section of `docs/porting/analysis/inventory/DynamicVoiceChannel.md` maps t
   is "Not a lobby"; `createCopy` and the PATCHes are "First join" (with the copied fields and the
   owner bits in Rooms); the name template is "Room names follow format 1"; `formatName2` unused and
   the sample's non-existent keys: kept and out of scope. Races: 1 is "Leaving during the creation";
-  2 is "Copy refused"; 3 is "Unusable name" and "Later step refused"; 4 is the emptiness check
-  before the deletion ("Someone stays"); 5 is kept (a second member shares the room); 6 is kept for
-  manual channels and "Not a lobby" for tracked rooms; 7 is gone (the store is read off the event
-  loop's thread); 8 is gone (the store's writes are awaited, and `Bot.close` unloads plugins before
-  it closes the store).
+  2 is "Copy refused"; 3 is "Unusable name" and "Later step refused"; 4 is "Leaving during the
+  creation" too (the guild's voice lock sends the rename before the deletion), and the emptiness
+  check right before a deletion is "Someone stays"; 5 is kept (a second member shares the room,
+  "Not alone"); 6 is kept for manual channels and "Not a lobby" for tracked rooms; 7 is gone (the
+  store runs on its own thread); 8 is gone (each write is awaited, and the store closes after the
+  bot, which unloads the plugins first).
 - Configuration (6): `enabled` only, so no `config.yaml` ("First load creates the lang files").
 - Localization and templates (7): en-US and zh-TW with the zh-TW default are `DEFAULT_LOCALE` and
   the bundled files; the four templates per locale are the golden embeds, with the en-US
@@ -320,15 +325,17 @@ Every section of `docs/porting/analysis/inventory/DynamicVoiceChannel.md` maps t
 - External dependencies (9): MongoDB and SQLiteAPI are gone; no HTTP, no credentials.
 - Discord requirements (10): the intent is "Discovered by name"; Manage Channels and Manage Roles
   are in the smoke checklist, and refusals are "Copy refused", "Later step refused" and "Deletion
-  refused"; the requests per room are "First join" and "Last member leaves".
+  refused"; the requests per room are "First join" (one POST, two PATCHes and, where v3 had none,
+  the PUT of the member's overwrite) and "Last member leaves" (one DELETE).
 - Concurrency (11): the gateway thread's ordering is the snapshot of `voice_states` and the guild's
   voice lock ("Gone before the plugin saw it", "Leaving during the creation"); the async REST chain
   is awaited step by step; `MemoryCacheDb`'s unordered writes and `JsonManager`'s locks are the
   store's data lock; the shared substitutor is per-render values.
 - Bugs (12): 1 is "Command callbacks"; 2 is "Copy refused"; 3 is "Leaving during the creation";
   4 is "Rooms after a restart"; 5 is "Left while offline"; 6 is "The bot leaves"; 7 is "Binding
-  again"; 8 is "Command payload" (voice channels only); 9 is "Bind" and "Unbind" through the core's
-  `interaction_values`; 10 is "Typed text stays" and per-render values; 11 is "Discovered by name".
+  again"; 8 is "Command payload" (voice channels only); 9 is the core's `interaction_values`, which
+  the probe ran from a voice channel's chat, and "Bind"; 10 is "Typed text stays" and per-render
+  values; 11 is "Discovered by name".
   The behavior to preserve is "Kept on purpose" and the scenarios above.
 - Testability (13): `find_binding` is `find`; `format_room_name` is `room_name`; the decision table
   is split between the listener's snapshot and the creation and deletion handlers, tested through
