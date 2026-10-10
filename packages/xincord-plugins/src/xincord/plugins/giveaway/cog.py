@@ -7,7 +7,7 @@ Kotlin:
 
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import discord
 from discord import app_commands
@@ -21,6 +21,9 @@ from .model import Draft
 from .texts import Texts, language, preview
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from xincord.core.component_ids import ParsedId
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
     from xincord.core.templates import Message, Templates
@@ -29,6 +32,7 @@ if TYPE_CHECKING:
 
 # v3's fields in v3's order, all text, and v3's prefix, so that v3's posts keep working.
 IDS = ComponentIds("giveaway", ("action", "sub_action", "giveaway_id"), legacy_prefix="giveaway@")
+BUTTON = 2  # the component type of a button, which v3's onButtonInteraction took
 
 
 @dataclass(frozen=True)
@@ -90,6 +94,30 @@ class Giveaway(commands.Cog):
             attachments=message.files,
         )
         self.drafts[interaction.user.id, guild_id] = Session(shown.id, draft)
+
+    async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
+        """Send a builder press or submission to its handler; ``setup`` routes here.
+
+        As v3's ``onButtonInteraction`` and ``onModalInteraction``: buttons with the action
+        ``create`` drive the builder, and so do modals; anything else, select menus included, gets
+        no response.
+        """
+        action = parsed.fields.get("action")
+        sub_action = parsed.fields.get("sub_action", "")
+        data = cast("Mapping[str, object]", interaction.data or {})
+        if interaction.type is discord.InteractionType.component:
+            if data.get("component_type") == BUTTON and action == "create":
+                await self.press(interaction, sub_action)
+        elif interaction.type is discord.InteractionType.modal_submit and action == "create":
+            await self.submit(interaction, sub_action)
+
+    async def press(self, interaction: discord.Interaction, sub_action: str) -> None:
+        """Handle a press of the builder's button ``sub_action``."""
+        raise NotImplementedError
+
+    async def submit(self, interaction: discord.Interaction, sub_action: str) -> None:
+        """Handle a submission of the builder's modal ``sub_action``."""
+        raise NotImplementedError
 
     def _builder(self, interaction: discord.Interaction, draft: Draft) -> Message:
         """v3's ``create-giveaway`` with the preview of ``draft``, in the user's language.
