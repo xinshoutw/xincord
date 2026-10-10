@@ -13,7 +13,6 @@ import sqlite3
 from datetime import timedelta
 from typing import TYPE_CHECKING, cast
 
-import pytest
 from discord.utils import time_snowflake, utcnow
 
 from plugin_fakes import WAIT
@@ -23,6 +22,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from datetime import datetime
     from pathlib import Path
+
+    import pytest
 
     from conftest import Loader, Scene
     from plugin_fakes import Ready
@@ -131,7 +132,6 @@ async def test_failure(
     assert not loop.done()
 
 
-@pytest.mark.xfail(strict=True, reason="Stored messages are kept for the retention period")
 async def test_expired_files(
     load: Loader,
     ready: Ready,
@@ -145,10 +145,11 @@ async def test_expired_files(
     def back(days: float) -> datetime:
         return now - timedelta(days=days)
 
+    kept, recent = ago(1810), ago(1)
     # Left by earlier runs: ranges that end 1830 days ago, 1800 days ago, and never.
     write_file(back(1900), [ago(1900), ago(1840)])
-    second = write_file(back(1830), [ago(1828), ago(1810)])
-    third = write_file(back(1800), [ago(1)])
+    second = write_file(back(1830), [ago(1828), kept])
+    third = write_file(back(1800), [recent])
     bot = await load()
     hours = Hours()
     cast("ChatLogger", bot.get_cog("ChatLogger")).sleep = hours.sleep
@@ -158,7 +159,7 @@ async def test_expired_files(
 
     names = sorted(path.name for path in (tmp_path / "data" / "ChatLogger").glob("messages-*"))
     assert names == [second, third]
-    assert stored_ids() == [ago(1810), ago(1)]
+    assert stored_ids() == [kept, recent]
 
 
 async def test_unload(scene: Scene, ready: Ready) -> None:

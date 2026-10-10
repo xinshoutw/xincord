@@ -16,7 +16,7 @@ from contextlib import closing
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from .files import file_name, first_id, first_second, next_start, parse_name, route
+from .files import expired, file_name, first_id, first_second, next_start, parse_name, route
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -219,11 +219,18 @@ class MessageFiles:
         return await self._run(self._pop_all, sorted(set(message_ids)))
 
     async def prune(self, before: int, batch: int = BATCH) -> int:
-        """Delete the messages whose IDs are below ``before``, ``batch`` at a time.
+        """Delete the messages whose IDs are below ``before``: whole files, then in batches.
 
-        Return how many were deleted. Each batch is its own job, so that the messages that arrive
-        meanwhile are not held up long.
+        Each file whose messages all lie below ``before`` (the next file starts there or earlier)
+        is deleted, never the newest; then the other files' older messages, ``batch`` at a time,
+        each batch its own job, so that the messages that arrive meanwhile are not held up long.
+        Return how many messages the files that stay lost.
+
+        Raises:
+            OSError: A file could not be deleted; it is closed and left for the next start.
         """
+        for name in await self._run(self._drop_expired, before):
+            logger.info("ChatLogger deleted the message file %s, whose messages all expired", name)
         total = 0
         while deleted := await self._run(self._prune, before, batch):
             total += deleted
@@ -332,6 +339,18 @@ class MessageFiles:
         for file, ids in by_file.values():
             taken += transaction(file.connection, lambda db, ids=ids: _take(db, ids))
         return taken
+
+    def _drop_expired(self, before: int) -> list[str]:
+        """Close and delete the files holding only messages below ``before``; return their names."""
+        count = expired([file.first_id for file in self._files], before)
+        gone, self._files = self._files[:count], self._files[count:]
+        for file in gone:
+            file.connection.close()
+        for file in gone:
+            file.path.unlink(missing_ok=True)
+            # A journal left beside a file that a crash interrupted goes with it.
+            file.path.with_name(f"{file.path.name}-journal").unlink(missing_ok=True)
+        return [file.path.name for file in gone]
 
     def _prune(self, before: int, batch: int) -> int:
         """Delete up to ``batch`` messages below ``before`` from the oldest file holding any."""

@@ -70,5 +70,9 @@ def next_start(last_id: int, newest: datetime) -> datetime:
 
 
 def expired(first_ids: Sequence[int], before: int) -> int:
-    """How many of the oldest files hold only messages below ``before``, never the newest."""
-    raise NotImplementedError
+    """How many of the oldest files hold only messages below ``before``, never the newest.
+
+    A file's messages lie below the next file's first ID, so the file expired once that ID is at
+    or below ``before``.
+    """
+    return bisect_right(first_ids, before, lo=1) - 1

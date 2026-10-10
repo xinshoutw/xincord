@@ -89,11 +89,6 @@ def test_next_start() -> None:
     assert next_start(at(-10), newest) == NOON + timedelta(seconds=1)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Stored messages are kept for the retention period",
-)
 def test_expired() -> None:
     """Requirement: Stored messages are kept for the retention period."""
     first_ids = [at(0), at(60), at(120)]

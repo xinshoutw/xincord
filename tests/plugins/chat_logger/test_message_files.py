@@ -271,7 +271,6 @@ async def test_failed_work_keeps_nothing(open_files: Opener, directory: Path) ->
     assert rows(directory) == {FIRST: [(at(5), 10, 30, 7, "a", 0)]}
 
 
-@pytest.mark.xfail(strict=True, reason="Stored messages are kept for the retention period")
 async def test_expired_files(
     open_files: Opener,
     directory: Path,
