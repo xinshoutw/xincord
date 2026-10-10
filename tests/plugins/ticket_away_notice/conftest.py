@@ -157,11 +157,13 @@ class Scene:
         payload = payloads.channel(channel_id, name, kind=kind, guild_id=guild_id)
         await self.parse("CHANNEL_CREATE", payload)
 
-    async def create_thread(self, thread_id: int, name: str) -> None:
-        """Somebody starts thread ``thread_id`` named ``name`` in channel ``GENERAL``."""
+    async def create_thread(self, thread_id: int, name: str, *, owner: int = 1) -> None:
+        """User ``owner`` starts thread ``thread_id`` named ``name`` in channel ``GENERAL``."""
         self.answer(thread_id, GUILD)
         payload = payloads.thread(thread_id, GENERAL, GUILD, name)
-        await self.parse("THREAD_CREATE", {**payload, "newly_created": True})
+        await self.parse(
+            "THREAD_CREATE", {**payload, "owner_id": str(owner), "newly_created": True}
+        )
 
     async def status(self, status: str) -> None:
         """The owner's status in guild 10 becomes ``status``, as Discord reports it."""

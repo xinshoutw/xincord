@@ -47,7 +47,7 @@
 - [x] 8.1 Gate passes, push, CI green (before the review)
 - [x] 8.2 Cross-review the change (other paths into the notice, repeated or concurrent events,
       state left behind) and fix its findings xfail-first (8.3 to 8.10; design, "Cross-review")
-- [ ] 8.3 xfail test for "The bot's own thread" (found in the review: Ticket's archive starts a
+- [x] 8.3 xfail test for "The bot's own thread" (found in the review: Ticket's archive starts a
       thread named after the ticket channel, which got the notice once the channel's name matched)
 - [ ] 8.4 Skip the threads that the bot starts; remove the marker
 - [ ] 8.5 xfail test for "Event after the unload" (found in the review: a listener that discord.py

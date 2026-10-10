@@ -50,10 +50,9 @@ that names `enabled`; an invalid file SHALL disable only this plugin, with an er
 ### Requirement: New channels whose names start with a prefix are watched
 In the guild `guild_id` only, a new channel or thread whose name starts with one of `prefix`,
 compared case-sensitively as in v3, SHALL start a notice when it takes messages: text,
-announcement, voice and stage channels and threads. Channels of other guilds and other names SHALL
-be left alone, and so SHALL categories and forums, which take no messages, without an error.
-Ticket's channels, named after the member's username, match only a prefix that the username starts
-with.
+announcement, voice and stage channels and threads, except the threads that the bot starts itself
+(Ticket's archives). Other guilds and names SHALL be left alone, and so SHALL categories and
+forums, which take no messages, without an error.
 
 #### Scenario: Text channel with a prefix
 - **WHEN** text channel `ticket-alice` is created in guild 10 while the owner is offline
@@ -75,6 +74,11 @@ with.
 #### Scenario: Channels that take no messages
 - **WHEN** a category or a forum named `ticket-alice` is created in guild 10
 - **THEN** no notice starts, and nothing is logged as an error
+
+#### Scenario: The bot's own thread
+- **WHEN** the bot starts a thread named `ticket-alice-2026-10-11`, as Ticket's archive does for a
+  ticket channel named `ticket-alice`
+- **THEN** no notice starts
 
 ### Requirement: The notice waits for the delay while the owner is offline
 When a notice starts, the plugin SHALL read the member `user_id` from discord.py's cache, else from

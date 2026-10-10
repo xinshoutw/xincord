@@ -86,3 +86,14 @@ async def test_channels_that_take_no_messages(
     assert scene.notices() == []
     assert scene.clock.delays == []
     assert caplog.records == []
+
+
+@pytest.mark.xfail(strict=True, reason="New channels whose names start with a prefix are watched")
+async def test_the_bots_own_thread(scene: Scene) -> None:
+    """Requirement: New channels whose names start with a prefix are watched."""
+    # Ticket's archive of a ticket channel named ticket-alice, in another channel.
+    await scene.create_thread(41, "ticket-alice-2026-10-11", owner=99)  # the bot's user
+    await scene.settle()
+
+    assert scene.notices() == []
+    assert scene.clock.delays == []
