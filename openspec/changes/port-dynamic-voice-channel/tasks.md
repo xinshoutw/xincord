@@ -10,7 +10,7 @@
 
 ## 3. Bindings
 
-- [ ] 3.1 xfail tests for "Bindings are kept per guild in v3's documents" against stubs in
+- [x] 3.1 xfail tests for "Bindings are kept per guild in v3's documents" against stubs in
       `store.py`
 - [ ] 3.2 Implement `read_bindings`, `find`, `bind`, `unbind` and `drop`; remove the markers
 

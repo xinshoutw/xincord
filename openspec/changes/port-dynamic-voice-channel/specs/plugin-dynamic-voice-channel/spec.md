@@ -28,8 +28,9 @@ no `config.yaml`: v3's only key was `enabled`.
 The plugin SHALL keep a guild's bindings in the store under `DynamicVoiceChannel` and the guild's
 ID as v3's list of `{"categoryId", "defaultName", "formatName1", "formatName2"}`. A missing format
 SHALL read as empty and reading SHALL never write. A binding SHALL replace those of the same
-category and lobby name; removing the last one SHALL delete the document. An entry that is not
-v3's shape SHALL raise an error and never be overwritten.
+category and lobby name; removing the last one SHALL delete the document. Concurrent changes
+SHALL never lose one another. An entry that is not v3's shape SHALL raise an error and never be
+overwritten.
 
 #### Scenario: First binding
 - **WHEN** guild 10 binds the lobby `Lobby` of category 20 with the formats `A` and `B`
@@ -54,6 +55,10 @@ v3's shape SHALL raise an error and never be overwritten.
 - **WHEN** the only binding of guild 10 is removed, and then removed again
 - **THEN** the first removal reports a binding and deletes the document, and the second reports
   none and writes nothing
+
+#### Scenario: Concurrent binds
+- **WHEN** 20 lobbies of one guild are bound at the same time
+- **THEN** all 20 are stored
 
 #### Scenario: Unreadable entry
 - **WHEN** an entry has no `categoryId`, a text `categoryId` or a null format
