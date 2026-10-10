@@ -20,7 +20,6 @@ if TYPE_CHECKING:
     from conftest import Scene
 
 GOLDEN = golden("chat_logger")
-REASON = "Edits of stored messages are logged"
 
 
 def values(post: dict[str, object]) -> list[object]:
@@ -30,7 +29,6 @@ def values(post: dict[str, object]) -> list[object]:
     return [field["value"] for field in fields]  # pyright: ignore[reportUnknownVariableType]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_edit(scene: Scene, locale: str) -> None:
     """Requirement: Edits of stored messages are logged."""
@@ -44,7 +42,6 @@ async def test_edit(scene: Scene, locale: str) -> None:
     assert await scene.rows() == [(100, 10, 30, 7, "hi", 1)]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_second_edit(scene: Scene) -> None:
     """Requirement: Edits of stored messages are logged."""
     await scene.listen(5, [30])
@@ -58,7 +55,6 @@ async def test_second_edit(scene: Scene) -> None:
     assert await scene.rows() == [(100, 10, 30, 7, "hey", 2)]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_same_text(scene: Scene) -> None:
     """Requirement: Edits of stored messages are logged."""
     await scene.listen(5, [30])
@@ -75,7 +71,6 @@ async def test_same_text(scene: Scene) -> None:
     assert await scene.rows() == [(100, 10, 30, 7, "see https://example.com", 0)]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_not_stored(scene: Scene) -> None:
     """Requirement: Edits of stored messages are logged."""
     await scene.listen(5, [30])
@@ -86,7 +81,6 @@ async def test_not_stored(scene: Scene) -> None:
     assert await scene.rows() == []  # v3 did not store it on an edit either
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_not_detected(scene: Scene) -> None:
     """Requirement: Edits of stored messages are logged."""
     await scene.listen(5, [32])
@@ -98,7 +92,6 @@ async def test_not_detected(scene: Scene) -> None:
     assert await scene.rows() == [(100, 10, 30, 7, "hi", 1)]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_thread(scene: Scene) -> None:
     """Requirement: Edits of stored messages are logged."""
     await scene.listen(5, [30])  # thread 41's channel
@@ -112,7 +105,6 @@ async def test_thread(scene: Scene) -> None:
     assert post["url"] == "https://discord.com/channels/10/41/100"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_channel_without_a_category(scene: Scene) -> None:
     """Requirement: Edits of stored messages are logged."""
     await scene.listen(5, [33])
@@ -125,7 +117,6 @@ async def test_channel_without_a_category(scene: Scene) -> None:
     assert values(post)[:3] == ["<@7>", "-", "<#33>"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_webhook(scene: Scene) -> None:
     """Requirement: Edits of stored messages are logged."""
     await scene.listen(5, [30])
@@ -139,7 +130,6 @@ async def test_webhook(scene: Scene) -> None:
     assert "thumbnail" not in post
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_the_bots_own_edit(scene: Scene) -> None:
     """Requirement: Edits of stored messages are logged."""
     await scene.listen(5, [30])
@@ -149,11 +139,6 @@ async def test_the_bots_own_edit(scene: Scene) -> None:
     assert scene.posts(5) == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Logged texts are shown as written and fit an embed field",
-)
 async def test_typed_placeholders(scene: Scene) -> None:
     """Requirement: Logged texts are shown as written and fit an embed field."""
     await scene.listen(5, [30])

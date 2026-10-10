@@ -8,10 +8,16 @@ Kotlin:
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Self
 
+from xincord.core.placeholders import actor_values
+
 if TYPE_CHECKING:
+    from xincord.core.placeholders import UserLike
     from xincord.plugins.listen_channels.settings import ChannelIds
 
-NONE = "-"  # stands for a missing category, as the core's values do for missing names
+NONE = "-"  # stands for a missing category or name, as the core's values do for missing names
+# v3's member keys for an author who is no member, such as a webhook: the names show "-" and the
+# avatar URL is empty, so the templates' thumbnails are left out.
+NO_MEMBER = {"member_display_name": NONE, "member_avatar_url": "", "member_fixed_name": NONE}
 
 
 @dataclass(frozen=True)
@@ -57,3 +63,17 @@ class Place:
 def _id(value: object) -> int | None:
     """``value`` if it is an ID, else None."""
     return value if isinstance(value, int) else None
+
+
+def author_values(author: UserLike, bot: UserLike) -> dict[str, str]:
+    """v3's ``Placeholder.get(member)`` for a message's author, with the bot's keys.
+
+    A webhook, or a user who is no member, has no member keys: ``-`` and no avatar. v3 rendered a
+    webhook's edit with the global substitutor, which left every user key as written.
+    """
+    return NO_MEMBER | actor_values(author, bot)
+
+
+def message_url(guild_id: int, channel_id: int, message_id: int) -> str:
+    """A message's link, as JDA's ``jumpUrl`` and discord.py's ``jump_url`` build it."""
+    return f"https://discord.com/channels/{guild_id}/{channel_id}/{message_id}"

@@ -8,7 +8,6 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 from discord_fakes import FakeChannel, forbidden, not_found
 from plugin_fakes import golden
@@ -17,13 +16,13 @@ from xincord.plugins.listen_channels.settings import Setting
 from xincord.plugins.listen_channels.store import ListenSettings
 
 if TYPE_CHECKING:
+    import pytest
+
     from conftest import Scene
 
 GOLDEN = golden("chat_logger")
-REASON = "Logs reach every listen channel"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_locale_without_templates(scene: Scene) -> None:
     """Requirement: Logs reach every listen channel."""
     scene.guild.preferred_locale = discord.Locale.french
@@ -35,7 +34,6 @@ async def test_locale_without_templates(scene: Scene) -> None:
     assert scene.posts(5) == [GOLDEN["update"]["zh-TW"]]  # v3's fallback locale
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_deleted_listen_channel(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Logs reach every listen channel."""
     scene.channels[5] = FakeChannel(id=5, error=not_found())
@@ -53,7 +51,6 @@ async def test_deleted_listen_channel(scene: Scene, caplog: pytest.LogCaptureFix
     assert "ChatLogger forgot the listen channel 5 of guild (10)" in caplog.text
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_refused_listen_channel(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Logs reach every listen channel."""
     scene.channels[5] = FakeChannel(id=5, error=forbidden())

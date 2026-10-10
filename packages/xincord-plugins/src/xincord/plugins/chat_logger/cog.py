@@ -15,9 +15,9 @@ from xincord.plugins.listen_channels.menu import ListenChannels, Menu
 from xincord.plugins.listen_channels.settings import targets
 from xincord.plugins.listen_channels.store import ListenSettings
 
-from .logs import Place
+from .logs import Place, author_values, message_url
 from .messages import MessageLog
-from .text import message_text
+from .text import fit, message_text
 
 if TYPE_CHECKING:
     from xincord.core.component_ids import ParsedId
@@ -97,8 +97,34 @@ class ChatLogger(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_message_edit(self, payload: discord.RawMessageUpdateEvent) -> None:
-        """Log a stored message's new text to the listen channels that detect its channel."""
-        raise NotImplementedError
+        """Log a stored message's new text to the listen channels that detect its channel.
+
+        Every ``MESSAGE_UPDATE`` arrives, the message cached or not, as JDA's event did, with the
+        updated message that discord.py builds from it. Only a stored message whose text changed
+        counts: v3 counted every update, a pin or a link preview too. The author is the message's,
+        the member from the update (v3's ``Placeholder.get(event.member)``).
+        """
+        message, guild_id = payload.message, payload.guild_id
+        if guild_id is None or self._own(message.author):
+            return
+        place = Place.of(payload.channel_id, message.channel)
+        text = message_text(message.content, message.embeds)
+        edit = await self.messages.edit(payload.message_id, text)
+        guild = self.bot.get_guild(guild_id)
+        if edit is None or guild is None:
+            return
+        listen = await self._targets(guild.id, place)
+        if not listen:
+            return
+        bot = self.bot.user
+        author = {} if bot is None else author_values(message.author, bot)
+        values = place.values() | {
+            "cl_msg_after_url": message_url(guild.id, place.id, payload.message_id),
+            "cl_change_count": str(edit.count),
+            "cl_msg_before": fit(edit.before),
+            "cl_msg_after": fit(text),
+        }
+        await self.listen.post(guild, listen, "on-msg-update", author | values)
 
     def _own(self, author: discord.abc.Snowflake) -> bool:
         """Whether ``author`` is the bot, whose messages v3 did not store."""

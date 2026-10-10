@@ -57,7 +57,7 @@
 
 - [x] 11.1 xfail tests for "Edits of stored messages are logged", "Logs reach every listen channel"
       and "Typed placeholders" against a stub listener
-- [ ] 11.2 Implement `on_raw_message_edit` and the posts; remove the markers
+- [x] 11.2 Implement `on_raw_message_edit` and the posts; remove the markers
 
 ## 12. Deletions
 
