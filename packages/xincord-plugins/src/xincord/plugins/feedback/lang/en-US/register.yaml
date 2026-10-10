@@ -1,5 +1,5 @@
-feedbacker:
-  name: "feedbacker"
+feedback:
+  name: "feedback"
   description: "create a channel for member feedback"
   options:
     member:

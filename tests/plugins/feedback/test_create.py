@@ -29,9 +29,9 @@ from plugin_fakes import golden
 if TYPE_CHECKING:
     from discord import app_commands
 
-    from xincord.plugins.feedbacker.cog import Feedbacker
+    from xincord.plugins.feedback.cog import Feedback
 
-GOLDEN = golden("feedbacker")
+GOLDEN = golden("feedback")
 REPLIES = GOLDEN["config"]
 ADMINISTRATOR = discord.Permissions(administrator=True)
 EN = discord.Locale.american_english
@@ -45,12 +45,12 @@ def command(
     locale: discord.Locale = EN,
     where: object = None,
 ) -> FakeInteraction:
-    """``/feedbacker`` run by an administrator of ``guild`` in ``where``, else in general (5).
+    """``/feedback`` run by an administrator of ``guild`` in ``where``, else in general (5).
 
     The guild's locale is zh-TW; ``locale`` is the administrator's.
     """
     interaction = FakeInteraction(
-        {"type": 1, "name": "feedbacker"},
+        {"type": 1, "name": "feedback"},
         user=FakeMember(guild, id=1, name="admin"),
         guild=guild,
         guild_locale=ZH,
@@ -71,7 +71,7 @@ def submit_channel(
 
 
 async def create(
-    cog: Feedbacker,
+    cog: Feedback,
     interaction: FakeInteraction,
     member: FakeMember | FakeUser,
     channel: app_commands.AppCommandChannel | None = None,
@@ -87,7 +87,7 @@ def response(text: str) -> tuple[str, dict[str, object]]:
 
 
 @pytest.mark.parametrize("locale", [EN, ZH])
-async def test_form_posted(cog: Feedbacker, locale: discord.Locale) -> None:
+async def test_form_posted(cog: Feedback, locale: discord.Locale) -> None:
     """Requirement: Administrators post a feedback form."""
     guild = FakeGuild()
     interaction = command(guild, locale=locale)
@@ -103,7 +103,7 @@ async def test_form_posted(cog: Feedbacker, locale: discord.Locale) -> None:
     assert fields["files"] == ()
     view = fields["view"]
     assert buttons(view) == [
-        (label, f"feedbacker:1:a=submit_star;b=7;d=6;c={count}")
+        (label, f"feedback:1:a=submit_star;b=7;d=6;c={count}")
         for count, label in enumerate(GOLDEN["star_labels"], start=1)
     ]
     assert isinstance(view, discord.ui.View)
@@ -113,7 +113,7 @@ async def test_form_posted(cog: Feedbacker, locale: discord.Locale) -> None:
     assert view.is_finished()  # the core routes its presses, not discord.py
 
 
-async def test_member_without_administrator(cog: Feedbacker) -> None:
+async def test_member_without_administrator(cog: Feedback) -> None:
     """Requirement: Only administrators post forms."""
     guild = FakeGuild()
     interaction = command(guild, permissions=discord.Permissions(manage_guild=True))
@@ -123,7 +123,7 @@ async def test_member_without_administrator(cog: Feedbacker) -> None:
     assert interaction.sent == [response(REPLIES["form_no_permission"])]
 
 
-async def test_not_a_member(cog: Feedbacker, caplog: pytest.LogCaptureFixture) -> None:
+async def test_not_a_member(cog: Feedback, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A form that cannot be posted is reported."""
     interaction = command(FakeGuild())
 
@@ -134,7 +134,7 @@ async def test_not_a_member(cog: Feedbacker, caplog: pytest.LogCaptureFixture) -
     assert "stranger (8)" in caplog.text
 
 
-async def test_not_a_text_channel(cog: Feedbacker, caplog: pytest.LogCaptureFixture) -> None:
+async def test_not_a_text_channel(cog: Feedback, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A form that cannot be posted is reported."""
     guild = FakeGuild()
     interaction = command(guild)
@@ -147,7 +147,7 @@ async def test_not_a_text_channel(cog: Feedbacker, caplog: pytest.LogCaptureFixt
     assert "reviews (6)" in caplog.text
 
 
-async def test_channel_refuses_the_form(cog: Feedbacker, caplog: pytest.LogCaptureFixture) -> None:
+async def test_channel_refuses_the_form(cog: Feedback, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A form that cannot be posted is reported."""
     guild = FakeGuild()
     interaction = command(guild, where=FakeChannel(error=forbidden()))
@@ -160,7 +160,7 @@ async def test_channel_refuses_the_form(cog: Feedbacker, caplog: pytest.LogCaptu
     assert "Missing Permissions" in caplog.text
 
 
-async def test_channel_takes_no_messages(cog: Feedbacker, caplog: pytest.LogCaptureFixture) -> None:
+async def test_channel_takes_no_messages(cog: Feedback, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A form that cannot be posted is reported."""
     guild = FakeGuild()
     forum = SimpleNamespace(id=5, name="forum", type=discord.ChannelType.forum)

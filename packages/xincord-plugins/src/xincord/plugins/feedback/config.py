@@ -19,7 +19,7 @@ Reply = Annotated[str, StringConstraints(pattern=r"\S", max_length=REPLY_MAX)]
 
 
 class Config(Model):
-    """``plugins/Feedbacker/config.yaml``: the plugin's replies, sent as written.
+    """``plugins/Feedback/config.yaml``: the plugin's replies, sent as written.
 
     v3's ``enabled`` key is gone: the core config's ``plugins`` list enables the plugin. v3's three
     replies are required, as in v3; the two failure replies are new, and their English defaults

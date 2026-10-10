@@ -1,4 +1,4 @@
-"""The registration of ``/feedbacker``.
+"""The registration of ``/feedback``.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/command/Register.kt:10-35
@@ -12,24 +12,23 @@ Kotlin:
 from typing import TYPE_CHECKING, Any, cast
 
 import discord
-import pytest
 from discord import app_commands
 
 from discord_fakes import FakeChannel, FakeGuild, FakeInteraction, FakeMember
 from plugin_fakes import golden
-from xincord.plugins.feedbacker.cog import TextChannelOption
+from xincord.plugins.feedback.cog import TextChannelOption
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from xincord.core.bot import Bot
     from xincord.core.command_tree import CommandTree
-    from xincord.plugins.feedbacker.cog import Feedbacker
+    from xincord.plugins.feedback.cog import Feedback
 
     # discord.py calls a cog command's function with the cog, its binding.
-    type Callback = Callable[[Feedbacker, discord.Interaction, object, object], Awaitable[None]]
+    type Callback = Callable[[Feedback, discord.Interaction, object, object], Awaitable[None]]
 
-GOLDEN = golden("feedbacker")
+GOLDEN = golden("feedback")
 
 
 def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
@@ -37,7 +36,6 @@ def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
     return {key: actual.get(key) for key in expected}
 
 
-@pytest.mark.xfail(strict=True, reason="The command is a localized guild command")
 async def test_command_payload(bot: Bot) -> None:
     """Requirement: The command is a localized guild command."""
     global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
@@ -53,14 +51,14 @@ async def test_command_payload(bot: Bot) -> None:
     assert "feedback" not in {entry["name"] for entry in global_payload}
 
 
-async def test_command_callback(bot: Bot, cog: Feedbacker) -> None:
+async def test_command_callback(bot: Bot, cog: Feedback) -> None:
     """Requirement: The command is a localized guild command."""
-    command = bot.tree.get_command("feedbacker")
+    command = bot.tree.get_command("feedback")
     assert isinstance(command, app_commands.Command)
     assert command.binding is cog
     guild = FakeGuild()
     interaction = FakeInteraction(
-        {"type": 1, "name": "feedbacker"},
+        {"type": 1, "name": "feedback"},
         command=command,
         user=FakeMember(guild),
         guild=guild,
@@ -83,7 +81,7 @@ async def test_text_channels_only() -> None:
     """Requirement: The command is a localized guild command."""
     option = TextChannelOption()
     resolved = FakeChannel(id=6, name="reviews")
-    interaction = FakeInteraction({"type": 1, "name": "feedbacker"})
+    interaction = FakeInteraction({"type": 1, "name": "feedback"})
 
     passed = await option.transform(interaction.as_interaction(), resolved)
 

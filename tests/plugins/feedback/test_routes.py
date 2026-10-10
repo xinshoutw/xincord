@@ -13,17 +13,17 @@ import discord
 import pytest
 
 from discord_fakes import FakeChannel, FakeGuild, FakeInteraction, FakeMember, FakeMessage
-from xincord.plugins.feedbacker.cog import IDS
+from xincord.plugins.feedback.cog import IDS
 
 if TYPE_CHECKING:
     from discord.types.components import ActionRow as ActionRowPayload
 
     from discord_fakes import Sent
     from xincord.core.bot import Bot
-    from xincord.plugins.feedbacker.cog import Feedbacker
+    from xincord.plugins.feedback.cog import Feedback
 
 V3_STAR = "feedbacker@a:submit_star;b:7;d:6;c:{count}"  # inventory section 4, as v3 emitted it
-NEW_STAR = "feedbacker:1:a=submit_star;b=7;d=6;c={count}"
+NEW_STAR = "feedback:1:a=submit_star;b=7;d=6;c={count}"
 COMPONENT = discord.InteractionType.component
 MODAL = discord.InteractionType.modal_submit
 
@@ -85,13 +85,12 @@ async def test_v3_star_button(bot: Bot) -> None:
 
     assert methods(interaction) == ["response.send_modal", "message.edit", "message.edit"]
     modal = cast("discord.ui.Modal", interaction.sent[0][1]["modal"])
-    assert modal.custom_id == "feedbacker:1:a=submit_form;c=3;d=6"
+    assert modal.custom_id == "feedback:1:a=submit_form;c=3;d=6"
     upgraded = interaction.sent[2][1]["view"]  # the core's upgrade after the handler
     assert star_ids(upgraded) == [NEW_STAR.format(count=count) for count in range(1, 6)]
     assert IDS.upgrade(V3_STAR.format(count=3)) == NEW_STAR.format(count=3)
 
 
-@pytest.mark.xfail(strict=True, reason="v3's forms keep working")
 async def test_v3_modal(bot: Bot) -> None:
     """Requirement: v3's forms keep working."""
     interaction = submit("feedbacker@a:submit_form;c:3;d:6", V3_STAR)
@@ -106,7 +105,7 @@ async def test_v3_modal(bot: Bot) -> None:
 async def test_new_ids(bot: Bot) -> None:
     """Requirement: v3's forms keep working."""
     pressed = press(NEW_STAR.format(count=5), NEW_STAR)
-    submitted = submit("feedbacker:1:a=submit_form;c=5;d=6", NEW_STAR)
+    submitted = submit("feedback:1:a=submit_form;c=5;d=6", NEW_STAR)
 
     await bot.on_interaction(pressed.as_interaction())
     await bot.on_interaction(submitted.as_interaction())
@@ -118,12 +117,12 @@ async def test_new_ids(bot: Bot) -> None:
 @pytest.mark.parametrize(
     ("kind", "custom_id"),
     [
-        (COMPONENT, "feedbacker:1:a=other"),
-        (COMPONENT, "feedbacker:1:a=submit_form;c=3;d=6"),
-        (MODAL, "feedbacker:1:a=submit_star;b=7;d=6;c=3"),
+        (COMPONENT, "feedback:1:a=other"),
+        (COMPONENT, "feedback:1:a=submit_form;c=3;d=6"),
+        (MODAL, "feedback:1:a=submit_star;b=7;d=6;c=3"),
     ],
 )
-async def test_other_action(cog: Feedbacker, kind: discord.InteractionType, custom_id: str) -> None:
+async def test_other_action(cog: Feedback, kind: discord.InteractionType, custom_id: str) -> None:
     """Requirement: v3's forms keep working."""
     interaction = FakeInteraction({"custom_id": custom_id}, type=kind)
 

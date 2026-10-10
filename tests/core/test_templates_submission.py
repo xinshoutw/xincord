@@ -17,7 +17,7 @@ def text_input(custom_id: str, value: str) -> dict[str, object]:
 def test_label_and_action_row_inputs() -> None:
     """Requirement: Modal submissions are read back."""
     data: dict[str, object] = {
-        "custom_id": "feedbacker:1:a=submit_form;c=3;d=6",
+        "custom_id": "feedback:1:a=submit_form;c=3;d=6",
         "components": [
             {"type": 18, "id": 1, "component": text_input("form", "great")},
             {"type": 1, "id": 3, "components": [text_input("title", "")]},

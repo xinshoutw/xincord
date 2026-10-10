@@ -1,4 +1,4 @@
-"""Feedbacker: administrators ask a member to rate the service; the review goes to a channel.
+"""Feedback: administrators ask a member to rate the service; the review goes to a channel.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Event.kt:15-75
@@ -10,7 +10,7 @@ import discord
 
 from xincord.core.templates import Templates
 
-from .cog import IDS, Feedbacker
+from .cog import IDS, Feedback
 from .config import Config
 
 if TYPE_CHECKING:
@@ -30,7 +30,7 @@ async def setup(bot: Bot) -> None:
     """Load the config, the lang files and the templates, then register the cog's handlers."""
     context = bot.plugin_context(__name__)
     lang = context.lang(DEFAULT_LOCALE)
-    cog = Feedbacker(context.config(Config), lang, Templates.load(lang))
+    cog = Feedback(context.config(Config), lang, Templates.load(lang))
     await bot.add_cog(cog)
     # A guild command, as in v3. discord.py removes it when the plugin unloads.
     bot.tree.add_command(cog.command())

@@ -1,7 +1,7 @@
-# Feedbacker: list it under `plugins` in the core config.yaml to enable it.
+# Feedback: list it under `plugins` in the core config.yaml to enable it.
 
 # The plugin's replies, sent as written (no placeholders), each at most 2000 characters.
-# To someone without the Administrator permission who runs /feedbacker:
+# To someone without the Administrator permission who runs /feedback:
 form_no_permission: "您沒有權限！"
 # To anyone but the rated member who presses a star:
 form_not_you: "這個表單不是為你建立的！"

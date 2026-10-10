@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # v3's fields in v3's order, all text, and v3's prefix, so that v3's forms keep working.
 IDS = ComponentIds(
-    "feedbacker",
+    "feedback",
     ("action", "user_id", "star_count", "submit_channel_id"),
     legacy_prefix="feedbacker@",
 )
@@ -83,7 +83,7 @@ class TextChannelOption(app_commands.Transformer[discord.Client]):
         return value
 
 
-class Feedbacker(commands.Cog):
+class Feedback(commands.Cog):
     """The plugin's state and handlers; ``setup`` registers them."""
 
     def __init__(self, config: Config, lang: Lang, templates: Templates) -> None:
@@ -93,26 +93,24 @@ class Feedbacker(commands.Cog):
         self.templates = templates
 
     def command(self) -> app_commands.Command[Any, ..., None]:
-        """Build ``/feedbacker``, localized from ``register.yaml``.
+        """Build ``/feedback``, localized from ``register.yaml``.
 
         As in v3, a guild command that every member sees: ``create_form`` checks Administrator.
         """
         lang = self.lang
         command: app_commands.Command[Any, ..., None] = app_commands.Command(
-            name=lang.command("feedbacker", "feedbacker.name"),
-            description=lang.command(
-                "Create a feedback form for a member", "feedbacker.description"
-            ),
+            name=lang.command("feedback", "feedback.name"),
+            description=lang.command("Create a feedback form for a member", "feedback.description"),
             callback=self.create_form,
         )
         app_commands.rename(
-            member=lang.command("member", "feedbacker.options.member.name"),
-            submit_channel=lang.command("submit-channel", "feedbacker.options.submit-channel.name"),
+            member=lang.command("member", "feedback.options.member.name"),
+            submit_channel=lang.command("submit-channel", "feedback.options.submit-channel.name"),
         )(command)
         return app_commands.describe(
-            member=lang.command("Specify the member", "feedbacker.options.member.description"),
+            member=lang.command("Specify the member", "feedback.options.member.description"),
             submit_channel=lang.command(
-                "Specify the submit channel", "feedbacker.options.submit-channel.description"
+                "Specify the submit channel", "feedback.options.submit-channel.description"
             ),
         )(command)
 
@@ -150,9 +148,7 @@ class Feedbacker(commands.Cog):
         try:
             await self._post_form(interaction, member, submit_channel)
         except FormError as error:
-            logger.warning(
-                "Feedbacker cannot post a form in %s: %s", _name(interaction.guild), error
-            )
+            logger.warning("Feedback cannot post a form in %s: %s", _name(interaction.guild), error)
             await interaction.edit_original_response(content=self.config.form_failure)
             return
         await interaction.edit_original_response(content=self.config.form_success)
@@ -225,7 +221,7 @@ class Feedbacker(commands.Cog):
             await self._post_review(interaction, channel_id, rating, feedback)
         except FormError as error:
             logger.warning(
-                "Feedbacker cannot post the review of %s in %s: %s",
+                "Feedback cannot post the review of %s in %s: %s",
                 _name(interaction.user),
                 _name(interaction.guild),
                 error,
@@ -287,7 +283,7 @@ async def _highlight(interaction: discord.Interaction) -> None:
         await message.edit(view=highlight(message, pressed))
     except discord.HTTPException as error:
         logger.warning(
-            "Feedbacker cannot highlight the pressed star on message %s: %s", message.id, error
+            "Feedback cannot highlight the pressed star on message %s: %s", message.id, error
         )
 
 
@@ -300,7 +296,7 @@ async def _delete_form(interaction: discord.Interaction) -> None:
     try:
         await form.delete()
     except discord.HTTPException as error:
-        logger.warning("Feedbacker cannot delete form %s after its review: %s", form.id, error)
+        logger.warning("Feedback cannot delete form %s after its review: %s", form.id, error)
 
 
 def _text_channel(guild: discord.Guild | None, channel_id: int) -> Postable | None:

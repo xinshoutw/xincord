@@ -14,16 +14,16 @@ import pytest
 
 from discord_fakes import FakeGuild, FakeInteraction, FakeMember, FakeMessage, forbidden
 from plugin_fakes import golden
-from xincord.plugins.feedbacker.cog import IDS
-from xincord.plugins.feedbacker.form import highlight
+from xincord.plugins.feedback.cog import IDS
+from xincord.plugins.feedback.form import highlight
 
 if TYPE_CHECKING:
     from discord.types.components import ActionRow as ActionRowPayload
     from discord.types.components import ContainerComponent as ContainerPayload
 
-    from xincord.plugins.feedbacker.cog import Feedbacker
+    from xincord.plugins.feedback.cog import Feedback
 
-GOLDEN = golden("feedbacker")
+GOLDEN = golden("feedback")
 REPLIES = GOLDEN["config"]
 EN = discord.Locale.american_english
 ZH = discord.Locale.taiwan_chinese
@@ -33,7 +33,7 @@ SECONDARY = discord.ButtonStyle.secondary
 
 def star_id(count: object) -> str:
     """The ID of a star button of member 7's form, whose submit channel is 6."""
-    return f"feedbacker:1:a=submit_star;b=7;d=6;c={count}"
+    return f"feedback:1:a=submit_star;b=7;d=6;c={count}"
 
 
 def stars_payload(pressed: int | None = None) -> list[dict[str, object]]:
@@ -80,7 +80,7 @@ def press(
     return interaction
 
 
-async def run(cog: Feedbacker, interaction: FakeInteraction) -> None:
+async def run(cog: Feedback, interaction: FakeInteraction) -> None:
     """Hand the press to the plugin, as the core's routing does."""
     custom_id = cast("str", interaction.data["custom_id"])
     await cog.press_star(interaction.as_interaction(), IDS.parse(custom_id).fields)
@@ -96,7 +96,7 @@ def styles(view: object) -> list[tuple[str | None, discord.ButtonStyle]]:
     ]
 
 
-async def test_someone_else_presses(cog: Feedbacker) -> None:
+async def test_someone_else_presses(cog: Feedback) -> None:
     """Requirement: Only the rated member presses a star."""
     interaction = press(3, user_id=8)
 
@@ -107,7 +107,7 @@ async def test_someone_else_presses(cog: Feedbacker) -> None:
 
 
 @pytest.mark.parametrize("locale", [EN, ZH])
-async def test_modal_opens(cog: Feedbacker, locale: discord.Locale) -> None:
+async def test_modal_opens(cog: Feedback, locale: discord.Locale) -> None:
     """Requirement: A star opens the feedback modal."""
     interaction = press(3, locale=locale)
 
@@ -119,7 +119,7 @@ async def test_modal_opens(cog: Feedbacker, locale: discord.Locale) -> None:
     assert isinstance(modal, discord.ui.Modal)
     expected = GOLDEN["modal"][locale.value]
     assert modal.title == expected["title"]
-    assert modal.custom_id == "feedbacker:1:a=submit_form;c=3;d=6"
+    assert modal.custom_id == "feedback:1:a=submit_form;c=3;d=6"
     (label,) = modal.children
     assert isinstance(label, discord.ui.Label)
     assert label.text == expected["label"]
@@ -133,7 +133,7 @@ async def test_modal_opens(cog: Feedbacker, locale: discord.Locale) -> None:
     assert modal.is_finished()  # the core routes its submission, not discord.py
 
 
-async def test_pressed_star_highlighted(cog: Feedbacker) -> None:
+async def test_pressed_star_highlighted(cog: Feedback) -> None:
     """Requirement: A star opens the feedback modal."""
     interaction = press(3, pressed=5)
 
@@ -151,7 +151,7 @@ async def test_pressed_star_highlighted(cog: Feedbacker) -> None:
     assert view.is_finished()
 
 
-async def test_edit_refused(cog: Feedbacker, caplog: pytest.LogCaptureFixture) -> None:
+async def test_edit_refused(cog: Feedback, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A star opens the feedback modal."""
     interaction = press(3, error=forbidden())
 
@@ -202,7 +202,7 @@ async def test_components_v2_form() -> None:
     assert view.is_finished()
 
 
-async def test_invalid_star_count_fails_the_press(cog: Feedbacker) -> None:
+async def test_invalid_star_count_fails_the_press(cog: Feedback) -> None:
     """Requirement: Stars follow v3's text."""
     interaction = press(6)
 

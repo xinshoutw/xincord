@@ -8,9 +8,9 @@ Kotlin:
 import pytest
 
 from plugin_fakes import golden
-from xincord.plugins.feedbacker.form import star_count, stars
+from xincord.plugins.feedback.form import star_count, stars
 
-GOLDEN = golden("feedbacker")
+GOLDEN = golden("feedback")
 
 
 @pytest.mark.parametrize("count", range(6))

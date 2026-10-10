@@ -1,4 +1,4 @@
-"""The Feedbacker config: v3's replies and the two new failure replies.
+"""The Feedback config: v3's replies and the two new failure replies.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/config/ConfigSerializer.kt:6-18
@@ -18,10 +18,10 @@ if TYPE_CHECKING:
 
     from xincord.core.bot import Bot
     from xincord.core.storage import Store
-    from xincord.plugins.feedbacker.cog import Feedbacker
-    from xincord.plugins.feedbacker.config import Config
+    from xincord.plugins.feedback.cog import Feedback
+    from xincord.plugins.feedback.config import Config
 
-GOLDEN = golden("feedbacker")
+GOLDEN = golden("feedback")
 REPLIES = ("form_no_permission", "form_not_you", "form_success")  # v3's, all required
 DEFAULTS = {
     "form_failure": "Failed to create the form",
@@ -36,9 +36,9 @@ def loaded_config(bot: Bot) -> Config:
     the next load imports them again: an isinstance check against the class imported here would
     depend on the test order.
     """
-    cog = bot.get_cog("Feedbacker")
+    cog = bot.get_cog("Feedback")
     assert cog is not None
-    return cast("Feedbacker", cog).config
+    return cast("Feedback", cog).config
 
 
 def replies(config: Config) -> dict[str, str]:
@@ -61,7 +61,7 @@ def operator_file(**changes: str | None) -> str:
 
 async def test_bundled_file(tmp_path: Path, store: Store) -> None:
     """Requirement: The config holds the replies."""
-    bot = await load_plugin("Feedbacker", tmp_path / "plugins", store)
+    bot = await load_plugin("Feedback", tmp_path / "plugins", store)
 
     assert replies(loaded_config(bot)) == GOLDEN["config"]
 
@@ -71,7 +71,7 @@ async def test_v3_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFi
     v3_file: str = GOLDEN["v3_config"]
 
     with caplog.at_level(logging.WARNING):
-        bot = await load_plugin("Feedbacker", tmp_path / "plugins", store, config=v3_file)
+        bot = await load_plugin("Feedback", tmp_path / "plugins", store, config=v3_file)
 
     assert "unknown key enabled" in caplog.text
     v3_replies = {name: GOLDEN["config"][name] for name in REPLIES}
@@ -85,7 +85,7 @@ async def test_reply_as_written(text: str, tmp_path: Path, store: Store) -> None
     """Requirement: The config holds the replies."""
     config = operator_file(form_success=text, form_failure=text)
 
-    bot = await load_plugin("Feedbacker", tmp_path / "plugins", store, config=config)
+    bot = await load_plugin("Feedback", tmp_path / "plugins", store, config=config)
 
     assert loaded_config(bot).form_success == text
     assert loaded_config(bot).form_failure == text
@@ -98,7 +98,7 @@ async def test_missing_reply(
     """Requirement: The config holds the replies."""
     config = operator_file(**{name: None})
 
-    bot = await load_plugin("Feedbacker", tmp_path / "plugins", store, config=config)
+    bot = await load_plugin("Feedback", tmp_path / "plugins", store, config=config)
 
     assert bot.loaded == ()
     assert f"{name}: Field required" in caplog.text
@@ -125,7 +125,7 @@ async def test_invalid_reply(
     text, error = case
     config = operator_file(**{name: text})
 
-    bot = await load_plugin("Feedbacker", tmp_path / "plugins", store, config=config)
+    bot = await load_plugin("Feedback", tmp_path / "plugins", store, config=config)
 
     assert bot.loaded == ()
     assert f"{name}: {error}" in caplog.text

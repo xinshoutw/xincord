@@ -24,12 +24,12 @@ from discord_fakes import (
     not_found,
 )
 from plugin_fakes import golden
-from xincord.plugins.feedbacker.cog import IDS
+from xincord.plugins.feedback.cog import IDS
 
 if TYPE_CHECKING:
-    from xincord.plugins.feedbacker.cog import Feedbacker
+    from xincord.plugins.feedback.cog import Feedback
 
-GOLDEN = golden("feedbacker")
+GOLDEN = golden("feedback")
 REPLIES = GOLDEN["config"]
 EN = discord.Locale.american_english
 ZH = discord.Locale.taiwan_chinese
@@ -53,7 +53,7 @@ def submission(
     text_input = {"type": 4, "id": 2, "custom_id": "form", "value": feedback}
     interaction = FakeInteraction(
         {
-            "custom_id": f"feedbacker:1:a=submit_form;c={count};d=6",
+            "custom_id": f"feedback:1:a=submit_form;c={count};d=6",
             "components": [{"type": 18, "id": 1, "component": text_input}],
         },
         type=discord.InteractionType.modal_submit,
@@ -72,7 +72,7 @@ def submission(
     return interaction
 
 
-async def run(cog: Feedbacker, interaction: FakeInteraction) -> None:
+async def run(cog: Feedback, interaction: FakeInteraction) -> None:
     """Hand the submission to the plugin, as the core's routing does."""
     custom_id = cast("str", interaction.data["custom_id"])
     await cog.submit_form(interaction.as_interaction(), IDS.parse(custom_id).fields)
@@ -94,7 +94,7 @@ def failure() -> tuple[str, dict[str, object]]:
 
 
 @pytest.mark.parametrize("locale", [EN, ZH])
-async def test_feedback_posted(cog: Feedbacker, locale: discord.Locale) -> None:
+async def test_feedback_posted(cog: Feedback, locale: discord.Locale) -> None:
     """Requirement: A submitted feedback is posted."""
     interaction = submission(guild_locale=locale)
 
@@ -105,7 +105,7 @@ async def test_feedback_posted(cog: Feedbacker, locale: discord.Locale) -> None:
     assert (deferred, posted, deleted) == (DEFERRED, "channel.send", DELETED)
 
 
-async def test_empty_feedback(cog: Feedbacker) -> None:
+async def test_empty_feedback(cog: Feedback) -> None:
     """Requirement: A submitted feedback is posted."""
     interaction = submission("")
 
@@ -116,7 +116,7 @@ async def test_empty_feedback(cog: Feedbacker) -> None:
     assert interaction.sent[-1] == DELETED
 
 
-async def test_placeholders_in_the_feedback(cog: Feedbacker) -> None:
+async def test_placeholders_in_the_feedback(cog: Feedback) -> None:
     """Requirement: A submitted feedback is posted."""
     interaction = submission("%user_id% %fb_content%")
 
@@ -126,7 +126,7 @@ async def test_placeholders_in_the_feedback(cog: Feedbacker) -> None:
     assert fields[0]["value"] == "%user_id% %fb_content%"
 
 
-async def test_form_already_gone(cog: Feedbacker, caplog: pytest.LogCaptureFixture) -> None:
+async def test_form_already_gone(cog: Feedback, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A submitted feedback is posted."""
     interaction = submission()
     cast("FakeMessage", interaction.message).error = not_found()
@@ -145,7 +145,7 @@ async def test_form_already_gone(cog: Feedbacker, caplog: pytest.LogCaptureFixtu
     "channel_type", [None, discord.ChannelType.news, discord.ChannelType.voice]
 )
 async def test_channel_gone(
-    cog: Feedbacker,
+    cog: Feedback,
     channel_type: discord.ChannelType | None,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -159,9 +159,7 @@ async def test_channel_gone(
     assert "channel 6" in caplog.text
 
 
-async def test_channel_refuses_the_review(
-    cog: Feedbacker, caplog: pytest.LogCaptureFixture
-) -> None:
+async def test_channel_refuses_the_review(cog: Feedback, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A feedback that cannot be posted keeps the form."""
     interaction = submission(channel_error=forbidden())
 
@@ -174,7 +172,7 @@ async def test_channel_refuses_the_review(
 
 
 @pytest.mark.parametrize("count", ["6", "x"])
-async def test_invalid_star_count_fails_the_submission(cog: Feedbacker, count: str) -> None:
+async def test_invalid_star_count_fails_the_submission(cog: Feedback, count: str) -> None:
     """Requirement: Stars follow v3's text."""
     interaction = submission(count=count)
 
