@@ -22,7 +22,7 @@ from xincord.core.placeholders import global_values, placeholder_values
 from xincord.core.templates import modal_values, render_message, render_modal
 
 from .drafts import problem, remove_last_prize, submit, switch_policy
-from .model import DataError, Draft, Instance, new_id
+from .model import DataError, Draft, Instance, join, new_id
 from .store import Giveaways
 from .texts import Texts, language, post_buttons, post_embed, preview
 from .times import format_end_time
@@ -169,8 +169,69 @@ class Giveaway(commands.Cog):
             await self.submit(interaction, sub_action)
 
     async def join(self, interaction: discord.Interaction, giveaway_id: str | None) -> None:
-        """Add the user to the giveaway's participants, or remove them."""
-        raise NotImplementedError
+        """Add the user to the giveaway's participants, or remove them, as v3's toggle.
+
+        The stored giveaway changes under its guild's lock, so joins at once all count. The post
+        is updated through the press, in one response that no channel rate limit delays (v3 edited
+        it through the REST API), and the user is told in the giveaway's language. A drawn or
+        ended giveaway answers that it is closed; a press from a message other than the post is
+        acknowledged without a change, as in v3; an unknown giveaway answers that it is not found.
+        """
+        user_id, now = interaction.user.id, int(self.clock())
+
+        def toggle(current: Instance) -> tuple[str, Instance]:
+            if not _from_post(interaction, current):
+                return "elsewhere", current
+            return join(current, user_id, now)
+
+        found = await self._change(interaction, giveaway_id, toggle)
+        if found is None:
+            return
+        outcome, instance = found
+        texts = self._giveaway_texts(instance)
+        match outcome:
+            case "elsewhere":
+                await interaction.response.defer()
+            case "closed":
+                await _tell(interaction, texts.get("error.closed"))
+            case _:
+                await self._refresh(interaction, instance)
+                await interaction.followup.send(texts.get(f"reply.{outcome}"), ephemeral=True)
+
+    async def _change[T](
+        self,
+        interaction: discord.Interaction,
+        giveaway_id: str | None,
+        transition: Callable[[Instance], tuple[T, Instance]],
+    ) -> tuple[T, Instance] | None:
+        """Change the guild's stored giveaway, or say that it is not found and return None.
+
+        v3's English-only ``Guild not found.`` and ``Invalid giveaway id.`` fold into the not found
+        text, in the user's language.
+        """
+        guild_id = interaction.guild_id
+        found = (
+            None
+            if guild_id is None or giveaway_id is None
+            else await self.giveaways.change(guild_id, giveaway_id, transition)
+        )
+        if found is None:
+            await _tell(interaction, self._texts(interaction).get("error.not-found"))
+        return found
+
+    async def _refresh(self, interaction: discord.Interaction, instance: Instance) -> None:
+        """Replace the pressed post with the giveaway as stored now, through the press."""
+        message = self.render_post(instance)
+        await interaction.response.edit_message(
+            content=message.content,
+            embeds=message.embeds,
+            view=message.view,
+            attachments=message.files,
+        )
+
+    def _giveaway_texts(self, instance: Instance) -> Texts:
+        """The texts in the giveaway's language, its creator's."""
+        return Texts(self.lang, language(self.lang, instance.locale_tag))
 
     async def press(self, interaction: discord.Interaction, sub_action: str) -> None:
         """Handle a press of the builder's button ``sub_action``.
@@ -470,3 +531,9 @@ async def _delete(posted: Posted) -> None:
         logger.warning(
             "Giveaway cannot delete the post %s, which it did not store: %s", posted.id, error
         )
+
+
+def _from_post(interaction: discord.Interaction, instance: Instance) -> bool:
+    """Whether the press comes from the giveaway's post, as v3 compared the message IDs."""
+    message = interaction.message
+    return message is not None and message.id == instance.message_id

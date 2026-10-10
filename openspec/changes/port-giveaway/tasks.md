@@ -103,7 +103,7 @@
 ## 19. Joins
 
 - [x] 19.1 xfail tests for "Members join and leave" against a stub `join`
-- [ ] 19.2 Implement `model.join` and the handler; remove the markers
+- [x] 19.2 Implement `model.join` and the handler; remove the markers
 
 ## 20. Draws
 

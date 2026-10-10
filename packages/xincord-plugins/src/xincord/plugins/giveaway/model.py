@@ -4,7 +4,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/data/GiveawayData.kt:7-102
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 from typing import TYPE_CHECKING, cast
 
@@ -106,6 +106,22 @@ def draw_winners(
         results.append(Winners(prize.name, picked))
         left = tuple(participant for participant in left if participant not in picked)
     return tuple(results)
+
+
+def is_closed(instance: Instance, now: int) -> bool:
+    """Whether joining is over: the giveaway is drawn or its end time has come, as in v3."""
+    return instance.ended or now >= instance.config.end_at
+
+
+def join(instance: Instance, user_id: int, now: int) -> tuple[str, Instance]:
+    """v3's toggle: ``closed``, else the user ``joined`` or ``left`` the participants."""
+    if is_closed(instance, now):
+        return "closed", instance
+    participants = instance.participant_ids
+    if user_id in participants:
+        left = tuple(participant for participant in participants if participant != user_id)
+        return "left", replace(instance, participant_ids=left)
+    return "joined", replace(instance, participant_ids=(*participants, user_id))
 
 
 def parse_instance(entry: JSON, where: str) -> Instance:

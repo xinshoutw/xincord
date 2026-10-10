@@ -21,7 +21,6 @@ if TYPE_CHECKING:
     from discord_fakes import FakeInteraction
 
 GOLDEN = golden("giveaway")
-REASON = "Members join and leave"
 NOW = 1772244000  # the tests' clock
 GIVEAWAY = Instance(
     id="3f2a9c1b7e4d4a60",
@@ -59,7 +58,6 @@ def told(interaction: FakeInteraction) -> object:
     return fields["content"]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_join_and_leave(scene: Scene, locale: str) -> None:
     """Requirement: Members join and leave."""
@@ -75,7 +73,6 @@ async def test_join_and_leave(scene: Scene, locale: str) -> None:
     assert updated(left) == ("0", replies["left"])
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize(
     "giveaway",
     [
@@ -94,7 +91,6 @@ async def test_closed(scene: Scene, giveaway: Instance) -> None:
     assert (await scene.stored(GIVEAWAY.id)).participant_ids == ()
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_another_message(scene: Scene) -> None:
     """Requirement: Members join and leave."""
     await scene.add(GIVEAWAY)
@@ -107,7 +103,6 @@ async def test_another_message(scene: Scene) -> None:
     assert (await scene.stored(GIVEAWAY.id)).participant_ids == ()
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_unknown_giveaway(scene: Scene, locale: str) -> None:
     """Requirement: Members join and leave."""
@@ -119,7 +114,6 @@ async def test_unknown_giveaway(scene: Scene, locale: str) -> None:
     assert await scene.store.keys("Giveaway") == []
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason=REASON)
 async def test_joins_at_once(scene: Scene) -> None:
     """Requirement: Members join and leave."""
     await scene.add(GIVEAWAY)
