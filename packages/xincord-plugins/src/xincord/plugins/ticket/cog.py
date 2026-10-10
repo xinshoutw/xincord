@@ -70,6 +70,9 @@ SCREENS: dict[str, str | None] = {
 }
 LABEL_MAX = 45  # Discord's limit of a modal input's label
 MESSAGE_ID = re.compile(r"[0-9]{1,20}")  # a snowflake as /add-ticket's text option gives it
+# What an error shows of a typed text, in UTF-16 code units: Discord's string options take 6000
+# characters, and its replies 2000.
+TYPED_MAX = 100
 GUILD_ID = re.compile(r"[1-9][0-9]{0,19}")  # a guild ID in decimal, as the store's keys hold it
 
 
@@ -213,7 +216,8 @@ class Ticket(ControlRow, commands.Cog):
     ) -> Target | str:
         """The message that ``/add-ticket`` names, or the error that answers the command."""
         if not MESSAGE_ID.fullmatch(text):
-            return texts.get("error.invalid-message-id", {"tt@message-id": text})
+            typed = {"tt@message-id": clip(text, TYPED_MAX)}
+            return texts.get("error.invalid-message-id", typed)
         message = await fetch(interaction.channel, int(text))
         if message is None:
             return texts.get("error.message-not-found", {"tt@message-id": text})

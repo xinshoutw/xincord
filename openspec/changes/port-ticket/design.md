@@ -146,11 +146,12 @@ ID and first embed. v3 kept one `Step` per user across guilds.
 
 - `/create-ticket` builds `defaults(texts)` in the user's locale and edits the deferred response into
   `create-ticket`; the session keeps the ID of the message that the edit returns.
-- `/add-ticket` reads `message_id` (digits only, else `error.invalid-message-id`), fetches the message
-  from `interaction.channel` (any failure: `error.message-not-found`), requires the bot's own message
-  (`error.not-own-message`; v3 failed silently at the confirmation), a first action row with fewer
-  than five components and no select (`error.message-full`; v3 compared with five only), and an
-  embed (`error.no-embed`; v3 stayed "thinking"), then shows `add-ticket` with that embed.
+- `/add-ticket` reads `message_id` (digits only, else `error.invalid-message-id` with the text's
+  first 100 characters, since Discord's string options take 6000 and its replies 2000), fetches the
+  message from `interaction.channel` (any failure: `error.message-not-found`), requires the bot's
+  own message (`error.not-own-message`; v3 failed silently at the confirmation), a first action row
+  with fewer than five components and no select (`error.message-full`; v3 compared with five only),
+  and an embed (`error.no-embed`; v3 stayed "thinking"), then shows `add-ticket` with that embed.
 - The builder's templates get v3's models: `tt@embed-demo` (`preview_embed`, or the target's first
   embed) and `tt@btn-demo` (`preview_button`), rendered with `global_values` (v3 had no substitutor
   there) in the user's locale.

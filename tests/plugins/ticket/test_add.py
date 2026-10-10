@@ -139,7 +139,6 @@ async def test_refused_messages(scene: Scene, text: str, message: str, reply: st
     assert scene.cog.drafts == {}
 
 
-@pytest.mark.xfail(strict=True, reason="The add command opens the builder for a message")
 async def test_long_text(scene: Scene) -> None:
     """Requirement: The add command opens the builder for a message."""
     panel(scene)
