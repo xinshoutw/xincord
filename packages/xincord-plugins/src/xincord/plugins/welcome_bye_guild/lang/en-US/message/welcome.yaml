@@ -1,0 +1,13 @@
+embeds:
+  - author:
+      name: "%wbg@guild_name%"
+      icon_url: "%wbg@guild_icon_url%"
+    title:
+      text: "🎉 Welcome %wbg@user_effective_name% joined us"
+    description: |
+      Nice to meet you %wbg@user_effective_name%!
+      You are the **#%wbg@guild_member_count%** member of this server.
+      Please read the rules: %wbg@guild_rules_channel_mention%
+      Don't be shy!
+    thumbnail_url: "%wbg@user_avatar_url%"
+    color_code: "#57F287"

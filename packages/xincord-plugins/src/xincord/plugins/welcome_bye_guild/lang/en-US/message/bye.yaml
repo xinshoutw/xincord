@@ -1,0 +1,10 @@
+embeds:
+  - author:
+      name: "%wbg@guild_name%"
+      icon_url: "%wbg@guild_icon_url%"
+    title:
+      text: "😢 %wbg@user_effective_name% left"
+    description: |
+      Hope we can see each other again in the future...
+    thumbnail_url: "%wbg@user_avatar_url%"
+    color_code: "#ED4245"

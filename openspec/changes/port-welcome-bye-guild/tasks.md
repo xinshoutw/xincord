@@ -7,7 +7,7 @@
 
 ## 2. Resources
 
-- [ ] 2.1 Bundle v3's en-US and zh-TW lang files, with final newlines and the two zh-TW typos
+- [x] 2.1 Bundle v3's en-US and zh-TW lang files, with final newlines and the two zh-TW typos
       corrected
 
 ## 3. Installation

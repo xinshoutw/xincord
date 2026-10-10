@@ -1,0 +1,13 @@
+embeds:
+  - author:
+      name: "%wbg@guild_name%"
+      icon_url: "%wbg@guild_icon_url%"
+    title:
+      text: "🎉 歡迎 %wbg@user_effective_name% 加入伺服器！"
+    description: |
+      很高興在這裡看到你 %wbg@user_mention%！
+      你是我們的第 **%wbg@guild_member_count%** 位成員！
+      請先閱讀規則：%wbg@guild_rules_channel_mention%
+      也不妨到處看看喔！
+    thumbnail_url: "%wbg@user_avatar_url%"
+    color_code: "#57F287"
