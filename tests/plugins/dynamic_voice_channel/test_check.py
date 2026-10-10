@@ -10,7 +10,6 @@ import logging
 from typing import TYPE_CHECKING
 
 import discord
-import pytest
 
 from discord_fakes import FakeChannel, FakeGuild, FakeVoiceChannel, forbidden
 from plugin_fakes import dispatch, load_plugin
@@ -18,7 +17,6 @@ from xincord.core.bot import Bot
 from xincord.plugins.dynamic_voice_channel.store import (
     NAMESPACE,
     Binding,
-    DataError,
     bind,
     read_bindings,
     read_rooms,
@@ -27,6 +25,8 @@ from xincord.plugins.dynamic_voice_channel.store import (
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import pytest
 
     from discord_fakes import FakeRest, Sent
     from xincord.core.storage import Store
@@ -175,11 +175,6 @@ async def test_checked_when_loaded_into_a_ready_bot(
     assert await read_rooms(store, 10) == {51: 8}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=DataError,
-    reason="Bindings and rooms are checked when the bot is ready",
-)
 async def test_unreadable_data(
     bot: Bot,
     store: Store,

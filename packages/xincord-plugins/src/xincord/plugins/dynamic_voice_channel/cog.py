@@ -18,7 +18,7 @@ from xincord.core.templates import render_message
 from .rooms import check as check_guild
 from .rooms import create as create_room
 from .rooms import delete as delete_room
-from .store import NAMESPACE, Binding, bind, forget, guild_ids, unbind
+from .store import NAMESPACE, Binding, DataError, bind, forget, guild_ids, unbind
 
 if TYPE_CHECKING:
     import asyncio
@@ -238,7 +238,9 @@ class DynamicVoiceChannel(commands.Cog):
         By ``on_ready``, discord.py knows every guild of the session, unavailable ones included.
         v3's ``JsonManager`` deleted the file of a guild it did not know when it first loaded,
         unavailable ones included, inside a loop that then threw. An unavailable guild (an outage)
-        is left alone: discord.py knows it without its channels.
+        is left alone: discord.py knows it without its channels. A guild whose stored data cannot
+        be read is skipped with an error, so that the others are still checked and the plugin
+        still loads into a ready bot.
         """
         for guild_id in await guild_ids(self.store):
             guild = self.bot.get_guild(guild_id)
@@ -250,7 +252,12 @@ class DynamicVoiceChannel(commands.Cog):
                 )
             elif not guild.unavailable:
                 async with self._voice_lock(guild_id):
-                    await check_guild(self.store, guild)
+                    try:
+                        await check_guild(self.store, guild)
+                    except DataError:
+                        logger.exception(
+                            "DynamicVoiceChannel cannot check the data of guild %s", guild_id
+                        )
 
     def _voice_lock(self, guild_id: int) -> asyncio.Lock:
         """The lock of the guild's voice changes; the store keeps it across reloads."""
