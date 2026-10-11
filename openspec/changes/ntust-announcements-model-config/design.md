@@ -226,3 +226,55 @@ With a token, a test guild, two boards with test channels and `plugins: [NtustAn
    link after one 5-second wait.
 6. Set an invalid value (`temperature: 3`): the reload fails with `config.yaml: temperature: ...`
    and the previous settings keep running.
+
+## Checks (2026-10-11)
+
+- Package: the `xincord-plugins` wheel ships `api.py`, `conversion.py`, `strings.py` and the new
+  `config.yaml`, and no `gemini.py`. `xincord --no-online` from a scratch venv with both wheels and
+  `plugins: [NtustAnnouncements]` exits 1 with the bundled config (both `api-keys` with `replace the
+  example key with your API key` and the 18 `channel-id`s, no model setting); 0 with example keys
+  and channels and `api-format: openai`, `endpoint: "https://openrouter.ai/api/v1/"`,
+  `model: "openai/gpt-4o-mini"`, `temperature: null`; 1 with `temperature: 3` (`temperature: Input
+  should be less than or equal to 2`), and 1 with an endpoint holding user info, a token in its
+  path and a query, the error naming `endpoint` and no line of the log holding the secrets.
+- Probe (a scratch script with the installed wheels, not committed): `open_web` and `Converter`
+  against a local aiohttp server. The openai format POSTed `/secret-token/v1/chat/completions`
+  with `Bearer <key>`, the model, the prompt as the only user message and `max_tokens` 64 without
+  a temperature, and gave the first choice's content trimmed; the gemini format POSTed
+  `/secret-token/v1beta/models/gemini-2.5-flash:generateContent` with `x-goog-api-key` and
+  temperature 0.1. A server answering a malformed status line gave aiohttp's `400, message="Bad
+  status line ...", url='http://127.0.0.1:<port>'` (the path cut), a closed port `Cannot connect to
+  host 127.0.0.1:<port> ...`; no line held the path's token or a key, and no line of an openai
+  attempt named Gemini.
+- Not rebuilt: the image. Only the plugin's modules and bundled config changed, and no
+  dependency; the wheel check covers them.
+
+## Scenario audit
+
+Every scenario of the delta has a test (`tests/plugins/ntust_announcements/`):
+
+- The config names the boards, the API keys and the prompt: v3 config file (`test_config.py`
+  `test_v3_config_file`, `test_default_model_settings`), bundled config (`test_bundled_config`),
+  invalid values (`test_invalid_values`), example key (`test_example_key`), keys stay hidden
+  (`test_keys_stay_hidden`).
+- Gemini turns an article into Markdown: request (`test_web.py` `test_request`), settings
+  (`test_request_settings`, `test_request_without_settings`), timeouts (`test_timeouts`), answer
+  (`test_answer`), failed answers (`test_refused_answers`, `test_answers_without_text`,
+  `test_answer_text`).
+- API keys stay within the rate limit and failed attempts are retried: keys in turn
+  (`test_conversion.py` `test_keys_in_turn`), rate limit (`test_rate_limit`, `test_window`),
+  configured rate limit (`test_configured_window`, `test_configured_rate_limit`), retries
+  (`test_retries`, `test_backoff`), configured retries (`test_configured_retries`,
+  `test_configured_backoff`), success after failures (`test_success_after_failures`).
+- Problems are logged without flooding or showing the keys: repeated failure and recovery
+  (`test_watch.py`, unchanged), keys hidden (`test_keys_hidden`), endpoint hidden
+  (`test_endpoint_hidden`, `test_lifecycle.py` `test_settings_reach_the_boards`), no product named
+  (`test_no_product_named`, `test_counts_of_one`, `test_settings_reach_the_boards`).
+- The model settings are config: defaults (`test_default_model_settings`), bundled config
+  (`test_bundled_model_settings`), settings from the file (`test_model_settings_from_the_file`),
+  invalid settings (`test_invalid_model_settings`), endpoint stays hidden
+  (`test_endpoint_stays_hidden`), settings reach the boards (`test_settings_reach_the_boards`),
+  reload (`test_reload_applies_the_settings`).
+- An OpenAI-compatible API turns an article into Markdown: request (`test_openai_request`),
+  settings (`test_openai_settings`), answer (`test_openai_answer`), failed answers
+  (`test_openai_refused_answers`, `test_openai_answers_without_text`, `test_openai_answer_text`).

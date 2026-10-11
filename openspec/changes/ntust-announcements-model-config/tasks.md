@@ -29,11 +29,11 @@
 
 ## 5. Checks and docs
 
-- [ ] 5.1 The wheel ships the new `config.yaml`; `xincord --no-online` from a scratch venv loads the
+- [x] 5.1 The wheel ships the new `config.yaml`; `xincord --no-online` from a scratch venv loads the
       plugin with example values and refuses an invalid setting; a scratch probe runs both formats
       through the plugin's web against a local server
-- [ ] 5.2 Porting guide rows and conventions, port-plugin skill notes
-- [ ] 5.3 Audit: every scenario of the delta has a test
+- [x] 5.2 Porting guide rows and conventions, port-plugin skill notes
+- [x] 5.3 Audit: every scenario of the delta has a test
 - [ ] 5.4 Push the work so far (CI green); cross-review (a subagent); record its findings and fix
       them xfail-first
 

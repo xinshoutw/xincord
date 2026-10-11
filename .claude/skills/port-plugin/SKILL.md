@@ -469,9 +469,14 @@ async def setup(bot: Bot) -> None:
   are throttled per channel and item (`alerts.Alerts`), and posts are tasks kept in a set on the
   cog (`posting`), so that a rate-limited channel holds up no step; `cog_unload` cancels them with
   the loop.
-- An LLM API is called over its documented REST API with aiohttp (Gemini's `generateContent`, the
-  key in a header, never in the URL); keys are config with hidden validation input, named in logs
-  by their position and removed from error texts (`Gemini.hide`).
+- An LLM API is called over its documented REST API with aiohttp, the key in a header, never in
+  the URL; keys are config with hidden validation input, named in logs by their position and
+  removed from error texts (`conversion.Converter.hide`). Every setting of the model is config with
+  v3's value as default (NtustAnnouncements since `ntust-announcements-model-config`: `api.Api`,
+  the format `gemini` or an OpenAI-compatible `openai`, the endpoint, the model, the generation
+  settings and the timeouts; `conversion.Limits`, the rate limit and the retries), and a reload
+  applies it. Lines and module names name no product; the endpoint shows as its origin and URLs in
+  error texts are cut to theirs (`xincord.plugins.redaction`).
 
 ### Scraped pages
 
@@ -762,6 +767,13 @@ async def setup(bot: Bot) -> None:
   and `button_rows(view)`.
 - Keep each xfail reason a literal string in its decorator: a script then strips the markers of
   one requirement at once.
+- A new config key's xfail stub is a `BeforeValidator` that raises `NotImplementedError` (pydantic
+  passes it through, where a `ValueError` becomes a validation error), with tests that validate
+  through `xincord.core.config.parse_model` and a property stub for what the code reads; files
+  without the key still load. A test that needs the loaded cog to run with new keys hands it a
+  parsed config before READY (NtustAnnouncements' `test_settings_reach_the_boards`); to change
+  working code, route only the new cases to a stub (a guard that raises for settings other than
+  v3's) so that the existing tests stay green.
 - A plugin that fetches sites refuses every host but this machine's in its tests: an autouse
   `offline` fixture wraps `aiohttp.TCPConnector._resolve_host` and raises `OSError(errno,
   message)` (NtustAnnouncements' conftest). Patch a plugin module's globals through

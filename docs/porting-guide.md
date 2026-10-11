@@ -96,7 +96,7 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `member.onlineStatus` with `GUILD_PRESENCES` and the `ONLINE_STATUS` cache flag | `member.status` with `discord.Intents(members=True, presences=True)`: the members intent keeps the members, the presences intent their statuses; a member from `fetch_member` has no presence and is `Status.offline`, as JDA's default (TicketAwayNotice) | B4 |
 | `RestAction.queueAfter(delay, unit)` (nothing cancels it) | a task per message, started by the listener and kept in a set on the cog, that awaits the cog's injected `sleep`, checks the state again and then sends; `cog_unload` cancels the tasks (TicketAwayNotice's notices) | |
 | Ksoup (jsoup) `Ksoup.parse(html).select(css)`, `Element.text()`, `outerHtml()` | `xincord.plugins.ntust_announcements.markup`: a tree over `html.parser` with HTML's omitted end tags in tables and lists and the implied `tbody`, `select` for tags, `#id`, `.class` (without case) and descendants, jsoup's `text()` and a serializer (NtustAnnouncements) | |
-| google-genai Java SDK `client.models.generateContent(model, content, config)` | `POST https://generativelanguage.googleapis.com/v1beta/models/<model>:generateContent` with the key in `x-goog-api-key` over the plugin's aiohttp session; the first candidate's text parts joined (NtustAnnouncements' `Web.generate`) | |
+| google-genai Java SDK `client.models.generateContent(model, content, config)` | `POST <endpoint>/models/<model>:generateContent` with the key in `x-goog-api-key` (`api-format: gemini`, the endpoint `https://generativelanguage.googleapis.com/v1beta` by default) or an OpenAI-compatible `POST <endpoint>/chat/completions` with a bearer key (`api-format: openai`), over the plugin's aiohttp session with the settings of `config.yaml`; the first candidate's text parts joined, or the first choice's content (NtustAnnouncements' `api.Api`, `Web.generate`) | |
 | Embedded MongoDB `MemoryCacheDb` holding Core's `TypedListWrapper` (`{"items": [...], "itemTypeName": ...}`) | the wrapper's value in the store under the plugin's name and the document's `_id`; `itemTypeName` read and ignored (NtustAnnouncements' `store.py`) | B8, B11 |
 | `guild.getNewsChannelById(id)!!.sendMessage(...)` for a hard-coded channel | a channel ID in the config and `bot.get_partial_messageable(id).send(content=..., allowed_mentions=AllowedMentions.none())`; a missing or messageless channel is a warning at READY (NtustAnnouncements) | |
 | One `scheduleAtFixedRate` cycle over every board, five at a time through a `Semaphore` held for the whole board | a loop per board in an `asyncio.TaskGroup` (a pass, then `fetch-interval`), the semaphore held while fetching only (NtustAnnouncements' `Watcher`) | |
@@ -376,8 +376,13 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   aiohttp's resolver), so a test that forgot a fake never reaches the site.
 - Calls to an LLM API go over its documented REST API with aiohttp (no SDK); keys are config,
   validated with hidden input, named in logs by their position and removed from error texts, and
-  shared within a client-side rate limit (`gemini.KeyRing`) with v3's retry schedule on the
-  injected `sleep` (NtustAnnouncements).
+  shared within a client-side rate limit (`conversion.KeyRing`) with v3's retry schedule on the
+  injected `sleep` (NtustAnnouncements). Every setting of the model is a config key with v3's
+  value as default and a reload applies it: the request format (`gemini` or an OpenAI-compatible
+  `openai`), the endpoint with its version path, the model, the generation settings (null sends
+  none), the timeouts, the rate limit and the retries. Logs and module names name no product, the
+  endpoint shows only as its origin (`xincord.plugins.redaction`), and URLs in error texts are cut
+  to theirs (`ntust-announcements-model-config`).
 - Background work over several independent sources runs one loop per source in a `TaskGroup`
   inside the plugin's single task, so that one source's long waits hold up no other; a shared
   `asyncio.Semaphore` bounds the requests themselves (NtustAnnouncements' boards).
@@ -857,6 +862,25 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - **Codes typed through an input method.** Full-width letters and digits (`ＣＥ１６２`) are what a
   Chinese input method types; `unicodedata.normalize("NFKC", text)` turns them into ASCII before a
   code is checked (NtustCourseWatch's `course_code`).
+- **Validators that read other keys.** A pydantic `field_validator` reads the fields declared
+  before it in `ValidationInfo.data` (defaults included, a failed field left out), and its error
+  names its own key; a `model_validator`'s error names `<root>` in the core's messages
+  (NtustAnnouncements' `model` and `connect_timeout`). pydantic passes exceptions other than
+  `ValueError` and `AssertionError` out of validators unchanged: a `BeforeValidator` that raises
+  `NotImplementedError` is an xfail stub for a new key that leaves the files without it loading.
+- **Union and float bounds.** `Annotated[float, Field(ge=0, le=2)] | None` keeps the key's name in
+  errors (pydantic's nullable schema); floats take YAML's `.inf` and `.nan` unless
+  `allow_inf_nan=False`; lax mode reads `true` as 1 for an `int` or a `float`.
+- **Logger names.** discord.py's log format prints each record's logger name, which is the module's
+  path: a module named after a product (`ntust_announcements.gemini`) names it on every line, with
+  any API. Name modules after what they do (`conversion`).
+- **Import cycles through the config.** `pages.py` imports `config.py` (`Layout`); a module that
+  `config.py` imports must not import `pages.py`. Shared helpers go into a module that imports
+  nothing of the plugin (NtustAnnouncements' `strings.trim`).
+- **OpenAI-compatible APIs differ.** OpenAI's reasoning models refuse a temperature other than
+  their default and the deprecated `max_tokens` (they take `max_completion_tokens`), which Ollama's
+  compatible endpoint does not list; Ollama ignores the key. aiohttp refuses an `Authorization`
+  header together with credentials in the URL (`ValueError`), so an endpoint takes no user info.
 
 v3 behaviors never to reproduce: loading plugins in reverse dependency order, non-atomic JSON
 writes that silently reset corrupt files, recursive placeholder expansion, shared mutable
@@ -1098,6 +1122,8 @@ Every deliberate difference, added by the change that introduces it.
 | NtustAnnouncements | the stored lists and a write-only archive in the embedded MongoDB, written asynchronously; the config failed the bot even while disabled | v3's list documents in the store, awaited (the planned v3 data import copies them); no archive; only the plugin is disabled by an invalid config, unknown keys warn | port-ntust-announcements |
 | Config files | a YAML syntax error quoted the faulty line (kaml's message) | the line and the column only, so that a key or a token on that line stays out of the log | port-ntust-announcements |
 | NtustAnnouncements | a link that named `.ntust.edu.tw/p/<n>.php` in its path or query counted as an article whatever its host, and was sent to Gemini; a part of only whitespace could not be sent | only NTUST's hosts count; blank parts are left out | port-ntust-announcements |
+| NtustAnnouncements | Gemini was the only API; the model, the temperature (0.1), each key's rate limit (10 a minute) and the retries (10 attempts, 60/300/900/1800 s) were hard-coded, and the SDK set no timeout | `api-format` (`gemini` or an OpenAI-compatible `openai`), `endpoint`, `model`, `temperature`, `max-output-tokens`, `request-timeout`, `connect-timeout`, `rate-limit`, `rate-window`, `max-attempts` and `retry-waits` in `config.yaml` with v3's values as defaults, each validated at load; a reload applies them | ntust-announcements-model-config |
+| NtustAnnouncements | log lines named Gemini; error texts were logged as the SDK gave them | lines name no product (`conversion attempt`, `the model`) and the logger is `...conversion`; a READY line names the format, the model and the endpoint's origin; URLs in error texts are cut to their origins and the endpoint's path is removed | ntust-announcements-model-config |
 | Plugin names | `NtustCourse`, with its files in `plugins/NtustCourse/` | `NtustCourseWatch` under `plugins:` and as `plugins/NtustCourseWatch/`; `migrate_v3` maps the name and moves the directory | rename-plugins, port-ntust-course-watch |
 | NtustCourseWatch | registrations never loaded after a restart, and the next change overwrote the stored ones | v3's document in the store, read at each use (the planned v3 data import copies it) | port-ntust-course-watch |
 | NtustCourseWatch | `/course-remove` unregistered every member of the channel; `/course-list` matched IDs as substrings and listed duplicates; codes were stored as typed | only the member; exact, once each, sorted; codes NFKC, trimmed and upper-cased, other than 9 to 20 letters and digits (NTUST matches codes as prefixes) refused with the new `invalid-code`, stored ones read the same way | port-ntust-course-watch |
