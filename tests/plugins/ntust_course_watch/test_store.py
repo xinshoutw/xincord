@@ -31,17 +31,11 @@ V3_DOCUMENT: JSON = {
 }
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Registrations are kept as v3's document"
-)
 def test_v3_document() -> None:
     """Requirement: Registrations are kept as v3's document."""
     assert parse_registrations(V3_DOCUMENT) == {"CE162A001": {5: (1, 2), 6: (3,)}}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Registrations are kept as v3's document"
-)
 async def test_load(store: Store) -> None:
     """Requirement: Registrations are kept as v3's document."""
     registrations = Registrations(store)
@@ -53,9 +47,6 @@ async def test_load(store: Store) -> None:
     assert await registrations.load() == {"CE162A001": {5: (1, 2), 6: (3,)}}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Registrations are kept as v3's document"
-)
 async def test_written_as_v3(store: Store) -> None:
     """Requirement: Registrations are kept as v3's document."""
     registrations = Registrations(store)
@@ -70,9 +61,6 @@ async def test_written_as_v3(store: Store) -> None:
     }
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Registrations are kept as v3's document"
-)
 async def test_add_twice(store: Store) -> None:
     """Requirement: Registrations are kept as v3's document."""
     await store.put(NAMESPACE, KEY, V3_DOCUMENT)
@@ -83,9 +71,6 @@ async def test_add_twice(store: Store) -> None:
     assert await store.get(NAMESPACE, KEY) == V3_DOCUMENT  # nothing written: v3's duplicate stays
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Registrations are kept as v3's document"
-)
 async def test_remove(store: Store) -> None:
     """Requirement: Registrations are kept as v3's document."""
     await store.put(NAMESPACE, KEY, V3_DOCUMENT)
@@ -98,9 +83,6 @@ async def test_remove(store: Store) -> None:
     assert await store.get(NAMESPACE, KEY) == {"CE162A001": {"5": ["2"], "6": ["3"]}}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Registrations are kept as v3's document"
-)
 async def test_last_registration(store: Store) -> None:
     """Requirement: Registrations are kept as v3's document."""
     registrations = Registrations(store)
@@ -115,9 +97,6 @@ async def test_last_registration(store: Store) -> None:
     assert await registrations.load() == {}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Registrations are kept as v3's document"
-)
 async def test_forget_a_channel(store: Store) -> None:
     """Requirement: Registrations are kept as v3's document."""
     await store.put(NAMESPACE, KEY, V3_DOCUMENT)
@@ -130,9 +109,6 @@ async def test_forget_a_channel(store: Store) -> None:
     assert await store.get(NAMESPACE, KEY) == {"CE162A001": {"6": ["3"]}}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Registrations are kept as v3's document"
-)
 @pytest.mark.parametrize(
     "document",
     [
@@ -163,9 +139,6 @@ async def test_broken_document(store: Store, document: JSON) -> None:
     assert await store.get(NAMESPACE, KEY) == document  # never overwritten
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Registrations are kept as v3's document"
-)
 async def test_concurrent_registrations(store: Store) -> None:
     """Requirement: Registrations are kept as v3's document."""
     registrations = Registrations(store)

@@ -23,7 +23,7 @@
 ## 4. Registrations
 
 - [x] 4.1 xfail tests for "Registrations are kept as v3's document" against stubs in `store.py`
-- [ ] 4.2 Implement the document, its checks and its changes under the lock; remove the markers
+- [x] 4.2 Implement the document, its checks and its changes under the lock; remove the markers
 
 ## 5. Commands
 
