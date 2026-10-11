@@ -32,12 +32,16 @@ def step(job: str, text: str) -> Config:
     return next(item for item in steps(job) if text in item.get("uses", item.get("run", "")))
 
 
-def projects(root: Path, core: str, plugins: str) -> Path:
-    """Write the two `pyproject.toml` files with the given versions."""
+def projects(root: Path, core: str, plugins: str, requires: tuple[str, ...] | None = None) -> Path:
+    """Write the two `pyproject.toml` files; the plugins pin their own version unless told."""
     (root / "packages" / "xincord-plugins").mkdir(parents=True)
     (root / "pyproject.toml").write_text(f'[project]\nversion = "{core}"\n', encoding="utf-8")
+    dependencies = ("aiohttp>=3", f"xincord=={plugins}") if requires is None else requires
     (root / "packages" / "xincord-plugins" / "pyproject.toml").write_text(
-        f'[project]\nversion = "{plugins}"\n', encoding="utf-8"
+        f'[project]\nversion = "{plugins}"\ndependencies = {list(dependencies)!r}\n'.replace(
+            "'", '"'
+        ),
+        encoding="utf-8",
     )
     return root
 
@@ -59,6 +63,19 @@ def test_mismatched_versions(tmp_path: Path) -> None:
         release_version(differing)
     with pytest.raises(ValueError, match=r"v1\.2\.4 .*1\.2\.3"):
         release_version(same, "v1.2.4")
+
+
+@pytest.mark.xfail(strict=True, reason="Signed release tags")
+@pytest.mark.parametrize(
+    "requires",
+    [(), ("aiohttp>=3",), ("xincord",), ("xincord==1.2.2",), ("xincord >= 1.2.3",)],
+)
+def test_plugins_pinned_to_their_core(tmp_path: Path, requires: tuple[str, ...]) -> None:
+    """Requirement: Signed release tags, scenario Plugins pinned to their core."""
+    root = projects(tmp_path, "1.2.3", "1.2.3", requires)
+
+    with pytest.raises(ValueError, match="xincord-plugins"):
+        release_version(root)
 
 
 def test_script_exit_codes(capsys: pytest.CaptureFixture[str]) -> None:
