@@ -30,7 +30,9 @@ MINIFY = (
     (re.compile(r"<!--[\s\S]*?-->", re.ASCII), ""),
     (re.compile(r">\s+<", re.ASCII), "><"),
     (re.compile(r"^\s+", re.ASCII | re.MULTILINE), ""),
-    (re.compile(r"\s+$", re.ASCII | re.MULTILINE), ""),
+    # v3's \s+$, which could start anywhere in a run of whitespace and backtrack through it (40,000
+    # spaces: 5 s); a run is matched from its start only, which removes the same text.
+    (re.compile(r"(?<!\s)\s+$", re.ASCII | re.MULTILINE), ""),
     (re.compile(r"\s{2,}", re.ASCII), " "),
     (re.compile(r"\n\s*\n", re.ASCII), "\n"),
 )

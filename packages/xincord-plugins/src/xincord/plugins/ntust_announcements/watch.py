@@ -6,6 +6,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/NtustManager.kt:185-237
 """
 
+import asyncio
 import logging
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
@@ -140,7 +141,8 @@ class Watcher:
         except NETWORK_ERRORS as error:
             self._page_failed(type(error), logging.ERROR, f"failed: {_describe(error)}")
             return None
-        links = board_links(page.text, self.board, page.url)
+        # Parsing takes about 0.3 s per MB: a worker thread keeps the event loop free.
+        links = await asyncio.to_thread(board_links, page.text, self.board, page.url)
         valid = [link for link in links if trim(link.title) and trim(link.url)]
         if skipped := len(links) - len(valid):
             logger.debug("%s: skipped %d entries without a title or a link", self.name, skipped)
@@ -231,7 +233,7 @@ class Watcher:
             return None
         if failed := self.articles.succeed():
             logger.info("%s: its articles load again after %d failures", self.name, failed)
-        html = article_html(page.text)
+        html = await asyncio.to_thread(article_html, page.text)
         if html is None:
             logger.warning(
                 "%s: %s has no content to convert; posting its title", self.name, link.url

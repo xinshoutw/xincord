@@ -291,7 +291,6 @@ def test_article_links(url: str, *, article: bool) -> None:
     assert is_article(url) is article
 
 
-@pytest.mark.xfail(strict=True, reason="Article pages give their content as minified HTML")
 def test_long_whitespace() -> None:
     """Requirement: Article pages give their content as minified HTML."""
     html = "<p>a" + " " * 30000 + "b</p>\n" + "<p>c" + "\t" * 30000 + "\n</p>"

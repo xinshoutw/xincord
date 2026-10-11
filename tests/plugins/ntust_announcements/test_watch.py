@@ -449,7 +449,6 @@ async def test_store_write_fails(scene: Scene, monkeypatch: pytest.MonkeyPatch) 
     assert scene.sent == expected_posts(ENTRIES)
 
 
-@pytest.mark.xfail(strict=True, reason="Boards are checked from READY until the plugin unloads")
 async def test_parsing_off_the_event_loop(scene: Scene, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Boards are checked from READY until the plugin unloads."""
     # Parsing takes about 0.3 s per MB, more for deep pages: on the event loop, it would hold up
