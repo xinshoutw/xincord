@@ -596,8 +596,9 @@ updates on Mondays, offering a release once it is 7 days old and merging patch u
 monthly lock-file maintenance itself after CI. Releases run (`release-pipeline`, decisions.md,
 Amendment 4): a GPG-signed `v*` tag that the owner pushes (README, "Releasing") is verified,
 builds both distributions and a multi-arch image for GHCR, and creates the GitHub Release; PyPI
-publishing waits for 1.0.0 and the owner's `pypi` environment. A manual run is a dry run. Nothing
-else waits in the repository: the cutover is next.
+publishing waits for 1.0.0 (the `pypi` environment exists since 2026-10-12; the owner's trusted
+publishers on PyPI do not yet). A manual run is a dry run. Nothing else waits in the repository:
+the cutover is next.
 
 The owner's order for the next sessions (2026-10-11): (1) walk the owner step by step through
 `docs/porting/owner-review.md` and the manual checks (a real token under compose, the smoke
@@ -615,7 +616,10 @@ Discord checks passed (section 6), and the owner's follow-ups of the walk-throug
 voice plugins, Ticket, TicketAwayNotice, the loggers' listen channels, NtustCourseWatch and
 MusicPlayer's rest): nothing in it was needed before the cutover, whose own checks are in the review
 queue (`docs/porting/owner-review.md`), now a list of the cutover's steps, what to watch afterwards
-and the release settings. Next: steps (2) to (4).
+and the release settings. Steps (2) and (3) are done but for the owner's part (section 6): the
+`pypi` environment, the first release `v0.1.0` (a GitHub prerelease and a public GHCR image, no
+PyPI), the repository public; PyPI's first release is 1.0.0 after the cutover, once the owner added
+the trusted publishers and LICENSE. Next: step (4), the cutover.
 
 The test environment (2026-10-12): the owner's Mac runs compose in `~/IdeaProjects/xincord` with
 the owner's test application `xincord-test` (1558847245061849158) in the guild `xincord-test`
@@ -829,6 +833,16 @@ only the cutover's steps, what to watch afterwards and the release settings. The
 DynamicVoiceChannel's `format-name-2`: v3's command required a second name format, stored it and
 never used it (v3's own example added `%dvc@info%` to the custom name, a placeholder v3 never
 had); the port keeps v3's command and data as they were.
+
+Decided on 2026-10-12 (night), steps (2) and (3): the first release is `v0.1.0` now, and 1.0.0
+after the cutover is PyPI's first. On the owner's approval, Claude created the `pypi` environment
+(the owner as required reviewer, deployments from `v*` tags only) and pushed the signed tag
+`v0.1.0`: the release run passed in 1m17s (signature, versions, both distributions, the image for
+amd64 and arm64, the GitHub prerelease with 885 commits as its notes; the PyPI job skipped). The
+owner had made the repository public earlier that night, and the GHCR package `xincord` came out
+public with its first push: an anonymous pull of `ghcr.io/xinshoutw/xincord:0.1.0` and its
+`--no-online` run passed. Left to the owner: the pending trusted publishers on PyPI and LICENSE
+(review queue, "Releases and dependencies").
 
 1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
    (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script
