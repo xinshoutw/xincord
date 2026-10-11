@@ -140,7 +140,6 @@ def test_url_without_room() -> None:
     assert message == f"{HEADER}\n{url}"[:MESSAGE_LIMIT]
 
 
-@pytest.mark.xfail(strict=True, reason="Announcements become messages within Discord's limits")
 @pytest.mark.parametrize(
     "content",
     [

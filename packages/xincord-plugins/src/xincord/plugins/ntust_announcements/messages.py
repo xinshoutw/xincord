@@ -51,7 +51,7 @@ def split(content: str, limit: int) -> list[str]:
 
     A part ends before the last line break that fits, which no part keeps; a line break at the
     part's start does not count, as in v3, and without one the part is cut at the limit, before a
-    character that would straddle it.
+    character that would straddle it. Parts of only whitespace are left out.
     """
     if units(content) <= limit:
         return [content]
@@ -67,7 +67,9 @@ def split(content: str, limit: int) -> list[str]:
             parts.append(rest[:fitting])
             rest = rest[fitting:]
     parts.append(rest)  # never empty: it was longer than the limit before its last cut
-    return parts
+    # A cut between line breaks or spaces can leave a part of only whitespace, which Discord
+    # refuses; a refused later part would end the post.
+    return [part for part in parts if trim(part)]
 
 
 def content_messages(content: str) -> list[str]:
