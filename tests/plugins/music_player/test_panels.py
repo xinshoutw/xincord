@@ -5,9 +5,8 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:150-233
 """
 
+import logging
 from typing import TYPE_CHECKING, Any, cast
-
-import pytest
 
 from discord_fakes import FakeInteraction, embed_dict, not_found
 from music_fakes import Clock, text
@@ -16,6 +15,8 @@ from xincord.plugins.music_player.panels import Panel, Panels
 from xincord.plugins.music_player.replies import Screen
 
 if TYPE_CHECKING:
+    import pytest
+
     from conftest import Scene
 
 DELETED: tuple[str, dict[str, object]] = ("delete_original_response", {})
@@ -49,9 +50,6 @@ def deleted(interaction: FakeInteraction) -> bool:
     return DELETED in interaction.sent
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panels refresh themselves and expire"
-)
 async def test_refresh_and_expiry() -> None:
     """Requirement: Panels refresh themselves and expire."""
     clock = Clock()
@@ -73,9 +71,6 @@ async def test_refresh_and_expiry() -> None:
     assert panels.panels == {}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panels refresh themselves and expire"
-)
 async def test_a_press_extends_the_panel() -> None:
     """Requirement: Panels refresh themselves and expire."""
     clock = Clock()
@@ -102,9 +97,6 @@ async def test_a_press_extends_the_panel() -> None:
     assert panels.touch(44, press.as_interaction()) is False  # no such panel
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panels refresh themselves and expire"
-)
 async def test_one_panel_per_member() -> None:
     """Requirement: Panels refresh themselves and expire."""
     clock = Clock()
@@ -113,6 +105,7 @@ async def test_one_panel_per_member() -> None:
     first, second, other = response(43), response(44), response(45)
 
     await panels.open(1, 10, 43, NOW, first.as_interaction())
+    await clock.asleep(1)
     await panels.open(1, 11, 44, NOW, second.as_interaction())  # the same member, another guild
     await panels.open(2, 10, 45, NOW, other.as_interaction())
     await clock.asleep(2)
@@ -124,9 +117,6 @@ async def test_one_panel_per_member() -> None:
     assert sorted(panels.panels) == [1, 2]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panels refresh themselves and expire"
-)
 async def test_refused_edits_and_close() -> None:
     """Requirement: Panels refresh themselves and expire."""
     clock = Clock()
@@ -148,9 +138,6 @@ async def test_refused_edits_and_close() -> None:
     assert clock.under_way() == 0
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panels refresh themselves and expire"
-)
 async def test_close_a_guild_and_forget() -> None:
     """Requirement: Panels refresh themselves and expire."""
     clock = Clock()
@@ -172,7 +159,6 @@ async def test_close_a_guild_and_forget() -> None:
     assert clock.under_way() == 0
 
 
-@pytest.mark.xfail(strict=True, reason="Panels refresh themselves and expire")
 async def test_panels_follow_the_song(scene: Scene) -> None:
     """Requirement: Panels refresh themselves and expire."""
     await scene.playing(1, 2)
@@ -190,7 +176,6 @@ async def test_panels_follow_the_song(scene: Scene) -> None:
     assert embed_dict(cast("list[Any]", fields["embeds"])[0])["title"] == "Song 2"
 
 
-@pytest.mark.xfail(strict=True, reason="Panels refresh themselves and expire")
 async def test_idle_and_stopped_players(scene: Scene) -> None:
     """Requirement: Panels refresh themselves and expire."""
     await scene.playing(1)
@@ -210,7 +195,6 @@ async def test_idle_and_stopped_players(scene: Scene) -> None:
     assert scene.cog.panels.panels == {}
 
 
-@pytest.mark.xfail(strict=True, reason="Panels refresh themselves and expire")
 async def test_queue_panel_refresh(scene: Scene) -> None:
     """Requirement: Panels refresh themselves and expire."""
     await scene.playing(1, 2, 3)
@@ -233,3 +217,42 @@ async def test_queue_panel_refresh(scene: Scene) -> None:
     assert after_skip[0]["title"] == "Song 2"  # v3's refresh never rendered the queue (B6)
     assert after_skip[1]["fields"][0]["value"] == "1. **Song 3** | Band 3 `[03:34]`"
     assert empty[1]["description"] == text("empty-playlist")
+
+
+async def test_a_failing_refresh(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Panels refresh themselves and expire."""
+    clock = Clock()
+
+    async def refresh(panel: Panel) -> bool:
+        msg = f"cannot render panel {panel.message_id}"
+        raise RuntimeError(msg)
+
+    panels = Panels(refresh)
+    panels.sleep = clock.sleep
+    panels.clock = clock.monotonic
+    other = response(44)
+    await panels.open(2, 10, 44, NOW, other.as_interaction())
+    await panels.open(1, 10, 43, NOW, response().as_interaction())
+    await clock.asleep(2)
+    assert panels.touch(43, other.as_interaction()) is True  # found after another panel
+
+    with caplog.at_level(logging.ERROR):
+        await clock.advance(5)
+        await until(lambda: "a panel stopped refreshing" in caplog.text)
+
+    assert "cannot render panel 43" in caplog.text
+    assert panels.panels == {}
+
+
+async def test_a_refused_refresh(scene: Scene) -> None:
+    """Requirement: Panels refresh themselves and expire."""
+    await scene.playing(1)
+    interaction = scene.who()
+    interaction.edit_errors = [None, not_found()]  # the member dismissed the panel
+    await scene.cog.now_playing(interaction.as_interaction())
+    await scene.clock.asleep(1)
+
+    await scene.clock.advance(5)
+    await until(lambda: scene.cog.panels.panels == {})
+
+    assert scene.clock.under_way() == 0

@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from .audio import Link
     from .config import Config
     from .history import Entry
+    from .panels import Panels
 
 # v3's model key of the queue panel's list, which v3 (and the core) looked up as written.
 QUEUE_MODEL = "%music_player@player_track_list_model_key%"
@@ -55,6 +56,7 @@ class Replies:
     sessions: dict[int, Session]
     emojis: Mapping[str, str]
     link: Link | None
+    panels: Panels
 
     def changed(self, session: Session) -> None:
         """A session started or stopped playing, or connected or disconnected."""
@@ -150,10 +152,23 @@ class Replies:
         entry: Entry | None = None,
         content: str = "",
     ) -> None:
-        """Edit the response into the panel ``screen``, ``content`` above it."""
+        """Edit the command's response into the panel ``screen``, ``content`` above it, and track
+        the panel, which then refreshes itself (v3 tracked it after a successful edit)."""
         message = self.render(screen, session, interaction, entry=entry)
-        await interaction.edit_original_response(
+        sent = await interaction.edit_original_response(
             content=content or message.content, embeds=list(message.embeds), view=message.view
+        )
+        guild = session.guild_id
+        await self.panels.open(interaction.user.id, guild, sent.id, screen, interaction)
+
+    async def redraw(
+        self, interaction: discord.Interaction, session: Session, entry: Entry | None = None
+    ) -> None:
+        """Edit a pressed panel into the ``now-playing`` screen, as v3's buttons did; any text
+        above it goes."""
+        message = self.render(Screen("now-playing"), session, interaction, entry=entry)
+        await interaction.edit_original_response(
+            content=message.content, embeds=list(message.embeds), view=message.view
         )
 
 

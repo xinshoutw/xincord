@@ -210,8 +210,11 @@ class Scene:
 
 
 @pytest.fixture
-async def scene(store: Store, tmp_path: Path, config: str | None) -> Scene:
-    """The plugin loaded with ``config``; its link is a fake node's, as after READY."""
+async def scene(store: Store, tmp_path: Path, config: str | None) -> AsyncGenerator[Scene]:
+    """The plugin loaded with ``config``; its link is a fake node's, as after READY.
+
+    The panels' refreshes left running end with the test.
+    """
     bot = await load_plugin("MusicPlayer", tmp_path / "plugins", store, config=config)
     sent: list[Sent] = []
     guild = FakeGuild(id=10, name="guild")
@@ -244,4 +247,5 @@ async def scene(store: Store, tmp_path: Path, config: str | None) -> Scene:
     scene.cog.link = cast("Any", link)
     scene.cog.panels.sleep = scene.clock.sleep
     scene.cog.panels.clock = scene.clock.monotonic
-    return scene
+    yield scene
+    await scene.cog.panels.close()

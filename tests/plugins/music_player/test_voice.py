@@ -99,7 +99,7 @@ async def test_join_without_a_node(scene: Scene) -> None:
     assert interaction.sent == [("edit_original_response", {"content": text("node-unavailable")})]
 
 
-def test_a_guild_without_music_leaves(scene: Scene) -> None:
+async def test_a_guild_without_music_leaves(scene: Scene) -> None:
     """Requirement: Members bring the bot into voice and send it away."""
     scene.cog.left(99)  # a guild where nothing ever played
 

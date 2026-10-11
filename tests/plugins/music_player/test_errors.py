@@ -11,6 +11,7 @@ import pytest
 from discord import app_commands
 
 from music_fakes import text
+from plugin_fakes import until
 from xincord.plugins.music_player.audio import NodeUnavailableError
 
 if TYPE_CHECKING:
@@ -88,3 +89,18 @@ async def test_a_node_that_went_away(scene: Scene, caplog: pytest.LogCaptureFixt
 
     assert interaction.sent == [("edit_original_response", {"content": text("node-unavailable")})]
     assert caplog.text == ""  # an absent node is no unexpected error
+
+
+async def test_a_failing_task(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Errors are reported as v3 did."""
+
+    async def failing() -> None:
+        msg = "the work broke"
+        raise RuntimeError(msg)
+
+    with caplog.at_level(logging.ERROR):
+        scene.cog.spawn(failing())
+        await until(lambda: not scene.cog.tasks)
+
+    assert "MusicPlayer: a task failed" in caplog.text
+    assert "the work broke" in caplog.text

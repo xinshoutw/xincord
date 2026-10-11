@@ -26,8 +26,8 @@ DELETED: tuple[str, dict[str, object]] = ("delete_original_response", {})
 
 
 def reply(interaction: FakeInteraction) -> tuple[str, dict[str, Any]]:
-    """The last thing the command sent."""
-    method, fields = interaction.sent[-1]
+    """The command's response: the first thing it sent (a member's next panel deletes it)."""
+    method, fields = interaction.sent[0]
     return method, dict(fields)
 
 

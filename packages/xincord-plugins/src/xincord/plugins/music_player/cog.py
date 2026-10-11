@@ -5,10 +5,13 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:56-957
 """
 
+import asyncio
+import logging
 import random
 from collections import OrderedDict
 from typing import TYPE_CHECKING
 
+import discord
 from discord.ext import commands
 
 from .commands import SEARCH_DEADLINE, Commands
@@ -16,7 +19,7 @@ from .emojis import FALLBACKS
 from .panels import Panels
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Coroutine, Mapping
 
     from discord import app_commands
 
@@ -27,6 +30,9 @@ if TYPE_CHECKING:
     from .config import Config
     from .panels import Panel
     from .session import Session
+
+
+logger = logging.getLogger(__name__)
 
 
 class MusicPlayer(Commands, commands.Cog):
@@ -49,16 +55,48 @@ class MusicPlayer(Commands, commands.Cog):
         self.searches: OrderedDict[str, tuple[app_commands.Choice[str], ...]] = OrderedDict()
         self.search_deadline = SEARCH_DEADLINE  # seconds; tests shorten it
         self.panels = Panels(self.refresh_panel)
+        self.tasks: set[asyncio.Task[None]] = (
+            set()
+        )  # work started by events, which the unload awaits
 
     async def refresh_panel(self, panel: Panel) -> bool:
-        """Edit ``panel`` with the guild's current song; False once Discord refused the edit."""
-        raise NotImplementedError
+        """Edit ``panel`` with the guild's current song; False once Discord refused the edit.
+
+        Nothing plays: the panel stays as it is, as in v3. The queue panel shows the current
+        queue (v3's refreshes of it always failed, bug B6).
+        """
+        session = self.sessions.get(panel.guild_id)
+        if session is None or not session.playing:
+            return True
+        message = self.render(panel.screen, session, panel.interaction)
+        try:
+            await panel.interaction.edit_original_response(
+                content=message.content, embeds=list(message.embeds), view=message.view
+            )
+        except discord.HTTPException as error:
+            logger.debug("MusicPlayer: panel %d stopped: %s", panel.message_id, error)
+            return False
+        return True
+
+    def spawn(self, work: Coroutine[object, object, None]) -> None:
+        """Run ``work`` as a task that the unload waits for, logging the error that ends it."""
+        task = asyncio.create_task(work, name="MusicPlayer")
+        self.tasks.add(task)
+        task.add_done_callback(self.tasks.discard)
+        task.add_done_callback(_failed)
 
     def joined(self, guild_id: int, player: Player) -> None:
         """The bot is connecting in the guild: its session plays on ``player``."""
         self.session(guild_id).attach(player)
 
     def left(self, guild_id: int) -> None:
-        """The bot left voice in the guild: its session forgets the songs."""
+        """The bot left voice in the guild: its session forgets the songs, its panels go."""
         if (session := self.sessions.get(guild_id)) is not None:
             session.detach()
+        self.spawn(self.panels.close_guild(guild_id))
+
+
+def _failed(task: asyncio.Task[None]) -> None:
+    """Log the error that ended a task: nothing awaits it until the unload."""
+    if not task.cancelled() and (error := task.exception()) is not None:
+        logger.error("MusicPlayer: a task failed", exc_info=error)
