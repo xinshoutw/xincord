@@ -3,6 +3,7 @@
 import re
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -157,6 +158,26 @@ def test_node_logs_no_queries() -> None:
 
     # Lavalink 4.2.2's load handler names each identifier at INFO (checked with the image).
     assert config["logging"]["level"]["lavalink.server.player.AudioLoaderRestHandler"] == "WARN"
+
+
+@pytest.mark.xfail(strict=True, reason="YouTube OAuth for the node")
+def test_youtube_oauth() -> None:
+    """Requirement: YouTube OAuth for the node."""
+    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
+    environment = compose["services"]["lavalink"]["environment"]
+    config = yaml.safe_load((ROOT / "lavalink" / "application.yml").read_text(encoding="utf-8"))
+    youtube = config["plugins"]["youtube"]
+    example = (ROOT / ".env.example").read_text(encoding="utf-8").splitlines()
+
+    assert environment["YOUTUBE_OAUTH_ENABLED"] == "${YOUTUBE_OAUTH_ENABLED:-false}"
+    assert environment["YOUTUBE_OAUTH_REFRESH_TOKEN"] == "${YOUTUBE_OAUTH_REFRESH_TOKEN:-}"
+    assert youtube["clients"] == ["MUSIC", "ANDROID_VR", "WEB", "WEBEMBEDDED", "TV"]
+    assert youtube["oauth"] == {
+        "enabled": "${YOUTUBE_OAUTH_ENABLED:false}",
+        "refreshToken": "${YOUTUBE_OAUTH_REFRESH_TOKEN:}",
+    }
+    assert "# YOUTUBE_OAUTH_ENABLED=true" in example
+    assert "# YOUTUBE_OAUTH_REFRESH_TOKEN=" in example
 
 
 def test_image_turns_off_cpr() -> None:
