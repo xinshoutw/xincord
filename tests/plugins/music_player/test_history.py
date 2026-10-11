@@ -67,7 +67,7 @@ def test_skip_many() -> None:
     history = History()
     history.add([song(1), song(2), song(3), song(4)])
 
-    assert history.skip_many(2) == song(3)  # the inventory's vector: [A,B,C,D] at A, 2 -> C
+    assert history.skip_many(2) == song(3)  # [A,B,C,D] at A, 2 -> C
     assert history.skip_many(1) == song(4)
     assert history.skip_many(1) is None  # past the last song: the list ends
     assert (history.index, history.active) == (3, False)
@@ -141,7 +141,7 @@ def test_ends() -> None:
     history.add([song(1), song(2)])
 
     assert history.ended(LoopMode.SINGLE, failed=False) == song(1)  # single-song loop: again
-    assert history.ended(LoopMode.SINGLE, failed=True) == song(2)  # never a failed song (B9)
+    assert history.ended(LoopMode.SINGLE, failed=True) == song(2)  # never a failed song
     assert history.ended(LoopMode.SEQUENTIAL, failed=False) is None  # the end of the list
     assert (history.index, history.active) == (1, False)
 

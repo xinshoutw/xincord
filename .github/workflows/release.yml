@@ -1,6 +1,6 @@
 name: release
 
-# A GPG-signed v* tag that the owner pushes releases xincord (decisions.md, Amendment 4).
+# A GPG-signed v* tag that the owner pushes releases xincord (decisions.md, B16).
 # A manual run is a dry run: every check and build, nothing pushed, released or published.
 on:
   push:

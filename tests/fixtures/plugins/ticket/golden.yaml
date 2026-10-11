@@ -167,8 +167,7 @@ messages:
       - [["button", "返回", "ticket:1:a=create;b=back", 2]]
 
 # Every shipped modal template (lang/*/modal/*.yaml), rendered with VALUES of test_golden.py: its
-# title, its ID and each input as [ID, label, style, value, placeholder, min, max, required]. The
-# zh-TW button modal's sub-action (B2) and press-ticket's titles (B13) are fixed.
+# title, its ID and each input as [ID, label, style, value, placeholder, min, max, required].
 modals:
   modify-author:
     en-US:

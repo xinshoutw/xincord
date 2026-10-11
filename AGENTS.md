@@ -3,12 +3,14 @@
 Rules for everyone who changes this repository, people and coding agents alike. There is no
 CLAUDE.md on purpose: Claude Code reads this file when no CLAUDE.md exists.
 
-xincord ports XsDiscordBotKt (Kotlin, JDA) to Python 3.14 + discord.py. Read these first:
+xincord is a modular Discord bot on Python 3.14 + discord.py. Read these first:
 
-- `docs/porting/decisions.md`: accepted decisions. Do not re-open them without asking the owner.
+- `docs/decisions.md`: accepted decisions. Do not re-open them without asking the owner.
 - `HANDOFF.md`: current state and next steps.
-- `docs/porting/analysis/inventory/<Plugin>.md`: what each Kotlin module does, with `file:line`.
-- `docs/porting-guide.md`: Kotlin/JDA to Python/discord.py mapping and known pitfalls.
+- `docs/architecture.md`: how the core and each plugin are built.
+- `docs/plugin-conventions.md` and `docs/plugin-api.md`: how plugins are written and what they may
+  use of the core.
+- `docs/pitfalls.md`: verified facts about discord.py, Discord and the tools.
 
 ## Commands
 
@@ -49,8 +51,7 @@ If your global git config sets `core.hooksPath`, run `git config --local core.ho
 3. Implement, remove the marker, run the gate, commit.
 
 - No product code without a failing test first. Scaffolding gets a smoke test.
-- Test names or docstrings name the requirement; docstrings of ported behavior cite
-  `XsDiscordBotKt@3a59607:<path>:<line>`.
+- Test names or docstrings name the requirement.
 - Pure logic is tested without discord.py. Cogs and views depend on narrow Protocols with
   hand-written fakes. Storage tests use SQLite `:memory:`.
 - Before claiming something works, run the gate and show its output.
@@ -64,10 +65,8 @@ If your global git config sets `core.hooksPath`, run `git config --local core.ho
 - Archive right after the change is implemented and verified (`openspec archive <name> --yes`),
   then run `openspec validate --all --strict`.
 
-## Porting rules
+## Rules
 
-- Never port a known v3 defect. Record the difference as "v3 behaved differently: ..." in the
-  change design and in `docs/porting-guide.md`.
 - List every user-visible change (copy, commands, interaction flow) for the owner to review
   before it is pushed.
 - Never commit real IDs, bank account numbers or tokens as defaults; use example values.
@@ -79,7 +78,7 @@ If your global git config sets `core.hooksPath`, run `git config --local core.ho
 
 - Pushing `main` to `origin` is allowed.
 - Ask the owner first for: force pushes, deleting branches, tags, releases, PyPI publishing,
-  repository settings, and anything on the XsDiscordBotKt remote.
+  repository settings.
 - Do not create LICENSE; the owner adds it (`AGPL-3.0-or-later`).
 - Releases come from a GPG-signed `v*` tag (README, "Releasing"); push one only with the owner's
   approval. Manual runs of the `release` workflow are dry runs.

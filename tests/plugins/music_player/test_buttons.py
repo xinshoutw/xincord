@@ -68,7 +68,7 @@ async def test_legacy_and_new_ids(scene: Scene) -> None:
     await scene.bot.on_interaction(legacy.as_interaction())
     await scene.bot.on_interaction(current.as_interaction())
 
-    assert [legacy.sent[0], current.sent[0]] == [DEFERRED, DEFERRED]  # acknowledged at once (B3)
+    assert [legacy.sent[0], current.sent[0]] == [DEFERRED, DEFERRED]  # acknowledged at once
     assert (panel(legacy)["title"], panel(current)["title"]) == ("Song 2", "Song 3")
     assert player.played()[-2:] == [("Song 2", 2, 40), ("Song 3", 3, 40)]
 

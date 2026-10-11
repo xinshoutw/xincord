@@ -11,7 +11,7 @@ What earlier sessions checked the hard way: discord.py, Discord, the tools and t
   paths) through the `fake_plugins` fixture in `tests/core/conftest.py` and the `store` fixture in
   `tests/conftest.py`: it writes plugin packages to a temporary `sys.path` entry and builds entry
   points; their `calls` list survives reloads. Discovery and `load_extension` both execute a plugin
-  module. Real plugins load with `plugin_fakes.load_plugin` (see the port-plugin skill).
+  module. Real plugins load with `plugin_fakes.load_plugin` (see `docs/plugin-conventions.md`).
 - Startup tests (`tests/core/test_startup.py`) patch `importlib.metadata.entry_points` and
   `Bot.start`, `chdir` into `tmp_path`, and send real signals with `signal.raise_signal`: the
   handlers that `run` installs turn them into `bot.close()`.
@@ -27,9 +27,8 @@ What earlier sessions checked the hard way: discord.py, Discord, the tools and t
 - Run the gate and check its exit status directly. Piping it into `tail` before `&&` once hid a
   failure and let a bad commit through (it was amended before pushing).
 - OpenSpec is not installed globally: run the pinned CLI through npx as `HANDOFF.md` shows. Telemetry is also off in `~/.config/openspec/config.json`.
-- Per change: propose, `validate --strict`, commit; xfail and implementation commits; porting-guide
-  rows; push; `gh run watch <id> --exit-status`; `archive <name> --yes`; `validate --all --strict`;
-  commit; push.
+- Per change: propose, `validate --strict`, commit; xfail and implementation commits; push;
+  `gh run watch <id> --exit-status`; `archive <name> --yes`; `validate --all --strict`; commit; push.
 
 ## Verified facts and pitfalls
 
@@ -47,7 +46,6 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - prek `pygrep` compiles patterns as bytes: match UTF-8 byte ranges, never `\u` escapes.
 - `importlib.import_module("xincord")` instead of `import xincord`: pyright reports the namespace
   package as a missing stub.
-- Long Kotlin citations in docstrings exceed the line limit; put each path on its own line.
 - Annotate `@asynccontextmanager` functions as returning `AsyncGenerator` (typeshed deprecates
   `AsyncIterator` there).
 - YAML 1.1 reads a bare `no` as false: quote locale keys (`"no": ...`).
@@ -68,10 +66,8 @@ setup-uv v10.2.0, setup-node v7.1.0.
   modules in pytest, which otherwise turned it into a failed plugin load.
 - `bot.dispatch` needs a bot that logged in (`Client.loop` is a sentinel before), and so does
   `bot.wait_until_ready()`; tests await listeners with `plugin_fakes.dispatch`.
-- `str.splitlines()` also splits at U+0085 and U+2028: split JSONL with `split("\n")`. Kotlin's
-  `isWhitespace()` is `str.isspace()` without U+0085.
+- `str.splitlines()` also splits at U+0085 and U+2028: split JSONL with `split("\n")`.
 - ruff S105 reports names like `token` compared with or assigned a string; rename them.
-- Some v3 resources have CRLF line endings; git stores LF but the copied working file keeps CRLF.
 - A stub whose annotations use `discord` keeps the import under `TYPE_CHECKING` until code uses it
   at runtime, or ruff's TC rules fail the gate.
 - Python 3.14 accepts `except A, B:` without parentheses, and ruff formats it that way.
@@ -93,7 +89,6 @@ setup-uv v10.2.0, setup-node v7.1.0.
   the teardown waits for the client's timeout (`http_fakes.Monitor.close`). Autouse fixtures are
   torn down after the fixtures a test requests.
 - `asyncio.CancelledError` is a `BaseException`: `except Exception` leaves cancellation alone.
-  Kotlin's `catch (e: Exception)` caught `CancellationException`.
 - Remove xfail markers with a script that matches the decorator's parentheses: a `sed` range
   from `@pytest.mark.xfail(` to the next `^)$` also swallowed a following `parametrize`.
 - ruff's S608 refuses SQL built with f-strings: keep plugin SQL in module constants; SQLite's
@@ -119,29 +114,30 @@ setup-uv v10.2.0, setup-node v7.1.0.
   (`runtime-evaluated-decorators` in `pyproject.toml`).
 - `send`, interaction replies and `send_modal` store a view or modal for dispatch only if it is
   not finished; templates stop theirs.
-- `TextInput(label=...)` is deprecated; wrap inputs in `discord.ui.Label` (as JDA 6's `Label.of`).
+- `TextInput(label=...)` is deprecated; wrap inputs in `discord.ui.Label`.
   discord.py's own deprecation helper can bypass `filterwarnings = ["error"]`, so watch pytest's
   "N warnings" line.
 - `PartialEmoji.from_str` treats `<:name:id>` as custom only when the ID has 13 to 20 digits.
-- `discord.ChannelType` has no 14 (JDA's `GUILD_DIRECTORY`).
+- `discord.ChannelType` has no 14 (a guild directory).
 - `isinstance` rejects subscripted generics such as `discord.ui.Button[View]`; check the bare
   class and `cast`.
 - `on_member_remove` only fires for cached members; use `on_raw_member_remove`.
   `on_member_join` builds the member from the event (no member cache needed), but discord.py drops
   a join for an uncached guild or an already cached member.
 - `member.add_roles(role)` is atomic by default: one `PUT .../roles/{id}` per role, keeping the
-  other roles; `atomic=False` sends one PATCH computed from the cache. discord.py sends without
-  JDA's client-side checks; `Role.is_assignable()` makes them.
+  other roles; `atomic=False` sends one PATCH computed from the cache. discord.py checks nothing on
+  the client side; `Role.is_assignable()` does.
 - With the members intent, discord.py chunks every guild before `on_ready`
   (`chunk_guilds_at_startup` follows the intent). An unavailable guild (outage) is cached without
   roles or members, so `guild.me` is None there.
 - `Guild.member_count` stays current only with the members intent (discord.py updates it from
   member join and leave events); it is None for a guild unavailable since the bot connected.
-  `Client.guilds` keeps unavailable guilds; JDA's guild list left them out.
+  `Client.guilds` keeps unavailable guilds.
 - A command sends `contexts` and `integration_types` only when it sets `allowed_contexts` and
-  `allowed_installs`, and Discord's defaults apply otherwise; JDA always sent the guild and bot DM
-  contexts and guild installs, which ported global commands set explicitly.
-- `create_text_channel(overwrites=...)` does not copy the category's overwrites as JDA does.
+  `allowed_installs`, and Discord's defaults apply otherwise; global commands set the guild and bot
+  DM contexts and guild installs explicitly.
+- `create_text_channel(overwrites=...)` does not copy the category's overwrites: copy them when the
+  bot may set them (Administrator, or every permission that they set).
 - `tasks.loop` schedules from each start; there is no REST ping (time `GET /users/@me`).
 - `app_commands.Command(callback=cog.method)` unwraps the bound method and makes the cog the
   command's binding (`cog_app_command_error` and the cog's `interaction_check` apply).
@@ -178,7 +174,7 @@ setup-uv v10.2.0, setup-node v7.1.0.
   `interaction.permissions` come straight from the payload; the guild owner and administrators
   get every permission there.
 - `on_raw_member_remove` is dispatched for every removal, even for an uncached guild; its `user` is
-  the cached `Member` when there was one. JDA ignored the bot's own removal.
+  the cached `Member` when there was one; skip the bot's own removal.
 - At `on_ready`, `Client.guilds` holds every guild of READY, unavailable ones included (READY adds
   them before their GUILD_CREATE), so stored data of other guilds belongs to guilds the bot left.
 - `wait_until_ready` raises until `login` or `async with bot` creates the READY event; the
@@ -193,11 +189,11 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - `defer()` on a modal submission sends a deferred message update (type 6); `followup.send(...,
   ephemeral=True)` still reaches the user afterwards. discord.py sends a text input inside a
   `Label` with `"label": null`.
-- Discord refuses an embed field with an empty name or value; JDA sent U+200E (the core does now).
+- Discord refuses an embed field with an empty name or value; the core sends U+200E instead.
 - `View.from_message` raises `ValueError` for a Components V2 message: use
   `LayoutView.from_message` when `message.flags.components_v2`.
-- After a handler deletes the message of a v3 ID, the core's legacy upgrade cannot fetch it and
-  logs an error (a Feedback modal that v3 opened, submitted after the switch).
+- After a handler deletes the message of a legacy ID, the core's legacy upgrade cannot fetch it and
+  logs an error.
 - `app_commands.describe(...)` applied to a built `Command` gives every option it does not name
   an ellipsis as its description: call it once with all the options (`rename` leaves the others).
 - A component interaction's `data` carries `component_type` (2 for a button); a modal
@@ -207,8 +203,7 @@ setup-uv v10.2.0, setup-node v7.1.0.
   `Store.update` function.
 - A probe can log in offline: point `discord.http.Route.BASE` at a local server and call
   `bot.http.static_login(token)` inside `async with bot`; set `bot._ready` for READY.
-- `on_voice_state_update` fires for mutes, deafens and streams too (JDA's `GuildVoiceUpdateEvent`
-  only for channel changes): compare the channels' IDs. `channel.voice_states` counts a voice
+- `on_voice_state_update` fires for mutes, deafens and streams too: compare the channels' IDs. `channel.voice_states` counts a voice
   channel's members without the member cache; `VocalGuildChannel.members` needs it.
 - discord.py runs listeners as tasks: the gateway events parsed before one runs, or while it
   awaits, are already in the cache it reads. Read what decides the handling before the first
@@ -216,10 +211,10 @@ setup-uv v10.2.0, setup-node v7.1.0.
   listeners ran, and the join's listener saw the member gone).
 - `GuildChannel.edit(position=...)` renumbers every channel of the guild in the channel's sorting
   bucket (voice and stage channels together), and `move(...)` those of its category, in one bulk
-  `PATCH /guilds/{id}/channels` from the cached positions; JDA's `setPosition` sent the raw
-  position in `PATCH /channels/{id}` (`Route` keeps it).
+  `PATCH /guilds/{id}/channels` from the cached positions; a `Route` request sends a raw
+  position in `PATCH /channels/{id}` instead.
 - `VocalGuildChannel.clone()` copies the overwrites as they are, and the NSFW flag, the video
-  quality and the slowmode, which JDA's `createCopy` did not; it adds the copy to the guild's cache.
+  quality and the slowmode; it adds the copy to the guild's cache.
   `Guild._create_channel` (behind `create_*_channel(overwrites=...)`) sends an `Object(type=Role)`
   key as a member overwrite; `edit` gets it right.
 - A bare `app_commands.Group(...)` takes its `module` from the frame that creates it: build it in
@@ -233,7 +228,7 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - `on_voice_state_update`'s `after` is the cached voice state, updated in place by later events
   (`before` is a copy): a join and a leave parsed before the listener runs reach it as no change.
 - `interaction.response.edit_message(...)` keeps what it is not given: `embeds=()` and `view=None`
-  clear them, as JDA's `MessageEditData.fromCreateData` replaced the whole message.
+  clear them.
 - A scratch probe can drive real discord.py objects offline: set `bot._connection.user` to a
   `ClientUser`, build `discord.Interaction(data=..., state=bot._connection)` and call
   `command._invoke_with_namespace(...)` (patch `Interaction.edit_original_response`); set
@@ -280,10 +275,8 @@ setup-uv v10.2.0, setup-node v7.1.0.
   other handlers; acknowledge interactions before waiting for the store.
 - ruff's PLR0913 counts keyword-only arguments too; test modules cannot import `conftest` at runtime
   (importlib mode), so a fixture's method builds its dataclasses (`scene.who(...)`).
-- With OrbStack running, `docker compose build` and `docker compose run --rm -T bot --no-online`
-  with a temporary `bot/config.yaml` check an image; `docker compose down -v` and removing `bot/`
-  clean up. With every ported plugin enabled, Economy needs `bot/plugins/Economy/config.yaml` with
-  an example `admin_id`, or the check exits 1.
+- With OrbStack running, `docker compose run --rm -T bot --no-online` checks an image against the
+  `config.yaml` beside `compose.yaml`; `docker compose down -v` cleans up.
 - OpenSpec 1.14.1 cannot rename a capability: ADD the requirements to the new one (the delta's `##
   Purpose` seeds its spec), REMOVE them from the old one with a reason and a migration, and set
   `retire_capabilities: true` in the change's `.openspec.yaml`, so that `archive` deletes the
@@ -357,7 +350,7 @@ setup-uv v10.2.0, setup-node v7.1.0.
   afterwards).
 
 - `TextChannel.create_thread(name=...)` without a message creates a private thread unless
-  `type=discord.ChannelType.public_thread` is given (JDA's `createThreadChannel(name)` was public).
+  `type=discord.ChannelType.public_thread` is given.
 - `InteractionResponse.edit_message` marks the response done only after Discord answered: when it
   raises `HTTPException`, `response.send_message` still answers (Ticket's refused drafts).
 - `View.from_message` gives each item its row and `add_item` appends to `children`; `to_components`
@@ -370,7 +363,7 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - `Attachment.to_file()` downloads through `HTTPClient.get_from_cdn` (patch it in probes) and reads
   the whole file into memory; a recorded webhook answer needs whole attachment objects.
 - `Message.edit()` sends `suppress_embeds` as its `suppress` argument, False by default: the core's
-  upgrade of v3 IDs shows embeds that were suppressed.
+  upgrade of legacy IDs shows embeds that were suppressed.
 - Discord refuses a webhook message's username with `@`, `#`, `:`, three backticks, `discord` or
   `clyde`, `everyone` or `here`, or over 80 characters; a string option takes up to 6000
   characters, a reply at most 2000.
@@ -379,7 +372,7 @@ setup-uv v10.2.0, setup-node v7.1.0.
   `GUILD_CREATE` carries the members and their presences (`_guild_needs_chunking`); large guilds are
   chunked without presences. `PRESENCE_UPDATE` updates cached members only, so a plugin that reads
   statuses declares the members intent too. A member from `fetch_member` has no presence:
-  `member.status` is `Status.offline`, as JDA's default.
+  `member.status` is `Status.offline`.
 - `on_thread_create` fires only for a `THREAD_CREATE` marked `newly_created`; a thread that the bot
   did not cache otherwise arrives as `on_thread_join`.
 - `Messageable.send` builds a `Message` from Discord's answer: a REST recorder that answers `{}`
@@ -396,7 +389,7 @@ setup-uv v10.2.0, setup-node v7.1.0.
   `model_key` that the plugin cannot give.
 - An image check or `xincord --no-online` with every plugin enabled needs example values in
   `plugins/Economy/config.yaml` (`admin_id`), `plugins/TicketAwayNotice/config.yaml` (`guild_id`,
-  `user_id`) and `plugins/NtustAnnouncements/config.yaml` (a key other than v3's example, and every
+  `user_id`) and `plugins/NtustAnnouncements/config.yaml` (a key other than the example, and every
   `channel-id`), whose bundled files wait for the operator.
 
 - Python 3.13+ adds `VERIFY_X509_STRICT` to `ssl.create_default_context()`, which aiohttp uses:
@@ -413,12 +406,12 @@ setup-uv v10.2.0, setup-node v7.1.0.
   once reached NTUST that way; its conftest now refuses every host but 127.0.0.1 (`offline`).
 - aiohttp's `ClientConnectorError` shows its `OSError`'s `strerror`: raise `OSError(errno, text)`
   in fakes, or the text reads `[None]`.
-- Java's `\s` is ASCII and its multiline `^`/`$` also break at `\r`, U+0085, U+2028 and U+2029;
-  jsoup's `text()` collapses spaces, tabs, line breaks and no-break spaces, drops U+200B and U+00AD
-  and separates blocks and `br` (NtustAnnouncements' `markup.py` and `pages.minify`).
+- NtustAnnouncements' page text (`markup.py`) collapses spaces, tabs, line breaks and no-break
+  spaces, drops U+200B and U+00AD and separates blocks and `br`; its minifier (`pages.py`) matches
+  `\s` as ASCII.
 
 - NTUST's course query (`POST https://querycourse.ntust.edu.tw/QueryCourse/api//courses`) no longer
-  answers v3's whole-catalogue request (`CourseTeacher: " "`): on 2026-10-11, no answer in 60 s,
+  answers a whole-catalogue request (`CourseTeacher: " "`): on 2026-10-11, no answer in 60 s,
   then `500 {"Message": ...}` after 120 s. It matches `CourseNo` as a prefix (a code's request
   answers in under a second) and lists a course once per room and time with the same counts; take
   only whole codes, or a short one asks about a department. A client timeout shorter than a
@@ -427,8 +420,7 @@ setup-uv v10.2.0, setup-node v7.1.0.
   the container would take as UTC: pydantic's `AwareDatetime` requires the offset. YAML 1.1 reads
   `0115` as octal 77, which `coerce_numbers_to_str` turns into `"77"`.
 - Chinese input methods type full-width letters and digits: NFKC turns them into ASCII before a
-  code is checked. Python's `\d` and `int()` take digits outside the BMP, which Kotlin's UTF-16
-  strings saw as surrogates, no digits.
+  code is checked. Python's `\d` and `int()` also take digits outside the BMP.
 - One `Failures` for several items that a loop checks in turn ends a failing item's episode with
   the others' successes: keep one per item.
 - A task that nothing awaits until the unload hides the error that ended it: log it from a done
@@ -493,20 +485,77 @@ setup-uv v10.2.0, setup-node v7.1.0.
   leaves `Entry | str`, since a class may define `__eq__`): narrow with `isinstance`, or pass the
   literal on (Ticket's `delete` in the xfail commit of `ticket-staff-controls`).
 - discord.py's `Member.roles` lists @everyone, the default role whose ID is the guild's, among every
-  member's roles; JDA's `getRoles()` left it out. Leave it out before matching configured role IDs
+  member's roles. Leave it out before matching configured role IDs
   (Ticket's `_role_ids`, found in `ticket-staff-controls`' cross-review).
 
-**v3 behaviors never to reproduce:** loading plugins in reverse dependency order, non-atomic JSON
-writes that reset corrupt files, recursive placeholder expansion, shared mutable placeholder
-caches, `asTextChannel()` failures in threads, voice chat and announcement channels, allow-all
-mentions, guild filters that never applied, delayed messages that nothing could cancel or check
-again, alerts posted at every poll beyond Discord's rate limit, and songs queued forever after
-the end of a list, refusals that never reached the member and refresh tasks that ran forever (the
-porting guide has the full list).
+**Designs to avoid:** loading plugins in reverse dependency order, non-atomic JSON writes that
+silently reset corrupt files, recursive placeholder expansion, shared mutable placeholder caches,
+channel lookups that fail in threads, voice chats and announcement channels, allow-all mentions,
+naming the member of an event after the guild's newest audit log entry, keeping message content
+forever, rendering a builder through an expired interaction token, drawing a giveaway twice,
+pinging what a user typed into a ticket, losing an error thrown in a callback, a guild filter that
+never applies, a delayed message that nothing can cancel or check again, announcements skipped for
+good after one failure, posted again after they left a page or doubled by a second scheduler after
+a reload, alerts posted at every poll beyond Discord's rate limit, a loop that one exception ends
+for good, registrations lost at every restart, songs queued forever after the end of a list,
+refusals that never reach the member, refresh tasks that run forever, an autocomplete that answers
+every command, and a failing song looped forever.
 
 **Exact numbers (Calculator):** `decimal` defaults to 28 digits, and `Fraction` reduces with a
-gcd that costs 75 to 180 ms per operation at 100,000 digits; scaled integers (v3's `BigDecimal`)
-cost a few milliseconds. Python refuses `str()`/`int()` conversions over 4,300 digits and computes
+gcd that costs 75 to 180 ms per operation at 100,000 digits; scaled integers (an unscaled integer
+and a scale) cost a few milliseconds. Python refuses `str()`/`int()` conversions over 4,300 digits and computes
 `10**999999999` if asked: bound sizes first.
 
-**Kotlin lookup keys:** v3 used camelCase property paths; xincord uses the YAML keys.
+## More facts
+
+- A plugin's `setup` runs in `setup_hook`, before the gateway connects: the guild cache is empty,
+  and under `--no-online` `bot.user` is None. Work that needs guilds waits for
+  `bot.wait_until_ready()` in a task or listens for `on_ready`; background loops stop in
+  `cog_unload`, because the offline check loads and unloads plugins without ever becoming ready.
+  Keep import time free of work: discovery and `load_extension` both execute a plugin module.
+- discord.py parses a modal submission only for a `Modal` that it dispatches; the core stops its
+  modals, so plugins read `interaction.data` with `modal_values`.
+- `on_guild_remove` fires when the bot leaves a guild or is removed from it, `on_guild_unavailable`
+  during an outage.
+- Python's `len` counts a character outside the BMP once, and Discord's limits count UTF-16 code
+  units: count `len(text.encode("utf-16-le")) // 2` (VoiceLogger's lists, DynamicVoiceChannel's
+  names). An embed's title, description, field names and values, footer and author hold 6000 such
+  units together: shorten the longest part (Giveaway's `_fit`).
+- Members cannot send embeds: the embeds of a member's message are link previews, some of them typed
+  `rich` (ChatLogger takes a member's text from the content only).
+- `Thread.category_id` raises without the cached parent channel: read `thread.parent`.
+  `guild.channels` leaves threads out; `guild.threads` holds the active ones.
+- With `autocommit=False`, Python's `sqlite3` opens a new deferred transaction right after each
+  commit: read pragmas such as `page_count` inside the work's transaction, before its commit. Build
+  a new database file under a temporary name, close it, rename it, then open it (ChatLogger's
+  `create_file`).
+- xfail tests that wait for a fake to start sending use `asyncio.wait({event_task, task},
+  return_when=FIRST_COMPLETED)` and `result()` on what finished, so that a stub's
+  `NotImplementedError` surfaces at once instead of a timeout.
+- When a button goes onto a message before its record is stored and the store then fails, put the
+  earlier view back: `Message.edit` leaves the fetched message as it was, so `View.from_message`
+  on it rebuilds the earlier view; a button without its record would let the next one take its
+  custom ID, which Discord refuses (Ticket's `/add-ticket`).
+- Discord shows a channel or user mention in an embed's title, author or footer as raw `<#...>`
+  text; it renders mentions in the description and in field values.
+- A webhook's URL holds its token: cut URLs in error texts to their origin before showing or
+  logging them (`xincord.plugins.redaction.redact`).
+- Pages with unclosed elements nest deeply: a recursive walk of a page about 1,000 levels deep
+  exhausts Python's recursion limit. Walk trees with a stack of your own (NtustAnnouncements'
+  `markup.py`).
+- `\s+$` in multiline mode tries every start inside a run of whitespace that no line end follows:
+  quadratic (40,000 spaces, 5 seconds). `(?<!\s)\s+$` removes the same text in linear time.
+- `html.parser` takes about 0.3 s per MB: parse fetched pages in `asyncio.to_thread`. Its default
+  `handle_startendtag` closes a non-void start tag written with a slash (`<a href=x />`), which
+  browsers leave open.
+- When a step that follows a paid call fails (a post after a model's conversion), keep the call's
+  result until the step works, or every retry pays again (NtustAnnouncements' `Watcher.ready`).
+- pydantic floats take YAML's `.inf` and `.nan` unless `allow_inf_nan=False`;
+  `Annotated[float, Field(ge=0, le=2)] | None` keeps the key's name in errors. yarl takes a host
+  with a trailing space and an empty user info (`https://@host`): check those too
+  (NtustAnnouncements' `_endpoint`).
+- OpenAI-compatible APIs answer errors as `{"error": {"message": ...}}`, a list of one such object
+  (Gemini's endpoint) or `{"error": "<text>"}`. A short placeholder key garbles every error text
+  that redaction replaces it in: suggest a distinctive one.
+- The Lavalink container downloads its plugins at each creation; a named volume at
+  `/opt/Lavalink/plugins` would be root-owned (the image runs as uid 322).

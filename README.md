@@ -1,10 +1,16 @@
 # xincord
 
-xincord is a modular Discord bot built on [discord.py](https://github.com/Rapptz/discord.py). It is
-a Python port of [XsDiscordBotKt](https://github.com/xinshoutw/XsDiscordBotKt) (Kotlin, JDA).
+xincord is a modular Discord bot built on [discord.py](https://github.com/Rapptz/discord.py): a
+small core loads plugins through entry points and gives them YAML config, SQLite storage, i18n,
+message templates and component IDs that survive restarts.
 
-Status: 0.x. Every in-scope plugin is ported (`docs/porting/decisions.md`), and xincord runs the
-owner's bots since 2026-10-12.
+Status: 0.x, running the owner's bots since 2026-10-12. The plugin API (`docs/plugin-api.md`)
+follows semver from 1.0.0.
+
+The bundled plugins: AutoRole, BotInfo, Calculator, ChatLogger, CustomCommands,
+DynamicVoiceChannel, Economy, Example, Feedback, Giveaway, MusicPlayer (with a Lavalink node),
+NtustAnnouncements, NtustCourseWatch, Ticket, TicketAwayNotice, UptimeHeartbeat, VoiceLogger and
+WelcomeGoodbye.
 
 ## Packages
 
@@ -70,7 +76,8 @@ scripts/gate.sh
 ```
 
 Specifications live in `openspec/`; project rules for contributors and coding agents are in
-`AGENTS.md`; what a plugin may use of the core is in `docs/plugin-api.md`. Renovate opens version updates and Dependabot security updates
+`AGENTS.md`. `docs/` holds the architecture, the decisions, the plugin conventions, the plugin API
+and the pitfalls. Renovate opens version updates and Dependabot security updates
 (`.github/renovate.json`, `.github/dependabot.yml`).
 
 ## Releasing
@@ -95,4 +102,5 @@ approval. Running the workflow by hand is a dry run that pushes and publishes no
 
 ## License
 
-xincord is licensed under the GNU Affero General Public License v3 (AGPLv3).
+xincord is licensed under the GNU Affero General Public License, version 3 or later
+(`AGPL-3.0-or-later`).
