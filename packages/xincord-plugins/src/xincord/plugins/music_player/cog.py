@@ -9,7 +9,7 @@ import asyncio
 import logging
 import random
 from collections import OrderedDict
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 import discord
 from discord.ext import commands
@@ -17,19 +17,23 @@ from discord.ext import commands
 from .buttons import Buttons
 from .commands import SEARCH_DEADLINE, Commands
 from .emojis import FALLBACKS
+from .node import open_link
 from .panels import Panels
 
 if TYPE_CHECKING:
-    from collections.abc import Coroutine, Mapping
+    from collections.abc import Awaitable, Callable, Coroutine, Mapping
 
     from discord import app_commands
 
     from xincord.core.i18n import Lang
     from xincord.core.templates import Templates
 
-    from .audio import Link, Player
-    from .config import Config
+    from .audio import Link, Listener, Player
+    from .config import Config, Node
     from .panels import Panel
+
+    type OpenLink = Callable[[int, Node, Listener], Link]
+    type Sleep = Callable[[float], Awaitable[object]]
     from .session import Session
 
 
@@ -56,9 +60,26 @@ class MusicPlayer(Commands, Buttons, commands.Cog):
         self.searches: OrderedDict[str, tuple[app_commands.Choice[str], ...]] = OrderedDict()
         self.search_deadline = SEARCH_DEADLINE  # seconds; tests shorten it
         self.panels = Panels(self.refresh_panel)
-        self.tasks: set[asyncio.Task[None]] = (
-            set()
-        )  # work started by events, which the unload awaits
+        self.tasks: set[asyncio.Task[None]] = set()  # started by events; the unload awaits them
+        self.starting: asyncio.Task[None] | None = None  # the startup, from READY
+        self.open_link: OpenLink = open_link  # tests give a fake node
+        self.sleep: Sleep = asyncio.sleep  # the idle leave's wait; tests replace it
+        self.idle: dict[int, asyncio.Task[None]] = {}  # each idle guild's leave, by guild
+
+    @override
+    async def cog_load(self) -> None:
+        """Start the startup task: it waits for READY, then connects to the node.
+
+        ``setup`` runs before the gateway connects, and ``--no-online`` never connects, so
+        nothing is requested before READY; a plugin reloaded into a ready bot starts at once.
+        """
+        self.starting = asyncio.create_task(self.start(), name="MusicPlayer startup")
+        self.starting.add_done_callback(_failed)
+
+    async def start(self) -> None:
+        """At READY: the link to the node and the application's emojis."""
+        await self.bot.wait_until_ready()
+        raise NotImplementedError
 
     async def refresh_panel(self, panel: Panel) -> bool:
         """Edit ``panel`` with the guild's current song; False once Discord refused the edit.

@@ -54,7 +54,7 @@
 
 ## 8. Voice lifecycle
 
-- [ ] 8.1 xfail tests for "The bot leaves when idle, disconnected or removed" and "The node and the
+- [x] 8.1 xfail tests for "The bot leaves when idle, disconnected or removed" and "The node and the
       emojis load from READY, and unloading leaves voice"
 - [ ] 8.2 Implement the idle leave, the disconnections, the startup task, the emojis and the
       unload; remove the markers

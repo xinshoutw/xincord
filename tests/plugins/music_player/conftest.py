@@ -245,7 +245,13 @@ async def scene(store: Store, tmp_path: Path, config: str | None) -> AsyncGenera
     scene = Scene(bot, link, guild, sent)
     link.listener = cast("Any", scene.cog)
     scene.cog.link = cast("Any", link)
-    scene.cog.panels.sleep = scene.clock.sleep
-    scene.cog.panels.clock = scene.clock.monotonic
+    cog = scene.cog
+    cog.panels.sleep = scene.clock.sleep
+    cog.panels.clock = scene.clock.monotonic
+    cog.sleep = scene.clock.sleep
+    # The guild is the bot's: the idle leave and the unload look its voice connection up.
+    bot.get_guild = lambda guild_id: cast("Any", guild) if guild_id == guild.id else None  # pyright: ignore[reportAttributeAccessIssue]
     yield scene
-    await scene.cog.panels.close()
+    await cog.panels.close()
+    for task in cog.idle.values():
+        task.cancel()
