@@ -63,9 +63,6 @@ def fakes() -> Fakes:
     return Fakes()
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Channels hear about courses with seats"
-)
 async def test_seats(cog: NtustCourseWatch, fakes: Fakes) -> None:
     """Requirement: Channels hear about courses with seats."""
     await cog.registrations.add("CE162A001", 5, 1)
@@ -83,9 +80,6 @@ async def test_seats(cog: NtustCourseWatch, fakes: Fakes) -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Channels hear about courses with seats"
-)
 async def test_seats_again(cog: NtustCourseWatch, fakes: Fakes) -> None:
     """Requirement: Channels hear about courses with seats."""
     await cog.registrations.add("CE162A001", 5, 1)
@@ -102,9 +96,6 @@ async def test_seats_again(cog: NtustCourseWatch, fakes: Fakes) -> None:
     assert [channel for channel, _ in fakes.posts] == [5, 5]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Channels hear once when a course fills"
-)
 async def test_became_full(cog: NtustCourseWatch, fakes: Fakes) -> None:
     """Requirement: Channels hear once when a course fills."""
     await cog.registrations.add("CE162A001", 5, 1)
@@ -118,9 +109,6 @@ async def test_became_full(cog: NtustCourseWatch, fakes: Fakes) -> None:
     assert fakes.posts[1:] == [(5, Post(GOLDEN["alerts"]["full"], ()))]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Channels hear once when a course fills"
-)
 @pytest.mark.parametrize(
     "answers",
     [
@@ -143,9 +131,6 @@ async def test_full_at_the_first_check(
     assert fakes.posts == []
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Channels hear once when a course fills"
-)
 async def test_full_after_another_channel_registered(cog: NtustCourseWatch, fakes: Fakes) -> None:
     """Requirement: Channels hear once when a course fills."""
     await cog.registrations.add("CE162A001", 5, 1)

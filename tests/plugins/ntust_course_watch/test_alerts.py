@@ -34,9 +34,6 @@ def units(text: str) -> int:
     return len(text.encode("utf-16-le")) // 2
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Channels hear about courses with seats"
-)
 def test_available_text(cog: NtustCourseWatch) -> None:
     """Requirement: Channels hear about courses with seats."""
     # v3's text: the second, the spoilered mentions, the masked course-selection link, the code.
@@ -45,9 +42,6 @@ def test_available_text(cog: NtustCourseWatch) -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Channels hear about courses with seats"
-)
 def test_many_members(cog: NtustCourseWatch) -> None:
     """Requirement: Channels hear about courses with seats."""
     members = tuple(1_000_000_000_000_000_000 + number for number in range(120))
@@ -65,9 +59,6 @@ def test_many_members(cog: NtustCourseWatch) -> None:
     assert tuple(user for post in posts for user in post.users) == members
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Channels hear about courses with seats"
-)
 @pytest.mark.parametrize(
     ("name", "escaped"),
     [
@@ -83,9 +74,6 @@ def test_escaped_names(cog: NtustCourseWatch, name: str, escaped: str) -> None:
     assert f"[Course Available: {escaped}](https://" in post.content
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Channels hear about courses with seats"
-)
 def test_throttle() -> None:
     """Requirement: Channels hear about courses with seats."""
     alerts = Alerts(60)
@@ -96,18 +84,12 @@ def test_throttle() -> None:
     assert alerts.seats("CE162A001", (5, 6), 1060.0) == [5, 6]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Channels hear once when a course fills"
-)
 def test_full_text(cog: NtustCourseWatch) -> None:
     """Requirement: Channels hear once when a course fills."""
     # v3 passed the members to mentionUsers, but the text mentions nobody: it pinged nobody.
     assert full_post(cog.lang, COURSE) == Post(GOLDEN["alerts"]["full"], ())
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Channels hear once when a course fills"
-)
 def test_owed_full_alerts() -> None:
     """Requirement: Channels hear once when a course fills."""
     alerts = Alerts(60)
@@ -119,9 +101,6 @@ def test_owed_full_alerts() -> None:
     assert alerts.filled("CE162A001", (5, 6)) == [6]  # 5 got its full alert
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Channels hear once when a course fills"
-)
 def test_seats_come_and_go() -> None:
     """Requirement: Channels hear once when a course fills."""
     alerts = Alerts(60)
@@ -137,9 +116,6 @@ def test_seats_come_and_go() -> None:
     assert told == ["available", "full", "available", "full"]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Channels hear about courses with seats"
-)
 def test_forget_unregistered() -> None:
     """Requirement: Channels hear about courses with seats."""
     alerts = Alerts(60)
