@@ -446,7 +446,6 @@ def warnings(caplog: pytest.LogCaptureFixture) -> list[str]:
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="Answers that hold a refused text are retried")
 async def test_fenced_answer(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Answers that hold a refused text are retried."""
     answers = Answers(Time(), ["```markdown\n# Notice\n```", "# Notice"])
@@ -469,7 +468,6 @@ async def test_nothing_refused() -> None:
     assert answers.time.sleeps == []
 
 
-@pytest.mark.xfail(strict=True, reason="The prompt is filled in one pass")
 def test_markdown_token() -> None:
     """Requirement: The prompt is filled in one pass."""
     template = "{{page_title}}|{{html}}|{{markdown}}"
@@ -478,7 +476,6 @@ def test_markdown_token() -> None:
     assert fill_prompt(template, LINK, "<p>x</p>", NOW) == "Dorm notice|<p>x</p>|"
 
 
-@pytest.mark.xfail(strict=True, reason="A reviewer's cross mark redoes a post")
 async def test_review() -> None:
     """Requirement: A reviewer's cross mark redoes a post."""
     answers = Answers(Time(), ["```\nfenced\n```", "# Reviewed"])
@@ -491,7 +488,6 @@ async def test_review() -> None:
     assert answers.time.sleeps == [backoff(1)]  # a review retries as a conversion does
 
 
-@pytest.mark.xfail(strict=True, reason="A reviewer's cross mark redoes a post")
 async def test_review_gives_up(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A reviewer's cross mark redoes a post."""
     answers = Answers(Time(), ["", ""])

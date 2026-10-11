@@ -8,6 +8,7 @@ Kotlin:
 
 import asyncio
 import logging
+import sqlite3
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -18,7 +19,7 @@ from xincord.plugins.failures import Failures
 
 from .messages import content_messages, link_message
 from .pages import article_html, board_links, is_article
-from .store import DataError, remember
+from .store import Announcement, DataError, remember
 from .strings import trim
 from .web import FetchError
 
@@ -27,14 +28,15 @@ if TYPE_CHECKING:
 
     from .config import Board
     from .pages import Link
-    from .store import Announcement, Announcements, Posted
+    from .store import Announcements, Posted
     from .web import Page
 
 type FetchPage = Callable[[str], Awaitable[Page]]
 type Convert = Callable[[str, Link], Awaitable[str | None]]  # an article's HTML to Markdown
 type Post = Callable[[int, str], Awaitable[int | None]]  # one message to a channel: its ID
-type Review = Callable[[str, Link, str], Awaitable[str | None]]  # stub
-type Delete = Callable[[int, int], Awaitable[object]]  # stub
+# The model's check of a new conversion: (HTML, link, conversion) to the reviewed Markdown.
+type Review = Callable[[str, Link, str], Awaitable[str | None]]
+type Delete = Callable[[int, int], Awaitable[object]]  # one message of a channel
 type Sleep = Callable[[float], Awaitable[object]]
 
 logger = logging.getLogger(__name__)
@@ -60,9 +62,9 @@ class Watcher:
     convert: Convert
     post: Post
     posted: Posted
-    review: Review | None = None  # stub
-    delete: Delete | None = None  # stub
-    announcements: Announcements | None = None  # stub
+    review: Review | None = None  # the second check of a redo; none: redone posts go unreviewed
+    delete: Delete | None = None  # deletes a redone post's old messages
+    announcements: Announcements | None = None  # the posted messages, for a reviewer's redo
     # Failure episodes: the board's page, its articles' pages, its posts and its document. Each
     # kind of failure is logged once per episode (v3 logged at every cycle).
     pages: Failures = field(default_factory=Failures)
@@ -92,8 +94,38 @@ class Watcher:
             await sleep(interval)
 
     async def redo(self, announcement: Announcement) -> None:
-        """Stub."""
-        raise NotImplementedError
+        """Post ``announcement`` again, converted anew and reviewed, then delete its old messages.
+
+        The new messages come first: when the article fails or the channel refuses them, the old
+        post stays, also through a restart during the model's retries.
+        """
+        link = announcement.link
+        messages = await self._messages(link, review=True)
+        if messages is None or not await self._post(link, messages):
+            logger.warning("%s: %s was not posted again; its old post stays", self.name, link.url)
+            return
+        for message_id in announcement.message_ids:
+            await self._delete(announcement.channel_id, message_id)
+        if self.announcements is not None:
+            await self.announcements.forget(announcement)
+        logger.info("%s: replaced the post of %s", self.name, link.url)
+
+    async def _delete(self, channel: int, message_id: int) -> None:
+        """Delete one old message; one that is gone already counts as deleted."""
+        if self.delete is None:
+            return
+        try:
+            await self.delete(channel, message_id)
+        except discord.NotFound:
+            pass
+        except POST_ERRORS as error:
+            logger.warning(
+                "%s: channel %d kept message %d of a replaced post: %s",
+                self.name,
+                channel,
+                message_id,
+                _describe(error),
+            )
 
     async def check(self) -> None:
         """One pass: post the page's entries that the board has not posted yet, in page order.
@@ -224,12 +256,13 @@ class Watcher:
         self.ready[link.url] = messages
         return False
 
-    async def _messages(self, link: Link) -> list[str] | None:
+    async def _messages(self, link: Link, *, review: bool = False) -> list[str] | None:
         """An announcement's messages, or None when its article page failed (logged).
 
-        An NTUST article goes through the model; any other link, or an article whose content
-        cannot be converted, is its title link. An article page that fails is left for the next
-        pass, which v3 never gave it.
+        An NTUST article goes through the model, and with ``review`` its conversion through the
+        model's second check; any other link, or an article whose content cannot be converted, is
+        its title link. An article page that fails is left for the next pass, which v3 never gave
+        it.
         """
         if not is_article(link.url):
             return [link_message(link.title, link.url)]
@@ -257,6 +290,15 @@ class Watcher:
                 link.url,
             )
             return [link_message(link.title, link.url)]
+        if review and self.review is not None:
+            reviewed = await self.review(html, link, content)
+            if reviewed is None:
+                logger.warning(
+                    "%s: the review of %s failed; posting the new conversion as it is",
+                    self.name,
+                    link.url,
+                )
+            content = reviewed or content
         return content_messages(content)
 
     def _article_failed(self, kind: object, level: int, link: Link, detail: str) -> None:
@@ -276,11 +318,13 @@ class Watcher:
         as posted, with an error.
         """
         channel = self.board.channel_id
+        posted: list[int] = []
         for number, message in enumerate(messages, start=1):
             try:
-                await self.post(channel, message)
+                message_id = await self.post(channel, message)
             except POST_ERRORS as error:
                 if number > 1:
+                    await self._remember(link, posted)
                     logger.error(  # noqa: TRY400 - Discord's answer, not a traceback, says why
                         "%s: channel %d refused part %d of %d of %s, so the rest is not posted: %s",
                         self.name,
@@ -301,9 +345,27 @@ class Watcher:
                     _describe(error),
                 )
                 return False
+            if message_id is not None:
+                posted.append(message_id)
+        await self._remember(link, posted)
         if failed := self.posts.succeed():
             logger.info(
                 "%s: channel %d takes the posts again after %d refusals", self.name, channel, failed
             )
         logger.info("%s: posted %s", self.name, link.url)
         return True
+
+    async def _remember(self, link: Link, posted: list[int]) -> None:
+        """Store the posted messages for a reviewer's redo; a failure is a warning, no repost."""
+        if self.announcements is None or not posted:
+            return
+        announcement = Announcement(link, self.board.channel_id, tuple(posted))
+        try:
+            await self.announcements.save(announcement)
+        except sqlite3.Error as error:
+            logger.warning(
+                "%s: the messages of %s were not stored, so a cross mark on them does nothing: %s",
+                self.name,
+                link.url,
+                error,
+            )

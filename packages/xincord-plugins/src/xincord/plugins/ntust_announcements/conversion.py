@@ -10,7 +10,7 @@ import re
 import traceback
 from collections import deque
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 import aiohttp
 
@@ -35,13 +35,14 @@ MAX_ATTEMPTS = 10  # v3's maxRetries
 BACKOFF = (60, 300, 900, 1800)  # v3's waits after the first, second, third and later failures
 WINDOW = 60.0  # seconds in which a key takes at most PER_WINDOW attempts (v3's rateLimitWindowMs)
 PER_WINDOW = 10  # v3's maxRequestsPerMinute
-TOKEN = re.compile(r"\{\{(page_title|page_url|base_url|now|html)\}\}")
+TOKEN = re.compile(r"\{\{(page_title|page_url|base_url|now|html|markdown)\}\}")
 HOST = re.compile(r"https://([^/]+)")  # v3's extractDomainFromBaseUrl, its first match
 DEFAULT_HOST = "ntust.edu.tw"
 HIDDEN = "..."  # what stands for a key in a logged text
 # An attempt that did not reach the API: aiohttp's errors and OSError, timeouts included.
 NETWORK_ERRORS = (aiohttp.ClientError, OSError)
 BLANK = "blank"  # the kind of failure of an answer without text
+REFUSED = "refused"  # the kind of failure of an answer that holds a refused text, with the text
 
 
 def fill_prompt(template: str, link: Link, html: str, now: datetime, markdown: str = "") -> str:
@@ -49,11 +50,10 @@ def fill_prompt(template: str, link: Link, html: str, now: datetime, markdown: s
 
     ``{{page_title}}`` is the entry's title, ``{{page_url}}`` its URL, ``{{base_url}}`` ``https://``
     and the URL's host (v3's first ``https://`` match, else ``ntust.edu.tw``), ``{{now}}`` the local
-    time as ``yyyy-MM-dd HH:mm:ss`` and ``{{html}}`` the article's HTML. v3 chained Kotlin's
-    ``replace`` calls, so tokens in the title or the article were replaced too; values are
-    inserted as they are now.
+    time as ``yyyy-MM-dd HH:mm:ss``, ``{{html}}`` the article's HTML and ``{{markdown}}`` the
+    conversion under review (none in a conversion). v3 chained Kotlin's ``replace`` calls, so
+    tokens in the title or the article were replaced too; values are inserted as they are now.
     """
-    del markdown  # stub
     host = match[1] if (match := HOST.search(link.url)) else DEFAULT_HOST
     values = {
         "page_title": link.title,
@@ -61,6 +61,7 @@ def fill_prompt(template: str, link: Link, html: str, now: datetime, markdown: s
         "base_url": f"https://{host}",
         "now": f"{now:%Y-%m-%d %H:%M:%S}",
         "html": html,
+        "markdown": markdown,
     }
     return TOKEN.sub(lambda token: values[token[1]], template)
 
@@ -143,6 +144,28 @@ def format_traceback(error: BaseException) -> str:
     return "".join(traceback.format_exception(error)).rstrip("\n")
 
 
+class Try(NamedTuple):
+    """An attempt: the position of its key and its number."""
+
+    key: int
+    number: int
+
+
+@dataclass(frozen=True)
+class Task:
+    """What the model is asked: a conversion, or the review of one."""
+
+    name: str  # in the log's attempt lines
+    doing: str  # in its line when it gives up
+    template: str  # the prompt
+    markdown: str = ""  # the conversion under review
+
+    @property
+    def done(self) -> str:
+        """The verb of its debug line: ``converted``, ``reviewed``."""
+        return "converted" if self.name == "conversion" else "reviewed"
+
+
 @dataclass
 class Converter:
     """Converts articles with the model, keys in turn, retrying failed attempts as v3 did."""
@@ -156,8 +179,8 @@ class Converter:
     limits: Limits = Limits()
     # The endpoint and the request URL: error texts show their origins only.
     urls: tuple[str, ...] = ()
-    reject: tuple[str, ...] = ()  # stub
-    review_prompt: str = ""  # stub
+    reject: tuple[str, ...] = ()  # answers that hold one of these fail (``reject-texts``)
+    review_prompt: str = ""  # the template of the second check (``review-prompt``)
     # Failed attempts of every board: each kind once per episode (v3 logged every attempt).
     failures: Failures = field(default_factory=Failures)
     ring: KeyRing = field(init=False)
@@ -184,6 +207,19 @@ class Converter:
         ``retry_waits`` (v3's 60, 300, 900, then 1800 seconds). Cancellation (an unload) ends the
         conversion at once.
         """
+        return await self._retried(Task("conversion", "converting", self.prompt), html, link)
+
+    async def review(self, html: str, link: Link, markdown: str) -> str | None:
+        """The model's check of ``markdown``, the article's new conversion, with ``review_prompt``.
+
+        Its answer replaces the conversion; None after ``max_attempts`` failed attempts. The
+        attempts share the keys, their rate limit and the retries with the conversions.
+        """
+        task = Task("review", "reviewing", self.review_prompt, markdown)
+        return await self._retried(task, html, link)
+
+    async def _retried(self, task: Task, html: str, link: Link) -> str | None:
+        """``task``'s answer for the article, or None after ``max_attempts`` failed attempts."""
         limits = self.limits
         failed = 0
         while failed < limits.max_attempts:
@@ -198,40 +234,45 @@ class Converter:
                 )
                 await self.sleep(wait)
                 continue
-            text = await self._attempt(index, failed + 1, html, link)
+            text = await self._attempt(task, Try(index, failed + 1), html, link)
             if text:
                 return text
             failed += 1
             if failed < limits.max_attempts:
                 await self.sleep(backoff(failed, limits.retry_waits))
         logger.error(
-            "NtustAnnouncements: gave up converting %s after %s",
+            "NtustAnnouncements: gave up %s %s after %s",
+            task.doing,
             link.url,
             counted(limits.max_attempts, "attempt"),
         )
         return None
 
-    async def review(self, html: str, link: Link, markdown: str) -> str | None:
-        """Stub."""
-        raise NotImplementedError
+    async def _attempt(self, task: Task, attempt: Try, html: str, link: Link) -> str:
+        """One attempt of ``task``: its text, or an empty one when it failed.
 
-    async def _attempt(self, index: int, number: int, html: str, link: Link) -> str:
-        """One attempt with the key at ``index``: its text, or an empty one when it failed."""
-        prompt = fill_prompt(self.prompt, link, html, self.now())
+        An answer that holds a refused text fails like a blank one, so that the model is asked
+        again after the next retry wait.
+        """
+        index, number = attempt
+        prompt = fill_prompt(task.template, link, html, self.now(), task.markdown)
         try:
             text = trim(await self.generate(self.keys[index], prompt))
         except ApiError as error:
-            self._failed(error.status, index, number, link, describe(error))
+            self._failed(task, attempt, link, error.status, describe(error))
             return ""
         except NETWORK_ERRORS as error:
-            self._failed(type(error), index, number, link, describe(error))
+            self._failed(task, attempt, link, type(error), describe(error))
             return ""
         except Exception as error:  # noqa: BLE001 - any error fails the attempt, as in v3
             # Unexpected: its traceback, redacted, since logger.exception prints texts as they are.
-            self._failed(type(error), index, number, link, f"\n{format_traceback(error)}")
+            self._failed(task, attempt, link, type(error), f"\n{format_traceback(error)}")
             return ""
         if not text:
-            self._failed(BLANK, index, number, link, "the model gave no text")
+            self._failed(task, attempt, link, BLANK, "the model gave no text")
+            return ""
+        if refused := next((part for part in self.reject if part in text), None):
+            self._failed(task, attempt, link, (REFUSED, refused), f"the answer holds {refused}")
             return ""
         if failed := self.failures.succeed():
             logger.info(
@@ -239,18 +280,21 @@ class Converter:
                 counted(failed, "failed attempt"),
             )
         logger.debug(
-            "NtustAnnouncements: converted %s on attempt %d with key %d",
+            "NtustAnnouncements: %s %s on attempt %d with key %d",
+            task.done,
             link.url,
             number,
             index + 1,
         )
         return text
 
-    def _failed(self, kind: object, index: int, number: int, link: Link, detail: str) -> None:
+    def _failed(self, task: Task, attempt: Try, link: Link, kind: object, detail: str) -> None:
         """Log a failed attempt: as a warning when its kind is new in the episode, else debug."""
+        index, number = attempt
         logger.log(
             logging.WARNING if self.failures.fail(kind) else logging.DEBUG,
-            "NtustAnnouncements: conversion attempt %d of %d at %s failed with key %d: %s",
+            "NtustAnnouncements: %s attempt %d of %d at %s failed with key %d: %s",
+            task.name,
             number,
             self.limits.max_attempts,
             link.url,

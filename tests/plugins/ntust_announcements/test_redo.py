@@ -5,13 +5,14 @@ The owner's request of 2026-10-12; v3 had no such feature.
 
 import asyncio
 import logging
+import sqlite3
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, cast, override
 
 import discord
 import pytest
 
-from discord_fakes import FakeChannel, FakeMessage, forbidden
+from discord_fakes import FakeChannel, FakeMessage, forbidden, not_found
 from plugin_fakes import FIXTURES
 from xincord.plugins.ntust_announcements.config import Board, bundled_review_prompt
 from xincord.plugins.ntust_announcements.messages import content_messages
@@ -86,6 +87,7 @@ class Stage:
     sent: list[tuple[int, int, str]] = field(default_factory=list[tuple[int, int, str]])
     deleted: list[tuple[int, int]] = field(default_factory=list[tuple[int, int]])
     reviews: list[tuple[str, str]] = field(default_factory=list[tuple[str, str]])
+    delete_errors: dict[int, Exception] = field(default_factory=dict[int, Exception])
     next_id: int = 900
 
     def __post_init__(self) -> None:
@@ -126,6 +128,8 @@ class Stage:
         return self.next_id
 
     async def delete(self, channel: int, message_id: int) -> None:
+        if error := self.delete_errors.get(message_id):
+            raise error
         self.deleted.append((channel, message_id))
 
 
@@ -137,7 +141,6 @@ def stage(store: Store) -> Stage:
 OLD = Announcement(LINK, CHANNEL, (11, 12))
 
 
-@pytest.mark.xfail(strict=True, reason="Posted messages are remembered")
 async def test_two_messages(stage: Stage) -> None:
     """Requirement: Posted messages are remembered."""
     await stage.watcher.check()
@@ -149,7 +152,6 @@ async def test_two_messages(stage: Stage) -> None:
     assert await stage.announcements.find(ids[1]) == announcement
 
 
-@pytest.mark.xfail(strict=True, reason="A reviewer's cross mark redoes a post")
 async def test_redo(stage: Stage) -> None:
     """Requirement: A reviewer's cross mark redoes a post."""
     await stage.announcements.save(OLD)
@@ -165,7 +167,6 @@ async def test_redo(stage: Stage) -> None:
     assert await stage.announcements.find(new_id) == Announcement(LINK, CHANNEL, (new_id,))
 
 
-@pytest.mark.xfail(strict=True, reason="A reviewer's cross mark redoes a post")
 @pytest.mark.parametrize("failure", ["page", "post"])
 async def test_old_post_stays(stage: Stage, failure: str, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A reviewer's cross mark redoes a post."""
@@ -182,7 +183,6 @@ async def test_old_post_stays(stage: Stage, failure: str, caplog: pytest.LogCapt
     assert any(ARTICLE_URL in line and "old post stays" in line for line in warnings(caplog))
 
 
-@pytest.mark.xfail(strict=True, reason="A reviewer's cross mark redoes a post")
 async def test_review_fails(stage: Stage, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A reviewer's cross mark redoes a post."""
     await stage.announcements.save(OLD)
@@ -247,7 +247,6 @@ async def posted(scene: Scene) -> tuple[Channel, int]:
     return channel, 500 + article  # FakeChannel numbers its messages from 500
 
 
-@pytest.mark.xfail(strict=True, reason="A reviewer's cross mark redoes a post")
 @pytest.mark.parametrize("config", [REVIEWING])
 async def test_cross_mark(scene: Scene) -> None:
     """Requirement: A reviewer's cross mark redoes a post."""
@@ -264,7 +263,6 @@ async def test_cross_mark(scene: Scene) -> None:
     assert channel.deleted == [message_id]
 
 
-@pytest.mark.xfail(strict=True, reason="A reviewer's cross mark redoes a post")
 @pytest.mark.parametrize("config", [REVIEWING])
 async def test_ignored_reactions(scene: Scene) -> None:
     """Requirement: A reviewer's cross mark redoes a post."""
@@ -280,7 +278,6 @@ async def test_ignored_reactions(scene: Scene) -> None:
     assert channel.deleted == []
 
 
-@pytest.mark.xfail(strict=True, reason="A reviewer's cross mark redoes a post")
 @pytest.mark.parametrize("config", [REVIEWING])
 async def test_one_redo_at_a_time(scene: Scene) -> None:
     """Requirement: A reviewer's cross mark redoes a post."""
@@ -299,7 +296,6 @@ async def test_one_redo_at_a_time(scene: Scene) -> None:
     assert channel.deleted == [message_id]
 
 
-@pytest.mark.xfail(strict=True, reason="The review prompt")
 @pytest.mark.parametrize("config", [WITHOUT_REVIEW_PROMPT])
 async def test_missing_key(scene: Scene) -> None:
     """Requirement: The review prompt."""
@@ -309,3 +305,75 @@ async def test_missing_key(scene: Scene) -> None:
     await asyncio.gather(*scene.cog.redos)
 
     assert scene.web.prompts[-1].startswith(bundled_review_prompt().split("{{", 1)[0])
+
+
+async def test_old_messages_gone_or_kept(stage: Stage, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: A reviewer's cross mark redoes a post."""
+    caplog.set_level(logging.INFO, logger=LOGGER)
+    await stage.announcements.save(OLD)
+    stage.delete_errors = {11: not_found(), 12: forbidden()}
+
+    await stage.watcher.redo(OLD)
+
+    # A message deleted already counts as deleted; one the bot may not delete stays, with a warning.
+    [warning] = warnings(caplog)
+    assert f"channel {CHANNEL} kept message 12 of a replaced post" in warning
+    assert await stage.announcements.find(11) is None
+    assert f"replaced the post of {ARTICLE_URL}" in caplog.text
+
+
+async def test_redo_without_a_store(stage: Stage) -> None:
+    """Requirement: A reviewer's cross mark redoes a post."""
+    watcher = Watcher(DORMITORY, stage.page, stage.convert, stage.post, Posted(stage.store))
+
+    await watcher.redo(OLD)
+
+    # No review and no deletion are wired: the new conversion is posted, the old post stays.
+    assert [content for _, _, content in stage.sent] == content_messages(LONG)
+    assert stage.reviews == []
+    assert stage.deleted == []
+
+
+async def test_store_failure(
+    stage: Stage, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: Posted messages are remembered."""
+
+    async def save(_self: Announcements, announcement: Announcement) -> None:
+        del announcement
+        msg = "database is locked"
+        raise sqlite3.OperationalError(msg)
+
+    monkeypatch.setattr(Announcements, "save", save)
+
+    await stage.watcher.check()
+    await stage.watcher.check()
+
+    # The post counts: it is stored in the board's list and never posted again.
+    assert len(stage.sent) == 2
+    assert [link.url for link in await Posted(stage.store).load(BOARD)] == [ARTICLE_URL]
+    assert any(
+        "were not stored, so a cross mark on them does nothing" in line for line in warnings(caplog)
+    )
+
+
+@pytest.mark.parametrize("config", [REVIEWING])
+async def test_redo_error(
+    scene: Scene, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: A reviewer's cross mark redoes a post."""
+    _, message_id = await posted(scene)
+
+    async def redo(_self: Watcher, announcement: Announcement) -> None:
+        del announcement
+        msg = "unexpected"
+        raise RuntimeError(msg)
+
+    monkeypatch.setattr(Watcher, "redo", redo)
+
+    await scene.cog.on_raw_reaction_add(reaction(message_id, REVIEWER))
+    await asyncio.gather(*scene.cog.redos)
+
+    # The error is logged with its traceback, and the announcement can be redone again.
+    assert any(record.exc_info and "failed" in record.getMessage() for record in caplog.records)
+    assert scene.cog.redoing == set()

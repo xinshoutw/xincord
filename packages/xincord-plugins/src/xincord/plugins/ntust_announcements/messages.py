@@ -7,6 +7,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/NtustManager.kt:97-183
 """
 
+import re
 from bisect import bisect_right
 from itertools import accumulate
 from typing import TYPE_CHECKING
@@ -25,6 +26,12 @@ ELLIPSIS = "\N{HORIZONTAL ELLIPSIS}"
 ESCAPED = frozenset("\\[]")  # what ends or breaks a Markdown link's text
 ENCODED = frozenset("()<>\\")  # what ends or breaks a Markdown link's URL, with whitespace
 BMP_END = 0xFFFF
+# A Markdown heading, or a line wholly in bold: the prompt's small headings.
+HEADING = re.compile(r"#{1,6} .*|\*\*[^*]+\*\*")
+LIST_ITEM = re.compile(r"\s*(?:[-*+\N{BULLET}]|\d+[.)]) ")  # a bullet or a numbered item
+# How a break before a line ranks, by that line: a heading, a blank line before it, a list item,
+# any other line.
+BEFORE_HEADING, AT_BLANK_LINE, BEFORE_LIST_ITEM, AT_LINE_BREAK = range(4)
 
 
 def _size(character: str) -> int:
@@ -47,11 +54,12 @@ def clip(text: str, limit: int) -> str:
 
 
 def split(content: str, limit: int) -> list[str]:
-    """``content`` in parts of at most ``limit`` units, as v3's ``splitContentIntoSegments``.
+    """``content`` in parts of at most ``limit`` units, cut at its structure.
 
-    A part ends before the last line break that fits, which no part keeps; a line break at the
-    part's start does not count, as in v3, and without one the part is cut at the limit, before a
-    character that would straddle it. Parts of only whitespace are left out.
+    Each part ends at the best break among those that fit (:func:`_cut`), else at the limit,
+    before a character that would straddle it. The line breaks at a cut are left out, and so are
+    parts of only whitespace. Without headings, blank lines or list items, the parts are v3's
+    (``splitContentIntoSegments``): each ends before the last line break that fits.
     """
     if units(content) <= limit:
         return [content]
@@ -59,17 +67,53 @@ def split(content: str, limit: int) -> list[str]:
     rest = content
     while units(rest) > limit:
         fitting = _fitting(map(_size, rest), limit)
-        cut = rest.rfind("\n", 0, fitting + 1)
-        if cut > 0:
-            parts.append(rest[:cut])
-            rest = rest[cut + 1 :]
-        else:
-            parts.append(rest[:fitting])
-            rest = rest[fitting:]
+        end, start = _cut(rest, fitting)
+        parts.append(rest[:end].rstrip("\n"))
+        rest = rest[start:].lstrip("\n")
     parts.append(rest)  # never empty: it was longer than the limit before its last cut
     # A cut between line breaks or spaces can leave a part of only whitespace, which Discord
     # refuses; a refused later part would end the post.
     return [part for part in parts if trim(part)]
+
+
+def _rank(line: str, *, blank: bool) -> int:
+    """How a break before ``line`` ranks: before a heading, at a blank line, before a list item."""
+    if HEADING.fullmatch(line.strip()):
+        return BEFORE_HEADING
+    if blank:
+        return AT_BLANK_LINE
+    return BEFORE_LIST_ITEM if LIST_ITEM.match(line) else AT_LINE_BREAK
+
+
+def _cut(text: str, fitting: int) -> tuple[int, int]:
+    """Where the part of ``text`` ends and where the rest starts; the part fits in ``fitting``.
+
+    A break before a line ranks by that line (:func:`_rank`); the best rank among the breaks past
+    half of ``fitting`` wins, the latest of it, so that a heading near the start makes no tiny
+    part; when none is past half, the latest break; when none fits, the limit. A break right after
+    a heading never counts: the heading goes to the next part with its text.
+    """
+    best: dict[int, tuple[int, int]] = {}  # the latest break past half, by rank
+    latest: tuple[int, int] | None = None
+    end = -1  # where the last line of text ended
+    heading = False  # whether that line is a heading
+    blank = False  # whether an empty line came after it
+    position = 0
+    for line in text.split("\n"):
+        if not line.strip():
+            blank = True
+        elif end > fitting:
+            break
+        else:
+            if end > 0 and not heading:
+                latest = (end, position)
+                if end >= fitting // 2:
+                    best[_rank(line, blank=blank)] = latest
+            end, heading, blank = position + len(line), bool(HEADING.fullmatch(line.strip())), False
+        position += len(line) + 1
+    if best:
+        return best[min(best)]
+    return latest or (fitting, fitting)
 
 
 def content_messages(content: str) -> list[str]:

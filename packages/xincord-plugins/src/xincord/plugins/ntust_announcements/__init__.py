@@ -17,8 +17,9 @@ if TYPE_CHECKING:
 
 DEPENDS: tuple[str, ...] = ()
 SOFT_DEPENDS: tuple[str, ...] = ()
-# No gateway events beyond READY: v3's plugin was no listener. The guilds intent of discord.py's
-# defaults caches the channels that the ready check looks up.
+# Nothing beyond discord.py's defaults: their guilds intent caches the channels that the ready check
+# looks up, and their reactions intent brings the reviewers' cross marks. v3's plugin was no
+# listener.
 INTENTS = discord.Intents.none()
 
 

@@ -11,9 +11,11 @@ Kotlin:
 
 import re
 from enum import StrEnum
+from importlib.resources import files
 from typing import TYPE_CHECKING, Annotated
 from urllib.parse import urlsplit
 
+import yaml
 from pydantic import (
     AfterValidator,
     ConfigDict,
@@ -47,6 +49,8 @@ MIN_INTERVAL = 60  # v3's minimum, which it checked only while enabled
 EXAMPLE_KEY = "sk-thisisatestkey1234567890abcdef1234567890"
 # The tokens that v3's validateConfiguration required; {{page_title}} was optional.
 TOKENS = ("{{page_url}}", "{{base_url}}", "{{now}}", "{{html}}")
+REVIEW_TOKENS = ("{{html}}", "{{markdown}}")  # what the second check needs
+FENCE = "```"  # refused by default: the model wrapped its posts in code fences
 SCHEMES = frozenset({"http", "https"})
 # Bounds of the model settings: wider than any API's documented values, they refuse units typed
 # wrongly (milliseconds for seconds, a size for a count).
@@ -155,9 +159,24 @@ def _prompt(prompt: str) -> str:
     return prompt
 
 
+def _review_prompt(prompt: str | None) -> str | None:
+    """Accept a review prompt that holds the article and the conversion under review."""
+    if prompt is not None and (
+        missing := [token for token in REVIEW_TOKENS if token not in prompt]
+    ):
+        msg = f"the review prompt lacks {', '.join(missing)}"
+        raise ValueError(msg)
+    return prompt
+
+
 def bundled_review_prompt() -> str:
-    """Stub."""
-    raise NotImplementedError
+    """The bundled ``config.yaml``'s ``review-prompt``, for operator files without one.
+
+    The text is zh-TW copy, which a Python file cannot hold.
+    """
+    text = files(__package__).joinpath("config.yaml").read_text(encoding="utf-8")
+    bundled: dict[str, str] = yaml.safe_load(text)
+    return bundled["review-prompt"]
 
 
 class Board(Model):
@@ -197,9 +216,15 @@ class Config(Model):
         AfterValidator(_some_keys),
     ]
     prompt: Annotated[str, AfterValidator(_prompt)]  # required, as in v3
-    reject_texts: Annotated[tuple[str, ...], Field(alias="reject-texts")] = ()  # stub
-    reviewers: tuple[PositiveInt, ...] = ()  # stub
-    review_prompt: Annotated[str | None, Field(alias="review-prompt")] = None  # stub
+    # Answers that hold one of these fail and are asked again; none may be empty.
+    reject_texts: Annotated[
+        tuple[Annotated[str, StringConstraints(min_length=1)], ...], Field(alias="reject-texts")
+    ] = (FENCE,)
+    reviewers: tuple[PositiveInt, ...] = ()  # users whose cross mark redoes a post
+    # The second check of a redone post; None: the bundled file's (``bundled_review_prompt``).
+    review_prompt: Annotated[
+        str | None, Field(alias="review-prompt"), AfterValidator(_review_prompt)
+    ] = None
     # The model settings (``api.Api``, ``conversion.Limits``), v3's values by default.
     api_format: Annotated[ApiFormat, Field(alias="api-format")] = ApiFormat.GEMINI
     endpoint: Annotated[str, AfterValidator(_endpoint)] = GEMINI_ENDPOINT

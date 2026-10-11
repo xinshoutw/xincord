@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any, cast
 import pytest
 import yaml
 
-from plugin_fakes import golden, load_plugin
+from plugin_fakes import FIXTURES, golden, load_plugin
 from xincord.core.config import ConfigError, parse_model
 from xincord.plugins.ntust_announcements.api import Api, ApiFormat
 from xincord.plugins.ntust_announcements.config import Config, bundled_review_prompt
@@ -27,6 +27,10 @@ if TYPE_CHECKING:
     from xincord.plugins.ntust_announcements.cog import NtustAnnouncements
 
 GOLDEN = golden("ntust_announcements")
+# v3's prompt, which the bundled file held until ntust-announcements-review.
+V3_PROMPT = (FIXTURES / "plugins" / "ntust_announcements" / "v3-prompt.txt").read_text(
+    encoding="utf-8"
+)[:-1]
 EXAMPLE_KEY = "sk-thisisatestkey1234567890abcdef1234567890"  # v3's placeholder, refused as in v3
 BOARDS = """\
 boards:
@@ -103,7 +107,7 @@ def bundled() -> dict[str, Any]:
 
 def v3_file() -> str:
     """v3's config.yaml with an operator's keys, as `migrate_v3` moves it, and `boards` added."""
-    prompt = json.dumps(bundled()["prompt"], ensure_ascii=False)  # the bundled prompt is v3's
+    prompt = json.dumps(V3_PROMPT, ensure_ascii=False)
     return (
         "enabled: true\n\nfetch-interval: 3600\napi-keys:\n"
         '  - "first-key"\n  - "second-key"\n\n'
@@ -125,7 +129,7 @@ async def test_v3_config_file(
     config = cast("NtustAnnouncements", bot.get_cog("NtustAnnouncements")).config
     assert config.fetch_interval == 3600
     assert config.api_keys == ("first-key", "second-key")
-    assert config.prompt == bundled()["prompt"]
+    assert config.prompt == V3_PROMPT
     assert config.model == "gemini-2.5-flash"  # v3's model, the default
     assert [(board.name, board.channel_id, board.title_prefix) for board in config.boards] == [
         ("STUDENT_DORMITORY", 101, ""),
@@ -671,7 +675,6 @@ def test_endpoints_as_requests_read_them(endpoint: str) -> None:
     assert "secret" not in str(raised.value.__cause__)
 
 
-@pytest.mark.xfail(strict=True, reason="Answers that hold a refused text are retried")
 def test_reject_texts() -> None:
     """Requirement: Answers that hold a refused text are retried."""
     assert parse(VALID).reject_texts == ("```",)
@@ -683,7 +686,6 @@ def test_reject_texts() -> None:
     assert "reject-texts.1: String should have at least 1 character" in str(raised.value)
 
 
-@pytest.mark.xfail(strict=True, reason="The review prompt")
 def test_review_prompt() -> None:
     """Requirement: The review prompt."""
     bundled_prompt = bundled()["review-prompt"]

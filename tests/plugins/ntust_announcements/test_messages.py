@@ -155,7 +155,6 @@ def test_no_blank_parts(content: str) -> None:
     assert "".join(messages).count("b") == 3000
 
 
-@pytest.mark.xfail(strict=True, reason="Long content is split at its structure")
 def test_split_before_a_heading() -> None:
     """Requirement: Long content is split at its structure."""
     first = "## A\n" + "x" * 1200 + "\n\n" + "y" * 300
@@ -164,7 +163,6 @@ def test_split_before_a_heading() -> None:
     assert split(f"{first}\n{second}", 1980) == [first, second]
 
 
-@pytest.mark.xfail(strict=True, reason="Long content is split at its structure")
 def test_split_at_a_blank_line() -> None:
     """Requirement: Long content is split at its structure."""
     first = "a" * 1000 + "\n" + "b" * 500
@@ -173,7 +171,6 @@ def test_split_at_a_blank_line() -> None:
     assert split(f"{first}\n\n{second}", 1980) == [first, second]
 
 
-@pytest.mark.xfail(strict=True, reason="Long content is split at its structure")
 def test_split_before_a_list_item() -> None:
     """Requirement: Long content is split at its structure."""
     first = "p" * 1100 + "\n- " + "a" * 400
@@ -192,7 +189,6 @@ def test_no_short_parts() -> None:
     assert split(content, 1980) == [f"{title}\n\n**Notes:**\n\n{items[0]}\n{items[1]}", items[2]]
 
 
-@pytest.mark.xfail(strict=True, reason="Long content is split at its structure")
 @pytest.mark.parametrize(
     "heading", [pytest.param("## H", id="heading"), pytest.param("**Notes:**", id="bold line")]
 )
@@ -203,7 +199,6 @@ def test_heading_kept_with_its_text(heading: str) -> None:
     assert split(content, 1980) == ["x" * 1500, f"{heading}\n" + "y" * 800]
 
 
-@pytest.mark.xfail(strict=True, reason="Long content is split at its structure")
 def test_consecutive_breaks() -> None:
     """Requirement: Long content is split at its structure."""
     content = "a" * 1979 + "\n\n\n" + "b" * 2500

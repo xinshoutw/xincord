@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from xincord.core.storage import JSON, Store
 
 NAMESPACE = "NtustAnnouncements"
+POSTS = f"{NAMESPACE}.posts"  # each posted message's announcement, by message ID
 KEEP = 100  # links that left a board's page and are still remembered
 FIELDS = ("type", "url", "title")  # an item's fields, in Moshi's order
 
@@ -86,30 +87,66 @@ def remember(
 
 @dataclass(frozen=True)
 class Announcement:
-    """Stub."""
+    """An announcement's posted messages: what a reviewer's cross mark redoes."""
 
     link: Link
     channel_id: int
-    message_ids: tuple[int, ...]
+    message_ids: tuple[int, ...]  # in posting order
+
+
+def announcement_document(announcement: Announcement) -> dict[str, JSON]:
+    """The document stored under each of the announcement's message IDs."""
+    link = announcement.link
+    return {
+        "type": link.board,
+        "url": link.url,
+        "title": link.title,
+        "channel": announcement.channel_id,
+        "messages": list(announcement.message_ids),
+    }
+
+
+def parse_announcement(document: JSON) -> Announcement | None:
+    """The announcement of a stored document, or None when it is missing or not that shape."""
+    fields = cast("dict[str, JSON]", document) if isinstance(document, dict) else {}
+    board, url, title = (fields.get(name) for name in FIELDS)
+    channel, messages = fields.get("channel"), fields.get("messages")
+    if not (
+        isinstance(board, str)
+        and isinstance(url, str)
+        and isinstance(title, str)
+        and isinstance(channel, int)
+        and isinstance(messages, list)
+    ):
+        return None
+    ids = [message for message in messages if isinstance(message, int)]
+    return Announcement(Link(board, url, title), channel, tuple(ids))
 
 
 @dataclass(frozen=True)
 class Announcements:
-    """Stub."""
+    """Each posted message's announcement, in the store under the message's ID.
+
+    One entry per message, so that a cross mark on any part finds the whole post, also after a
+    restart. Entries stay until a redo replaces them: a few a day.
+    """
 
     store: Store
 
     async def save(self, announcement: Announcement) -> None:
-        """Stub."""
-        raise NotImplementedError
+        """Store the announcement under each of its message IDs."""
+        document = announcement_document(announcement)
+        for message_id in announcement.message_ids:
+            await self.store.put(POSTS, str(message_id), document)
 
     async def find(self, message_id: int) -> Announcement | None:
-        """Stub."""
-        raise NotImplementedError
+        """The announcement that posted ``message_id``, or None."""
+        return parse_announcement(await self.store.get(POSTS, str(message_id)))
 
     async def forget(self, announcement: Announcement) -> None:
-        """Stub."""
-        raise NotImplementedError
+        """Delete the entries of the announcement's message IDs."""
+        for message_id in announcement.message_ids:
+            await self.store.delete(POSTS, str(message_id))
 
 
 @dataclass(frozen=True)

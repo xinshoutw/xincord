@@ -17,8 +17,9 @@ from discord.ext import commands
 
 from xincord.plugins.redaction import origin
 
+from .config import bundled_review_prompt
 from .conversion import Converter
-from .store import Posted
+from .store import Announcements, Posted
 from .watch import Watcher
 from .web import open_web
 
@@ -30,12 +31,14 @@ if TYPE_CHECKING:
 
     from .api import Api
     from .config import Config
+    from .store import Announcement
     from .watch import Sleep
     from .web import Page, Requests
 
 type OpenWeb = Callable[[Api], AbstractAsyncContextManager[Requests]]  # settings to a session
 
 FETCHES = 5  # NTUST pages fetched at a time, v3's maxConcurrentRequests
+CROSS_MARK = "\N{CROSS MARK}"  # a reviewer's reaction that redoes a post
 logger = logging.getLogger(__name__)
 
 
@@ -72,7 +75,9 @@ class NtustAnnouncements(commands.Cog):
         self.clock: Callable[[], float] = time.monotonic
         self.now: Callable[[], datetime] = datetime.now  # the host's local time, as v3's
         self.open_web: OpenWeb = open_web
-        self.redos: set[asyncio.Task[None]] = set()  # stub
+        self.watchers: dict[str, Watcher] = {}  # by board name, once the boards run
+        self.redoing: set[str] = set()  # the URLs being redone
+        self.redos: set[asyncio.Task[None]] = set()  # their tasks
 
     @override
     async def cog_load(self) -> None:
@@ -93,18 +98,54 @@ class NtustAnnouncements(commands.Cog):
         A reload builds a new cog with the new config; v3's reload added a second scheduler to the
         first (duplicate posts) or failed after a disable.
         """
-        for task in self.tasks:
+        tasks = (*self.tasks, *self.redos)
+        for task in tasks:
             task.cancel()
-        await asyncio.gather(*self.tasks, return_exceptions=True)
+        await asyncio.gather(*tasks, return_exceptions=True)
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
         """Check the boards' channels once the guilds are cached; fires for each session."""
         self.check()
 
+    @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
-        """Stub."""
-        raise NotImplementedError
+        """Redo the announcement whose message a reviewer marked with a cross mark.
+
+        Only ``reviewers``, the Unicode cross mark and the plugin's stored posts count; a second
+        mark while the announcement is redone is ignored.
+        """
+        emoji = payload.emoji
+        if payload.user_id not in self.config.reviewers or emoji.is_custom_emoji():
+            return
+        if emoji.name != CROSS_MARK:
+            return
+        announcement = await Announcements(self.store).find(payload.message_id)
+        if announcement is None:
+            return
+        link = announcement.link
+        watcher = self.watchers.get(link.board)
+        if watcher is None or link.url in self.redoing:
+            return
+        self.redoing.add(link.url)
+        logger.info(
+            "NtustAnnouncements board %s: user %d marked %s; converting it again",
+            link.board,
+            payload.user_id,
+            link.url,
+        )
+        task = asyncio.create_task(self._redo(watcher, announcement))
+        self.redos.add(task)
+        task.add_done_callback(self.redos.discard)
+
+    async def _redo(self, watcher: Watcher, announcement: Announcement) -> None:
+        """Run the redo; any unexpected error is logged with its traceback."""
+        try:
+            await watcher.redo(announcement)
+        except Exception:
+            logger.exception("NtustAnnouncements: redoing %s failed", announcement.link.url)
+        finally:
+            self.redoing.discard(announcement.link.url)
 
     def check(self) -> None:
         """Warn about each board whose channel the bot cannot see or that takes no messages.
@@ -160,16 +201,37 @@ class NtustAnnouncements(commands.Cog):
                 self.now,
                 self.config.limits,
                 (api.endpoint, api.url),
+                reject=self.config.reject_texts,
+                review_prompt=self.config.review_prompt or bundled_review_prompt(),
             )
             posted = Posted(self.store)
+            announcements = Announcements(self.store)
+            self.watchers = {
+                board.name: Watcher(
+                    board,
+                    page,
+                    converter.convert,
+                    self._send,
+                    posted,
+                    review=converter.review,
+                    delete=self._delete,
+                    announcements=announcements,
+                )
+                for board in self.config.boards
+            }
             async with asyncio.TaskGroup() as boards:
-                for board in self.config.boards:
-                    watcher = Watcher(board, page, converter.convert, self._send, posted)
+                for watcher in self.watchers.values():
                     boards.create_task(
                         watcher.run(self.config.fetch_interval, self.sleep), name=watcher.name
                     )
 
-    async def _send(self, channel_id: int, content: str) -> None:
-        """Post one message to a board's channel, which needs no cache, pinging nobody."""
+    async def _send(self, channel_id: int, content: str) -> int:
+        """Post one message to a board's channel, which needs no cache, pinging nobody; its ID."""
         channel = self.bot.get_partial_messageable(channel_id)
-        await channel.send(content=content, allowed_mentions=NO_MENTIONS)
+        message = await channel.send(content=content, allowed_mentions=NO_MENTIONS)
+        return message.id
+
+    async def _delete(self, channel_id: int, message_id: int) -> None:
+        """Delete one of the plugin's messages, which needs no cache."""
+        channel = self.bot.get_partial_messageable(channel_id)
+        await channel.get_partial_message(message_id).delete()
