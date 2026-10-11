@@ -628,8 +628,8 @@ and `#reviews`; categories `Tickets` and `Dynamic Voice` (with the voice channel
 `Member` (AutoRole) and `Staff`; the owner 810822763601461318, plus the owner's second account.
 `bot/config.yaml` enables all 18 plugins; `.env` holds `LAVALINK_PASSWORD` and `TZ=Asia/Taipei`;
 `bot/plugins/` holds the test configs (Economy's `admin_id`, AutoRole's role, TicketAwayNotice's
-IDs, UptimeHeartbeat pushing every 20 s to `http://host.docker.internal:8765/push`, a local
-endpoint that is gone after the session, CustomCommands' test command `rules`, NtustAnnouncements
+IDs, UptimeHeartbeat without listeners (its checks passed against a local endpoint, since
+stopped), CustomCommands' test command `rules`, NtustAnnouncements
 with the owner's key, `gemini-3.8-flash`, one board to `#ntust` and the owner as reviewer). The
 test application has MusicPlayer's emojis. Claude calls Discord's REST API as the bot from inside
 the container, so that the token never leaves it: `docker compose exec -T bot python - METHOD PATH
