@@ -6,6 +6,6 @@
 
 ## 2. Close
 
-- [ ] 2.1 Gate passes, push, CI green; the node starts its device login with the setting on
-- [ ] 2.2 Archive the change and run `openspec validate --all --strict`; update `HANDOFF.md` and
+- [x] 2.1 Gate passes, push, CI green; the node starts its device login with the setting on
+- [x] 2.2 Archive the change and run `openspec validate --all --strict`; update `HANDOFF.md` and
       `docs/porting/owner-review.md`
