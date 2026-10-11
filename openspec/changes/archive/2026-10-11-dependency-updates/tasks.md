@@ -12,5 +12,5 @@
 
 ## 3. Docs and close
 
-- [ ] 3.1 AGENTS.md (the bots' PRs and the automerge policy), README, the review queue
-- [ ] 3.2 Archive, `validate --all --strict`, push, CI green
+- [x] 3.1 AGENTS.md (the bots' PRs and the automerge policy), README, the review queue
+- [x] 3.2 Archive, `validate --all --strict`, push, CI green

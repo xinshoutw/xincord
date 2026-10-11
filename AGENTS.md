@@ -81,3 +81,7 @@ If your global git config sets `core.hooksPath`, run `git config --local core.ho
 - Ask the owner first for: force pushes, deleting branches, tags, releases, PyPI publishing,
   repository settings, and anything on the XsDiscordBotKt remote.
 - Do not create LICENSE; the owner adds it (`AGPL-3.0-or-later`).
+- Dependency bots: Dependabot opens security updates (`.github/dependabot.yml`); Renovate opens
+  version updates (`.github/renovate.json`) and merges patch updates and the monthly lock-file
+  maintenance itself, squashed, once CI passes. Minor and major updates wait for the owner. Their
+  commits are `build: ...` or `ci: ...` without a scope.

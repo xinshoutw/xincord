@@ -56,7 +56,8 @@ scripts/gate.sh
 ```
 
 Specifications live in `openspec/`; project rules for contributors and coding agents are in
-`AGENTS.md`.
+`AGENTS.md`. Renovate opens version updates and Dependabot security updates
+(`.github/renovate.json`, `.github/dependabot.yml`).
 
 ## License
 

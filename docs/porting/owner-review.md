@@ -635,3 +635,18 @@ here; delete a section once it is empty.
 - Upload v3's emoji images (`XsDiscordBotKt/Plugins/MusicPlayer/src/main/resources/images/`) as the application's emojis if the bot's application changed; otherwise check that the existing ones show.
 - At startup discord.py warns that PyNaCl and davey are missing and "voice will NOT be supported": that is its own voice client; MusicPlayer's voice goes through Lavalink, which needs neither.
 - Done: the wheel, `xincord --no-online` (bundled, filled and v3 configs), the node healthy on this Mac with both plugins, the image with all eighteen plugins, the plugin's link from the image to the node (a YouTube search, the refused sources, a wrong password), a probe through discord.py's own objects, again after the cross-review's fixes (a moderator's disconnection and a second READY), and the node's logs without queries (archived design, "Checks" and "Cross-review").
+
+## Dependency updates (`dependency-updates`)
+
+### User-visible changes
+- Renovate opens version-update PRs on Mondays (Asia/Taipei) and a Dependency Dashboard issue listing what waits; Dependabot opens security-update PRs as advisories appear.
+- Patch updates and the monthly `uv.lock` maintenance merge themselves (squashed) once CI passes; minor and major updates wait for you.
+### Choices made without the owner
+- Release age: implemented 7 days with strict internal checks (no branch before then); alternative: 3 days, or none.
+- GHCR images (uv, Lavalink) and GitHub's runners give no release dates: implemented no release age and no automerge for them; alternative: hold them until you approve them on the dashboard.
+- `uv.lock` updates within the ranges in `pyproject.toml` (`update-lockfile`); a range changes only when a release leaves it; alternative: raise the lower bounds at every update.
+- Commits `build: ...` / `ci: ...` without a scope; alternative: `build(deps): ...`, with `deps` added to AGENTS.md's scopes.
+- uv's image and `uv_build` share one PR (group `uv`).
+### Manual checks
+- After this change lands, Renovate's first run opens the Dependency Dashboard issue; check that its first patch PR merges itself after CI.
+- GitHub documents Dependabot's uv support at uv 0.11, while `uv.lock` comes from uv 0.12: if a Dependabot uv security PR fails on the lock file, turn on Renovate's `vulnerabilityAlerts` instead.
