@@ -90,6 +90,8 @@ jobs:
 
   pypi:
     # PyPI from 1.0.0 only, once the repository is public; the owner protects the environment.
+    # One job and environment per package: PyPI keeps one pending trusted publisher per
+    # repository, workflow and environment, so two new projects cannot share one.
     needs: release
     if: github.ref_type == 'tag' && !startsWith(github.ref_name, 'v0.')
     runs-on: ubuntu-24.04
@@ -105,7 +107,29 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release download "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" \
-            --pattern '*.whl' --pattern '*.tar.gz' --dir dist
+            --pattern 'xincord-*' --dir dist
+
+      - name: Publish with trusted publishing
+        run: uv publish --trusted-publishing always dist/*
+
+  pypi-plugins:
+    # The plugins after the core, which they depend on.
+    needs: pypi
+    if: github.ref_type == 'tag' && !startsWith(github.ref_name, 'v0.')
+    runs-on: ubuntu-24.04
+    environment: pypi-plugins
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+
+      - name: Download the Release's files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" \
+            --pattern 'xincord_plugins-*' --dir dist
 
       - name: Publish with trusted publishing
         run: uv publish --trusted-publishing always dist/*

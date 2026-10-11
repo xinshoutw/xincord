@@ -120,7 +120,10 @@ def test_dry_runs_push_nothing() -> None:
     ]
 
     assert all(item["if"] == "github.ref_type == 'tag'" for item in guarded)
-    assert "github.ref_type == 'tag'" in workflow()["jobs"]["pypi"]["if"]
+    assert all(
+        "github.ref_type == 'tag'" in workflow()["jobs"][job]["if"]
+        for job in ("pypi", "pypi-plugins")
+    )
 
 
 def test_pypi_waits_for_one_point_oh() -> None:
@@ -135,7 +138,6 @@ def test_pypi_waits_for_one_point_oh() -> None:
     assert "uv publish --trusted-publishing always" in commands
 
 
-@pytest.mark.xfail(strict=True, reason="PyPI from 1.0.0")
 def test_pypi_job_per_package() -> None:
     """Requirement: PyPI from 1.0.0."""
     jobs = workflow()["jobs"]
@@ -168,4 +170,4 @@ def test_actions_and_permissions() -> None:
     assert all(PINNED.fullmatch(item) for item in uses), uses
     assert config["permissions"] == {"contents": "read"}
     assert writers["release"] == {"contents": "write", "packages": "write"}
-    assert set(writers) == {"release", "pypi"}
+    assert set(writers) == {"release", "pypi", "pypi-plugins"}
