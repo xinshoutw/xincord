@@ -136,7 +136,6 @@ async def test_nothing_to_do(scene: Scene) -> None:
     assert said(idle, "previous-idle")
 
 
-@pytest.mark.xfail(strict=True, reason="Panel buttons control the guild's player")
 async def test_presses_while_the_songs_go(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Panel buttons control the guild's player."""
     await scene.playing(1, 2)

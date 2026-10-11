@@ -76,19 +76,22 @@ class Buttons(Replies):
                     await self.redraw(interaction, session, entry)
             case _:  # pause-resume
                 await (session.resume() if session.paused else session.pause())
-                await self.redraw(interaction, session)
+                if session.playing:
+                    await self.redraw(interaction, session)
+                else:  # the songs went while the press waited for the player
+                    await self.tell(interaction, "nothing-playing")
 
     async def previous(self, interaction: discord.Interaction, session: Session | None) -> None:
         """v3's previous button: restart the song after 5 seconds, else play the previous one.
 
         The song starts unpaused (v3 kept the pause, bug B22) and the panel shows it from 00:00.
         """
-        if session is None or not session.history.entries:
+        if session is not None and (entry := await session.previous()) is not None:
+            await self.redraw(interaction, session, entry)
+        elif session is None or not session.history.entries:
             await self.tell(interaction, "previous-no-song")
-        elif not session.playing:
-            await self.tell(interaction, "previous-idle")
         else:
-            await self.redraw(interaction, session, await session.previous())
+            await self.tell(interaction, "previous-idle")
 
     async def loop(self, interaction: discord.Interaction, session: Session) -> None:
         """Toggle the loop mode, also while nothing plays, as v3; show it when a song plays."""

@@ -131,12 +131,14 @@ class Session:
             await self._start(entry)
             return entry
 
-    async def previous(self) -> Entry:
+    async def previous(self) -> Entry | None:
         """v3's previous button: restart the song, or play the previous one before 5000 ms.
 
-        The caller checks that a song plays.
+        None when nothing plays, which may change while the call waits for the player.
         """
         async with self.lock:
+            if not self.playing:
+                return None
             entry = self.history.previous(self.position())
             await self._start(entry)
             return entry
