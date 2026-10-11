@@ -61,9 +61,21 @@ def load_config[M: Model](path: Path, model: type[M], default: str) -> M:
         msg = f"{path}: {error}"
         raise ConfigError(msg) from error
     except yaml.YAMLError as error:
+        _without_snippets(error)
         msg = f"{path}: invalid YAML: {error}"
         raise ConfigError(msg) from error
     return parse_model(path, data, model)
+
+
+def _without_snippets(error: yaml.YAMLError) -> None:
+    """Drop the faulty line that PyYAML quotes in ``error``; its line and column stay.
+
+    The line can hold a secret (a plugin's API key or push token), and the error is logged.
+    """
+    if isinstance(error, yaml.MarkedYAMLError):
+        for mark in (error.context_mark, error.problem_mark):
+            if mark is not None:
+                mark.buffer = None
 
 
 def parse_model[M: Model](

@@ -121,15 +121,24 @@ def test_unreadable_path_is_reported(tmp_path: Path) -> None:
         load_config(path, Sample, DEFAULT)
 
 
-@pytest.mark.xfail(strict=True, reason="Config files are validated against a typed schema")
-def test_yaml_errors_quote_no_text(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("text", "where"),
+    [
+        pytest.param(
+            'flag: true\nitems:\n  - "secret-api-key" extra"\n', "line 3, column", id="parser"
+        ),
+        pytest.param("flag: true\ninner: name: secret-api-key\n", "line 2, column", id="scanner"),
+        pytest.param("flag: secret-api-key\x07\n", "position", id="reader"),
+    ],
+)
+def test_yaml_errors_quote_no_text(tmp_path: Path, text: str, where: str) -> None:
     """Requirement: Config files are validated against a typed schema."""
     # PyYAML's errors quote the faulty line, where a plugin's key or token can be.
-    path = write(tmp_path, 'flag: true\nitems:\n  - "secret-api-key" extra"\n')
+    path = write(tmp_path, text)
 
     with pytest.raises(ConfigError) as error:
         load_config(path, Sample, DEFAULT)
 
     logged = "".join(traceback.format_exception(error.value))
     assert "secret-api-key" not in logged
-    assert "line 3, column" in str(error.value)
+    assert where in str(error.value)
