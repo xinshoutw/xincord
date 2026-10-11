@@ -178,7 +178,7 @@ How the bundled plugins are built; Example (`xincord.plugins.example`) is the te
   `cog_load` when `bot.is_ready()`, because `on_ready` does not fire again for a plugin reloaded
   into a running bot; it skips guilds that are `unavailable`.
 - A plugin that reads members' statuses declares `discord.Intents(members=True, presences=True)`:
-  both are privileged, and the smoke checklist says to allow them in the developer portal
+  both are privileged: allow them in the developer portal, or Discord closes the gateway (4014)
   (TicketAwayNotice).
 - A gateway event that discord.py does not parse is relayed with `bot.relay_gateway_event(<name>)`
   in `setup` and handled by a cog listener `on_gateway_<name in lower case>(payload)` that
