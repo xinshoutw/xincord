@@ -8,25 +8,25 @@ from pydantic import Field, StrictInt, field_validator
 
 from xincord.core.config import Model
 
-DEFAULT_LOCALE = "zh-TW"  # v3's default locale
-# v3's coerceIn(5, 3600) of the automatic draw's period, in seconds.
+DEFAULT_LOCALE = "zh-TW"
+# The bounds of the automatic draw's period, in seconds.
 PERIOD_MIN = 5
 PERIOD_MAX = 3600
-# The locale tags that JDA's DiscordLocale.from matched exactly, case included.
+# Discord's locale tags, matched exactly, case included.
 LOCALES = frozenset(locale.value for locale in discord.Locale)
 
 
 class Config(Model):
-    """``plugins/Giveaway/config.yaml``, with v3's camelCase keys.
+    """``plugins/Giveaway/config.yaml``, with camelCase keys.
 
-    v3's ``enabled`` key is gone: the core config's ``plugins`` list enables the plugin.
+    The core config's ``plugins`` list enables the plugin.
     """
 
-    # The locale whose lang files serve users whose locale has none, as v3's fallback.
+    # The locale whose lang files serve users whose locale has none.
     default_locale: Annotated[str, Field(alias="defaultLocale")] = DEFAULT_LOCALE
-    # Seconds between the automatic draw's passes, clamped by `period` as in v3.
+    # Seconds between the automatic draw's passes, clamped by `period`.
     auto_draw_interval_seconds: Annotated[StrictInt, Field(alias="autoDrawIntervalSeconds")] = 60
-    # The IANA zone of the end times; empty for the host's, v3's ZoneId.systemDefault().
+    # The IANA zone of the end times; empty for the host's.
     time_zone: Annotated[str, Field(alias="timeZone")] = ""
 
     @field_validator("default_locale")

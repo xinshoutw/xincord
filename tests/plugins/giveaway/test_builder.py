@@ -1,8 +1,4 @@
-"""The builder's drafts: the latest builder of a draft drives it; prizes and the winner policy.
-
-v3 looked the draft up by the user and the guild only, so an older builder message drove the
-newest draft.
-"""
+"""The builder's drafts: the latest builder of a draft drives it; prizes and the winner policy."""
 
 from typing import TYPE_CHECKING, Any, cast
 
@@ -21,7 +17,7 @@ GOLDEN = golden("giveaway")
 
 
 def expired(locale: str = "en-US") -> list[tuple[str, dict[str, object]]]:
-    """v3's session-expired reply, ephemeral."""
+    """The session-expired reply, ephemeral."""
     reply = GOLDEN["replies"][locale]["expired"]
     return [("response.send_message", {"content": reply, "ephemeral": True})]
 
@@ -72,7 +68,7 @@ async def test_unknown_sub_action(scene: Scene) -> None:
     submitted = await scene.submit("other", {"title": "x"})
 
     assert sent(pressed) == []
-    assert sent(submitted) == []  # v3 re-rendered the preview for a modal
+    assert sent(submitted) == []
     assert scene.draft() == Draft(title="Mine")
 
 
@@ -133,7 +129,7 @@ async def test_cancelled(scene: Scene, locale: str) -> None:
     pressed = await scene.press("cancel", who)
     later = await scene.press("set-title", who)
 
-    # v3's replace edit: the cancelled text alone, without the preview and the buttons.
+    # The cancelled text alone, without the preview and the buttons.
     edited = {"content": GOLDEN["cancelled"][locale], "embeds": (), "view": None, "attachments": ()}
     assert sent(pressed) == [("response.edit_message", edited)]
     assert scene.cog.drafts == {}

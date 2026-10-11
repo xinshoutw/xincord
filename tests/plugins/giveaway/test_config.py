@@ -1,4 +1,4 @@
-"""The Giveaway config: v3's ``defaultLocale`` and ``autoDrawIntervalSeconds``, and ``timeZone``."""
+"""The Giveaway config: ``defaultLocale``, ``autoDrawIntervalSeconds`` and ``timeZone``."""
 
 import logging
 from typing import TYPE_CHECKING, cast
@@ -16,8 +16,8 @@ if TYPE_CHECKING:
     from xincord.plugins.giveaway.cog import Giveaway
     from xincord.plugins.giveaway.config import Config
 
-# v3's bundled config.yaml.
-V3_CONFIG = """enabled: false
+# A file with an enabled key, which the core config's plugins list replaces.
+ENABLED_CONFIG = """enabled: false
 # default locale fallback for message/modal resources
 defaultLocale: "zh-TW"
 
@@ -50,20 +50,20 @@ def warned_keys(caplog: pytest.LogCaptureFixture) -> set[str]:
     return {message.split(marker)[-1] for message in caplog.messages if marker in message}
 
 
-async def test_v3_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture) -> None:
-    """Requirement: The config keeps v3's keys."""
+async def test_enabled_key(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: The config sets the locale, the draw interval and the zone."""
     with caplog.at_level(logging.WARNING):
-        bot = await load_plugin("Giveaway", tmp_path / "plugins", store, config=V3_CONFIG)
+        bot = await load_plugin("Giveaway", tmp_path / "plugins", store, config=ENABLED_CONFIG)
 
     config = loaded_config(bot)
     assert config.default_locale == "zh-TW"
     assert config.period == 60
-    assert config.zone is None  # the host's zone, as v3's ZoneId.systemDefault()
+    assert config.zone is None  # the host's zone
     assert warned_keys(caplog) == {"enabled"}
 
 
 async def test_bundled_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture) -> None:
-    """Requirement: The config keeps v3's keys."""
+    """Requirement: The config sets the locale, the draw interval and the zone."""
     with caplog.at_level(logging.WARNING):
         bot = await load_plugin("Giveaway", tmp_path / "plugins", store)
 
@@ -79,16 +79,16 @@ async def test_bundled_file(tmp_path: Path, store: Store, caplog: pytest.LogCapt
     [(1, 5), (0, 5), (-5, 5), (5, 5), (300, 300), (3600, 3600), (99999, 3600)],
 )
 async def test_clamped_interval(seconds: int, period: int, tmp_path: Path, store: Store) -> None:
-    """Requirement: The config keeps v3's keys."""
+    """Requirement: The config sets the locale, the draw interval and the zone."""
     text = f"autoDrawIntervalSeconds: {seconds}\n"
 
     bot = await load_plugin("Giveaway", tmp_path / "plugins", store, config=text)
 
-    assert loaded_config(bot).period == period  # v3's coerceIn(5, 3600)
+    assert loaded_config(bot).period == period  # clamped to 5 to 3600
 
 
 async def test_time_zone(tmp_path: Path, store: Store) -> None:
-    """Requirement: The config keeps v3's keys."""
+    """Requirement: The config sets the locale, the draw interval and the zone."""
     text = 'timeZone: "Asia/Taipei"\n'
 
     bot = await load_plugin("Giveaway", tmp_path / "plugins", store, config=text)
@@ -97,7 +97,7 @@ async def test_time_zone(tmp_path: Path, store: Store) -> None:
 
 
 async def test_other_default_locale(tmp_path: Path, store: Store) -> None:
-    """Requirement: The config keeps v3's keys."""
+    """Requirement: The config sets the locale, the draw interval and the zone."""
     text = 'defaultLocale: "en-US"\n'
 
     bot = await load_plugin("Giveaway", tmp_path / "plugins", store, config=text)
@@ -121,7 +121,7 @@ async def test_other_default_locale(tmp_path: Path, store: Store) -> None:
 async def test_invalid_values(
     text: str, error: str, tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Requirement: The config keeps v3's keys."""
+    """Requirement: The config sets the locale, the draw interval and the zone."""
     bot = await load_plugin("Giveaway", tmp_path / "plugins", store, config=text)
 
     assert bot.loaded == ()
@@ -131,7 +131,7 @@ async def test_invalid_values(
 async def test_locale_without_lang_files(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Requirement: The config keeps v3's keys."""
+    """Requirement: The config sets the locale, the draw interval and the zone."""
     text = 'defaultLocale: "ja"\n'  # a Discord locale, but the plugin has no ja files
 
     bot = await load_plugin("Giveaway", tmp_path / "plugins", store, config=text)

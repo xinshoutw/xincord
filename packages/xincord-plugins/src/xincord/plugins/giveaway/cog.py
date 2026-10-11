@@ -39,10 +39,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# v3's fields in v3's order, all text, and v3's prefix, so that v3's posts keep working.
+# The fields in their order, all text, and the legacy prefix, so that legacy posts keep working.
 IDS = ComponentIds("giveaway", ("action", "sub_action", "giveaway_id"), legacy_prefix="giveaway@")
-BUTTON = 2  # the component type of a button, which v3's onButtonInteraction took
-FIRST_PASS = 5  # v3's initial delay of the automatic draw, in seconds after READY
+BUTTON = 2  # the component type of a button
+FIRST_PASS = 5  # the automatic draw's first delay, in seconds after READY
 ERROR_MAX = 1000  # the most of an error's text that create-failed shows, within Discord's 2000
 GUILD_ID = re.compile(r"[0-9]+")  # the store's keys, unless someone edited them
 
@@ -88,7 +88,7 @@ class Giveaway(commands.Cog):
         self.templates = templates
         # The winners' draws: the operating system's randomness, never a seeded generator.
         self.random: random.Random = random.SystemRandom()
-        # Each user's draft per guild, by user ID and guild ID; v3's StepManager.steps.
+        # Each user's draft per guild, by user ID and guild ID.
         self.drafts: dict[tuple[int, int], Session] = {}
         self.clock: Callable[[], float] = time.time  # now, in epoch seconds
         self.sleep: Sleep = asyncio.sleep  # between the automatic draw's passes
@@ -100,7 +100,7 @@ class Giveaway(commands.Cog):
 
         ``setup`` runs before the gateway connects, and ``--no-online`` never connects, so nothing
         is drawn before READY; in a ready bot, as after a reload, the first pass comes five seconds
-        later, as v3's scheduler started on each load.
+        later.
         """
         self.tasks = (asyncio.create_task(self._auto_draw(), name="Giveaway automatic draw"),)
 
@@ -115,16 +115,15 @@ class Giveaway(commands.Cog):
     async def on_guild_remove(self, guild: discord.Guild) -> None:
         """Drop the drafts of a guild that the bot left, and keep its giveaways.
 
-        v3 deleted the guild's file too (only while the plugin was enabled), so a guild that
-        invited the bot back could not reroll; the giveaways stay, as Economy's wallets do.
+        The giveaways stay, as Economy's wallets do, so a guild that invites the bot back can
+        reroll.
         """
         self.drafts = {key: session for key, session in self.drafts.items() if key[1] != guild.id}
 
     async def _auto_draw(self) -> None:
         """Pass five seconds after READY, then each ``autoDrawIntervalSeconds`` after a pass.
 
-        v3's scheduler ran at a fixed rate from each start; a pass takes milliseconds. A failed
-        pass is logged and the next one runs, as v3's ``runCatching``.
+        A pass takes milliseconds. A failed pass is logged and the next one runs.
         """
         await self.bot.wait_until_ready()
         await self.sleep(FIRST_PASS)
@@ -138,9 +137,9 @@ class Giveaway(commands.Cog):
     async def draw_due(self) -> None:
         """One pass of the automatic draw: draw, store and announce the due giveaways.
 
-        Only in guilds that the bot is in and that are available: v3 also drew those of guilds it
-        had left while offline, without posting. Each guild's draws are stored before its posts
-        are updated and the winners announced; a guild that fails is logged, the others go on.
+        Only in guilds that the bot is in and that are available. Each guild's draws are stored
+        before its posts are updated and the winners announced; a guild that fails is logged, the
+        others go on.
         """
         now = int(self.clock())
         for key in await self.giveaways.guild_ids():
@@ -162,7 +161,7 @@ class Giveaway(commands.Cog):
         """Update the post of a giveaway drawn automatically and announce its winners there.
 
         Through a partial messageable, so threads, announcement channels and voice channel chats
-        work without the cache; v3 reached text channels only and drew the others silently. Each
+        work without the cache. Each
         refusal is a warning naming the giveaway.
         """
         partial = self.bot.get_partial_messageable(instance.channel_id, guild_id=instance.guild_id)
@@ -196,9 +195,9 @@ class Giveaway(commands.Cog):
             )
 
     def command(self) -> app_commands.Command[Any, ..., None]:
-        """Build v3's ``/create-giveaway``, localized from ``register.yaml``.
+        """Build ``/create-giveaway``, localized from ``register.yaml``.
 
-        A guild command without options that only administrators see by default, as in v3;
+        A guild command without options that only administrators see by default;
         confirming a draft checks Administrator again.
         """
         lang = self.lang
@@ -214,11 +213,11 @@ class Giveaway(commands.Cog):
     async def create_giveaway(self, interaction: discord.Interaction) -> None:
         """Edit the deferred response into the builder of a new draft for the user.
 
-        The draft replaces one the user had in the guild, as v3's; only the new builder message
-        drives it. The command tree deferred the response ephemerally, as v3's core did.
+        The draft replaces one the user had in the guild; only the new builder message drives it.
+        The command tree deferred the response ephemerally.
         """
         guild_id = interaction.guild_id
-        if guild_id is None:  # guild commands run in guilds only, as v3's handler assumed
+        if guild_id is None:  # guild commands run in guilds only
             return
         draft = Draft()
         message = self._builder(interaction, draft)
@@ -233,8 +232,8 @@ class Giveaway(commands.Cog):
     async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
         """Send a press or a submission to its handler; ``setup`` routes here.
 
-        As v3's ``onButtonInteraction`` and ``onModalInteraction``: buttons with the action
-        ``create`` drive the builder, and so do modals; ``participate`` joins or leaves a giveaway.
+        Buttons with the action ``create`` drive the builder, and so do modals; ``participate``
+        joins or leaves a giveaway.
         Anything else, select menus included, gets no response.
         """
         action = parsed.fields.get("action")
@@ -254,15 +253,14 @@ class Giveaway(commands.Cog):
             await self.submit(interaction, sub_action)
 
     async def join(self, interaction: discord.Interaction, giveaway_id: str | None) -> None:
-        """Add the user to the giveaway's participants, or remove them, as v3's toggle.
+        """Add the user to the giveaway's participants, or remove them.
 
         The press is acknowledged at once, before it waits for the guild's lock, under which the
         stored giveaway changes, so joins at once all count and Discord's three seconds never run
-        out. The post then shows the stored giveaway through the press (v3 edited it through the
-        REST API, which a burst queued behind the channel's rate limit), and the user is told
+        out. The post then shows the stored giveaway through the press, and the user is told
         ephemerally in the giveaway's language. A drawn or ended giveaway answers that it is
-        closed; a press from another message than the post changes nothing, as v3's
-        ``deferEdit``; an unknown giveaway answers that it is not found.
+        closed; a press from another message than the post changes nothing; an unknown giveaway
+        answers that it is not found.
         """
         await interaction.response.defer()
         user_id, now = interaction.user.id, int(self.clock())
@@ -290,8 +288,8 @@ class Giveaway(commands.Cog):
     ) -> tuple[T, Instance] | None:
         """Change the guild's stored giveaway, or say that it is not found and return None.
 
-        v3's English-only ``Guild not found.`` and ``Invalid giveaway id.`` fold into the not found
-        text, in the user's language.
+        A guild without giveaways and an unknown giveaway ID get the not found text too, in the
+        user's language.
         """
         guild_id = interaction.guild_id
         found = (
@@ -326,12 +324,12 @@ class Giveaway(commands.Cog):
     async def draw(
         self, interaction: discord.Interaction, giveaway_id: str | None, *, reroll: bool
     ) -> None:
-        """Draw the giveaway's winners, or draw them again, as v3's draw and reroll.
+        """Draw the giveaway's winners, or draw them again.
 
         The press is acknowledged at once. The draw is stored under the guild's lock before
         anything is sent, so two draws, or a draw and the automatic draw, never both draw. The
-        post shows the stored giveaway through the press and v3's ``draw-result`` follows
-        ephemerally, both in the giveaway's language; a refusal gets v3's text, the post showing
+        post shows the stored giveaway through the press and ``draw-result`` follows
+        ephemerally, both in the giveaway's language; a refusal gets its text, the post showing
         the stored giveaway too.
         """
         await interaction.response.defer()
@@ -364,8 +362,8 @@ class Giveaway(commands.Cog):
         """Handle a press of the builder's button ``sub_action``.
 
         Without the user's draft, or from a builder message other than the one that shows it, the
-        user gets v3's session-expired text; v3 found the draft by the user and the guild only, so
-        an older builder drove the newest draft. Unknown sub-actions get no response, as in v3.
+        user gets the session-expired text, so an older builder never drives the newest draft.
+        Unknown sub-actions get no response.
         """
         session = self._session(interaction)
         if session is None:
@@ -389,7 +387,7 @@ class Giveaway(commands.Cog):
         """Handle a submission of the builder's modal ``sub_action``.
 
         As a press, without the draft the user gets the session-expired text. An unknown
-        sub-action gets no response; v3 re-rendered the preview.
+        sub-action gets no response.
         """
         session = self._session(interaction)
         if session is None:
@@ -400,11 +398,10 @@ class Giveaway(commands.Cog):
     async def _open_modal(
         self, interaction: discord.Interaction, session: Session, sub_action: str
     ) -> None:
-        """Open v3's modal ``sub_action`` in the user's language, pre-filled with the draft.
+        """Open the modal ``sub_action`` in the user's language, pre-filled with the draft.
 
-        As v3's ``Placeholder.get(event)`` with the ``ga@*`` values put in: the press's values and
-        the draft's, inserted as written (v3 expanded them, and a title of ``%ga@title%`` threw).
-        An empty value leaves the input empty, as v3's.
+        The press's placeholder values with the ``ga@*`` values put in: the draft's, inserted as
+        written, so a title of ``%ga@title%`` stays as it is. An empty value leaves the input empty.
         """
         locale = language(self.lang, interaction.locale.value)
         draft = session.draft
@@ -426,9 +423,9 @@ class Giveaway(commands.Cog):
     ) -> None:
         """Change the draft with the submitted modal ``sub_action`` and update the builder.
 
-        An invalid value gets v3's error ephemerally and leaves the draft. A valid one replaces
+        An invalid value gets its error ephemerally and leaves the draft. A valid one replaces
         the builder message through the submission (a modal opened from a message may update it),
-        where v3 deferred and edited it through the command's 15-minute hook.
+        so the builder outlives the command's 15-minute hook.
         """
         now = int(self.clock())
         values = modal_values(interaction.data)
@@ -469,8 +466,8 @@ class Giveaway(commands.Cog):
     async def _confirm(self, interaction: discord.Interaction, session: Session) -> None:
         """Check the draft and the user's Administrator permission, then post the giveaway.
 
-        As v3: the draft's first problem, else a user without Administrator (even when the guild
-        let others run the command), gets v3's text ephemerally, and the draft stays.
+        The draft's first problem, else a user without Administrator (even when the guild let
+        others run the command), gets its text ephemerally, and the draft stays.
         """
         missing = problem(session.draft, int(self.clock()))
         if missing is None and not interaction.permissions.administrator:
@@ -484,15 +481,14 @@ class Giveaway(commands.Cog):
         """Post the confirmed draft as a giveaway, then turn the builder into a link to it.
 
         The draft is taken before the first await, so a second press meanwhile gets the
-        session-expired text; v3 removed it after the post and posted twice. When the post cannot
+        session-expired text, so nothing is posted twice. When the post cannot
         be made or stored, the draft comes back (unless the user started another one), the builder
-        stays, and ``create-failed`` tells the user why; v3 replaced the builder and kept an
-        orphaned draft, or said nothing for the errors that JDA threw before sending.
+        stays, and ``create-failed`` tells the user why.
         """
         key = (interaction.user.id, cast("int", interaction.guild_id))
         del self.drafts[key]
         try:
-            await interaction.response.defer()  # v3's deferEdit: the builder stays for now
+            await interaction.response.defer()  # the builder stays for now
             posted = await self._create(interaction, key[1], session.draft)
         except PostError as error:
             self.drafts.setdefault(key, session)  # nothing was posted: the draft comes back
@@ -525,7 +521,7 @@ class Giveaway(commands.Cog):
     ) -> Posted:
         """Post ``draft`` in the interaction's channel and store it as a new giveaway.
 
-        As v3: a new ID unused in the guild, the creator's locale, ``giveaway-post``, then the
+        A new ID unused in the guild, the creator's locale, ``giveaway-post``, then the
         giveaway with the post's ID; a post whose giveaway cannot be stored is deleted.
 
         Raises:
@@ -569,7 +565,7 @@ class Giveaway(commands.Cog):
     def _render(
         self, interaction: discord.Interaction, name: str, values: Mapping[str, str]
     ) -> Message:
-        """Template ``name`` in the user's language with v3's global values and ``values``."""
+        """Template ``name`` in the user's language with the global values and ``values``."""
         locale = language(self.lang, interaction.locale.value)
         return render_message(
             self.templates.message(name, locale),
@@ -580,8 +576,7 @@ class Giveaway(commands.Cog):
     async def _cancel(self, interaction: discord.Interaction) -> None:
         """Drop the user's draft and replace the builder with ``create-cancelled`` alone.
 
-        As v3's replace edit, the preview and the buttons go; v3 edited through the command's
-        hook, which expired after 15 minutes.
+        The edit replaces the message, so the preview and the buttons go.
         """
         del self.drafts[interaction.user.id, cast("int", interaction.guild_id)]
         message = self._render(interaction, "create-cancelled", {})
@@ -606,9 +601,9 @@ class Giveaway(commands.Cog):
         return Texts(self.lang, language(self.lang, interaction.locale.value))
 
     def render_post(self, instance: Instance) -> Message:
-        """The giveaway's post, v3's ``giveaway-post`` in the creator's language.
+        """The giveaway's post, ``giveaway-post`` in the creator's language.
 
-        As v3's, without a substitutor: v3's global values, and the embed and buttons as models.
+        Without a substitutor: the global values, and the embed and buttons as models.
         """
         locale = language(self.lang, instance.locale_tag)
         texts = Texts(self.lang, locale)
@@ -628,9 +623,9 @@ class Giveaway(commands.Cog):
         )
 
     def _builder(self, interaction: discord.Interaction, draft: Draft) -> Message:
-        """v3's ``create-giveaway`` with the preview of ``draft``, in the user's language.
+        """``create-giveaway`` with the preview of ``draft``, in the user's language.
 
-        v3 rendered it without a substitutor: v3's global values.
+        Rendered without a substitutor: the global values.
         """
         locale = language(self.lang, interaction.locale.value)
         embed = preview(draft, Texts(self.lang, locale), self.config.zone)
@@ -643,7 +638,7 @@ class Giveaway(commands.Cog):
 
 
 async def _tell(interaction: discord.Interaction, text: str) -> None:
-    """Answer the interaction with ``text``, ephemerally, as v3's replies."""
+    """Answer the interaction with ``text``, ephemerally."""
     await interaction.response.send_message(text, ephemeral=True)
 
 
@@ -653,7 +648,7 @@ async def _say(interaction: discord.Interaction, text: str) -> None:
 
 
 async def _delete(posted: Posted) -> None:
-    """Delete a post whose giveaway was not stored, as v3 did; a failure is logged."""
+    """Delete a post whose giveaway was not stored; a failure is logged."""
     try:
         await posted.delete()
     except discord.HTTPException as error:
@@ -663,6 +658,6 @@ async def _delete(posted: Posted) -> None:
 
 
 def _from_post(interaction: discord.Interaction, instance: Instance) -> bool:
-    """Whether the press comes from the giveaway's post, as v3 compared the message IDs."""
+    """Whether the press comes from the giveaway's post, by its message ID."""
     message = interaction.message
     return message is not None and message.id == instance.message_id

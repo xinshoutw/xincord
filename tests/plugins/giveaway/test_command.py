@@ -49,7 +49,7 @@ def rows(view: object) -> list[list[tuple[str | None, str | None, int]]]:
 
 
 def expected_rows(locale: str) -> list[list[tuple[str, str, int]]]:
-    """v3's builder buttons in ``locale``, with the new IDs."""
+    """The builder buttons in ``locale``, with the new IDs."""
     builder = GOLDEN["builder"]
     return [
         [
@@ -119,7 +119,7 @@ async def test_builder_language(cog: Giveaway, locale: str, shown: str) -> None:
 
     [(_, fields)] = interaction.sent
     [embed] = cast("tuple[discord.Embed, ...]", fields["embeds"])
-    # The preview's texts and the buttons' labels in one language (v3: en-GB got zh-TW buttons).
+    # The preview's texts and the buttons' labels in one language.
     assert embed_dict(embed) == GOLDEN["preview"][shown]["empty"]
     assert rows(fields["view"]) == expected_rows(shown)
 

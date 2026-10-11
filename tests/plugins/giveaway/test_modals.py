@@ -1,4 +1,4 @@
-"""The builder's modals: v3's six modals, pre-filled with the draft as written."""
+"""The builder's modals: six modals, pre-filled with the draft as written."""
 
 from typing import TYPE_CHECKING, Any, cast
 
@@ -56,7 +56,7 @@ async def test_modals(scene: Scene, name: str, locale: str) -> None:
         for custom_id, _, text_input in found
     ]
     assert shapes == expected["inputs"]
-    assert all(text_input.min_length is None for _, _, text_input in found)  # v3 set none
+    assert all(text_input.min_length is None for _, _, text_input in found)  # none is set
 
 
 async def test_title_modal(scene: Scene) -> None:
@@ -74,7 +74,7 @@ async def test_title_modal(scene: Scene) -> None:
         ("set-description", Draft(description="desc"), "desc"),
         ("set-sponsor", Draft(sponsor="Shop"), "Shop"),
         ("set-thumbnail", Draft(thumbnail_url="https://x/y.png"), "https://x/y.png"),
-        ("set-title", Draft(), None),  # an empty value leaves the input empty, as v3
+        ("set-title", Draft(), None),  # an empty value leaves the input empty
         ("set-description", Draft(description="  "), None),
     ],
 )
@@ -116,10 +116,10 @@ async def test_typed_placeholders(scene: Scene) -> None:
 
     [(_, _, title)] = inputs(opened(await scene.press("set-title")))
 
-    assert title.default == "%bot_name%"  # v3 expanded it, and a title of %ga@title% threw
+    assert title.default == "%bot_name%"  # inserted as written
 
 
-# An operator's set-title modal that shows v3's values of the press, as Placeholder.get(event) gave.
+# An operator's set-title modal that shows the press's placeholder values.
 OPERATOR_MODAL = {
     "lang/en-US/modal/set-title.yaml": (
         "uid: {action: create, sub_action: set-title}\n"

@@ -1,4 +1,4 @@
-"""Each guild's giveaways, kept in the shared store as v3's documents."""
+"""Each guild's giveaways, kept in the shared store, one document per guild."""
 
 import logging
 from typing import TYPE_CHECKING
@@ -24,8 +24,7 @@ class Giveaways:
 
     Every change of a guild's document runs under the guild's lock and rewrites one entry, keeping
     the others as they are; only this plugin writes its namespace, so joins, draws and new
-    giveaways never lose one another. v3 changed its in-memory files from three threads without
-    locks.
+    giveaways never lose one another.
     """
 
     def __init__(self, store: Store) -> None:
@@ -40,8 +39,8 @@ class Giveaways:
     async def draw_due(self, guild_id: int, now: int, rng: random.Random) -> list[Instance]:
         """Draw the guild's due giveaways at ``now`` and store them; return them.
 
-        One write for the guild, under its lock, before anything is posted: v3 saved after
-        queuing the posts, and a draw and the automatic draw could both draw. A broken document
+        One write for the guild, under its lock, before anything is posted, so a
+        draw and the automatic draw never both draw. A broken document
         or entry is skipped, and logged the first time.
         """
         async with self.lock(guild_id):
@@ -79,7 +78,7 @@ class Giveaways:
         """The guild's giveaway ``giveaway_id``, or None; nothing is written.
 
         Raises:
-            DataError: The guild's document or the giveaway is not v3's shape.
+            DataError: The guild's document or the giveaway is of another shape.
         """
         document = await self._document(guild_id)
         if giveaway_id not in document:
@@ -90,7 +89,7 @@ class Giveaways:
         """The IDs of the guild's giveaways; nothing is written.
 
         Raises:
-            DataError: The guild's document is not v3's shape.
+            DataError: The guild's document is of another shape.
         """
         return frozenset(await self._document(guild_id))
 
@@ -98,7 +97,7 @@ class Giveaways:
         """Store a new giveaway in its guild's document.
 
         Raises:
-            DataError: The guild already has a giveaway with its ID, or its document is not v3's
+            DataError: The guild already has a giveaway with its ID, or its document is of another
                 shape; nothing is written.
         """
         async with self.lock(instance.guild_id):
@@ -120,7 +119,7 @@ class Giveaways:
         Returns None, writing nothing, when the guild has no such giveaway.
 
         Raises:
-            DataError: The guild's document or the giveaway is not v3's shape; nothing is written.
+            DataError: The guild's document or the giveaway is of another shape; nothing is written.
         """
         async with self.lock(guild_id):
             document = await self._document(guild_id)

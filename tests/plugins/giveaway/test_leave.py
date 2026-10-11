@@ -1,4 +1,4 @@
-"""Leaving a guild: its drafts go, its giveaways stay (v3 deleted the guild's file)."""
+"""Leaving a guild: its drafts go, its giveaways stay."""
 
 from typing import TYPE_CHECKING
 

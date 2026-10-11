@@ -132,7 +132,7 @@ async def test_first_pass(draws: Draws, ready: Ready) -> None:
     [loop] = scene.cog.tasks
     await ready.waiters(1)  # nothing is drawn before READY, as under --no-online
     assert await draws.start(ready) is loop
-    assert draws.ticks.delays == [5]  # v3's initial delay
+    assert draws.ticks.delays == [5]  # the first delay
     assert not (await scene.stored(DUE.id)).ended
     await draws.ticks.wake()
 

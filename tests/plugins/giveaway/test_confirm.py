@@ -1,4 +1,4 @@
-"""Confirming a draft: v3's checks of the draft and of Administrator, then the post."""
+"""Confirming a draft: the checks of the draft and of Administrator, then the post."""
 
 import asyncio
 import logging
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 GOLDEN = golden("giveaway")
 ID = re.compile(r"[0-9a-f]{16}")
-# v3's deferEdit: a deferred update of the builder, without thinking.
+# A deferred update of the builder, without thinking.
 DEFERRED = ("response.defer", {"ephemeral": False, "thinking": False})
 NOW = 1772244000  # the tests' clock
 COMPLETE = Draft(title="Nitro", end_at=NOW + 3600, prizes=(Prize("Nitro", 1),))
@@ -51,7 +51,7 @@ async def test_incomplete_draft(scene: Scene, draft: Draft, problem: str, locale
     """Requirement: Confirming checks the draft and the administrator."""
     scene.keep(draft)
 
-    # v3 checked the draft before the permission.
+    # The draft is checked before the permission.
     pressed = await scene.press("confirm-create", scene.who(locale=locale, admin=False))
 
     assert replied(pressed) == GOLDEN["replies"][locale][problem]
@@ -195,7 +195,7 @@ async def test_channel_refuses(scene: Scene, locale: str, caplog: pytest.LogCapt
 
     text = failure(pressed)
     assert text.startswith(GOLDEN["failed"][locale])
-    assert "Missing Permissions" in text  # v3's %ga@error% was the exception's message
+    assert "Missing Permissions" in text  # %ga@error% is the exception's message
     assert scene.draft() == COMPLETE  # given back; the builder stays
     assert await Giveaways(scene.store).ids(10) == frozenset()
     assert "Giveaway cannot post a giveaway in channel 5 of guild 10" in caplog.text
@@ -251,14 +251,14 @@ async def test_new_draft_while_posting(scene: Scene) -> None:
 
 async def test_broken_document(scene: Scene) -> None:
     """Requirement: A giveaway that cannot be posted keeps the builder."""
-    await scene.store.put("Giveaway", "10", ["not", "v3's", "document"])
+    await scene.store.put("Giveaway", "10", ["not", "a", "document"])
     scene.keep(COMPLETE)
 
     pressed = await scene.press("confirm-create")
 
     assert failure(pressed).startswith(GOLDEN["failed"]["en-US"] + "guild 10: ")
     assert posts(scene) == []
-    assert await scene.store.get("Giveaway", "10") == ["not", "v3's", "document"]
+    assert await scene.store.get("Giveaway", "10") == ["not", "a", "document"]
 
 
 async def test_post_cannot_be_deleted(

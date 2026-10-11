@@ -1,4 +1,4 @@
-# The texts that v3 wrote in its code (Giveaway.kt, StepData.kt and StepManager.kt).
+# The plugin's texts outside its templates.
 # The plugin fills the %ga@...% placeholders; their values are inserted as written.
 
 # The builder's preview embed.

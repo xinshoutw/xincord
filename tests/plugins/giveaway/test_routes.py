@@ -1,4 +1,4 @@
-"""Routing the builder's and the post's components, in v3's ID format too."""
+"""Routing the builder's and the post's components, in the legacy ID format too."""
 
 from typing import TYPE_CHECKING, cast
 
@@ -27,14 +27,18 @@ GIVEAWAY = Instance(
     config=Draft(title="Nitro", end_at=NOW + 3600, prizes=(Prize("Nitro", 1),)),
     locale_tag="en-US",
 )
-# The post's buttons as v3 built them (inventory section 4.0).
-V3_POST = ("giveaway@a:participate;c:{id}", "giveaway@a:draw;c:{id}", "giveaway@a:reroll;c:{id}")
+# The post's buttons with legacy IDs.
+LEGACY_POST = (
+    "giveaway@a:participate;c:{id}",
+    "giveaway@a:draw;c:{id}",
+    "giveaway@a:reroll;c:{id}",
+)
 COMPONENT = discord.InteractionType.component
 MODAL = discord.InteractionType.modal_submit
 
 
-def v3_post(sent: list[Sent], ids: tuple[str, ...] = V3_POST) -> FakeMessage:
-    """Giveaway 3f2a9c1b7e4d4a60's post as v3 sent it: three buttons with v3's IDs."""
+def legacy_post(sent: list[Sent], ids: tuple[str, ...] = LEGACY_POST) -> FakeMessage:
+    """Giveaway 3f2a9c1b7e4d4a60's post: three buttons with legacy IDs."""
     buttons = [
         {"type": 2, "style": 1, "custom_id": custom_id.format(id=GIVEAWAY.id), "label": "x"}
         for custom_id in ids
@@ -54,20 +58,20 @@ def button_ids(view: object) -> list[str | None]:
     return [item.custom_id for item in view.children if isinstance(item, discord.ui.Button)]
 
 
-async def test_v3_post(scene: Scene) -> None:
-    """Requirement: v3's posts keep working."""
+async def test_legacy_post(scene: Scene) -> None:
+    """Requirement: Legacy posts keep working."""
     await scene.add(GIVEAWAY)
-    custom_id = V3_POST[0].format(id=GIVEAWAY.id)
+    custom_id = LEGACY_POST[0].format(id=GIVEAWAY.id)
     interaction = scene.interaction(
         {"component_type": 2, "custom_id": custom_id}, COMPONENT, scene.who(user=8, admin=False)
     )
-    interaction.message = v3_post(interaction.sent)
+    interaction.message = legacy_post(interaction.sent)
 
     await scene.bot.on_interaction(interaction.as_interaction())
 
     assert (await scene.stored(GIVEAWAY.id)).participant_ids == (8,)
     # The press showed the post with new IDs; the core then upgrades the message it fetched (here
-    # the fake, which still holds v3's IDs).
+    # the fake, which still holds the legacy IDs).
     assert methods(interaction) == [
         "response.defer",
         "edit_original_response",
@@ -83,9 +87,9 @@ async def test_v3_post(scene: Scene) -> None:
 
 
 @pytest.mark.parametrize("kind", [COMPONENT, MODAL])
-async def test_v3_builder(scene: Scene, kind: discord.InteractionType) -> None:
-    """Requirement: v3's posts keep working."""
-    custom_id = "giveaway@a:create;b:set-title"  # a v3 builder after the switch: no draft
+async def test_legacy_builder(scene: Scene, kind: discord.InteractionType) -> None:
+    """Requirement: Legacy posts keep working."""
+    custom_id = "giveaway@a:create;b:set-title"  # a legacy builder: no draft
     data: dict[str, object] = {"custom_id": custom_id, "components": []}
     if kind is COMPONENT:
         data["component_type"] = 2
@@ -101,7 +105,7 @@ async def test_v3_builder(scene: Scene, kind: discord.InteractionType) -> None:
 
 
 async def test_new_ids(scene: Scene) -> None:
-    """Requirement: v3's posts keep working."""
+    """Requirement: Legacy posts keep working."""
     await scene.add(GIVEAWAY)
     custom_id = IDS.build({"action": "participate", "giveaway_id": GIVEAWAY.id})
     interaction = scene.interaction(
@@ -123,12 +127,12 @@ async def test_new_ids(scene: Scene) -> None:
         (MODAL, {"custom_id": "giveaway:1:a=draw;c=x", "components": []}),
         (COMPONENT, {"component_type": 2, "custom_id": "giveaway@a:participate;x"}),
     ],
-    ids=["other", "v3-other", "string-select", "user-select", "modal-draw", "malformed"],
+    ids=["other", "legacy-other", "string-select", "user-select", "modal-draw", "malformed"],
 )
 async def test_other_actions(
     scene: Scene, kind: discord.InteractionType, data: dict[str, object]
 ) -> None:
-    """Requirement: v3's posts keep working."""
+    """Requirement: Legacy posts keep working."""
     scene.keep(Draft(title="Nitro"))
     interaction = scene.interaction(data, kind)
 

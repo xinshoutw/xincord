@@ -1,4 +1,4 @@
-"""The builder's changes to a draft, as v3's modals and buttons made them."""
+"""The builder's changes to a draft, from its modals and buttons."""
 
 from dataclasses import replace
 from typing import TYPE_CHECKING
@@ -17,9 +17,9 @@ if TYPE_CHECKING:
 def submit(
     draft: Draft, sub_action: str, values: Mapping[str, str], now: int, zone: tzinfo | None
 ) -> Draft | str:
-    """The draft that the submitted modal ``sub_action`` makes, or the key of v3's error.
+    """The draft that the submitted modal ``sub_action`` makes, or the key of its error.
 
-    Each value is trimmed as Kotlin's ``trim()``; a missing input is empty. The title must not be
+    Each value is trimmed (``trim``); a missing input is empty. The title must not be
     blank; an empty description, sponsor or thumbnail clears it; the end time must be given, valid
     and later than ``now``; a prize needs a name and a winner count from 1 to 50 and is appended;
     a thumbnail must be an http or https URL. An unknown modal changes nothing.
@@ -50,7 +50,7 @@ def submit(
 
 
 def _prize(draft: Draft, name: str, count_text: str) -> Draft | str:
-    """The draft with the prize appended, or v3's error: no name, or a count outside 1 to 50."""
+    """The draft with the prize appended, or the error: no name, or a count outside 1 to 50."""
     count = winner_count(count_text)
     if not name:
         return "error.prize-name"
@@ -60,7 +60,7 @@ def _prize(draft: Draft, name: str, count_text: str) -> Draft | str:
 
 
 def _end_time(draft: Draft, text: str, now: int, zone: tzinfo | None) -> Draft | str:
-    """The draft ending at ``text``, or v3's error: none given, an invalid time or a past one."""
+    """The draft ending at ``text``, or the error: none given, an invalid time or a past one."""
     if not text:
         return "error.end-time"
     end = parse_end_time(text, zone)
@@ -72,18 +72,18 @@ def _end_time(draft: Draft, text: str, now: int, zone: tzinfo | None) -> Draft |
 
 
 def remove_last_prize(draft: Draft) -> Draft | None:
-    """The draft without its last prize, or None when it has none, as v3's ``removeLastPrize``."""
+    """The draft without its last prize, or None when it has none."""
     return replace(draft, prizes=draft.prizes[:-1]) if draft.prizes else None
 
 
 def switch_policy(draft: Draft) -> Draft:
-    """The draft with the other winner policy, as v3's ``toggleWinnerDuplicatePolicy``."""
+    """The draft with the other winner policy."""
     unique = draft.policy is Policy.ALLOW_DUPLICATE
     return replace(draft, policy=Policy.UNIQUE_ACROSS_PRIZES if unique else Policy.ALLOW_DUPLICATE)
 
 
 def problem(draft: Draft, now: int) -> str | None:
-    """The key of v3's text for what the draft lacks to be posted at ``now``, in v3's order.
+    """The key of the text for what the draft lacks to be posted at ``now``, in this order.
 
     A title, then an end time later than ``now``, then a prize; None when it has them all.
     """

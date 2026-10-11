@@ -1,4 +1,4 @@
-"""The builder's preview: v3's green embed of the draft, with long fields clipped."""
+"""The builder's preview: a green embed of the draft, with long fields clipped."""
 
 from typing import TYPE_CHECKING, cast
 from zoneinfo import ZoneInfo
@@ -71,7 +71,7 @@ async def test_typed_placeholders(bot: Bot) -> None:
 
     embed = embed_dict(preview(draft, texts(bot, "en-US"), TAIPEI))
 
-    # The title is v3's "<gift> Nitro" with the typed title instead, as written.
+    # The title is the golden "<gift> Nitro" with the typed title instead, as written.
     assert embed["title"] == GOLDEN["preview"]["en-US"]["full"]["title"].replace(
         "Nitro", "%ga@title%"
     )

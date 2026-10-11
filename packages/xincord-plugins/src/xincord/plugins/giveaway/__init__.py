@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 DEPENDS: tuple[str, ...] = ()
 SOFT_DEPENDS: tuple[str, ...] = ()
 # Guild leaves need only discord.py's default guilds intent, and the members come with the
-# interactions, as in v3.
+# interactions.
 INTENTS = discord.Intents.none()
 
 
@@ -29,8 +29,8 @@ async def setup(bot: Bot) -> None:
     lang = context.lang(config.default_locale)
     cog = Giveaway(bot, config, context.store, lang, Templates.load(lang))
     await bot.add_cog(cog)
-    # A guild command, as in v3. discord.py removes it when the plugin unloads.
+    # A guild command; discord.py removes it when the plugin unloads.
     bot.tree.add_command(cog.command())
-    # The builder's buttons and modals and the posts' buttons with IDS's IDs, v3's too, reach
+    # The builder's buttons and modals and the posts' buttons with IDS's IDs, legacy ones too, reach
     # cog.handle; the core drops the route when the plugin unloads.
     bot.route(__name__, IDS, cog.handle)

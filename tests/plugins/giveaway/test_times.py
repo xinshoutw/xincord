@@ -1,8 +1,4 @@
-"""End times: v3's ``yyyy-MM-dd HH:mm`` read and shown in the configured zone.
-
-v3 read them with Java's ``DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")`` and its SMART
-resolver in the host's zone; the inventory lists the results verified with JDK 25.
-"""
+"""End times: ``yyyy-MM-dd HH:mm`` read and shown in the configured zone."""
 
 import time
 from datetime import UTC, datetime
@@ -112,7 +108,7 @@ def test_rejected(text: str) -> None:
 
 def test_zone_transitions() -> None:
     """Requirement: End times are read and shown in the configured zone."""
-    # Java's atZone moves a time in a gap forward and takes the earlier offset in an overlap.
+    # A time in a gap moves forward, and one in an overlap takes the earlier offset.
     assert parse_end_time("2026-03-08 02:30", NEW_YORK) == epoch(2026, 3, 8, 7, 30, zone=UTC)
     assert parse_end_time("2026-11-01 01:30", NEW_YORK) == epoch(2026, 11, 1, 5, 30, zone=UTC)
 

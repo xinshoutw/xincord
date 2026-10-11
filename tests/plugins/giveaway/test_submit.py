@@ -48,13 +48,13 @@ async def test_title(scene: Scene) -> None:
     assert embed_dict(shown(submitted))["title"] == GOLDEN["preview"]["en-US"]["full"]["title"]
 
 
-async def test_kotlin_trim(scene: Scene) -> None:
+async def test_trim_keeps_next_line(scene: Scene) -> None:
     """Requirement: Submitted modals change the draft."""
     scene.keep(Draft())
 
     await scene.submit("set-title", {"title": f"{NEXT_LINE}Nitro "})
 
-    assert scene.draft().title == f"{NEXT_LINE}Nitro"  # Kotlin's trim keeps U+0085
+    assert scene.draft().title == f"{NEXT_LINE}Nitro"  # the trim keeps U+0085
 
 
 @pytest.mark.parametrize("config", [TAIPEI])
@@ -103,7 +103,7 @@ async def test_prizes(scene: Scene) -> None:
     """Requirement: Submitted modals change the draft."""
     scene.keep(Draft())
 
-    for index in range(60):  # no limit on the number of prizes, as in v3
+    for index in range(60):  # no limit on the number of prizes
         await scene.submit("add-prize", {"prize-name": f" P{index} ", "winner-count": "+2"})
 
     assert scene.draft().prizes == tuple(Prize(f"P{index}", 2) for index in range(60))

@@ -1,22 +1,22 @@
-"""The builder's inputs as v3 checked them, and texts cut to Discord's limits."""
+"""The builder's input checks, and texts cut to Discord's limits."""
 
 import ipaddress
 import re
 from itertools import accumulate
 
 NEXT_LINE = chr(0x85)
-# Kotlin's Char.isWhitespace() is Python's str.isspace() without U+0085; the last whitespace
-# character is U+3000.
+# The whitespace that inputs are trimmed of: Python's str.isspace() without U+0085; the last
+# whitespace character is U+3000.
 WHITESPACE = "".join(char for char in map(chr, range(0x3001)) if char.isspace())
-KOTLIN_WHITESPACE = WHITESPACE.replace(NEXT_LINE, "")
+TRIMMED = WHITESPACE.replace(NEXT_LINE, "")
 
-# Kotlin's toIntOrNull(): an optional sign and decimal digits of any script. More digits than an
-# Int holds gave null; nine are enough for 1 to 50 and stay below Python's conversion limit.
+# A winner count: an optional sign and decimal digits of any script; nine digits are enough for
+# 1 to 50 and stay below Python's conversion limit.
 COUNT = re.compile(r"[+-]?\d{1,9}")
 WINNER_MIN, WINNER_MAX = 1, 50
 
-# java.net.URI's grammar (RFC 2396 with RFC 2732's brackets) for a server-based authority. Java
-# also takes its "other" characters, neither ASCII nor control nor space, outside the host.
+# RFC 2396's URI grammar (with RFC 2732's brackets) for a server-based authority, with the
+# "other" characters, neither ASCII nor control nor space, outside the host.
 UNRESERVED = r"A-Za-z0-9\-_.!~*'()"
 ESCAPED = r"%[0-9A-Fa-f]{2}"
 OTHER = r"[^\x00-\x9f\s]"
@@ -36,19 +36,19 @@ ADDRESS = re.compile(IPV4)
 OCTET_MAX = 255
 SCHEMES = ("http", "https")
 
-MORE = "..."  # what a clipped text ends with, as v3's clipFieldText
+MORE = "..."  # what a clipped text ends with
 
 
 def trim(text: str) -> str:
-    """``text`` without leading and trailing whitespace, as Kotlin's ``String.trim()``."""
-    return text.strip(KOTLIN_WHITESPACE)
+    """``text`` without leading and trailing whitespace, U+0085 kept."""
+    return text.strip(TRIMMED)
 
 
 def winner_count(text: str) -> int | None:
     """The winner count that ``text`` holds, from 1 to 50, or None.
 
-    v3 read it with ``toIntOrNull()``, which takes a sign and Unicode decimal digits (full-width
-    too) but no ``_``, which Python's ``int`` would take.
+    A sign and Unicode decimal digits (full-width too) count, but no ``_``, which Python's
+    ``int`` would take.
     """
     if COUNT.fullmatch(text) is None:
         return None
@@ -57,11 +57,11 @@ def winner_count(text: str) -> int | None:
 
 
 def is_http_url(text: str) -> bool:
-    """Whether ``text`` is an http or https URL with a host, as v3's check with Java's ``URI``.
+    """Whether ``text`` is an http or https URL with a host.
 
     The scheme counts in any case; the host is a host name, an IPv4 address with parts up to 255
-    or a bracketed IPv6 address. Java read any other authority as registry-based, without a host,
-    and v3 refused it; characters outside the URI grammar made it throw, refused too.
+    or a bracketed IPv6 address. Any other authority, or a character outside the URI grammar, is
+    refused.
     """
     match = URL.fullmatch(text)
     if match is None:
@@ -81,8 +81,7 @@ def is_http_url(text: str) -> bool:
 def thumbnail(url: str) -> str | None:
     """The URL to show as a thumbnail, with its scheme in lower case, or None.
 
-    v3 showed only URLs that started with a lowercase ``http://`` or ``https://``, although its
-    check took any case.
+    The check takes the scheme in any case.
     """
     scheme, separator, rest = url.partition("://")
     if separator and scheme.lower() in SCHEMES:
@@ -91,15 +90,14 @@ def thumbnail(url: str) -> str | None:
 
 
 def units(text: str) -> int:
-    """The length of ``text`` in UTF-16 code units, as Java's ``String.length``."""
+    """The length of ``text`` in UTF-16 code units."""
     return len(text.encode("utf-16-le")) // 2
 
 
 def clip(text: str, limit: int) -> str:
-    """``text`` cut to ``limit`` UTF-16 code units with ``...``, as v3's ``clipFieldText``.
+    """``text`` cut to ``limit`` UTF-16 code units with ``...``.
 
-    A longer text keeps the characters that fit before ``...``; v3 could split a character outside
-    the BMP in two.
+    A longer text keeps the whole characters that fit before ``...``.
     """
     if units(text) <= limit:
         return text

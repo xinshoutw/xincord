@@ -1,27 +1,25 @@
-# Golden data for the Giveaway tests. The texts are v3's, from
-# XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/ (its Kotlin code and its resources), unless noted.
+# Golden data for the Giveaway tests: the plugin's bundled texts, unless noted.
 
-# Texts that v3 wrote in Giveaway.kt, per locale.
+# Texts from text.yaml, per locale.
 texts:
   en-US:
     join: "Join / Leave"
     draw: "Draw Winners"
-    # post.title with the title `%ga@id%`, inserted as written (new: v3 used no placeholder there).
+    # post.title with the title `%ga@id%`, inserted as written.
     title-placeholder: "🎉 %ga@id%"
   zh-TW:
     join: "參加 / 退出"
     draw: "手動開獎"
     title-placeholder: "🎉 %ga@id%"
 
-# A guild's document as v3's Moshi wrote it (compact, its field order), after the inventory's
-# example with example IDs: a running giveaway and a drawn one, whose endedAtEpochSecond is set.
+# A guild's document as stored (compact, in its field order), with example IDs: a running giveaway and a drawn one, whose endedAtEpochSecond is set.
 # Snowflakes above 2^53 must stay exact.
 document: '{"3f2a9c1b7e4d4a60":{"id":"3f2a9c1b7e4d4a60","guildId":900000000000000010,"channelId":900000000000000005,"messageId":900000000000000042,"creatorId":900000000000000007,"localeTag":"zh-TW","createdAtEpochSecond":1767000000,"ended":false,"config":{"title":"Nitro","description":"desc","sponsor":"","thumbnailUrl":"https://x/y.png","endAtEpochSecond":1767225600,"winnerDuplicatePolicy":"UNIQUE_ACROSS_PRIZES","prizes":[{"name":"Nitro","winnerCount":2},{"name":"Sticker","winnerCount":1}]},"participantIds":[111,222,333],"winnerResults":[]},"0123456789ab4def":{"id":"0123456789ab4def","guildId":900000000000000010,"channelId":900000000000000005,"messageId":900000000000000043,"creatorId":900000000000000007,"localeTag":"en-US","createdAtEpochSecond":1767000000,"endedAtEpochSecond":1767225660,"ended":true,"config":{"title":"Nitro","description":"","sponsor":"Shop","thumbnailUrl":"","endAtEpochSecond":1767225600,"winnerDuplicatePolicy":"ALLOW_DUPLICATE","prizes":[{"name":"Nitro","winnerCount":2},{"name":"Sticker","winnerCount":1}]},"participantIds":[111,222,333],"winnerResults":[{"prizeName":"Nitro","winnerIds":[222,111]},{"prizeName":"Sticker","winnerIds":[333]}]}}'
 
-# The builder's preview (StepData.kt:61-128), as Embed.to_dict() without "type" and "flags":
+# The builder's preview, as Embed.to_dict() without "type" and "flags":
 # an empty draft, and a draft titled Nitro with the description "desc", the end time 1772330400
 # (2026-03-01 10:00 in Asia/Taipei), the prizes Nitro (2) and Sticker (0), unique winners, the
-# sponsor "Shop" and the thumbnail HTTPS://EXAMPLE.COM/a.png (shown with a lowercase scheme: new).
+# sponsor "Shop" and the thumbnail HTTPS://EXAMPLE.COM/a.png (shown with a lowercase scheme).
 preview:
   en-US:
     empty:
@@ -72,7 +70,7 @@ preview:
         - {name: "主辦/贊助", value: "Shop", inline: true}
       footer: {text: "使用下方按鈕逐步設定，最後按「確認建立」"}
 
-# The translated payload of the guild command (Register.kt and register.yaml); keys that are not
+# The translated payload of the guild command (register.yaml); keys that are not
 # listed here are not compared. 8 is the Administrator permission.
 commands:
   - type: 1
@@ -105,7 +103,7 @@ builder:
       - ["設定主辦/贊助", "設定縮圖"]
       - ["確認建立", "取消"]
 
-# v3's replies and errors (StepManager.kt:313-371, StepData.kt:47-59, Giveaway.kt:246-409).
+# The replies and errors.
 replies:
   en-US:
     expired: "Your setup session expired. Please run /create-giveaway again."
@@ -180,10 +178,10 @@ modals:
     en-US: {title: "Set Thumbnail URL", labels: ["Thumbnail URL"], placeholders: ["https://..."]}
     zh-TW: {title: "設定縮圖網址", labels: ["縮圖網址"], placeholders: ["https://..."]}
 
-# The name that add-prize suggests for a draft's third prize (StepManager.kt:193-198).
+# The name that add-prize suggests for a draft's third prize.
 third-prize: {en-US: "Prize 3", zh-TW: "獎品 3"}
 
-# The post (Giveaway.kt:481-619) of giveaway 3f2a9c1b7e4d4a60 (the Nitro and Sticker prizes of 2
+# The post of giveaway 3f2a9c1b7e4d4a60 (the Nitro and Sticker prizes of 2
 # and 1 winners, ending at 1772330400), as Embed.to_dict() without "type" and "flags", per locale:
 # running with participants 111 and 222, duplicates allowed, no description, no sponsor and the
 # thumbnail https://x/y.png; drawn with the description "desc", the sponsor "Shop", unique winners,
@@ -256,7 +254,7 @@ created: {en-US: "Giveaway created successfully: ", zh-TW: "抽獎建立成功�
 failed: {en-US: "Failed to create giveaway: ", zh-TW: "建立抽獎失敗："}
 cancelled: {en-US: "Giveaway setup cancelled.", zh-TW: "已取消建立抽獎流程。"}
 
-# The draw result's header and the body without participants (Giveaway.kt:354-386); draw-result
+# The draw result's header and the body without participants; draw-result
 # is "**%ga@header%**\n%ga@body%" in both locales.
 result:
   en-US: {drawn: "Draw finished", rerolled: "Reroll finished", nobody: "There are no participants.", not-enough: "(not enough participants)"}

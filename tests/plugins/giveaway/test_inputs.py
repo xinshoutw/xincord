@@ -1,14 +1,11 @@
-"""The builder's inputs: Kotlin's trim, the winner count, the thumbnail URL and clipped texts.
-
-The accepted and refused URLs are the inventory's, verified with JDK 25's ``java.net.URI``.
-"""
+"""The builder's inputs: the trim, the winner count, the thumbnail URL and clipped texts."""
 
 import pytest
 
 from xincord.plugins.giveaway.inputs import clip, is_http_url, thumbnail, trim, winner_count
 
-REASON = "Builder inputs are checked as in v3"
-NEXT_LINE = chr(0x85)  # whitespace for Python's isspace(), not for Kotlin's isWhitespace()
+REASON = "Builder inputs are checked"
+NEXT_LINE = chr(0x85)  # whitespace for Python's isspace(), kept by the trim
 IDEOGRAPHIC_SPACE = chr(0x3000)
 NO_BREAK_SPACE = chr(0xA0)
 FULL_WIDTH = {str(digit): chr(0xFF10 + digit) for digit in range(10)}
@@ -27,7 +24,7 @@ SMILE = chr(0x1F600)  # outside the BMP: two UTF-16 code units
     ],
 )
 def test_trimmed_values(text: str, trimmed: str) -> None:
-    """Requirement: Builder inputs are checked as in v3."""
+    """Requirement: Builder inputs are checked."""
     assert trim(text) == trimmed
 
 
@@ -54,7 +51,7 @@ def test_trimmed_values(text: str, trimmed: str) -> None:
     ],
 )
 def test_winner_counts(text: str, count: int | None) -> None:
-    """Requirement: Builder inputs are checked as in v3."""
+    """Requirement: Builder inputs are checked."""
     assert winner_count(text) == count
 
 
@@ -80,7 +77,7 @@ def test_winner_counts(text: str, count: int | None) -> None:
     ],
 )
 def test_accepted_urls(url: str) -> None:
-    """Requirement: Builder inputs are checked as in v3."""
+    """Requirement: Builder inputs are checked."""
     assert is_http_url(url)
 
 
@@ -111,7 +108,7 @@ def test_accepted_urls(url: str) -> None:
     ],
 )
 def test_refused_urls(url: str) -> None:
-    """Requirement: Builder inputs are checked as in v3."""
+    """Requirement: Builder inputs are checked."""
     assert not is_http_url(url)
 
 
@@ -127,16 +124,15 @@ def test_refused_urls(url: str) -> None:
     ],
 )
 def test_thumbnail(url: str, shown: str | None) -> None:
-    """Requirement: Builder inputs are checked as in v3."""
-    # v3 showed only URLs starting with a lowercase http:// or https://.
+    """Requirement: Builder inputs are checked."""
     assert thumbnail(url) == shown
 
 
 def test_clip() -> None:
-    """Requirement: Builder inputs are checked as in v3."""
+    """Requirement: Builder inputs are checked."""
     assert clip("a" * 1024, 1024) == "a" * 1024
     assert clip("a" * 1025, 1024) == "a" * 1021 + "..."
-    # Characters outside the BMP count twice, as in Java, and are never split.
+    # Characters outside the BMP count twice, as UTF-16 code units, and are never split.
     clipped = clip(SMILE * 600, 1024)
     assert clipped == SMILE * 510 + "..."
     assert clip("abcdef", 5) == "ab..."

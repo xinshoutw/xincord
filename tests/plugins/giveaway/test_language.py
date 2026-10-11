@@ -1,8 +1,4 @@
-"""One language per message: the plugin's files for the locale, else v3's zh or English choice.
-
-v3 chose its hard-coded texts by a ``zh`` prefix and its templates by the locale's directory, else
-the configured default, so en-GB users saw English texts with zh-TW buttons.
-"""
+"""One language per message: the plugin's files for the locale, else zh-TW or en-US."""
 
 from typing import TYPE_CHECKING, cast
 

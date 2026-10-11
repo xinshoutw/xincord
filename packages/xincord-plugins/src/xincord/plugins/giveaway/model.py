@@ -1,4 +1,4 @@
-"""Giveaways as v3 kept them: drafts, prizes, winners and the stored instances."""
+"""Giveaways: drafts, prizes, winners and the stored instances."""
 
 from dataclasses import dataclass, replace
 from enum import StrEnum
@@ -10,15 +10,15 @@ if TYPE_CHECKING:
 
     from xincord.core.storage import JSON
 
-DEFAULT_LOCALE_TAG = "zh-TW"  # v3's localeTag default
+DEFAULT_LOCALE_TAG = "zh-TW"  # the localeTag default
 
 
 class DataError(Exception):
-    """A stored giveaway is not v3's shape; it is left as it is, and the message says where."""
+    """A stored giveaway is of another shape; it is left as it is, and the message says where."""
 
 
 class Policy(StrEnum):
-    """Whether one participant may win several prizes; v3's ``WinnerDuplicatePolicy``."""
+    """Whether one participant may win several prizes."""
 
     ALLOW_DUPLICATE = "ALLOW_DUPLICATE"
     UNIQUE_ACROSS_PRIZES = "UNIQUE_ACROSS_PRIZES"
@@ -26,7 +26,7 @@ class Policy(StrEnum):
 
 @dataclass(frozen=True)
 class Prize:
-    """A prize and how many winners it has; v3's ``GiveawayPrize``."""
+    """A prize and how many winners it has."""
 
     name: str
     winner_count: int = 1
@@ -34,7 +34,7 @@ class Prize:
 
 @dataclass(frozen=True)
 class Draft:
-    """What the builder sets up, kept with the posted giveaway; v3's ``GiveawayConfig``."""
+    """What the builder sets up, kept with the posted giveaway."""
 
     title: str = ""
     description: str = ""
@@ -47,7 +47,7 @@ class Draft:
 
 @dataclass(frozen=True)
 class Winners:
-    """A prize's winners, in the order they were drawn; v3's ``PrizeWinners``."""
+    """A prize's winners, in the order they were drawn."""
 
     prize_name: str
     winner_ids: tuple[int, ...] = ()
@@ -55,7 +55,7 @@ class Winners:
 
 @dataclass(frozen=True)
 class Instance:
-    """A posted giveaway; v3's ``GiveawayInstance``."""
+    """A posted giveaway."""
 
     id: str
     guild_id: int
@@ -71,13 +71,13 @@ class Instance:
     winner_results: tuple[Winners, ...] = ()
 
 
-ID_LENGTH = 16  # v3's IDs: the first 16 hexadecimal digits of a random UUID
+ID_LENGTH = 16  # IDs: the first 16 hexadecimal digits of a random UUID
 
 
 def new_id(taken: Collection[str], random_hex: Callable[[], str]) -> str:
     """A new giveaway ID that ``taken`` lacks, from ``random_hex`` (a UUID's hex digits).
 
-    As v3: the first 16 digits, drawn again while the guild has a giveaway with them.
+    The first 16 digits, drawn again while the guild has a giveaway with them.
     """
     candidates = iter(lambda: random_hex()[:ID_LENGTH], None)
     return next(candidate for candidate in candidates if candidate not in taken)
@@ -86,12 +86,12 @@ def new_id(taken: Collection[str], random_hex: Callable[[], str]) -> str:
 def draw_winners(
     prizes: Sequence[Prize], policy: Policy, participants: Iterable[int], rng: random.Random
 ) -> tuple[Winners, ...]:
-    """Draw each prize's winners from ``participants``, as v3's ``drawPrizeWinners``.
+    """Draw each prize's winners from ``participants``.
 
     In prize order, each prize draws the smaller of its winner count (at least 1) and its pool's
     size, distinct and uniformly at random: from every participant when duplicates are allowed,
-    else from those that no earlier prize drew. ``rng.sample`` draws the same distribution as v3's
-    ``shuffled(random).take(k)``; the winners keep the order they were drawn in.
+    else from those that no earlier prize drew, with ``rng.sample``; the winners keep the order
+    they were drawn in.
     """
     everyone = tuple(participants)
     left = everyone  # under unique winners, the participants that no earlier prize drew
@@ -105,17 +105,17 @@ def draw_winners(
 
 
 def is_due(instance: Instance, now: int) -> bool:
-    """Whether the automatic draw draws it: not drawn, and its end time has come, as in v3."""
+    """Whether the automatic draw draws it: not drawn, and its end time has come."""
     return not instance.ended and instance.config.end_at <= now
 
 
 def is_closed(instance: Instance, now: int) -> bool:
-    """Whether joining is over: the giveaway is drawn or its end time has come, as in v3."""
+    """Whether joining is over: the giveaway is drawn or its end time has come."""
     return instance.ended or now >= instance.config.end_at
 
 
 def join(instance: Instance, user_id: int, now: int) -> tuple[str, Instance]:
-    """v3's toggle: ``closed``, else the user ``joined`` or ``left`` the participants."""
+    """Toggle the user: ``closed``, else the user ``joined`` or ``left`` the participants."""
     if is_closed(instance, now):
         return "closed", instance
     participants = instance.participant_ids
@@ -136,7 +136,7 @@ class Drawer:
 def draw(
     instance: Instance, drawer: Drawer, *, reroll: bool, now: int, rng: random.Random
 ) -> tuple[str, Instance]:
-    """v3's draw and reroll by ``drawer``: the refusal, else ``drawn`` and the drawn giveaway.
+    """Draw or reroll by ``drawer``: the refusal, else ``drawn`` and the drawn giveaway.
 
     Drawing is for the creator or an administrator once the end time has come and before a draw;
     rerolling is for administrators once drawn. Both draw every prize from the participants.
@@ -162,15 +162,14 @@ def drawn(instance: Instance, now: int, rng: random.Random) -> Instance:
 
 
 def parse_instance(entry: JSON, where: str) -> Instance:
-    """Read v3's JSON of a giveaway, as Moshi did; ``where`` names it in errors.
+    """Read the stored JSON of a giveaway; ``where`` names it in errors.
 
-    Missing optional fields take v3's defaults, except ``createdAtEpochSecond``, which Kotlin set to
-    the time of reading and v3 never read: it reads as 0. ``endedAtEpochSecond`` may be null;
-    an explicit null anywhere else fails, as in Moshi. Booleans are not integers. Duplicate
-    participants read once, in order, as v3's set kept them. Unknown fields are ignored.
+    Missing optional fields take their defaults; a missing ``createdAtEpochSecond`` reads as 0.
+    ``endedAtEpochSecond`` may be null; an explicit null anywhere else fails. Booleans are not
+    integers. Duplicate participants read once, in order. Unknown fields are ignored.
 
     Raises:
-        DataError: The entry is not v3's shape.
+        DataError: The entry is of another shape.
     """
     fields = _object(entry, where, "the giveaway")
     ended_at = fields.get("endedAtEpochSecond")
@@ -197,7 +196,7 @@ def parse_instance(entry: JSON, where: str) -> Instance:
 
 
 def instance_json(instance: Instance) -> dict[str, JSON]:
-    """v3's JSON of ``instance``, in Moshi's field order; an unset end time is left out."""
+    """The stored JSON of ``instance``, in its field order; an unset end time is left out."""
     config = instance.config
     draft: dict[str, JSON] = {
         "title": config.title,
@@ -233,7 +232,7 @@ def instance_json(instance: Instance) -> dict[str, JSON]:
 
 
 def _draft(value: JSON, where: str) -> Draft:
-    """v3's ``GiveawayConfig``, every field optional."""
+    """The stored draft, every field optional."""
     fields = _object(value, where, "config")
     policy = _text(fields, "winnerDuplicatePolicy", where, Policy.ALLOW_DUPLICATE.value)
     if policy not in Policy:
@@ -261,7 +260,7 @@ def _object(value: JSON, where: str, what: str) -> dict[str, JSON]:
 
 
 def _required(fields: dict[str, JSON], key: str, where: str) -> JSON:
-    """A field without a default: Moshi failed without it, and for null."""
+    """A field without a default: missing or null fails."""
     value = fields.get(key)
     if value is None:
         msg = f"{where}: {key} is missing or null"
@@ -270,7 +269,7 @@ def _required(fields: dict[str, JSON], key: str, where: str) -> JSON:
 
 
 def _field(fields: dict[str, JSON], key: str, where: str, default: JSON) -> JSON:
-    """A field with v3's default when it is missing; None as the default makes it required."""
+    """A field with its default when it is missing; None as the default makes it required."""
     return default if key not in fields and default is not None else _required(fields, key, where)
 
 
@@ -291,7 +290,7 @@ def _integer(fields: dict[str, JSON], key: str, where: str, default: int | None 
 
 
 def _flag(fields: dict[str, JSON], key: str, where: str) -> bool:
-    value = _field(fields, key, where, False)  # noqa: FBT003 - v3's default
+    value = _field(fields, key, where, False)  # noqa: FBT003 - the default
     if type(value) is not bool:
         msg = f"{where}: {key} is not a boolean: {value!r}"
         raise DataError(msg)

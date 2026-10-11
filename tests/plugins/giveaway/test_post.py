@@ -1,4 +1,4 @@
-"""The post: v3's embed and buttons of a giveaway, in the creator's language."""
+"""The post: the embed and buttons of a giveaway, in the creator's language."""
 
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any
@@ -58,7 +58,7 @@ def rendered(scene: Scene, instance: Instance) -> tuple[dict[str, Any], list[tup
 
 
 def expected_buttons(locale: str, disabled: tuple[bool, bool, bool]) -> list[tuple[Any, ...]]:
-    """v3's three buttons in ``locale`` with the giveaway's new IDs."""
+    """The three buttons in ``locale`` with the giveaway's new IDs."""
     shape = GOLDEN["post-buttons"]
     return [
         (style, label, f"giveaway:1:a={action};c=3f2a9c1b7e4d4a60", off)
@@ -144,4 +144,4 @@ async def test_no_thumbnail(scene: Scene) -> None:
 
     embed, _ = rendered(scene, instance)
 
-    assert "thumbnail" not in embed  # v3 showed only http and https URLs
+    assert "thumbnail" not in embed  # only http and https URLs show

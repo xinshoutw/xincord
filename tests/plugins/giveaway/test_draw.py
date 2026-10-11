@@ -208,7 +208,7 @@ async def test_long_result(scene: Scene) -> None:
     _, result = drawn(clicked)
     header = f"**{GOLDEN['result']['en-US']['drawn']}**\n"
     body = result.removeprefix(header)
-    assert len(body) == 1800  # v3's clipFieldText(..., 1800)
+    assert len(body) == 1800  # clipped to 1800
     assert body.endswith("...")
 
 

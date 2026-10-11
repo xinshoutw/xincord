@@ -8,19 +8,19 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from datetime import tzinfo
 
-# Java's ofPattern("yyyy-MM-dd HH:mm") in its strict parse: ASCII digits, a four-digit year
-# without a sign (years past 9999 needed one), two-digit fields.
+# An end time, yyyy-MM-dd HH:mm: ASCII digits, a four-digit year without a sign, two-digit
+# fields.
 PATTERN = re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2})")
 LAST_MONTH, LAST_DAY, LAST_HOUR, LAST_MINUTE = 12, 31, 23, 59
-END_OF_DAY = 24  # 24:00, which Java's SMART resolver reads as the next day's start
+END_OF_DAY = 24  # 24:00, the next day's start
 
 
 def parse_end_time(text: str, zone: tzinfo | None) -> int | None:
     """The epoch second of ``text`` read in ``zone`` (None: the host's), or None if invalid.
 
-    As Java's SMART resolver: each field must be in its range, a day past the month's last day is
-    clamped to it, and ``24:00`` is the start of the next day. Fold 0 takes the earlier offset in
-    an overlap and moves a time in a gap forward, as Java's ``atZone``. A time that ``datetime``
+    Each field must be in its range, a day past the month's last day is clamped to it, and
+    ``24:00`` is the start of the next day. Fold 0 takes the earlier offset in an overlap and
+    moves a time in a gap forward. A time that ``datetime``
     cannot hold (past 9999, in the zone or in UTC) is no end time.
     """
     match = PATTERN.fullmatch(text)

@@ -8,5 +8,5 @@ defaultLocale: "zh-TW"
 autoDrawIntervalSeconds: 60
 
 # The time zone of the end times that administrators type and see, such as "Asia/Taipei".
-# Empty: the host's time zone, as in v3 (in Docker, UTC unless the container's TZ is set).
+# Empty: the host's time zone (in Docker, UTC unless the container's TZ is set).
 timeZone: ""

@@ -47,7 +47,7 @@ def test_unique_across_prizes() -> None:
         )
         assert len(nitro.winner_ids) == 2
         assert len(sticker.winner_ids) == 1  # what the first prize left
-        assert badge == Winners("Badge", ())  # nobody left: v3's not enough participants
+        assert badge == Winners("Badge", ())  # nobody left: not enough participants
         drawn = nitro.winner_ids + sticker.winner_ids
         assert sorted(drawn) == sorted(PARTICIPANTS)
 
@@ -75,7 +75,7 @@ def test_short_pool_and_counts_below_one() -> None:
     nitro, sticker, badge = draw_winners(prizes, Policy.ALLOW_DUPLICATE, PARTICIPANTS, seeded(7))
 
     assert sorted(nitro.winner_ids) == sorted(PARTICIPANTS)  # all three of the five places
-    assert len(sticker.winner_ids) == len(badge.winner_ids) == 1  # v3's coerceAtLeast(1)
+    assert len(sticker.winner_ids) == len(badge.winner_ids) == 1  # at least 1
 
 
 def test_reproducible() -> None:

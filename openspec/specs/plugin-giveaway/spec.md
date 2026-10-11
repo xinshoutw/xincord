@@ -10,7 +10,7 @@ them, and giveaways whose end time has come are drawn automatically.
 ### Requirement: The plugin installs as Giveaway
 The `xincord-plugins` distribution SHALL register the plugin in the `xincord.plugins` entry-point
 group as `Giveaway`, pointing to `xincord.plugins.giveaway`, with no dependencies and no intents. It
-SHALL bundle `config.yaml` and v3's en-US and zh-TW lang files (`register.yaml`, seven message and
+SHALL bundle `config.yaml` and en-US and zh-TW lang files (`register.yaml`, seven message and
 six modal templates) with a `text.yaml` per locale, which its first load writes to
 `plugins/Giveaway/`.
 
@@ -24,15 +24,15 @@ six modal templates) with a `text.yaml` per locale, which its first load writes 
 - **THEN** `plugins/Giveaway/config.yaml` is the bundled file and the 30 lang files exist under
   `plugins/Giveaway/lang/`
 
-### Requirement: The config keeps v3's keys
-`config.yaml` SHALL hold v3's `defaultLocale`, `zh-TW` by default, a Discord locale whose lang files
+### Requirement: The config sets the locale, the draw interval and the zone
+`config.yaml` SHALL hold `defaultLocale`, `zh-TW` by default, a Discord locale whose lang files
 serve users whose locale has none, and `autoDrawIntervalSeconds`, 60 by default, an integer clamped
-to 5 to 3600 seconds, and add `timeZone`, the IANA zone of the end times, empty for the host's. v3's
-files SHALL load, their `enabled` key only warning; an unknown locale or zone or a non-integer
+to 5 to 3600 seconds, and `timeZone`, the IANA zone of the end times, empty for the host's. A file
+with an `enabled` key SHALL load, that key only warning; an unknown locale or zone or a non-integer
 interval SHALL stop the plugin from loading, with the key named.
 
-#### Scenario: v3's file
-- **WHEN** `plugins/Giveaway/config.yaml` is v3's, with `enabled: false`, `defaultLocale: "zh-TW"`
+#### Scenario: A file with an enabled key
+- **WHEN** `plugins/Giveaway/config.yaml` has `enabled: false`, `defaultLocale: "zh-TW"`
   and `autoDrawIntervalSeconds: 60`
 - **THEN** the plugin loads with zh-TW, 60 seconds and the host's zone, and a warning names
   `enabled`
@@ -67,12 +67,11 @@ found.` the user's.
 
 #### Scenario: Other locale
 - **WHEN** the locale is en-GB or ja
-- **THEN** the en-US texts and templates are used, where v3 showed English texts with zh-TW
-  buttons
+- **THEN** the en-US texts and templates are used
 
 ### Requirement: End times are read and shown in the configured zone
 An end time SHALL be `yyyy-MM-dd HH:mm` in ASCII digits with a year from 0001 to 9999, read in
-`timeZone` as v3's Java pattern did: a day past the month's last day is clamped to it, and `24:00`
+`timeZone`: a day past the month's last day is clamped to it, and `24:00`
 is the start of the next day. The plugin SHALL show end times in the same pattern and zone.
 
 #### Scenario: Accepted
@@ -102,11 +101,11 @@ is the start of the next day. The plugin SHALL show end times in the same patter
 - **WHEN** `timeZone` is empty and the host's zone is Asia/Taipei
 - **THEN** `2026-03-01 10:00` is the epoch second 1772330400
 
-### Requirement: Builder inputs are checked as in v3
-The plugin SHALL trim modal values of Kotlin's whitespace, which is Python's without U+0085. A winner
+### Requirement: Builder inputs are checked
+The plugin SHALL trim modal values of Python's whitespace except U+0085. A winner
 count SHALL be an optional sign and decimal digits, Unicode digits included, from 1 to 50. A
 thumbnail SHALL be a URL whose scheme is http or https in any case and whose host is a valid host
-name, IPv4 or bracketed IPv6 address, as Java's `URI` read it.
+name, IPv4 or bracketed IPv6 address, by RFC 2396's grammar.
 
 #### Scenario: Trimmed values
 - **WHEN** a value is surrounded by spaces, tabs, U+3000 or U+0085
@@ -151,34 +150,34 @@ there SHALL be no result. Production draws SHALL use `random.SystemRandom`.
 - **WHEN** the plugin loads
 - **THEN** it draws with a `random.SystemRandom`
 
-### Requirement: Giveaways are stored as v3's documents
+### Requirement: Giveaways are stored as documents
 Each guild's giveaways SHALL be one document in the store, namespace `Giveaway`, key the guild ID,
-value v3's JSON `{"<id>": {...}}` in Moshi's field order with `endedAtEpochSecond` left out while
-unset. Missing optional fields SHALL read as v3's defaults (`createdAtEpochSecond` as 0). An entry
-that is not v3's shape SHALL raise and never be overwritten, and the guild's other entries SHALL
+value the JSON `{"<id>": {...}}` in a fixed field order with `endedAtEpochSecond` left out while
+unset. Missing optional fields SHALL read as their defaults (`createdAtEpochSecond` as 0). An
+entry of another shape SHALL raise and never be overwritten, and the guild's other entries SHALL
 keep working.
 
-#### Scenario: v3's documents
-- **WHEN** the store holds v3's example document of a running and a drawn giveaway
+#### Scenario: Stored documents
+- **WHEN** the store holds the example document of a running and a drawn giveaway
 - **THEN** both read with their fields, and writing them back gives the same JSON
 
 #### Scenario: Defaults
 - **WHEN** an entry has only `id`, the IDs and `config`
 - **THEN** it reads with the locale zh-TW, no participants, no results, not drawn and created at 0
 
-#### Scenario: Not v3's shape
+#### Scenario: Another shape
 - **WHEN** an entry lacks `creatorId`, has the policy `RANDOM`, or a text or a fraction as an ID
 - **THEN** reading it raises, a change to it raises, the stored document stays as it was, and a
   join to another giveaway of the guild is stored
 
 ### Requirement: The command opens the builder
-`/create-giveaway` SHALL edit the response that the tree deferred ephemerally into v3's
+`/create-giveaway` SHALL edit the response that the tree deferred ephemerally into the
 `create-giveaway` template in the user's language, showing an empty draft's preview, and keep that
 draft for the user in the guild, replacing a draft they had there.
 
 #### Scenario: Builder
 - **WHEN** an administrator with an en-US or a zh-TW client runs the command
-- **THEN** the response shows the empty draft's preview and v3's ten buttons in four rows, whose
+- **THEN** the response shows the empty draft's preview and ten buttons in four rows, whose
   IDs are `giveaway:1:a=create;b=<sub-action>`
 
 #### Scenario: New draft
@@ -186,20 +185,20 @@ draft for the user in the guild, replacing a draft they had there.
 - **THEN** the new builder shows an empty draft and only it drives the user's draft
 
 ### Requirement: The preview shows the draft
-The preview SHALL be v3's green embed: `🎁` and the title, or v3's draft title; the description,
+The preview SHALL be a green embed: `🎁` and the title, or the draft title; the description,
 the end time as `<t:END:F>` and in the zone, the prizes as `N. name (count ...)`, the winner
 policy, the total winner slots and the sponsor, unset ones `Not set`; the thumbnail when its URL is
-http or https in any case; v3's footer. A field longer than 1024 characters SHALL end with `...`.
+http or https in any case; the footer. A field longer than 1024 characters SHALL end with `...`.
 
 #### Scenario: Empty draft
 - **WHEN** the draft is empty, in en-US or zh-TW
-- **THEN** the preview is v3's embed with the draft title, `Not set`, `No prize yet`, duplicates
+- **THEN** the preview is the embed with the draft title, `Not set`, `No prize yet`, duplicates
   allowed and 0 slots
 
 #### Scenario: Full draft
 - **WHEN** the draft has a title, a description, an end time, two prizes of 2 and 0 winners, unique
   winners, a sponsor and an `HTTPS://` thumbnail
-- **THEN** the preview is v3's embed with those values, 3 slots and the thumbnail
+- **THEN** the preview is the embed with those values, 3 slots and the thumbnail
 
 #### Scenario: Long texts
 - **WHEN** the description has 4000 characters and the prizes take more than 1024
@@ -207,13 +206,13 @@ http or https in any case; v3's footer. A field longer than 1024 characters SHAL
 
 ### Requirement: Builder buttons open pre-filled modals
 The buttons set-title, set-description, set-end-time, set-sponsor, set-thumbnail and add-prize SHALL
-open v3's modal of the same name in the user's language with the interaction's values and the
+open the modal of the same name in the user's language with the interaction's values and the
 draft's `ga@title`, `ga@description`, `ga@end-time` (empty when unset), `ga@sponsor`,
 `ga@thumbnail` and `ga@prize-name` (`Prize N`, N the next prize's number), inserted as written.
 
 #### Scenario: Title modal
 - **WHEN** a user whose draft is titled `Nitro` presses set-title
-- **THEN** the modal `giveaway:1:a=create;b=set-title` opens with v3's title, label and placeholder
+- **THEN** the modal `giveaway:1:a=create;b=set-title` opens with its title, label and placeholder
   and the input `title` pre-filled with `Nitro`, at most 100 characters
 
 #### Scenario: End time modal
@@ -222,7 +221,7 @@ draft's `ga@title`, `ga@description`, `ga@end-time` (empty when unset), `ga@spon
 
 #### Scenario: Prize modal
 - **WHEN** a draft with two prizes gets add-prize in en-US or zh-TW
-- **THEN** `prize-name` is pre-filled with v3's third prize name and `winner-count` with `1`
+- **THEN** `prize-name` is pre-filled with the third prize name and `winner-count` with `1`
 
 #### Scenario: Typed placeholders
 - **WHEN** the title is `%bot_name%`
@@ -230,7 +229,7 @@ draft's `ga@title`, `ga@description`, `ga@end-time` (empty when unset), `ga@spon
 
 ### Requirement: Submitted modals change the draft
 A valid submission SHALL change the draft and replace the builder message with its preview; an
-invalid one SHALL get v3's error ephemerally and leave the draft. The title SHALL not be blank; an
+invalid one SHALL get its error ephemerally and leave the draft. The title SHALL not be blank; an
 empty description, sponsor or thumbnail SHALL clear it; the end time SHALL be given, valid and in
 the future; a prize SHALL have a name and a winner count, and be appended; a thumbnail SHALL be a
 valid URL.
@@ -242,7 +241,7 @@ valid URL.
 #### Scenario: Errors
 - **WHEN** a blank title, a blank, invalid or past end time, a blank prize name, a winner count of
   51 or the thumbnail `ftp://x.com` is submitted
-- **THEN** the user gets v3's error for it in their language and the draft stays
+- **THEN** the user gets the error for it in their language and the draft stays
 
 #### Scenario: Prizes
 - **WHEN** prizes are submitted one after another
@@ -263,20 +262,20 @@ unique winners across prizes and update the builder.
 
 #### Scenario: Nothing to remove
 - **WHEN** a draft without prizes gets remove-prize
-- **THEN** the user gets v3's text ephemerally and the builder stays
+- **THEN** the user gets the no prize text ephemerally and the builder stays
 
 #### Scenario: Switch
 - **WHEN** toggle-duplicate-policy is pressed twice
 - **THEN** the policy becomes unique winners, then duplicates allowed, and the builder shows each
 
 ### Requirement: Only the latest builder of a draft works
-A builder press or submission SHALL get v3's session-expired text ephemerally when the user has no
+A builder press or submission SHALL get the session-expired text ephemerally when the user has no
 draft in the guild, or when it comes from a builder message other than the one that shows their
 draft. A builder press with an unknown sub-action SHALL get no response.
 
 #### Scenario: No draft
 - **WHEN** a user without a draft, as after a restart, presses a builder button or submits a modal
-- **THEN** they get v3's session-expired text ephemerally in their language
+- **THEN** they get the session-expired text ephemerally in their language
 
 #### Scenario: Older builder
 - **WHEN** a user presses a button of their first builder after running the command again
@@ -287,7 +286,7 @@ draft. A builder press with an unknown sub-action SHALL get no response.
 - **THEN** nothing is sent
 
 ### Requirement: Confirming checks the draft and the administrator
-confirm-create SHALL answer ephemerally with v3's text, in v3's order, when the title is blank, the
+confirm-create SHALL answer ephemerally with a text, in this order, when the title is blank, the
 end time has come or is unset, or no prize was added, and then when the user lacks the
 Administrator permission; nothing SHALL be posted and the draft SHALL stay.
 
@@ -297,7 +296,7 @@ Administrator permission; nothing SHALL be posted and the draft SHALL stay.
 
 #### Scenario: Not an administrator
 - **WHEN** a complete draft is confirmed by a user without Administrator
-- **THEN** the user gets v3's text and nothing is posted
+- **THEN** the user gets the not admin text and nothing is posted
 
 ### Requirement: Confirming posts the giveaway
 Otherwise the plugin SHALL take the draft, acknowledge the press, post `giveaway-post` in the
@@ -309,7 +308,7 @@ get the session-expired text.
 #### Scenario: Posted
 - **WHEN** an administrator confirms a complete draft in channel 5
 - **THEN** channel 5 gets the post, the store holds the giveaway with its message, and the builder
-  becomes v3's `create-finished` text with the post's link, without embeds or buttons
+  becomes the `create-finished` text with the post's link, without embeds or buttons
 
 #### Scenario: Double press
 - **WHEN** confirm-create is pressed twice before the post is made
@@ -318,7 +317,7 @@ get the session-expired text.
 ### Requirement: A giveaway that cannot be posted keeps the builder
 When the builder's channel takes no messages or refuses the post, or the giveaway cannot be stored,
 in which case the post is deleted, the plugin SHALL give the draft back, keep the builder and send
-v3's `create-failed` with the error, cut to 1000 characters, as an ephemeral follow-up.
+`create-failed` with the error, cut to 1000 characters, as an ephemeral follow-up.
 
 #### Scenario: Channel refuses
 - **WHEN** the channel refuses the post
@@ -338,29 +337,29 @@ v3's `create-failed` with the error, cut to 1000 characters, as an ephemeral fol
 - **THEN** the draft stays, so that a later press can post it
 
 ### Requirement: Cancelling ends the draft
-cancel SHALL drop the user's draft and replace the builder message with v3's `create-cancelled`,
+cancel SHALL drop the user's draft and replace the builder message with `create-cancelled`,
 without embeds or buttons.
 
 #### Scenario: Cancelled
 - **WHEN** a user with a draft presses cancel
-- **THEN** the builder shows v3's cancelled text alone and a later press gets the session-expired
+- **THEN** the builder shows the cancelled text alone and a later press gets the session-expired
   text
 
 ### Requirement: The post shows the giveaway
-The post SHALL be v3's embed and buttons in the creator's language: `🎉` and the title as written;
-the description or v3's default; gold while running, gray once drawn; status with `<t:END:R>`,
+The post SHALL be an embed and buttons in the creator's language: `🎉` and the title as written;
+the description or the default; gold while running, gray once drawn; status with `<t:END:R>`,
 participants, policy, prizes, winner results and the sponsor when set; the thumbnail; the ID in the
 footer. Join SHALL be disabled once closed, Draw once drawn, Reroll until drawn. Fields SHALL fit
 1024 characters and the embed 6000.
 
 #### Scenario: Running
 - **WHEN** a running giveaway with two participants is shown in en-US or zh-TW
-- **THEN** the post is v3's gold embed with `Running`, 2, `Not drawn yet` and the enabled join and
+- **THEN** the post is the gold embed with `Running`, 2, `Not drawn yet` and the enabled join and
   draw buttons
 
 #### Scenario: Drawn
 - **WHEN** a drawn giveaway with a prize that drew nobody is shown
-- **THEN** the post is v3's gray embed with `Drawn`, each prize's winners as mentions or v3's not
+- **THEN** the post is the gray embed with `Drawn`, each prize's winners as mentions or the not
   enough text, and only Reroll enabled
 
 #### Scenario: Long texts
@@ -377,12 +376,12 @@ unknown giveaway SHALL answer `Giveaway not found.`.
 
 #### Scenario: Join and leave
 - **WHEN** user 7 presses Join / Leave twice
-- **THEN** they are stored as a participant, then not, the post shows 1 then 0, and they get v3's
+- **THEN** they are stored as a participant, then not, the post shows 1 then 0, and they get the
   joined and left texts
 
 #### Scenario: Closed
 - **WHEN** the giveaway is drawn, or its end time has come
-- **THEN** the user gets v3's closed text and nothing changes
+- **THEN** the user gets the closed text and nothing changes
 
 #### Scenario: Another message
 - **WHEN** the press comes from a message that is not the giveaway's post
@@ -390,7 +389,7 @@ unknown giveaway SHALL answer `Giveaway not found.`.
 
 #### Scenario: Unknown giveaway
 - **WHEN** the button names a giveaway that the guild does not have
-- **THEN** the user gets v3's not found text in their language
+- **THEN** the user gets the not found text in their language
 
 #### Scenario: Joins at once
 - **WHEN** two users press Join / Leave at the same time
@@ -410,30 +409,30 @@ unknown giveaway SHALL answer `Giveaway not found.`.
 Draw Winners SHALL be allowed to the creator and administrators once the end time has come, Reroll
 to administrators once drawn. Each SHALL acknowledge the press at once, draw every prize from the
 participants, mark the giveaway drawn at that time and store it before showing it in the post
-through the press, then send v3's `draw-result` ephemerally. Refusals SHALL get v3's texts in the
+through the press, then send `draw-result` ephemerally. Refusals SHALL get their texts in the
 giveaway's language, the post showing the stored giveaway.
 
 #### Scenario: Draw
 - **WHEN** the creator, or an administrator, presses Draw Winners after the end time
-- **THEN** the stored giveaway is drawn, the post shows the winners, and they get v3's draw result
+- **THEN** the stored giveaway is drawn, the post shows the winners, and they get the draw result
 
 #### Scenario: Not allowed
 - **WHEN** a member who is neither the creator nor an administrator presses Draw Winners, or the
   creator without Administrator presses Reroll
-- **THEN** they get v3's not allowed text and nothing changes
+- **THEN** they get the not allowed text and nothing changes
 
 #### Scenario: Wrong time
 - **WHEN** Draw Winners is pressed before the end time or after the draw, or Reroll before it
-- **THEN** the user gets v3's too early text with `<t:END:R>`, already drawn or not drawn text
+- **THEN** the user gets the too early text with `<t:END:R>`, already drawn or not drawn text
 
 #### Scenario: Reroll
 - **WHEN** an administrator presses Reroll on a drawn giveaway
-- **THEN** every prize is drawn again from the participants and the result's header is v3's
+- **THEN** every prize is drawn again from the participants and the result's header is the
   reroll text
 
 #### Scenario: No participants
 - **WHEN** a giveaway without participants is drawn
-- **THEN** the result's body is v3's no participants text
+- **THEN** the result's body is the no participants text
 
 ### Requirement: Due giveaways are drawn automatically
 Five seconds after READY, then each `autoDrawIntervalSeconds` after a pass, the plugin SHALL draw
@@ -470,19 +469,19 @@ creator's language. A failure SHALL be logged and the other giveaways still hand
 - **WHEN** the plugin unloads
 - **THEN** the automatic draw stops
 
-### Requirement: v3's posts keep working
+### Requirement: Legacy posts keep working
 The plugin SHALL route the IDs of `ComponentIds("giveaway", ("action", "sub_action",
 "giveaway_id"), legacy_prefix="giveaway@")`: buttons with the actions `create`, `participate`,
-`draw` and `reroll` and modals with `create`, in v3's format too, after which the core upgrades a
+`draw` and `reroll` and modals with `create`, in the legacy format too, after which the core upgrades a
 post's IDs. Other actions and select menus SHALL get no response.
 
-#### Scenario: v3's post
-- **WHEN** user 7 presses `giveaway@a:participate;c:3f2a9c1b7e4d4a60` on a v3 post
+#### Scenario: A legacy post
+- **WHEN** user 7 presses `giveaway@a:participate;c:3f2a9c1b7e4d4a60` on a legacy post
 - **THEN** they join the giveaway and the post's buttons get IDs such as
   `giveaway:1:a=participate;c=3f2a9c1b7e4d4a60`
 
-#### Scenario: v3's builder
-- **WHEN** a v3 builder button `giveaway@a:create;b:set-title` is pressed after the switch
+#### Scenario: A legacy builder
+- **WHEN** a legacy builder button `giveaway@a:create;b:set-title` is pressed
 - **THEN** the user gets the session-expired text
 
 #### Scenario: Other actions
@@ -490,13 +489,13 @@ post's IDs. Other actions and select menus SHALL get no response.
 - **THEN** nothing is sent
 
 ### Requirement: The command is a localized administrator guild command
-The plugin SHALL register `create-giveaway` as a guild command without options, with v3's
+The plugin SHALL register `create-giveaway` as a guild command without options, with its
 description and localizations and the default member permission Administrator. The command tree
 SHALL defer it ephemerally before its callback runs.
 
 #### Scenario: Command payload
 - **WHEN** the guild command payload is built
-- **THEN** `create-giveaway` has v3's description, its en-US and zh-TW localizations, no options
+- **THEN** `create-giveaway` has its description, its en-US and zh-TW localizations, no options
   and the default member permissions 8
 
 #### Scenario: Command callback

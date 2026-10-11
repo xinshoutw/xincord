@@ -20,31 +20,29 @@ if TYPE_CHECKING:
 
     from .model import Draft, Instance, Prize
 
-CHINESE = "zh-TW"  # v3's zh texts
-ENGLISH = "en-US"  # v3's other texts
+CHINESE = "zh-TW"  # for a zh locale
+ENGLISH = "en-US"  # for any other
 TEXT = "text"  # the stem of the lang file that holds them
 
-PREVIEW_COLOR = 0x2ECC71  # v3's green
-RUNNING_COLOR = 0xF1C40F  # v3's gold, while a giveaway runs
-DRAWN_COLOR = 0x95A5A6  # v3's gray, once drawn
-# Discord's limits, which JDA's EmbedBuilder checked.
+PREVIEW_COLOR = 0x2ECC71  # green
+RUNNING_COLOR = 0xF1C40F  # gold, while a giveaway runs
+DRAWN_COLOR = 0x95A5A6  # gray, once drawn
+# Discord's limits of an embed.
 TITLE_MAX = 256
 FIELD_NAME_MAX = 256
 FIELD_VALUE_MAX = 1024
 DESCRIPTION_MAX = 4096
 EMBED_MAX = 6000  # the total of an embed's texts
-RESULT_MAX = 1800  # v3's bound of a draw result's body
-# JDA's EmbedBuilder.ZERO_WIDTH_SPACE (a left-to-right mark) for an empty field, which Discord
-# refuses.
+RESULT_MAX = 1800  # the bound of a draw result's body
+# A left-to-right mark for an empty field, which Discord refuses.
 EMPTY_FIELD = chr(0x200E)
 
 
 def language(lang: Lang, locale: str) -> str:
     """The locale whose texts and templates serve a user or a giveaway of ``locale``.
 
-    The plugin's own files for the locale when it has them; else, as v3's hard-coded texts chose,
-    zh-TW for a ``zh`` locale and en-US for any other. v3 took the templates from the configured
-    default locale instead, so one message could mix two languages.
+    The plugin's own files for the locale when it has them; else zh-TW for a ``zh`` locale and
+    en-US for any other, for the texts and the templates alike.
     """
     if locale in lang.locales:
         return locale
@@ -64,13 +62,12 @@ class Texts:
 
 
 def preview(draft: Draft, texts: Texts, zone: tzinfo | None) -> discord.Embed:
-    """The builder's preview of ``draft``, v3's ``ga@preview-embed``.
+    """The builder's preview of ``draft``, ``ga@preview-embed``.
 
-    v3's green embed: the title, or v3's draft title while it is blank; the description, the end
+    A green embed: the title, or the draft title while it is blank; the description, the end
     time (Discord's full date and the time in ``zone``), the prizes, the winner policy, the total
-    winner slots and the sponsor, unset ones ``Not set``; the thumbnail; v3's footer. Values are
-    inserted as written. The description and the prize list are clipped to 1024 characters, where
-    v3's preview failed and the builder stopped updating.
+    winner slots and the sponsor, unset ones ``Not set``; the thumbnail; the footer. Values are
+    inserted as written. The description and the prize list are clipped to 1024 characters.
     """
     not_set = texts.get("preview.not-set")
     title = (
@@ -105,7 +102,7 @@ def preview(draft: Draft, texts: Texts, zone: tzinfo | None) -> discord.Embed:
 
 
 def prize_lines(prizes: Sequence[Prize], texts: Texts) -> str:
-    """One ``N. name (count winner(s))`` line per prize, as v3's preview and post wrote them."""
+    """One ``N. name (count winner(s))`` line per prize, for the preview and the post."""
     return "\n".join(
         texts.get(
             "prize",
@@ -120,7 +117,7 @@ def prize_lines(prizes: Sequence[Prize], texts: Texts) -> str:
 
 
 def add_field(embed: discord.Embed, name: str, value: str, *, inline: bool = False) -> None:
-    """Add a field within Discord's limits, as JDA's ``addField`` with v3's clipping."""
+    """Add a field within Discord's limits, its name and value clipped."""
     embed.add_field(
         name=clip(name, FIELD_NAME_MAX) or EMPTY_FIELD,
         value=clip(value, FIELD_VALUE_MAX) or EMPTY_FIELD,
@@ -129,18 +126,18 @@ def add_field(embed: discord.Embed, name: str, value: str, *, inline: bool = Fal
 
 
 def _or(value: str, default: str) -> str:
-    """``value``, or ``default`` while it is blank, as Kotlin's ``ifBlank``."""
+    """``value``, or ``default`` while it is blank."""
     return value if trim(value) else default
 
 
 def post_embed(instance: Instance, texts: Texts, now: int) -> discord.Embed:
-    """The giveaway's post, v3's ``ga@giveaway-embed``.
+    """The giveaway's post, ``ga@giveaway-embed``.
 
-    v3's embed, gold while running and gray once drawn: the title as written, the description or
-    v3's default, the status at ``now`` with the end time, the participants, the winner policy,
+    An embed, gold while running and gray once drawn: the title as written, the description or
+    the default, the status at ``now`` with the end time, the participants, the winner policy,
     the prizes, the winners (or not drawn yet), the sponsor when set, the thumbnail and the ID.
-    Fields are clipped to 1024 characters as v3's, and the description so that the embed holds
-    at most 6000, which Discord refuses beyond (v3's refresh failed there).
+    Fields are clipped to 1024 characters, and the description so that the embed holds
+    at most 6000, which Discord refuses beyond.
     """
     config = instance.config
     end = config.end_at
@@ -178,7 +175,7 @@ def post_embed(instance: Instance, texts: Texts, now: int) -> discord.Embed:
 def post_buttons(
     instance: Instance, texts: Texts, now: int, build_id: IdBuilder
 ) -> tuple[discord.ui.Button[discord.ui.View], ...]:
-    """The post's join, draw and reroll buttons, v3's three ``ga@*-button`` models.
+    """The post's join, draw and reroll buttons, the three ``ga@*-button`` models.
 
     Join / Leave is disabled once the giveaway is drawn or its end time has come, Draw Winners
     once drawn, and Reroll until drawn.
@@ -206,9 +203,9 @@ def post_buttons(
 
 
 def result(instance: Instance, texts: Texts, *, reroll: bool) -> dict[str, str]:
-    """The ``ga@header``, ``ga@body`` and ``ga@title`` of a draw's result, as v3 built them.
+    """The ``ga@header``, ``ga@body`` and ``ga@title`` of a draw's result.
 
-    The body is v3's no participants text, or one winner line per prize clipped to 1800
+    The body is the no participants text, or one winner line per prize clipped to 1800
     characters.
     """
     header = texts.get("result.rerolled" if reroll else "result.drawn")
@@ -221,7 +218,7 @@ def result(instance: Instance, texts: Texts, *, reroll: bool) -> dict[str, str]:
 
 
 def winner_lines(instance: Instance, texts: Texts) -> str:
-    """One ``prize: <@winner> ...`` line per prize, or v3's not enough text for none."""
+    """One ``prize: <@winner> ...`` line per prize, or the not enough text for none."""
     return "\n".join(
         f"{result.prize_name}: "
         + (" ".join(f"<@{winner}>" for winner in result.winner_ids) or texts.get("not-enough"))
