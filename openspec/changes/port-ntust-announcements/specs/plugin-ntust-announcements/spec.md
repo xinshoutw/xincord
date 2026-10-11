@@ -81,6 +81,10 @@ Titles are the links' text with whitespace collapsed, links resolve against the 
 - **WHEN** a Student Affairs page has no `table.listTB.table`, or rows without a link
 - **THEN** the board, or those rows, give no entries
 
+#### Scenario: Redirects
+- **WHEN** a board's page redirects
+- **THEN** it is read where the redirect leads, and its links resolve against that page
+
 ### Requirement: Article pages give their content as minified HTML
 A link SHALL count as an NTUST article when it matches v3's pattern
 (`https://<host>.ntust.edu.tw/p/<digits, -, comma, r>.php...`). Its page SHALL give the outer HTML
