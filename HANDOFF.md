@@ -596,6 +596,15 @@ builds both distributions and a multi-arch image for GHCR, and creates the GitHu
 publishing waits for 1.0.0 and the owner's `pypi` environment. A manual run is a dry run. Nothing
 else waits in the repository: the cutover is next.
 
+The owner's order for the next sessions (2026-10-11): (1) walk the owner step by step through
+`docs/porting/owner-review.md` and the manual checks (a real token under compose, the smoke
+checklists), recording each answer in section 6 and deleting the item; (2) PyPI publishing: the
+owner's PyPI and GitHub settings (trusted publishers, the `pypi` environment) and the first
+published version (Amendment 4 says 1.0.0; the owner may choose to publish earlier); (3) make
+the repository and the GHCR package public; (4) the cutover, with Claude operating the
+production host and migrating v3's data with one-off scripts. Work in the main session, without
+subagents.
+
 The planned `xincord migrate` tool is dropped (the owner's decision of 2026-10-11,
 `decisions.md`, Amendment 6). At the cutover, when the owner asks, Claude operates the production
 host, inspects the real v3 data there and writes one-off migration scripts outside the repository.
