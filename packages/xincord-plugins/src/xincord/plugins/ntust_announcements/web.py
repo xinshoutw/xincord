@@ -1,8 +1,8 @@
-"""The plugin's HTTP: NTUST's pages and Gemini's REST API, over one aiohttp session.
+"""The plugin's HTTP: NTUST's pages and the model's REST API, over one aiohttp session.
 
 v3 fetched pages with Java's ``HttpClient``, which follows no redirect, and called Gemini through
 the google-genai Java SDK, building a client per attempt that it never closed. One session serves
-the plugin from READY until it unloads; Gemini's documented REST call needs no SDK.
+the plugin from READY until it unloads; the APIs' documented REST calls need no SDK (``api.py``).
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/announcement/AnnouncementParser.kt:19-102
@@ -12,27 +12,26 @@ Kotlin:
 import json
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Protocol, cast
+from typing import TYPE_CHECKING, Protocol
 
 import aiohttp
 
 from xincord.plugins.ntust_tls import ntust_context
 
-from .conversion import ApiError
-from .pages import trim
+from .api import CONNECT_TIMEOUT, REQUEST_TIMEOUT, ApiError, answer_text, error_message
 
 if TYPE_CHECKING:
     import ssl
     from collections.abc import AsyncGenerator
 
-API = "https://generativelanguage.googleapis.com"  # Gemini's REST API
+    from .api import Api
+
 OK = 200
 # v3's limits for pages: 30 seconds to connect and 30 for the request.
 PAGE_TIMEOUT = aiohttp.ClientTimeout(total=30, connect=30)
 # v3's SDK set none for Gemini, which can take a minute or more for a long article.
-GEMINI_TIMEOUT = aiohttp.ClientTimeout(total=300, connect=30)
+GEMINI_TIMEOUT = aiohttp.ClientTimeout(total=REQUEST_TIMEOUT, connect=CONNECT_TIMEOUT)
 MAX_REDIRECTS = 10
-TEMPERATURE = 0.1  # v3's generation config
 
 
 @dataclass(frozen=True)
@@ -52,16 +51,6 @@ class FetchError(Exception):
         self.status = status
 
 
-def _field(value: object, name: str) -> object:
-    """``value[name]`` when ``value`` is a JSON object, else None."""
-    return cast("dict[str, object]", value).get(name) if isinstance(value, dict) else None
-
-
-def _items(value: object) -> list[object]:
-    """``value`` when it is a JSON array, else no items."""
-    return cast("list[object]", value) if isinstance(value, list) else []
-
-
 def _json(text: str) -> object:
     """The JSON value of ``text``, or None when it is not JSON."""
     try:
@@ -71,18 +60,11 @@ def _json(text: str) -> object:
     return value
 
 
-def answer_text(answer: object) -> str:
-    """The text of the first candidate's parts of Gemini's answer, joined and trimmed.
-
-    v3's ``callOnce``; an answer without candidates (a blocked prompt), content or text parts gives
-    an empty text, a failed attempt.
-    """
-    candidates = _items(_field(answer, "candidates"))
-    if not candidates:
-        return ""
-    parts = _items(_field(_field(candidates[0], "content"), "parts"))
-    texts = [text for part in parts if isinstance(text := _field(part, "text"), str)]
-    return trim("".join(texts))
+def _timeout(api: Api) -> aiohttp.ClientTimeout:
+    """The limits of an attempt."""
+    if (api.request_timeout, api.connect_timeout) != (REQUEST_TIMEOUT, CONNECT_TIMEOUT):
+        raise NotImplementedError
+    return GEMINI_TIMEOUT
 
 
 class Requests(Protocol):
@@ -93,7 +75,7 @@ class Requests(Protocol):
         ...
 
     async def generate(self, key: str, prompt: str) -> str:
-        """One Gemini attempt."""
+        """One attempt with the model."""
         ...
 
 
@@ -102,9 +84,8 @@ class Web:
     """The requests of a running plugin, over its session."""
 
     session: aiohttp.ClientSession
-    model: str
-    api: str = API
-    # NTUST's context for the pages (``xincord.plugins.ntust_tls``), not for Gemini.
+    api: Api  # the model's settings
+    # NTUST's context for the pages (``xincord.plugins.ntust_tls``), not for the model's API.
     tls: ssl.SSLContext = field(default_factory=ntust_context)
 
     async def page(self, url: str) -> Page:
@@ -122,33 +103,29 @@ class Web:
             return Page(str(response.url), await response.text(errors="replace"))
 
     async def generate(self, key: str, prompt: str) -> str:
-        """One Gemini attempt: the answer's text for ``prompt``, with ``key``.
+        """One attempt: the model's text for ``prompt``, with ``key``, in the API's format.
 
-        The key goes in the ``x-goog-api-key`` header, never in the URL; v3's temperature 0.1.
+        The key goes in a header, never in the URL; redirects are not followed.
 
         Raises:
-            ApiError: Gemini answered with a status other than 200.
+            ApiError: The API answered with a status other than 200.
         """
-        body = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": TEMPERATURE},
-        }
+        api = self.api
         async with self.session.post(
-            f"{self.api}/v1beta/models/{self.model}:generateContent",
-            json=body,
-            headers={"x-goog-api-key": key},
-            timeout=GEMINI_TIMEOUT,
+            api.url,
+            json=api.body(prompt),
+            headers=api.headers(key),
+            timeout=_timeout(api),
             allow_redirects=False,
         ) as response:
             answer = _json(await response.text(errors="replace"))
             if response.status != OK:
-                message = _field(_field(answer, "error"), "message")
-                raise ApiError(response.status, message if isinstance(message, str) else "")
-            return answer_text(answer)
+                raise ApiError(response.status, error_message(answer))
+            return answer_text(api.format, answer)
 
 
 @asynccontextmanager
-async def open_web(model: str, api: str = API) -> AsyncGenerator[Web]:
-    """A session for the plugin's requests, closed when the block ends."""
+async def open_web(api: Api) -> AsyncGenerator[Web]:
+    """A session for the plugin's requests with the model's settings, closed when the block ends."""
     async with aiohttp.ClientSession() as session:
-        yield Web(session, model, api)
+        yield Web(session, api)

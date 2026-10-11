@@ -3,7 +3,7 @@
 READY never comes unless a test sets it, so the boards' loops wait for it; the loops left running
 are cancelled when the test ends. ``scene`` loads the plugin with two boards (the dormitory board
 in channel 101 and the Language Center's recruitment board in channel 102), and replaces its web
-(trimmed copies of NTUST's pages and a fake Gemini), its channels and its waits.
+(trimmed copies of NTUST's pages and a fake model's API), its channels and its waits.
 """
 
 import asyncio
@@ -18,6 +18,7 @@ import pytest
 
 from discord_fakes import FakeChannel, Sent
 from plugin_fakes import FIXTURES, WAIT, Ready, load_plugin
+from xincord.plugins.ntust_announcements.api import Api
 from xincord.plugins.ntust_announcements.web import FetchError, Page
 
 if TYPE_CHECKING:
@@ -133,7 +134,7 @@ class Clock:
 
 @dataclass
 class FakeWeb:
-    """NTUST's pages and Gemini: the boards' copies, a student article for every article.
+    """NTUST's pages and the model: the boards' copies, a student article for every article.
 
     ``hold``, when set to an event, keeps page fetches waiting until it is set; prompts that name
     a URL in ``stuck`` never get an answer.
@@ -155,6 +156,7 @@ class FakeWeb:
     most: int = 0  # the most page fetches under way at once
     opened: int = 0
     closed: int = 0
+    apis: list[Api] = field(default_factory=list[Api])  # the settings of each session
 
     async def page(self, url: str) -> Page:
         self.fetched.append(url)
@@ -178,9 +180,9 @@ class FakeWeb:
         return self.answer
 
     @asynccontextmanager
-    async def open(self, model: str) -> AsyncGenerator[FakeWeb]:
+    async def open(self, api: Api) -> AsyncGenerator[FakeWeb]:
         """Stands for ``open_web``: the session opens after READY and closes with the loops."""
-        del model
+        self.apis.append(api)
         self.opened += 1
         try:
             yield self
@@ -223,7 +225,7 @@ def config() -> str:
 
 @pytest.fixture
 def web() -> FakeWeb:
-    """NTUST's pages and Gemini for the loaded plugin."""
+    """NTUST's pages and the model for the loaded plugin."""
     return FakeWeb()
 
 

@@ -5,7 +5,7 @@
 
 ## 2. Requests
 
-- [ ] 2.1 xfail tests for "Gemini turns an article into Markdown" (settings, timeouts) and "An
+- [x] 2.1 xfail tests for "Gemini turns an article into Markdown" (settings, timeouts) and "An
       OpenAI-compatible API turns an article into Markdown", against stubs in a new `api.py`, with
       `open_web` taking an `Api`
 - [ ] 2.2 Build each format's request from the settings and read its answer; remove the markers

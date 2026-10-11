@@ -1,4 +1,4 @@
-"""The plugin's HTTP against a local server standing for NTUST and Gemini.
+"""The plugin's HTTP against a local server standing for NTUST and the model's API.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/announcement/AnnouncementParser.kt:19-102
@@ -10,15 +10,16 @@ import json
 import ssl
 from dataclasses import dataclass, field
 from importlib.resources import files
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+import aiohttp
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import RawTestServer
 
 from plugin_fakes import FIXTURES
-from xincord.plugins.ntust_announcements.conversion import ApiError
-from xincord.plugins.ntust_announcements.web import FetchError, Page, answer_text, open_web
+from xincord.plugins.ntust_announcements.api import Api, ApiError, ApiFormat, answer_text
+from xincord.plugins.ntust_announcements.web import FetchError, Page, open_web
 from xincord.plugins.ntust_tls import ntust_context
 
 if TYPE_CHECKING:
@@ -37,6 +38,25 @@ ANSWER = {
         {"content": {"parts": [{"text": "Another candidate"}]}},
     ]
 }
+OPENAI_ANSWER = {
+    "id": "chatcmpl-1",
+    "object": "chat.completion",
+    "choices": [
+        {
+            "index": 0,
+            "message": {"role": "assistant", "content": "  # Title\nBody  \n"},
+            "finish_reason": "stop",
+        },
+        {"index": 1, "message": {"role": "assistant", "content": "Another choice"}},
+    ],
+}
+OPENAI_ERROR = {
+    "error": {
+        "message": "Incorrect API key provided",
+        "type": "invalid_request_error",
+        "code": "invalid_api_key",
+    }
+}
 
 
 @dataclass(frozen=True)
@@ -47,14 +67,18 @@ class Received:
     path: str
     query: str
     key: str | None  # the x-goog-api-key header
+    authorization: str | None  # the Authorization header
     body: str
 
 
 @dataclass
 class Server:
-    """NTUST's pages and Gemini's API on 127.0.0.1; ``gemini`` is Gemini's status and body."""
+    """NTUST's pages (GET) and the model's API (POST) on 127.0.0.1.
 
-    gemini: tuple[int, str] = (200, json.dumps(ANSWER))
+    ``api`` is the API's status and body for every POST.
+    """
+
+    api: tuple[int, str] = (200, json.dumps(ANSWER))
     received: list[Received] = field(default_factory=list[Received])
     root: str = ""  # scheme, host and port, set once the server runs
 
@@ -65,9 +89,13 @@ class Server:
                 request.path,
                 request.query_string,
                 request.headers.get("x-goog-api-key"),
+                request.headers.get("Authorization"),
                 await request.text(),
             )
         )
+        if request.method == "POST":
+            status, text = self.api
+            return web.Response(status=status, text=text, content_type="application/json")
         match request.path:
             case "/board":
                 return web.Response(text=BOARD, content_type="text/html", charset="utf-8")
@@ -75,9 +103,6 @@ class Server:
                 return web.Response(status=302, headers={"Location": "/board"})
             case "/latin":
                 return web.Response(body=b"caf\xe9 \xff", content_type="text/html")
-            case path if path.startswith("/v1beta/"):
-                status, text = self.gemini
-                return web.Response(status=status, text=text, content_type="application/json")
             case _:
                 return web.Response(status=404)
 
@@ -91,24 +116,98 @@ async def server() -> AsyncGenerator[Server]:
         yield running
 
 
+def gemini(server: Server, **settings: Any) -> Api:  # noqa: ANN401 - Api's own types
+    """The settings of an API under the local server's ``/v1beta``, as Gemini's."""
+    return Api(endpoint=f"{server.root}/v1beta", **settings)
+
+
+def openai(server: Server, **settings: Any) -> Api:  # noqa: ANN401 - Api's own types
+    """The settings of an OpenAI-compatible API at the local server, as Gemini's own."""
+    return Api(format=ApiFormat.OPENAI, endpoint=f"{server.root}/v1beta/openai", **settings)
+
+
 async def test_request(server: Server) -> None:
     """Requirement: Gemini turns an article into Markdown."""
-    async with open_web(MODEL, api=server.root) as web_:
+    async with open_web(gemini(server)) as web_:
         await web_.generate("key-one", "the prompt")
 
     [received] = server.received
     assert (received.method, received.path) == ("POST", f"/v1beta/models/{MODEL}:generateContent")
     assert received.query == ""  # the key is in the header only
     assert received.key == "key-one"
+    assert received.authorization is None
     assert json.loads(received.body) == {
         "contents": [{"parts": [{"text": "the prompt"}]}],
         "generationConfig": {"temperature": 0.1},
     }
 
 
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Gemini turns an article into Markdown"
+)
+async def test_request_settings(server: Server) -> None:
+    """Requirement: Gemini turns an article into Markdown."""
+    api = Api(
+        endpoint=f"{server.root}/proxy/v1beta",
+        model="gemini-2.5-pro",
+        temperature=0.7,
+        max_output_tokens=2048,
+    )
+
+    async with open_web(api) as web_:
+        await web_.generate("key-one", "the prompt")
+
+    [received] = server.received
+    assert received.path == "/proxy/v1beta/models/gemini-2.5-pro:generateContent"
+    assert received.key == "key-one"
+    assert json.loads(received.body) == {
+        "contents": [{"parts": [{"text": "the prompt"}]}],
+        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 2048},
+    }
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Gemini turns an article into Markdown"
+)
+async def test_request_without_settings(server: Server) -> None:
+    """Requirement: Gemini turns an article into Markdown."""
+    async with open_web(gemini(server, temperature=None, max_output_tokens=None)) as web_:
+        await web_.generate("key-one", "the prompt")
+
+    # Both left to the API's defaults: no generationConfig at all.
+    assert json.loads(server.received[0].body) == {
+        "contents": [{"parts": [{"text": "the prompt"}]}]
+    }
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Gemini turns an article into Markdown"
+)
+async def test_timeouts(server: Server, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Requirement: Gemini turns an article into Markdown."""
+    timeouts: list[object] = []
+    post = aiohttp.ClientSession.post
+
+    def recording(session: aiohttp.ClientSession, url: str, **options: Any) -> Any:  # noqa: ANN401
+        timeouts.append(options.get("timeout"))
+        return post(session, url, **options)
+
+    monkeypatch.setattr(aiohttp.ClientSession, "post", recording)
+
+    async with open_web(gemini(server)) as web_:
+        await web_.generate("key-one", "the prompt")  # v3's: 300 seconds, 30 to connect
+    async with open_web(gemini(server, request_timeout=120, connect_timeout=10)) as web_:
+        await web_.generate("key-one", "the prompt")
+
+    assert timeouts == [
+        aiohttp.ClientTimeout(total=300, connect=30),
+        aiohttp.ClientTimeout(total=120, connect=10),
+    ]
+
+
 async def test_answer(server: Server) -> None:
     """Requirement: Gemini turns an article into Markdown."""
-    async with open_web(MODEL, api=server.root) as web_:
+    async with open_web(gemini(server)) as web_:
         text = await web_.generate("key-one", "the prompt")
 
     assert text == "# Title\nBody"  # the first candidate's parts, joined and trimmed
@@ -139,9 +238,9 @@ async def test_answer(server: Server) -> None:
 )
 async def test_refused_answers(server: Server, answer: tuple[int, str], error: str) -> None:
     """Requirement: Gemini turns an article into Markdown."""
-    server.gemini = answer
+    server.api = answer
 
-    async with open_web(MODEL, api=server.root) as web_:
+    async with open_web(gemini(server)) as web_:
         with pytest.raises(ApiError) as raised:
             await web_.generate("key-one", "the prompt")
 
@@ -161,9 +260,9 @@ async def test_refused_answers(server: Server, answer: tuple[int, str], error: s
 )
 async def test_answers_without_text(server: Server, body: str) -> None:
     """Requirement: Gemini turns an article into Markdown."""
-    server.gemini = (200, body)
+    server.api = (200, body)
 
-    async with open_web(MODEL, api=server.root) as web_:
+    async with open_web(gemini(server)) as web_:
         assert await web_.generate("key-one", "the prompt") == ""
 
 
@@ -188,12 +287,154 @@ async def test_answers_without_text(server: Server, body: str) -> None:
 )
 def test_answer_text(answer: object, text: str) -> None:
     """Requirement: Gemini turns an article into Markdown."""
-    assert answer_text(answer) == text
+    assert answer_text(ApiFormat.GEMINI, answer) == text
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="An OpenAI-compatible API turns an article into Markdown",
+)
+async def test_openai_request(server: Server) -> None:
+    """Requirement: An OpenAI-compatible API turns an article into Markdown."""
+    server.api = (200, json.dumps(OPENAI_ANSWER))
+
+    async with open_web(openai(server)) as web_:
+        await web_.generate("key-one", "the prompt")
+
+    [received] = server.received
+    assert (received.method, received.path) == ("POST", "/v1beta/openai/chat/completions")
+    assert received.query == ""  # the key is in the header only
+    assert received.authorization == "Bearer key-one"
+    assert received.key is None
+    assert json.loads(received.body) == {
+        "model": MODEL,
+        "messages": [{"role": "user", "content": "the prompt"}],
+        "temperature": 0.1,
+    }
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="An OpenAI-compatible API turns an article into Markdown",
+)
+async def test_openai_settings(server: Server) -> None:
+    """Requirement: An OpenAI-compatible API turns an article into Markdown."""
+    server.api = (200, json.dumps(OPENAI_ANSWER))
+    api = Api(
+        format=ApiFormat.OPENAI,
+        endpoint=f"{server.root}/api/v1",
+        model="openai/gpt-4o-mini",
+        temperature=None,
+        max_output_tokens=512,
+    )
+
+    async with open_web(api) as web_:
+        await web_.generate("key-one", "the prompt")
+
+    [received] = server.received
+    assert received.path == "/api/v1/chat/completions"
+    assert json.loads(received.body) == {
+        "model": "openai/gpt-4o-mini",
+        "messages": [{"role": "user", "content": "the prompt"}],
+        "max_tokens": 512,
+    }
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="An OpenAI-compatible API turns an article into Markdown",
+)
+async def test_openai_answer(server: Server) -> None:
+    """Requirement: An OpenAI-compatible API turns an article into Markdown."""
+    server.api = (200, json.dumps(OPENAI_ANSWER))
+
+    async with open_web(openai(server)) as web_:
+        text = await web_.generate("key-one", "the prompt")
+
+    assert text == "# Title\nBody"  # the first choice's content, trimmed
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="An OpenAI-compatible API turns an article into Markdown",
+)
+@pytest.mark.parametrize(
+    ("answer", "error"),
+    [
+        pytest.param(
+            (401, json.dumps(OPENAI_ERROR)), "code 401: Incorrect API key provided", id="error"
+        ),
+        pytest.param((500, "Internal Server Error"), "code 500", id="not JSON"),
+        pytest.param((302, ""), "code 302", id="redirect"),
+    ],
+)
+async def test_openai_refused_answers(server: Server, answer: tuple[int, str], error: str) -> None:
+    """Requirement: An OpenAI-compatible API turns an article into Markdown."""
+    server.api = answer
+
+    async with open_web(openai(server)) as web_:
+        with pytest.raises(ApiError) as raised:
+            await web_.generate("key-one", "the prompt")
+
+    assert str(raised.value) == error
+    assert raised.value.status == answer[0]
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="An OpenAI-compatible API turns an article into Markdown",
+)
+@pytest.mark.parametrize(
+    "body",
+    [
+        pytest.param(json.dumps({"choices": []}), id="no choices"),
+        pytest.param(
+            json.dumps({"choices": [{"message": {"role": "assistant", "content": None}}]}),
+            id="null content",
+        ),
+        pytest.param(json.dumps({"choices": [{"message": {"content": " \n "}}]}), id="blank"),
+        pytest.param("not JSON", id="not JSON"),
+    ],
+)
+async def test_openai_answers_without_text(server: Server, body: str) -> None:
+    """Requirement: An OpenAI-compatible API turns an article into Markdown."""
+    server.api = (200, body)
+
+    async with open_web(openai(server)) as web_:
+        assert await web_.generate("key-one", "the prompt") == ""
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="An OpenAI-compatible API turns an article into Markdown",
+)
+@pytest.mark.parametrize(
+    ("answer", "text"),
+    [
+        pytest.param({}, "", id="empty"),
+        pytest.param([], "", id="not an object"),
+        pytest.param({"choices": "x"}, "", id="choices not a list"),
+        pytest.param({"choices": [dict[str, object]()]}, "", id="no message"),
+        pytest.param({"choices": [{"message": "x"}]}, "", id="message not an object"),
+        pytest.param({"choices": [{"message": {"content": ["a"]}}]}, "", id="content parts"),
+        pytest.param({"choices": [{"message": {"refusal": "No."}}]}, "", id="refusal"),
+        pytest.param({"choices": [{"message": {"content": " a "}}]}, "a", id="text"),
+    ],
+)
+def test_openai_answer_text(answer: object, text: str) -> None:
+    """Requirement: An OpenAI-compatible API turns an article into Markdown."""
+    assert answer_text(ApiFormat.OPENAI, answer) == text
 
 
 async def test_page(server: Server) -> None:
     """Requirement: Board pages list their announcements."""
-    async with open_web(MODEL) as web_:
+    async with open_web(Api()) as web_:
         page = await web_.page(f"{server.root}/board")
 
     assert page == Page(f"{server.root}/board", BOARD)
@@ -202,7 +443,7 @@ async def test_page(server: Server) -> None:
 
 async def test_redirects(server: Server) -> None:
     """Requirement: Board pages list their announcements."""
-    async with open_web(MODEL) as web_:
+    async with open_web(Api()) as web_:
         page = await web_.page(f"{server.root}/moved")
 
     # v3 followed no redirect and read nothing; the links resolve against where it led.
@@ -211,7 +452,7 @@ async def test_redirects(server: Server) -> None:
 
 async def test_page_status(server: Server) -> None:
     """Requirement: Board pages list their announcements."""
-    async with open_web(MODEL) as web_:
+    async with open_web(Api()) as web_:
         with pytest.raises(FetchError) as raised:
             await web_.page(f"{server.root}/missing")
 
@@ -221,7 +462,7 @@ async def test_page_status(server: Server) -> None:
 
 async def test_page_encoding(server: Server) -> None:
     """Requirement: Board pages list their announcements."""
-    async with open_web(MODEL) as web_:
+    async with open_web(Api()) as web_:
         page = await web_.page(f"{server.root}/latin")
 
     # Without a charset, UTF-8 with replacement characters, as Java's BodyHandlers.ofString.
@@ -242,7 +483,7 @@ def test_page_certificates() -> None:
 
 async def test_pages_use_the_context() -> None:
     """Requirement: Board pages list their announcements."""
-    async with open_web(MODEL) as web_:
+    async with open_web(Api()) as web_:
         assert not web_.tls.verify_flags & ssl.VERIFY_X509_STRICT
         assert web_.tls.check_hostname
 

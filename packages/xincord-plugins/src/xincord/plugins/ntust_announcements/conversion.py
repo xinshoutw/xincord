@@ -16,6 +16,7 @@ import aiohttp
 
 from xincord.plugins.failures import Failures
 
+from .api import ApiError
 from .pages import trim
 
 if TYPE_CHECKING:
@@ -40,15 +41,6 @@ HIDDEN = "..."  # what stands for a key in a logged text
 # An attempt that did not reach Gemini: aiohttp's errors and OSError, timeouts included.
 NETWORK_ERRORS = (aiohttp.ClientError, OSError)
 BLANK = "blank"  # the kind of failure of an answer without text
-
-
-class ApiError(Exception):
-    """The model's API answered an attempt with a status other than 200."""
-
-    def __init__(self, status: int, message: str) -> None:
-        """Keep the status and the API's error message, if any."""
-        super().__init__(f"code {status}: {message}" if message else f"code {status}")
-        self.status = status
 
 
 def fill_prompt(template: str, link: Link, html: str, now: datetime) -> str:

@@ -12,9 +12,9 @@ from datetime import datetime
 import aiohttp
 import pytest
 
+from xincord.plugins.ntust_announcements.api import ApiError
 from xincord.plugins.ntust_announcements.conversion import (
     MAX_ATTEMPTS,
-    ApiError,
     Converter,
     KeyRing,
     backoff,

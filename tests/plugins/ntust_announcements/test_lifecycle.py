@@ -16,6 +16,7 @@ import discord
 import pytest
 
 from plugin_fakes import golden, load_plugin, until
+from xincord.plugins.ntust_announcements.api import Api
 from xincord.plugins.ntust_announcements.messages import HEADER
 from xincord.plugins.ntust_announcements.web import open_web
 
@@ -194,7 +195,7 @@ async def test_no_pings(scene: Scene) -> None:
 async def test_tests_stay_offline() -> None:
     """Requirement: Boards are checked from READY until the plugin unloads."""
     # The conftest's guard: a plugin that a test left with its real web reaches no NTUST page.
-    async with open_web("gemini-2.5-flash") as web:
+    async with open_web(Api()) as web:
         with pytest.raises(OSError, match="the tests do not reach the network"):
             await web.page(DORMITORY_URL)
 

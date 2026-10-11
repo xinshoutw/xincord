@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Protocol, override, runtime_checkable
 import discord
 from discord.ext import commands
 
+from .api import Api
 from .conversion import Converter
 from .store import Posted
 from .watch import Watcher
@@ -30,7 +31,7 @@ if TYPE_CHECKING:
     from .watch import Sleep
     from .web import Page, Requests
 
-type OpenWeb = Callable[[str], AbstractAsyncContextManager[Requests]]  # the model to a session
+type OpenWeb = Callable[[Api], AbstractAsyncContextManager[Requests]]  # settings to a session
 
 FETCHES = 5  # NTUST pages fetched at a time, v3's maxConcurrentRequests
 logger = logging.getLogger(__name__)
@@ -129,7 +130,7 @@ class NtustAnnouncements(commands.Cog):
         """
         await self.bot.wait_until_ready()
         fetches = asyncio.Semaphore(FETCHES)
-        async with self.open_web(self.config.model) as web:
+        async with self.open_web(Api(model=self.config.model)) as web:
 
             async def page(url: str) -> Page:
                 async with fetches:  # held while fetching only
