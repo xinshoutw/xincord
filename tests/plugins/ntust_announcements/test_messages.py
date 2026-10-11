@@ -37,11 +37,6 @@ def v3_split(content: str, max_len: int) -> list[str]:
     return segments
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Announcements become messages within Discord's limits",
-)
 def test_header_and_units() -> None:
     """Requirement: Announcements become messages within Discord's limits."""
     assert HEADER == FULLWIDTH_LOW_LINE * 15
@@ -49,11 +44,6 @@ def test_header_and_units() -> None:
     assert units(f"a{EMOJI}") == 3
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Announcements become messages within Discord's limits",
-)
 @pytest.mark.parametrize("length", [1, 1975, 1976, 1980])
 def test_one_message(length: int) -> None:
     """Requirement: Announcements become messages within Discord's limits."""
@@ -63,11 +53,6 @@ def test_one_message(length: int) -> None:
     assert content_messages(f" \n\t{content}\n ") == [f"{HEADER}\n{content}"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Announcements become messages within Discord's limits",
-)
 @pytest.mark.parametrize(
     "content",
     [
@@ -88,11 +73,6 @@ def test_split_at_a_line_break(content: str) -> None:
     assert all(units(message) <= MESSAGE_LIMIT for message in content_messages(content))
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Announcements become messages within Discord's limits",
-)
 def test_split_without_a_line_break() -> None:
     """Requirement: Announcements become messages within Discord's limits."""
     assert split("a" * 4000, 1980) == ["a" * 1980, "a" * 1980, "a" * 40]
@@ -105,11 +85,6 @@ def test_split_without_a_line_break() -> None:
     assert split(EMOJI * 1000, 1980) == [EMOJI * 990, EMOJI * 10]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Announcements become messages within Discord's limits",
-)
 @pytest.mark.parametrize(
     ("title", "url", "message"),
     [
@@ -134,11 +109,6 @@ def test_title_link(title: str, url: str, message: str) -> None:
     assert link_message(title, url) == message
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Announcements become messages within Discord's limits",
-)
 @pytest.mark.parametrize(
     ("title", "kept"),
     [
@@ -161,11 +131,6 @@ def test_long_title(title: str, kept: str) -> None:
     assert units(message) > MESSAGE_LIMIT - units(kept)  # as much as fits
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Announcements become messages within Discord's limits",
-)
 def test_url_without_room() -> None:
     """Requirement: Announcements become messages within Discord's limits."""
     url = "https://example.com/" + "a" * 1990  # no board links such a URL

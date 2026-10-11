@@ -24,7 +24,7 @@
 
 - [x] 4.1 xfail tests for "Announcements become messages within Discord's limits" against stubs
       in `messages.py`
-- [ ] 4.2 Implement the content messages, the split and the title links; remove the markers
+- [x] 4.2 Implement the content messages, the split and the title links; remove the markers
 
 ## 5. Gemini
 
