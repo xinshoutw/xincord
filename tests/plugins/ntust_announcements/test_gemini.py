@@ -78,9 +78,6 @@ def plugin_lines(caplog: pytest.LogCaptureFixture, level: int) -> list[str]:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The prompt is filled in one pass"
-)
 def test_tokens() -> None:
     """Requirement: The prompt is filled in one pass."""
     prompt = fill_prompt(PROMPT, LINK, "<p>x</p>", NOW)
@@ -92,9 +89,6 @@ def test_tokens() -> None:
     assert fill_prompt("{{html}} {{html}} {{other}}", LINK, "x", NOW) == "x x {{other}}"
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The prompt is filled in one pass"
-)
 def test_values_as_they_are() -> None:
     """Requirement: The prompt is filled in one pass."""
     link = Link("STUDENT_DORMITORY", URL, "About {{html}} and {{now}}")
@@ -106,9 +100,6 @@ def test_values_as_they_are() -> None:
     assert prompt.endswith("|<p>{{page_url}}</p>")
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The prompt is filled in one pass"
-)
 @pytest.mark.parametrize(
     ("url", "base"),
     [
@@ -129,11 +120,6 @@ def test_base_url(url: str, base: str) -> None:
     assert fill_prompt("{{base_url}}", Link("B", url, "t"), "", NOW) == base
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Gemini keys stay within the rate limit and failed attempts are retried",
-)
 async def test_keys_in_turn() -> None:
     """Requirement: Gemini keys stay within the rate limit and failed attempts are retried."""
     answers = Answers(Time())
@@ -146,11 +132,6 @@ async def test_keys_in_turn() -> None:
     assert answers.calls[0][2] == fill_prompt(PROMPT, LINK, "<p>x</p>", NOW)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Gemini keys stay within the rate limit and failed attempts are retried",
-)
 async def test_rate_limit() -> None:
     """Requirement: Gemini keys stay within the rate limit and failed attempts are retried."""
     time = Time()
@@ -167,11 +148,6 @@ async def test_rate_limit() -> None:
     assert [at for _, at, _ in answers.calls] == [*range(10), 60]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Gemini keys stay within the rate limit and failed attempts are retried",
-)
 def test_window() -> None:
     """Requirement: Gemini keys stay within the rate limit and failed attempts are retried."""
     ring = KeyRing(["key-one"])
@@ -182,11 +158,6 @@ def test_window() -> None:
     assert ring.take(60.0) == 0  # the first attempt left the window
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Gemini keys stay within the rate limit and failed attempts are retried",
-)
 def test_a_key_listed_twice() -> None:
     """Requirement: Gemini keys stay within the rate limit and failed attempts are retried."""
     ring = KeyRing(["same-key", "same-key", "other-key"])
@@ -197,11 +168,6 @@ def test_a_key_listed_twice() -> None:
     assert taken == [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 2, 2, 2, 2, 2, None]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Gemini keys stay within the rate limit and failed attempts are retried",
-)
 async def test_retries() -> None:
     """Requirement: Gemini keys stay within the rate limit and failed attempts are retried."""
     time = Time()
@@ -213,11 +179,6 @@ async def test_retries() -> None:
     assert time.sleeps == [60, 300, 900, 1800, 1800, 1800, 1800, 1800, 1800]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Gemini keys stay within the rate limit and failed attempts are retried",
-)
 async def test_success_after_failures() -> None:
     """Requirement: Gemini keys stay within the rate limit and failed attempts are retried."""
     time = Time()
@@ -230,21 +191,11 @@ async def test_success_after_failures() -> None:
     assert answers.keys() == ["key-one", "key-two", "key-one"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Gemini keys stay within the rate limit and failed attempts are retried",
-)
 def test_backoff() -> None:
     """Requirement: Gemini keys stay within the rate limit and failed attempts are retried."""
     assert [backoff(failed) for failed in range(1, 10)] == [60, 300, 900] + [1800] * 6
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Problems are logged without flooding or showing the keys",
-)
 async def test_keys_hidden(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems are logged without flooding or showing the keys."""
     keys = ("secret-key-one", "secret-key-two")
@@ -271,11 +222,6 @@ async def test_keys_hidden(caplog: pytest.LogCaptureFixture) -> None:
     assert URL in warnings[0]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Problems are logged without flooding or showing the keys",
-)
 async def test_gemini_failure_episode(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems are logged without flooding or showing the keys."""
     quota = GeminiError(429, "Resource has been exhausted")
@@ -293,11 +239,6 @@ async def test_gemini_failure_episode(caplog: pytest.LogCaptureFixture) -> None:
     assert infos == ["NtustAnnouncements: Gemini works again after 3 failed attempts"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Problems are logged without flooding or showing the keys",
-)
 async def test_conversion_given_up(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems are logged without flooding or showing the keys."""
     answers = Answers(Time(), [" "] * MAX_ATTEMPTS)
