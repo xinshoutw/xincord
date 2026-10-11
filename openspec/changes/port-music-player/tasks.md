@@ -61,7 +61,7 @@
 
 ## 9. Deployment
 
-- [ ] 9.1 xfail tests for "Lavalink service", "Container image" and "Compose service"
+- [x] 9.1 xfail tests for "Lavalink service", "Container image" and "Compose service"
 - [ ] 9.2 Add the `lavalink` service, `lavalink/application.yml`, `.env.example` and the ignores;
       remove the markers; check with Docker that the node starts healthy on this Mac and that the
       bot image loads every plugin with `--no-online`, then clean up

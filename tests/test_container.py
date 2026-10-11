@@ -1,7 +1,9 @@
 """The container image and the compose service."""
 
+import re
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -64,3 +66,82 @@ def test_service_definition() -> None:
         "options": {"max-size": "10m", "max-file": "3"},
     }
     assert "data" in compose["volumes"]
+
+
+LAVALINK_IMAGE = "ghcr.io/lavalink-devs/lavalink:4.2.2"
+EXACT = re.compile(r":\d+\.\d+\.\d+$")  # a Maven version that never moves
+
+
+@pytest.mark.xfail(strict=True, reason="Container image")
+def test_build_context_leaves_out_the_secrets() -> None:
+    """Requirement: Container image."""
+    lines = (ROOT / ".dockerignore").read_text(encoding="utf-8").splitlines()
+    ignored = {line.strip() for line in lines if line.strip() and not line.startswith("#")}
+
+    assert {".env", "lavalink"} <= ignored
+
+
+@pytest.mark.xfail(strict=True, reason="Compose service")
+def test_bot_starts_after_the_node() -> None:
+    """Requirement: Compose service."""
+    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
+
+    # Started, not healthy: the other plugins run while the node starts or fails.
+    assert compose["services"]["bot"]["depends_on"] == {
+        "lavalink": {"condition": "service_started"}
+    }
+
+
+@pytest.mark.xfail(strict=True, reason="Lavalink service")
+def test_lavalink_service() -> None:
+    """Requirement: Lavalink service."""
+    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
+    lavalink = compose["services"]["lavalink"]
+
+    assert lavalink["image"] == LAVALINK_IMAGE  # Ubuntu (glibc for DAVE), arm64 too
+    assert lavalink["volumes"] == ["./lavalink/application.yml:/opt/Lavalink/application.yml:ro"]
+    password = lavalink["environment"]["LAVALINK_SERVER_PASSWORD"]
+    assert password.startswith("${LAVALINK_PASSWORD:?")  # from .env, required
+    health = " ".join(lavalink["healthcheck"]["test"])
+    assert "curl" in health
+    assert "Authorization: $${LAVALINK_SERVER_PASSWORD}" in health  # /version needs it
+    assert "/version" in health
+    assert lavalink["restart"] == "unless-stopped"
+    assert lavalink["logging"] == {
+        "driver": "json-file",
+        "options": {"max-size": "10m", "max-file": "3"},
+    }
+    assert "ports" not in lavalink  # only the bot reaches it, over compose's network
+
+
+@pytest.mark.xfail(strict=True, reason="Lavalink service")
+def test_node_config() -> None:
+    """Requirement: Lavalink service."""
+    config = yaml.safe_load((ROOT / "lavalink" / "application.yml").read_text(encoding="utf-8"))
+
+    dependencies = [plugin["dependency"] for plugin in config["lavalink"]["plugins"]]
+    assert [dependency.rsplit(":", 1)[0] for dependency in dependencies] == [
+        "dev.lavalink.youtube:youtube-plugin",
+        "com.github.topi314.lavasrc:lavasrc-plugin",
+    ]
+    assert all(EXACT.search(dependency) for dependency in dependencies)
+    sources = config["lavalink"]["server"]["sources"]
+    assert (sources["youtube"], sources["http"], sources["local"]) == (False, False, False)
+    assert config["logging"]["request"]["enabled"] is False  # it would log every search
+    assert config["plugins"]["lavasrc"]["sources"]["spotify"] == "${SPOTIFY_ENABLED:false}"
+    assert config["plugins"]["youtube"]["enabled"] is True
+
+
+@pytest.mark.xfail(strict=True, reason="Lavalink service")
+def test_secrets_stay_untracked() -> None:
+    """Requirement: Lavalink service."""
+    gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+    example = (ROOT / ".env.example").read_text(encoding="utf-8")
+    values = dict(
+        line.split("=", 1)
+        for line in example.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    )
+
+    assert "/.env" in gitignore
+    assert values == {"LAVALINK_PASSWORD": "change-me"}  # an example, never a real password
