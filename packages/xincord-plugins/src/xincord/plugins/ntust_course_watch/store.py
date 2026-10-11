@@ -16,6 +16,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
+from .courses import course_code
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -39,7 +41,10 @@ def parse_registrations(document: object) -> Registered:
     """The registrations of v3's document; none for no document.
 
     A member listed twice (v3's ``/course-add`` allowed it) counts once, and channels and courses
-    without members (v3's ``/course-remove`` left the latter) are left out.
+    without members (v3's ``/course-remove`` left the latter) are left out. Codes are read as
+    ``/course-add`` reads them, since v3 stored them as typed: the registrations of codes that read
+    as one are merged, and codes that are no course code (an empty one would ask for the whole
+    semester) are left out; the next change writes the document without them.
 
     Raises:
         DataError: The document is not an object of courses whose channels, keyed by their IDs,
@@ -51,11 +56,22 @@ def parse_registrations(document: object) -> Registered:
         msg = "the registrations are not v3's document: expected an object of courses"
         raise DataError(msg)
     registered: dict[str, Mapping[int, tuple[int, ...]]] = {}
-    for code, channels in cast("dict[str, object]", document).items():
-        members = _channels(code, channels)
-        if members:
-            registered[code] = members
+    for stored, channels in cast("dict[str, object]", document).items():
+        members = _channels(stored, channels)
+        code = course_code(stored)
+        if code is not None and members:
+            registered[code] = _merged(registered.get(code, {}), members)
     return registered
+
+
+def _merged(
+    first: Mapping[int, tuple[int, ...]], second: Mapping[int, tuple[int, ...]]
+) -> dict[int, tuple[int, ...]]:
+    """The members of both, per channel, in order and once each."""
+    merged = dict(first)
+    for channel, members in second.items():
+        merged[channel] = tuple(dict.fromkeys((*merged.get(channel, ()), *members)))
+    return merged
 
 
 def _channels(code: str, channels: object) -> dict[int, tuple[int, ...]]:

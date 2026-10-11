@@ -7,8 +7,8 @@ reply:
   unregistered: "已取消登記這門課程。"
   # %ncw@courses%: the member's courses in this channel, separated by ", ".
   list: "你登記的課程：%ncw@courses%"
-  # Not in v3: a code that is not 1 to 20 letters and digits.
-  invalid-code: "課程代碼是 1 到 20 個英文字母與數字，例如 CE162A001。"
+  # Not in v3: a code that is not 9 to 20 letters and digits.
+  invalid-code: "課程代碼是 9 到 20 個英文字母與數字，例如 CE162A001。"
 
 # Posts in the channels that registered a course. They use the plugin's default language, en-US,
 # as v3's English ones; these translations keep both languages' keys the same.

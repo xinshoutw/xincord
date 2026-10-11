@@ -112,7 +112,10 @@ the Web Dashboard (B13).
   document: `{"<code>": {"<channel ID>": ["<user ID>", ...]}}`, IDs as decimal text (Moshi wrote
   the channel's `Long` keys as JSON names and the user IDs as strings). Reading checks the shape
   (an object of objects of lists of decimal strings, channel keys decimal) and raises `DataError`
-  otherwise; a member listed twice (v3 allowed it) counts once. Codes are read as they are stored.
+  otherwise; a member listed twice (v3 allowed it) counts once. Codes are read as `/course-add`
+  reads them, since v3 stored them as typed: codes that read as one are merged, and those that are
+  no course code (empty, too short, a course's name) are left out, so the loop never asks about
+  them, and the next change writes the document without them.
 - `add`, `remove` and `forget` (a channel) run under `store.lock("NtustCourseWatch:user_record_map")`
   with `get`, then `put` only when something changed; a course or channel left without members is
   dropped, and the document is deleted with its last registration. A broken document raises and is
@@ -122,9 +125,9 @@ the Web Dashboard (B13).
   store keeps them across restarts.
 - **v3 data to import:** v3's embedded MongoDB, database `NtustCourse`, collection
   `generated_cache`, document `{"_id": "user_record_map", "value": {...}, "timestamp": <epoch
-  ms>}`. The import puts `value` under namespace `NtustCourseWatch` and key `user_record_map`,
-  upper-casing and trimming the codes as `/course-add` reads them and merging the members of codes
-  that become equal; `timestamp` is dropped. The document holds the registrations made since v3's
+  ms>}`. The import puts `value` under namespace `NtustCourseWatch` and key `user_record_map`
+  unchanged (the plugin reads its codes as `/course-add` does, merging and leaving out as above);
+  `timestamp` is dropped. The document holds the registrations made since v3's
   last restart (older ones were overwritten at the first change after each restart). The local copy
   `XsDiscordBotKt/Server/` has v3 3.2.0's jar and no `plugins/NtustCourse/` directory.
 
@@ -137,8 +140,10 @@ the Web Dashboard (B13).
   as v3's core did. Replies edit the deferral with the text in the member's locale
   (`interaction.locale`, per key falling back to en-US).
 - `courses.course_code(text)`: NFKC (full-width letters and digits become ASCII), stripped, upper
-  case; valid when it is 1 to 20 ASCII letters and digits (NTUST's codes have 9: `CE162A001`,
-  `3N1154701`). An invalid code gets `invalid-code` (new) and changes nothing.
+  case; valid when it is 9 to 20 ASCII letters and digits (NTUST's codes have 9: `CE162A001`,
+  `3N1154701`): the course query matches a code as a prefix, so a shorter one would ask about a
+  department or most of the catalogue at every round (found in the cross-review). An invalid code
+  gets `invalid-code` (new) and changes nothing.
 - `/course-list`: the member's codes in the command's channel, sorted, comparing member IDs exactly;
   over 2000 characters, the last codes give way to `...`.
 

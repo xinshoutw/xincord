@@ -15,8 +15,10 @@ import unicodedata
 from dataclasses import dataclass
 from typing import cast
 
-# NTUST's codes are letters and digits (CE162A001, 3N1154701); 20 leave room for longer ones.
-CODE = re.compile(r"[0-9A-Z]{1,20}")
+# NTUST's codes are nine letters and digits (CE162A001, 3N1154701); 20 leave room for longer ones.
+# The course query matches a code as a prefix, so a shorter one would ask about a whole department
+# or most of the catalogue at every round.
+CODE = re.compile(r"[0-9A-Z]{9,20}")
 # Kotlin's toIntOrNull(): an optional sign and decimal digits of any script, within an Int.
 INT = re.compile(r"[+-]?\d+")
 INT_MIN, INT_MAX = -(2**31), 2**31 - 1

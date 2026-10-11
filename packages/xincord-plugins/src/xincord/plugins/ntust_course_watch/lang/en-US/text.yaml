@@ -7,8 +7,8 @@ reply:
   unregistered: "You have unregistered this course."
   # %ncw@courses%: the member's courses in this channel, separated by ", ".
   list: "Your registered courses: %ncw@courses%"
-  # Not in v3: a code that is not 1 to 20 letters and digits.
-  invalid-code: "A course code is 1 to 20 letters and digits, such as CE162A001."
+  # Not in v3: a code that is not 9 to 20 letters and digits.
+  invalid-code: "A course code is 9 to 20 letters and digits, such as CE162A001."
 
 # Posts in the channels that registered a course, in the plugin's default language (this one).
 # %ncw@course_name% and %ncw@course_id% are the course's name and code.

@@ -141,7 +141,6 @@ async def test_full_at_the_first_check(
     assert fakes.posts == []
 
 
-@pytest.mark.xfail(strict=True, reason="Registrations are kept as v3's document")
 async def test_stored_codes_asked(cog: NtustCourseWatch, fakes: Fakes, store: Store) -> None:
     """Requirement: Registrations are kept as v3's document."""
     await store.put(

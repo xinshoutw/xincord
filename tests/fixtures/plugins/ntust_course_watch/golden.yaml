@@ -62,13 +62,13 @@ replies:
     unregistered: "You have unregistered this course."
     list: "Your registered courses: CE162A001, CE162A002"
     list-empty: "Your registered courses: "
-    invalid-code: "A course code is 1 to 20 letters and digits, such as CE162A001."
+    invalid-code: "A course code is 9 to 20 letters and digits, such as CE162A001."
   zh-TW:
     registered: "已登記這門課程。"
     unregistered: "已取消登記這門課程。"
     list: "你登記的課程：CE162A001, CE162A002"
     list-empty: "你登記的課程："
-    invalid-code: "課程代碼是 1 到 20 個英文字母與數字，例如 CE162A001。"
+    invalid-code: "課程代碼是 9 到 20 個英文字母與數字，例如 CE162A001。"
 
 # The alerts about CE162A001 at second 7 of a minute, for members 1 and 2, in the default locale.
 alerts:

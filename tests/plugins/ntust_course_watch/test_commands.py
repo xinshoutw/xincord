@@ -120,8 +120,8 @@ async def test_typed_loosely(cog: NtustCourseWatch, typed: str) -> None:
 @pytest.mark.parametrize(
     "typed",
     [
-        pytest.param("CE 162", id="space inside"),
-        pytest.param("CE-162", id="hyphen"),
+        pytest.param("CE 162A001", id="space inside"),
+        pytest.param("CE-162A001", id="hyphen"),
         pytest.param("A" * 21, id="21 characters"),
         pytest.param("   ", id="blank"),
         pytest.param("CE162A001" + chr(0x4E2D), id="a Chinese character"),
@@ -138,7 +138,6 @@ async def test_invalid_code(cog: NtustCourseWatch, store: Store, typed: str) -> 
     assert replies(fake) == [ENGLISH["invalid-code"]]
 
 
-@pytest.mark.xfail(strict=True, reason="Members register courses in a channel")
 @pytest.mark.parametrize(
     "typed",
     [

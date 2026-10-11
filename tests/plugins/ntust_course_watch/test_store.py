@@ -139,7 +139,6 @@ async def test_broken_document(store: Store, document: JSON) -> None:
     assert await store.get(NAMESPACE, KEY) == document  # never overwritten
 
 
-@pytest.mark.xfail(strict=True, reason="Registrations are kept as v3's document")
 async def test_stored_codes(store: Store) -> None:
     """Requirement: Registrations are kept as v3's document."""
     name = chr(0x5FAE) + chr(0x7A4D) + chr(0x5206)  # a course's name typed as its code in v3

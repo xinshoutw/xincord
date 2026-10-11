@@ -49,8 +49,9 @@ plugin from loading with the key named.
 
 ### Requirement: Members register courses in a channel
 `/course-add id` SHALL read the code as NFKC text without surrounding whitespace in upper case,
-refuse a code that is not 1 to 20 letters and digits with `invalid-code`, add the member once to
-the course's members in the command's channel, and reply `registered`.
+refuse a code that is not 9 to 20 letters and digits with `invalid-code` (NTUST matches a code as a
+prefix), add the member once to the course's members in the command's channel, and reply
+`registered`.
 
 #### Scenario: Register
 - **WHEN** a member runs `/course-add id:CE162A001` in channel 5
@@ -65,7 +66,7 @@ the course's members in the command's channel, and reply `registered`.
 - **THEN** the member is registered for `CE162A001`
 
 #### Scenario: Invalid code
-- **WHEN** the code is `CE 162`, `CE-162` or 21 characters long
+- **WHEN** the code is `CE 162A001`, `CE-162A001`, `C`, `CE162A00` or 21 characters long
 - **THEN** nothing is registered and the reply is `invalid-code`
 
 ### Requirement: Members unregister their own courses
@@ -137,6 +138,11 @@ overwritten. Changes SHALL run under the document's lock and write only when the
 - **WHEN** the document is not v3's shape (a list, a channel key that is not a number, a user that
   is not text)
 - **THEN** reading it raises, a registration leaves it unchanged, and no course is checked
+
+#### Scenario: Stored codes
+- **WHEN** the document holds `ce162a001 ` and `CE162A001`, an empty code and a one-letter code
+- **THEN** both read as `CE162A001`, whose registrations are merged, and the others are left out
+  and never asked about
 
 #### Scenario: Concurrent registrations
 - **WHEN** two members register at the same time
