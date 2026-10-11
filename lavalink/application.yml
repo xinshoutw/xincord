@@ -1,6 +1,6 @@
 # The Lavalink node that plays MusicPlayer's audio: compose.yaml's lavalink service reads this file.
 # Its password is LAVALINK_SERVER_PASSWORD, which compose sets from LAVALINK_PASSWORD in .env; the
-# Spotify settings come from .env too. Lavalink downloads the plugins below when its container
+# Spotify and YouTube OAuth settings come from .env too. Lavalink downloads the plugins below when its container
 # starts. https://lavalink.dev/configuration/
 server:
   port: 2333
@@ -35,6 +35,12 @@ plugins:
     allowSearch: true # ytsearch:, which MusicPlayer sends for anything that is no link
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
+    # youtube-source's defaults, then TV, the only client that uses the OAuth account: videos that
+    # ask the others to sign in play through it.
+    clients: [MUSIC, ANDROID_VR, WEB, WEBEMBEDDED, TV]
+    oauth: # a spare Google account, from .env (YOUTUBE_OAUTH_*); off by default
+      enabled: ${YOUTUBE_OAUTH_ENABLED:false}
+      refreshToken: "${YOUTUBE_OAUTH_REFRESH_TOKEN:}"
   lavasrc:
     providers: # how a Spotify song is found on YouTube
       - "ytsearch:\"%ISRC%\""

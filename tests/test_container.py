@@ -3,7 +3,6 @@
 import re
 from pathlib import Path
 
-import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -160,7 +159,6 @@ def test_node_logs_no_queries() -> None:
     assert config["logging"]["level"]["lavalink.server.player.AudioLoaderRestHandler"] == "WARN"
 
 
-@pytest.mark.xfail(strict=True, reason="YouTube OAuth for the node")
 def test_youtube_oauth() -> None:
     """Requirement: YouTube OAuth for the node."""
     compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
