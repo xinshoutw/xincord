@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -286,3 +287,12 @@ def test_token_from_env() -> None:
 
     assert compose["services"]["bot"]["environment"]["XINCORD_TOKEN"] == "${XINCORD_TOKEN:-}"
     assert re.search(r"^# XINCORD_TOKEN=$", example, re.MULTILINE)
+
+
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason="Container image")
+def test_build_context_leaves_out_the_backups() -> None:
+    """Requirement: Container image, scenario Build context."""
+    lines = (ROOT / ".dockerignore").read_text(encoding="utf-8").splitlines()
+    ignored = {line.strip() for line in lines if line.strip() and not line.startswith("#")}
+
+    assert "backups" in ignored
