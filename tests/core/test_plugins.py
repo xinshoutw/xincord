@@ -499,6 +499,26 @@ async def test_hot_load_needs_the_intents(
     assert fake_plugins.calls() == ["Alpha", "Late"]
 
 
+@pytest.mark.xfail(strict=True, reason="Hot reload follows dependencies and intents")
+async def test_missing_intents_are_named(
+    fake_plugins: FakePlugins, store: Store, tmp_path: Path
+) -> None:
+    """Requirement: Hot reload follows dependencies and intents."""
+    fake_plugins.add("Alpha", RECORD)
+    fake_plugins.add("Members", "import discord\nINTENTS = discord.Intents(members=True)\n")
+    fake_plugins.add(
+        "Both", "import discord\nINTENTS = discord.Intents(members=True, presences=True)\n"
+    )
+    bot = fake_plugins.bot(["Alpha"], tmp_path, store)
+    await bot.load_plugins()
+    (members, both) = discover(["Members", "Both"], fake_plugins.entry_points)
+
+    with pytest.raises(PluginError, match=r"needs the members intent; restart to load it$"):
+        await bot.load_plugin(members)
+    with pytest.raises(PluginError, match=r"needs the members, presences intents; restart"):
+        await bot.load_plugin(both)
+
+
 TICKET = """
 from xincord.core.component_ids import ComponentIds
 

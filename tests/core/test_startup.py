@@ -199,6 +199,7 @@ async def test_stop_signal(
     assert len(closed) == 1
 
 
+@pytest.mark.xfail(strict=True, reason="Commands are uploaded when ready")
 async def test_ready(store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Commands are uploaded when ready."""
     bot = Bot([], root=tmp_path, data=tmp_path / "data", store=store)
@@ -207,7 +208,11 @@ async def test_ready(store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(Bot, "guilds", property(lambda _: guilds))
 
     await bot.on_ready()
+    first = list(syncs)
+    syncs.clear()
+    await bot.on_ready()  # a new session after a reconnect
 
+    assert first == [("global", True), (1, True), (2, True)]
     assert syncs == [("global", False), (1, False), (2, False)]
 
 
