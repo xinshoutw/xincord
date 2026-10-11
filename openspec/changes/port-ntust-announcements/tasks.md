@@ -50,7 +50,7 @@
 - [x] 7.2 Run one loop per board from READY in the cog, with the fetch limit, and end them at
       unload; remove the markers
 - [x] 7.3 xfail tests for "Channels are checked when the bot is ready" against a stub `check`
-- [ ] 7.4 Implement the check on ready and on a load into a ready bot; remove the markers
+- [x] 7.4 Implement the check on ready and on a load into a ready bot; remove the markers
 
 ## 8. Conventions and docs
 

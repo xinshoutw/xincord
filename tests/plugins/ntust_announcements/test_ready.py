@@ -11,14 +11,14 @@ Kotlin:
 import logging
 from typing import TYPE_CHECKING, cast
 
-import pytest
-
 import payloads
 from plugin_fakes import add_guild, dispatch, load_plugin
 from xincord.core.bot import Bot
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import pytest
 
     from xincord.core.storage import Store
     from xincord.plugins.ntust_announcements.cog import NtustAnnouncements
@@ -43,9 +43,6 @@ def cog_of(bot: Bot) -> NtustAnnouncements:
     return cast("NtustAnnouncements", bot.get_cog("NtustAnnouncements"))
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Channels are checked when the bot is ready"
-)
 async def test_missing_channel(bot: Bot, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Channels are checked when the bot is ready."""
     add_guild(bot, payloads.guild(10, channels=[payloads.channel(101, "dormitory")]))
@@ -57,9 +54,6 @@ async def test_missing_channel(bot: Bot, caplog: pytest.LogCaptureFixture) -> No
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Channels are checked when the bot is ready"
-)
 async def test_channel_without_messages(bot: Bot, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Channels are checked when the bot is ready."""
     channels = [
@@ -76,9 +70,6 @@ async def test_channel_without_messages(bot: Bot, caplog: pytest.LogCaptureFixtu
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Channels are checked when the bot is ready"
-)
 async def test_channels_that_take_messages(bot: Bot, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Channels are checked when the bot is ready."""
     channels = [payloads.channel(101, "dormitory"), payloads.channel(102, "lc", kind=VOICE)]
@@ -89,7 +80,6 @@ async def test_channels_that_take_messages(bot: Bot, caplog: pytest.LogCaptureFi
     assert warnings(caplog) == []  # a text channel and a voice channel's chat
 
 
-@pytest.mark.xfail(strict=True, reason="Channels are checked when the bot is ready")
 async def test_loaded_into_a_ready_bot(
     store: Store,
     tmp_path: Path,

@@ -7,9 +7,10 @@ Kotlin:
 """
 
 import asyncio
+import logging
 import time
 from datetime import datetime
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Protocol, override, runtime_checkable
 
 import discord
 from discord.ext import commands
@@ -32,6 +33,21 @@ if TYPE_CHECKING:
 type OpenWeb = Callable[[str], AbstractAsyncContextManager[Requests]]  # the model to a session
 
 FETCHES = 5  # NTUST pages fetched at a time, v3's maxConcurrentRequests
+logger = logging.getLogger(__name__)
+
+
+@runtime_checkable
+class Postable(Protocol):
+    """A channel that takes messages: text, announcement, voice and stage channels, threads.
+
+    Categories and forum channels have no ``send``.
+    """
+
+    async def send(self, *, content: str | None = None) -> object:
+        """Send a message to the channel."""
+        ...
+
+
 NO_MENTIONS = discord.AllowedMentions.none()  # Gemini's text pings nobody (v3: JDA's default)
 
 
@@ -63,6 +79,8 @@ class NtustAnnouncements(commands.Cog):
         started its scheduler when it loaded, after JDA was ready, with no initial delay.
         """
         self.tasks = (asyncio.create_task(self._run(), name="NtustAnnouncements"),)
+        if self.bot.is_ready():
+            self.check()  # a plugin loaded into a ready bot gets no on_ready
 
     @override
     async def cog_unload(self) -> None:
@@ -81,8 +99,26 @@ class NtustAnnouncements(commands.Cog):
         self.check()
 
     def check(self) -> None:
-        """Warn about each board whose channel the bot cannot see or that takes no messages."""
-        raise NotImplementedError
+        """Warn about each board whose channel the bot cannot see or that takes no messages.
+
+        v3 looked its guild up with ``!!`` when it started, which stopped the bot outside the
+        owner's guild, and each channel when it first posted; a wrong ID now shows at READY, and
+        when posting, as a warning. An unavailable guild (an outage) shows no channels either.
+        """
+        for board in self.config.boards:
+            channel: object = self.bot.get_channel(board.channel_id)
+            if channel is None:
+                logger.warning(
+                    "NtustAnnouncements board %s: the bot cannot see channel %d",
+                    board.name,
+                    board.channel_id,
+                )
+            elif not isinstance(channel, Postable):
+                logger.warning(
+                    "NtustAnnouncements board %s: channel %d takes no messages",
+                    board.name,
+                    board.channel_id,
+                )
 
     async def _run(self) -> None:
         """Wait until the bot is ready, then run one loop per board over one session.
