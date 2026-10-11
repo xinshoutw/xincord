@@ -77,8 +77,19 @@
 ## 11. Review
 
 - [x] 11.1 Gate passes, push, CI green (before the review)
-- [ ] 11.2 Cross-review the change (other paths into a panel or a song, repeated or concurrent
+- [x] 11.2 Cross-review the change (other paths into a panel or a song, repeated or concurrent
       presses and commands, state left behind) and fix its findings xfail-first
+- [x] 11.3 Leave at READY the voice connections that a new gateway session made discord.py
+      forget; the idle leave leaves them to READY
+- [x] 11.4 Release connections in order: the plugin hears of a leave before the node's deletion,
+      an earlier connection's late leave is ignored, and a lost connection leaves a newer one alone
+- [x] 11.5 Guard each leave when the link closes; release a connection whose voice state the
+      gateway refuses
+- [x] 11.6 Decide under the session's lock (songs without a player, `previous`, the pause toggle)
+      and check that a song still plays before a reply
+- [x] 11.7 Track a member's newest panel before the old one's deletion, and none after the unload
+- [x] 11.8 Time the node's requests out after 15 seconds; keep its load handler from logging
+      queries
 
 ## 12. Close
 

@@ -527,6 +527,17 @@ async def setup(bot: Bot) -> None:
 - The plugin keeps what plays next (v3's history) and starts one song at a time; each start has a
   number that the node's end events carry back, so an end that crossed a skip is stale. Each
   session changes under its own `asyncio.Lock`, in the order the commands, presses and events came.
+- What a command or press checks before an await (a load, the lock, the node) may be gone after
+  it: the session decides under its lock (`enqueue` refuses songs without a player, `previous` and
+  `toggle_pause` check that a song plays) and the reply checks again (MusicPlayer's cross-review).
+- READY again (a new gateway session) empties discord.py's voice clients without calling them: a
+  cog `on_ready` leaves what the link still holds (`Link.leave_lost`). A voice protocol ignores a
+  state without a channel until its own channel came (an earlier connection's late leave), calls
+  `cleanup()` only while discord.py holds it, tells the plugin before awaiting the node, and
+  leaves a newer connection of its guild alone; `channel.connect` only cleans up after a timeout.
+- Give lavalink.py a `request_timeout` (MusicPlayer: 15 seconds; its default is aiohttp's 5
+  minutes), and set the node's `lavalink.server.player.AudioLoaderRestHandler` logger to WARN
+  (its INFO lines name every query).
 - Self-refreshing ephemeral panels (`panels.Panels`): see "Components".
 
 ### Templates and placeholders

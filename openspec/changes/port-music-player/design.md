@@ -281,6 +281,9 @@ loads and player updates) through the real lavalink.py; compose and the node's c
   Unicode ones instead of breaking the panels.
 - Arbitrary `http(s)` links and local files no longer load; Yandex Music, Beam and Getyarn are gone
   (not in Lavalink 4, or need a token).
+- After a new gateway session (READY again, not a resume), the bot leaves the voice channels that
+  discord.py forgot; members run `/play` again. A node that answers nothing for 15 seconds makes
+  the command answer `node-unavailable`.
 
 ## Risks / Trade-offs
 
@@ -292,6 +295,55 @@ loads and player updates) through the real lavalink.py; compose and the node's c
 - [DAVE needs a real voice connection] -> the manual smoke checklist.
 - [Panels edit every 5 seconds per member] -> v3's rate; webhook edits of an interaction are not
   channel rate limits, and each panel ends after 60 seconds without a press.
+- [A large playlist loads past 15 seconds] -> youtube-source loads six pages of 100 songs by
+  default, in a few seconds; the history keeps 240 songs anyway.
+
+## Cross-review (a subagent, 2026-10-11)
+
+A review of the pushed work (other paths into a panel or a song, repeated or concurrent presses
+and commands, state left behind), with scratch probes through discord.py's own parser, real
+lavalink.py against a local node whose deletion was slow, and the cog's scene, found these
+problems; the port's own probes found the five marked "own" while it ran. All are fixed in this
+change (tasks 11.3 to 11.8):
+
+1. (medium) READY again (a new gateway session) empties discord.py's voice clients without telling
+   them: the session kept its player, `/disconnect` said `not-connected`, `/stop` could not leave
+   and the idle leave failed on the missing voice client. At READY the link leaves the connections
+   that discord.py forgot; the idle leave leaves them to it.
+2. (medium) A released connection told the plugin only after the node deleted its player: a
+   `/play` or `/join` that connected meanwhile lost its player, and every later `/play` said
+   `not-connected` until `/disconnect`. The plugin hears of a leave first, and a connection
+   released after the bot connected again leaves the newer one alone.
+3. (medium) discord.py hands a voice state to whichever protocol the guild has when it comes:
+   Discord's late answer to a leave released the next connection, and the bot stayed in voice
+   without a player. A connection ignores a state without a channel until Discord put it in one.
+4. (medium, own) A leave refused while the link closed ended the loop: other guilds stayed in voice
+   and lavalink.py's client was never closed. Each leave is guarded and logged; the client closes.
+5. (low, own) A voice state that the gateway refused left the new connection registered and the
+   session with a player. The connection is released and the error raised.
+6. (low) Lavalink 4.2.2's load handler logs each identifier at INFO (checked with the image),
+   which request logging off did not cover: every search reached the node's log. It logs warnings
+   only now.
+7. (low) No request timeout: aiohttp's 5 minutes held `/play` and the guild's lock while a node
+   hung. Requests fail after 15 seconds as `node-unavailable`.
+8. (low, three own) State checked outside the session's lock: `/play` added songs to a session
+   whose bot left during the load or while the songs waited for the player; `pause-resume` and
+   `previous` failed with an error when the songs went while the press waited, `/pause` and
+   `/resume` answered the wrong text or failed; two quick `pause-resume` presses paused once. The
+   session refuses songs without a player, `previous` and the pause toggle decide under the lock,
+   and the replies check that a song still plays.
+9. (low) A member's two quick panel commands left the older panel tracked and the newer one
+   refreshing untracked; a command that ended after the unload started a refresh that nothing
+   ended. The newest panel is tracked before the old one's deletion, and none after the unload.
+
+The review also found sound: start numbers and stale node events (lavalink.py builds end events
+from `player.current`, a replaced song's events change nothing, the messages reach the lock in
+order); the move workaround; `cog_app_command_error` and the autocompletes through discord.py's
+binding; the shutdown (cogs unload before the gateway closes), `--no-online`, a reload into a ready
+bot, a second READY that does not reopen the link, and `on_guild_remove` with the voice clients
+intact; Discord's limits (custom IDs, choices, the bar, the queue's budget, the 15-minute token);
+the secrets (errors hide the password, lavalink.py never logs it, the healthcheck expands it in the
+container, git and the build context ignore `.env`); and v3's replies against the inventory.
 
 ## Checks
 
@@ -320,6 +372,10 @@ loads and player updates) through the real lavalink.py; compose and the node's c
   session, the channel, the endpoint and the token; the pause button with the new ID and with
   v3's ID answered with deferred updates (type 6), paused and resumed on the node and edited the
   panel; closing the bot left voice, destroyed the node's player and deleted the panel.
+- After the review, with the node in compose: Lavalink 4.2.2 logged `Got request to load for
+  identifier "ytsearch:..."` and the search's playlist at INFO from
+  `lavalink.server.player.AudioLoaderRestHandler`; with that logger at WARN the node turned
+  healthy and a load logged nothing about its query. `docker compose down -v` and `.env` removed.
 
 ## Inventory audit
 

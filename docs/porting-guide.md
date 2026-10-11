@@ -826,12 +826,27 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   drop the cached `sessionId` first (MusicPlayer's `LavalinkVoice`). Its client creates an
   aiohttp connector with `enable_cleanup_closed`, which aiohttp 3.14 deprecates on Python 3.14
   (pytest ignores that warning). It ships an sdist only (uv builds it) and no `py.typed`: import
-  it with `# pyright: ignore[reportMissingTypeStubs]`.
+  it with `# pyright: ignore[reportMissingTypeStubs]`. Its requests take aiohttp's 5-minute
+  default unless `request_timeout` is given; `aiohttp.ClientTimeout(total=...)` there leaves its
+  WebSocket alone (MusicPlayer's test).
+- **A second READY and voice protocols.** discord.py's `parse_ready` (a new gateway session, not a
+  resume) empties its voice clients without calling them: a plugin with a voice protocol of its
+  own leaves or releases them in a cog `on_ready` (MusicPlayer's `Link.leave_lost`). discord.py
+  hands each voice state to the protocol the guild has when it arrives, so Discord's late answer
+  to a leave reaches the next connection: a protocol ignores a state without a channel until its
+  own channel came. `VoiceProtocol.cleanup()` removes whatever the guild has registered (check
+  `self in client.voice_clients` first), and `channel.connect` releases a protocol only after a
+  timeout, so `connect` releases itself on other errors.
+- **Checks before an await.** A command or press that checks the player, then awaits a load, the
+  session's lock or the node, may find the songs gone when it resumes (another member's `/stop`,
+  a moderator's disconnection): decide under the lock and check again before the reply
+  (MusicPlayer's `Session.enqueue`, `previous` and `toggle_pause`, `/pause`).
 - **The Lavalink image.** The Ubuntu variant (`ghcr.io/lavalink-devs/lavalink:4.2.2`, glibc 2.35)
   is the one for DAVE; the Alpine one has musl. It has `curl`, runs as uid 322 and downloads its
   plugins at each container creation (a named volume at `/opt/Lavalink/plugins` would be
   root-owned). `/version` needs the password (401 without). Lavalink's request logging, on in its
-  example config, logs every search with its query.
+  example config, logs every search with its query, and so does
+  `lavalink.server.player.AudioLoaderRestHandler` at INFO with request logging off: set it to WARN.
 - **Compose's required variables.** `${VAR:?message}` makes every `docker compose` command fail
   while `VAR` is unset, `run` and `build` included: the image check needs `LAVALINK_PASSWORD` in
   `.env` or in the environment. A healthcheck command with `: ` inside a block list item must be
