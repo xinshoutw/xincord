@@ -1,4 +1,4 @@
-"""Gemini's side of an article: v3's prompt, its keys' rate limit and its retries.
+"""An article's conversion by the model: v3's prompt, its keys' rate limit and its retries.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/service/GeminiApiService.kt:29-218
@@ -42,11 +42,11 @@ NETWORK_ERRORS = (aiohttp.ClientError, OSError)
 BLANK = "blank"  # the kind of failure of an answer without text
 
 
-class GeminiError(Exception):
-    """Gemini answered an attempt with a status other than 200."""
+class ApiError(Exception):
+    """The model's API answered an attempt with a status other than 200."""
 
     def __init__(self, status: int, message: str) -> None:
-        """Keep the status and Google's error message, if any."""
+        """Keep the status and the API's error message, if any."""
         super().__init__(f"code {status}: {message}" if message else f"code {status}")
         self.status = status
 
@@ -128,8 +128,8 @@ def format_traceback(error: BaseException) -> str:
 
 
 @dataclass
-class Gemini:
-    """Converts articles with Gemini, keys in turn, retrying failed attempts as v3 did."""
+class Converter:
+    """Converts articles with the model, keys in turn, retrying failed attempts as v3 did."""
 
     keys: tuple[str, ...]
     prompt: str  # the config's template
@@ -145,13 +145,13 @@ class Gemini:
         self.ring = KeyRing(self.keys)
 
     def hide(self, text: str) -> str:
-        """``text`` with every key replaced: Google's errors may quote one."""
+        """``text`` with every key replaced: the API's errors may quote one."""
         for key in sorted(set(self.keys), key=len, reverse=True):
             text = text.replace(key, HIDDEN)
         return text
 
     async def convert(self, html: str, link: Link) -> str | None:
-        """Gemini's Markdown for the article, or None after ``MAX_ATTEMPTS`` failed attempts.
+        """The model's Markdown for the article, or None after ``MAX_ATTEMPTS`` failed attempts.
 
         v3's ``processHtmlContentWithRetry``: when every key is at its limit, it waits until one
         has room, which uses no attempt; after a failed attempt it waits 60, 300, 900, then 1800
@@ -181,7 +181,7 @@ class Gemini:
         prompt = fill_prompt(self.prompt, link, html, self.now())
         try:
             text = trim(await self.generate(self.keys[index], prompt))
-        except GeminiError as error:
+        except ApiError as error:
             self._failed(error.status, index, number, link, describe(error))
             return ""
         except NETWORK_ERRORS as error:

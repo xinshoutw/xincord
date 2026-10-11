@@ -1,6 +1,6 @@
 ## 1. Module names
 
-- [ ] 1.1 Rename `gemini.py` to `conversion.py`, `Gemini` to `Converter`, `GeminiError` to
+- [x] 1.1 Rename `gemini.py` to `conversion.py`, `Gemini` to `Converter`, `GeminiError` to
       `ApiError` and `test_gemini.py` to `test_conversion.py` (refactor, no other change)
 
 ## 2. Requests

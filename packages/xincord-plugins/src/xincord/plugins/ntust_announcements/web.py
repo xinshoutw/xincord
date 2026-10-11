@@ -18,7 +18,7 @@ import aiohttp
 
 from xincord.plugins.ntust_tls import ntust_context
 
-from .gemini import GeminiError
+from .conversion import ApiError
 from .pages import trim
 
 if TYPE_CHECKING:
@@ -127,7 +127,7 @@ class Web:
         The key goes in the ``x-goog-api-key`` header, never in the URL; v3's temperature 0.1.
 
         Raises:
-            GeminiError: Gemini answered with a status other than 200.
+            ApiError: Gemini answered with a status other than 200.
         """
         body = {
             "contents": [{"parts": [{"text": prompt}]}],
@@ -143,7 +143,7 @@ class Web:
             answer = _json(await response.text(errors="replace"))
             if response.status != OK:
                 message = _field(_field(answer, "error"), "message")
-                raise GeminiError(response.status, message if isinstance(message, str) else "")
+                raise ApiError(response.status, message if isinstance(message, str) else "")
             return answer_text(answer)
 
 

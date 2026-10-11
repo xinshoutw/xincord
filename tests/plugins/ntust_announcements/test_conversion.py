@@ -1,4 +1,4 @@
-"""Gemini's side of an article: v3's prompt, its keys' rate limit, its retries and their logs.
+"""An article's conversion: v3's prompt, its keys' rate limit, its retries and their logs.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/service/GeminiApiService.kt:35-218
@@ -12,10 +12,10 @@ from datetime import datetime
 import aiohttp
 import pytest
 
-from xincord.plugins.ntust_announcements.gemini import (
+from xincord.plugins.ntust_announcements.conversion import (
     MAX_ATTEMPTS,
-    Gemini,
-    GeminiError,
+    ApiError,
+    Converter,
     KeyRing,
     backoff,
     fill_prompt,
@@ -46,7 +46,7 @@ class Time:
 
 @dataclass
 class Answers:
-    """Gemini's answers in turn (a text, or an error to raise); then ``Markdown``."""
+    """The API's answers in turn (a text, or an error to raise); then ``Markdown``."""
 
     time: Time
     results: list[str | Exception] = field(default_factory=list[str | Exception])
@@ -63,10 +63,10 @@ class Answers:
         return [key for key, _, _ in self.calls]
 
 
-def converter(answers: Answers, keys: tuple[str, ...] = ("key-one", "key-two")) -> Gemini:
-    """A Gemini with the fake time and answers."""
+def converter(answers: Answers, keys: tuple[str, ...] = ("key-one", "key-two")) -> Converter:
+    """A converter with the fake time and answers."""
     time = answers.time
-    return Gemini(keys, PROMPT, answers, time.sleep, time.clock, lambda: NOW)
+    return Converter(keys, PROMPT, answers, time.sleep, time.clock, lambda: NOW)
 
 
 def plugin_lines(caplog: pytest.LogCaptureFixture, level: int) -> list[str]:
@@ -171,7 +171,7 @@ def test_a_key_listed_twice() -> None:
 async def test_retries() -> None:
     """Requirement: Gemini keys stay within the rate limit and failed attempts are retried."""
     time = Time()
-    answers = Answers(time, [GeminiError(500, "Internal error")] * MAX_ATTEMPTS)
+    answers = Answers(time, [ApiError(500, "Internal error")] * MAX_ATTEMPTS)
 
     assert await converter(answers).convert("<p>x</p>", LINK) is None
 
@@ -202,7 +202,7 @@ async def test_keys_hidden(caplog: pytest.LogCaptureFixture) -> None:
     answers = Answers(
         Time(),
         [
-            GeminiError(400, "API key not valid: secret-key-one"),
+            ApiError(400, "API key not valid: secret-key-one"),
             aiohttp.ClientConnectionError("cannot connect with secret-key-two"),
             RuntimeError("boom with secret-key-one"),
             "Markdown",
@@ -224,7 +224,7 @@ async def test_keys_hidden(caplog: pytest.LogCaptureFixture) -> None:
 
 async def test_gemini_failure_episode(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems are logged without flooding or showing the keys."""
-    quota = GeminiError(429, "Resource has been exhausted")
+    quota = ApiError(429, "Resource has been exhausted")
     answers = Answers(Time(), [quota, quota, quota])
     gemini = converter(answers)
 

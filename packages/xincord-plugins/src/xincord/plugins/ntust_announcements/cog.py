@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Protocol, override, runtime_checkable
 import discord
 from discord.ext import commands
 
-from .gemini import Gemini
+from .conversion import Converter
 from .store import Posted
 from .watch import Watcher
 from .web import open_web
@@ -135,7 +135,7 @@ class NtustAnnouncements(commands.Cog):
                 async with fetches:  # held while fetching only
                     return await web.page(url)
 
-            gemini = Gemini(
+            converter = Converter(
                 self.config.api_keys,
                 self.config.prompt,
                 web.generate,
@@ -146,7 +146,7 @@ class NtustAnnouncements(commands.Cog):
             posted = Posted(self.store)
             async with asyncio.TaskGroup() as boards:
                 for board in self.config.boards:
-                    watcher = Watcher(board, page, gemini.convert, self._send, posted)
+                    watcher = Watcher(board, page, converter.convert, self._send, posted)
                     boards.create_task(
                         watcher.run(self.config.fetch_interval, self.sleep), name=watcher.name
                     )

@@ -17,7 +17,7 @@ from aiohttp import web
 from aiohttp.test_utils import RawTestServer
 
 from plugin_fakes import FIXTURES
-from xincord.plugins.ntust_announcements.gemini import GeminiError
+from xincord.plugins.ntust_announcements.conversion import ApiError
 from xincord.plugins.ntust_announcements.web import FetchError, Page, answer_text, open_web
 from xincord.plugins.ntust_tls import ntust_context
 
@@ -142,7 +142,7 @@ async def test_refused_answers(server: Server, answer: tuple[int, str], error: s
     server.gemini = answer
 
     async with open_web(MODEL, api=server.root) as web_:
-        with pytest.raises(GeminiError) as raised:
+        with pytest.raises(ApiError) as raised:
             await web_.generate("key-one", "the prompt")
 
     assert str(raised.value) == error
