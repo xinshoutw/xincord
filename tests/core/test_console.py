@@ -193,6 +193,51 @@ def test_terminal_detection(
         assert events == ["logging 20", "run console=False"]
 
 
+@pytest.mark.parametrize(
+    "tty",
+    [
+        pytest.param(
+            False,
+            marks=pytest.mark.xfail(
+                strict=True, raises=KeyError, reason="Plain log lines off a terminal"
+            ),
+        ),
+        True,
+    ],
+)
+def test_plain_log_lines_off_a_terminal(monkeypatch: pytest.MonkeyPatch, tty: bool) -> None:  # noqa: FBT001
+    """Requirement: Plain log lines off a terminal.
+
+    discord.py colours its lines inside any Docker container; without a terminal they stay plain.
+    """
+    setups: list[dict[str, object]] = []
+
+    def setup_logging(**options: object) -> None:
+        setups.append(options)
+
+    async def fake_run(_options: Options, *, console: bool = False) -> int:  # noqa: ARG001
+        return 0
+
+    monkeypatch.setattr(sys, "stderr", Terminal(tty=tty))
+    monkeypatch.setattr(discord.utils, "setup_logging", setup_logging)
+    monkeypatch.setattr(cli, "run", fake_run)
+
+    assert main(["-N"]) == 0
+    (options,) = setups
+    if tty:
+        assert "formatter" not in options  # discord.py's colour formatter
+        return
+    formatter = options["formatter"]
+    assert isinstance(formatter, logging.Formatter)
+    record = logging.LogRecord(
+        "xincord.core.bot", logging.INFO, __file__, 1, "Bot ready", None, None
+    )
+    line = formatter.format(record)
+    time = r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d"
+    assert re.fullmatch(time + r" INFO     xincord\.core\.bot Bot ready", line)
+    assert chr(27) not in line  # ESC, which starts every colour code
+
+
 @pytest.mark.parametrize(("keys", "signum"), [("stop\n", None), ("", signal.SIGTERM)])
 async def test_console_while_running(
     installed: FakePlugins,
