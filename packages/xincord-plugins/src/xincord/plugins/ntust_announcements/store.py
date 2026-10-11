@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 NAMESPACE = "NtustAnnouncements"
 POSTS = f"{NAMESPACE}.posts"  # each posted message's announcement, by message ID
 KEEP = 100  # links that left a board's page and are still remembered
-FIELDS = ("type", "url", "title")  # an item's fields, in Moshi's order
+FIELDS = ("type", "url", "title")  # an item's fields, in their stored order
 
 
 class DataError(Exception):

@@ -2,7 +2,7 @@
 
 ## Purpose
 Delivers each button, select and modal submission to the plugin that owns its ID, and upgrades the
-v3 IDs on a message the first time one of them is used.
+legacy IDs on a message the first time one of them is used.
 
 ## Requirements
 

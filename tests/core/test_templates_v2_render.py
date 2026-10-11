@@ -250,7 +250,7 @@ components_v2:
 
 
 async def test_styles_and_ids(tmp_path: Path) -> None:
-    """Requirement: V2 interactive components follow v3."""
+    """Requirement: V2 interactive components take styles and IDs."""
     buttons, string, mentionable, channel = layout(render(tmp_path, INTERACTIVE)).children
 
     assert isinstance(buttons, discord.ui.ActionRow)
@@ -296,7 +296,7 @@ async def test_styles_and_ids(tmp_path: Path) -> None:
 
 
 async def test_disabled_container_and_section(tmp_path: Path) -> None:
-    """Requirement: V2 interactive components follow v3."""
+    """Requirement: V2 interactive components take styles and IDs."""
     text = V2 + (
         "components_v2:\n"
         "  - type: container\n"
@@ -327,7 +327,7 @@ async def test_disabled_container_and_section(tmp_path: Path) -> None:
 
 
 async def test_uid_needs_an_id_builder(tmp_path: Path) -> None:
-    """Requirement: V2 interactive components follow v3."""
+    """Requirement: V2 interactive components take styles and IDs."""
     path = tmp_path / "template.yml"
     path.write_text(
         V2 + "components_v2: [{type: action_row, components: [{type: button, uid: {a: b}}]}]\n",

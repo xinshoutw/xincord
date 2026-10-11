@@ -96,7 +96,7 @@ BOT = User(id=9, name="xincord", global_name=None)
 
 
 def test_member_with_a_nickname() -> None:
-    """Requirement: Acting-user values follow v3."""
+    """Requirement: Acting-user values are provided."""
 
     values = actor_values(Member(), BOT)
 
@@ -114,7 +114,7 @@ def test_member_with_a_nickname() -> None:
 
 
 def test_plain_user() -> None:
-    """Requirement: Acting-user values follow v3."""
+    """Requirement: Acting-user values are provided."""
 
     values = actor_values(User(avatar=Asset("https://cdn.example/a.png")), BOT)
 
@@ -123,13 +123,13 @@ def test_plain_user() -> None:
 
 
 def test_member_without_a_nickname() -> None:
-    """Requirement: Acting-user values follow v3."""
+    """Requirement: Acting-user values are provided."""
 
     assert actor_values(Member(nick=None), BOT)["member_fixed_name"] == "alice"
 
 
 def test_user_keys() -> None:
-    """Requirement: User and member values follow v3."""
+    """Requirement: User and member values are provided."""
 
     values = user_values(User(global_name=None), prefix="wbg@")
 
@@ -150,7 +150,7 @@ def test_user_keys() -> None:
 
 
 def test_member_roles() -> None:
-    """Requirement: User and member values follow v3."""
+    """Requirement: User and member values are provided."""
 
     roles = (Role("@everyone", 0, default=True), Role("low", 1), Role("high", 5))
 
@@ -171,7 +171,7 @@ def test_member_roles() -> None:
 
 
 def test_member_without_nickname_roles_or_join_time() -> None:
-    """Requirement: User and member values follow v3."""
+    """Requirement: User and member values are provided."""
 
     values = member_values(Member(nick=None, joined_at=None), none="?")
 
@@ -185,7 +185,7 @@ def test_member_without_nickname_roles_or_join_time() -> None:
 
 
 def test_guild_without_icon_or_system_channel() -> None:
-    """Requirement: Guild values follow v3."""
+    """Requirement: Guild values are provided."""
 
     values = guild_values(Guild())
 
@@ -214,7 +214,7 @@ def test_guild_without_icon_or_system_channel() -> None:
 
 
 def test_guild_with_everything() -> None:
-    """Requirement: Guild values follow v3."""
+    """Requirement: Guild values are provided."""
 
     guild = Guild(
         preferred_locale=discord.Locale.american_english,
@@ -240,7 +240,7 @@ def test_guild_with_everything() -> None:
 
 
 def test_missing_channel() -> None:
-    """Requirement: Channel and event values follow v3."""
+    """Requirement: Channel and event values are provided."""
 
     assert channel_values(None) == {
         "channel_id": "0",
@@ -259,8 +259,8 @@ def test_missing_channel() -> None:
         (discord.ChannelType.forum, "FORUM"),
     ],
 )
-def test_channel_type_uses_jda_names(kind: discord.ChannelType, name: str) -> None:
-    """Requirement: Channel and event values follow v3."""
+def test_channel_type_names(kind: discord.ChannelType, name: str) -> None:
+    """Requirement: Channel and event values are provided."""
 
     values = channel_values(Channel(type=kind), prefix="wbg@", base="target")
 
@@ -273,7 +273,7 @@ def test_channel_type_uses_jda_names(kind: discord.ChannelType, name: str) -> No
 
 
 def test_event_time() -> None:
-    """Requirement: Channel and event values follow v3."""
+    """Requirement: Channel and event values are provided."""
 
     values = event_values("join", at=datetime(2026, 1, 2, 3, 4, 5, 678000, tzinfo=UTC))
 
@@ -286,7 +286,7 @@ def test_event_time() -> None:
 
 
 def test_event_iso_keeps_seconds_and_defaults_to_now() -> None:
-    """Requirement: Channel and event values follow v3."""
+    """Requirement: Channel and event values are provided."""
 
     at = datetime(2026, 1, 2, 3, 4, tzinfo=UTC)
 
@@ -295,7 +295,7 @@ def test_event_iso_keeps_seconds_and_defaults_to_now() -> None:
 
 
 def test_known_and_unknown_locale() -> None:
-    """Requirement: Locale names follow JDA."""
+    """Requirement: Locale names have an enum and a native form."""
 
     assert locale_names("en-US") == ("ENGLISH_US", "English, US")
     assert locale_names("xx") == ("UNKNOWN", "Unknown")

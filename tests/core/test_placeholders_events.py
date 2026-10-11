@@ -1,4 +1,4 @@
-"""v3's Placeholder.get(event) and its global substitutor."""
+"""An interaction's event values and the global values."""
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -71,7 +71,7 @@ BOT = User(id=99, name="xincord", bot=True)
 
 
 def test_member_runs_a_command() -> None:
-    """Requirement: Event values follow v3's Placeholder.get(event)."""
+    """Requirement: Event values merge the user's and the interaction's."""
     values = placeholder_values(Interaction(Member(), Client(BOT)))
 
     assert values["bot_name"] == "xincord"
@@ -83,7 +83,7 @@ def test_member_runs_a_command() -> None:
 
 
 def test_bot_not_logged_in() -> None:
-    """Requirement: Event values follow v3's Placeholder.get(event)."""
+    """Requirement: Event values merge the user's and the interaction's."""
     interaction = Interaction(Member(), Client(None))
 
     values = placeholder_values(interaction)
@@ -93,12 +93,12 @@ def test_bot_not_logged_in() -> None:
 
 
 def test_global_values() -> None:
-    """Requirement: Global values follow v3."""
+    """Requirement: Global values name the bot."""
     assert global_values(Client(BOT)) == {"bot_id": "99", "bot_name": "xincord"}
 
 
 def test_global_values_before_login() -> None:
-    """Requirement: Global values follow v3."""
+    """Requirement: Global values name the bot."""
     assert global_values(Client(None)) == {}
 
 

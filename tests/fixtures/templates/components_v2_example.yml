@@ -1,4 +1,4 @@
-# Full example for MessageCreator v2
+# A full example of a Components V2 template
 # - `is_components_v2: true` enforces Discord Components V2 mode.
 # - `content` and `embeds` must stay empty in this mode.
 is_components_v2: true

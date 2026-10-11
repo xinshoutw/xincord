@@ -78,7 +78,7 @@ configs:
 
       lavalink:
         plugins:
-          # YouTube: search, videos and playlists (lavaplayer's own YouTube source is deprecated). A
+          # YouTube: search, videos and playlists (Lavalink's built-in YouTube source is deprecated). A
           # snapshot of master (2026-09-17), from Lavalink's snapshot repository: 1.18.2's TV client is
           # refused by YouTube (youtube-source #226, fixed in #233). Back to a release that holds it.
           - dependency: "dev.lavalink.youtube:youtube-plugin:2be8e542d3f6f178e048dca565892684c2e40177"

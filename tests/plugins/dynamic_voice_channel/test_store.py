@@ -35,7 +35,7 @@ async def test_first_binding(store: Store) -> None:
     assert isinstance(document, list)
     first = document[0]
     assert isinstance(first, dict)
-    assert list(first) == ["categoryId", "defaultName", "formatName1"]  # Moshi's order
+    assert list(first) == ["categoryId", "defaultName", "formatName1"]  # the stored order
     assert await read_bindings(store, 10) == [LOBBY]
 
 
@@ -47,7 +47,7 @@ async def test_guild_without_bindings(store: Store) -> None:
 
 async def test_missing_formats(store: Store) -> None:
     """Requirement: Bindings are kept per guild."""
-    # Moshi's default for formatName1; unknown fields are ignored.
+    # formatName1 defaults to empty; unknown fields are ignored.
     await store.put(NAMESPACE, "10", [{"categoryId": 20, "defaultName": "Lobby", "x": 1}])
 
     assert await read_bindings(store, 10) == [Binding(20, "Lobby", "")]

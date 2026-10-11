@@ -2,7 +2,7 @@
 
 ## Purpose
 Encodes plugin state in Discord component and modal IDs in a versioned format, keeps decoding the
-IDs that v3 put on existing messages, and upgrades those IDs when they are used.
+legacy IDs on existing messages, and upgrades those IDs when they are used.
 
 ## Requirements
 
@@ -30,9 +30,9 @@ SHALL fail for unknown fields and for IDs longer than 100 characters.
 - **WHEN** a message template's button has `uid: {action: join}` and the codec builds its IDs
 - **THEN** the button's ID is `giveaway:1:a=join`
 
-### Requirement: Legacy v3 IDs decode permanently
-A codec with a legacy prefix SHALL parse v3 IDs (`{prefix}{letter}:{value}` joined by `;`, letters
-by the plugin's v3 field order) into the same field map as new IDs, turning hex fields into
+### Requirement: Legacy IDs decode permanently
+A codec with a legacy prefix SHALL parse legacy IDs (`{prefix}{letter}:{value}` joined by `;`,
+letters by the plugin's field order) into the same field map as new IDs, turning hex fields into
 decimal text, and SHALL report them as legacy. IDs of other plugins, malformed segments and unknown
 letters SHALL fail. A codec SHALL tell whether an ID is its own in either format.
 

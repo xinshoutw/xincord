@@ -1,20 +1,17 @@
 schema: spec-driven
 
 context: |
-  xincord ports XsDiscordBotKt (Kotlin, JDA 6) to Python 3.14 with discord.py, managed by uv.
-  Accepted decisions: docs/porting/decisions.md. Project rules: AGENTS.md. Session handoff: HANDOFF.md.
-  Behavioral baseline: XsDiscordBotKt main at 3a59607. Per-plugin inventories with Kotlin file:line
-  references live in docs/porting/analysis/inventory/; they are the source of acceptance criteria.
+  xincord is a modular Discord bot in Python 3.14 on discord.py, managed by uv: a core that loads
+  plugins by entry point, with YAML config, SQLite storage, i18n and a Docker compose deployment.
+  Accepted decisions: docs/decisions.md. Project rules: AGENTS.md. Session handoff: HANDOFF.md.
   Every artifact is written in English.
 
 rules:
   proposal:
-    - "Cite the Kotlin sources being ported as XsDiscordBotKt@3a59607:<path>:<line>."
     - State what is out of scope.
   specs:
     - Every scenario must map to at least one pytest test whose name or docstring names the requirement.
   design:
-    - 'Record each fixed v3 defect as "v3 behaved differently: ...".'
     - List user-visible changes (copy, commands, interaction flow) for the owner to review.
   tasks:
     - Follow xfail-first TDD per requirement, one task to commit the failing test marked xfail(strict=True), one task to implement it and remove the marker.

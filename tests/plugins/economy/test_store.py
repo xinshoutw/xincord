@@ -23,7 +23,7 @@ async def test_first_change(store: Store) -> None:
     assert isinstance(document, dict)
     entry = document["7"]
     assert isinstance(entry, dict)
-    assert list(entry) == ["cost", "money"]  # Moshi's field order
+    assert list(entry) == ["cost", "money"]  # the stored field order
     assert await read(store, 10, 7) == Wallet(money=5)
 
 

@@ -1,7 +1,7 @@
 # core-placeholders Specification
 
 ## Purpose
-Substitutes `%key%` placeholders in template text in one pass and provides the v3 placeholder keys
+Substitutes `%key%` placeholders in template text in one pass and provides the placeholder keys
 for users, members, guilds, channels and events.
 
 ## Requirements
@@ -31,7 +31,7 @@ the values. No placeholder state SHALL be kept between renders.
 - **WHEN** a text is rendered with a value for `extra` and then rendered again without it
 - **THEN** the second result keeps `%extra%` as written
 
-### Requirement: Acting-user values follow v3
+### Requirement: Acting-user values are provided
 The acting-user family SHALL provide `bot_id`, `bot_name`, `user_id`, `user_mention`,
 `user_name` and `user_avatar_url`, and for guild members also `member_display_name`,
 `member_avatar_url` and `member_fixed_name` (`nickname (name)` with a nickname, else the name).
@@ -44,8 +44,8 @@ The acting-user family SHALL provide `bot_id`, `bot_name`, `user_id`, `user_ment
 - **WHEN** the acting user is not a member
 - **THEN** no `member_` keys are present
 
-### Requirement: User and member values follow v3
-The user family SHALL provide the twelve v3 `user_` keys and the member family the ten v3
+### Requirement: User and member values are provided
+The user family SHALL provide the twelve `user_` keys and the member family the ten
 `member_` keys, each with an optional prefix. Missing text SHALL become the none value (default
 `-`), missing numbers `0`. Member roles exclude the default role, highest first.
 
@@ -57,9 +57,9 @@ The user family SHALL provide the twelve v3 `user_` keys and the member family t
 - **WHEN** a member has the default role and two others
 - **THEN** `member_roles_count` is 2 and the mentions list the higher role first
 
-### Requirement: Guild values follow v3
-The guild family SHALL provide the twenty v3 `guild_` keys with an optional prefix, including the
-JDA locale enum name as `guild_locale` and `guild_booster_count` as an alias of
+### Requirement: Guild values are provided
+The guild family SHALL provide the twenty `guild_` keys with an optional prefix, including the
+locale's enum name as `guild_locale` and `guild_booster_count` as an alias of
 `guild_boost_count`. Missing text SHALL become the none value, missing ids and counts `0`.
 
 #### Scenario: Guild without icon or system channel
@@ -70,9 +70,9 @@ JDA locale enum name as `guild_locale` and `guild_booster_count` as an alias of
 - **WHEN** the guild's preferred locale is zh-TW
 - **THEN** `guild_locale` is `CHINESE_TAIWAN`
 
-### Requirement: Channel and event values follow v3
+### Requirement: Channel and event values are provided
 The channel family SHALL provide `<base>_id`, `<base>_name`, `<base>_mention` and `<base>_type`
-(the JDA channel type name) with base `channel` by default, using `0` and the none value when there
+(the channel type name, such as `TEXT` or `VOICE`) with base `channel` by default, using `0` and the none value when there
 is no channel. The event family SHALL provide `event_type` and the event time as unix seconds,
 milliseconds and ISO-8601 in UTC.
 
@@ -85,18 +85,18 @@ milliseconds and ISO-8601 in UTC.
 - **THEN** the unix, millisecond and ISO values are 1767323045, 1767323045678 and
   `2026-01-02T03:04:05.678Z`
 
-### Requirement: Locale names follow JDA
-Each Discord locale SHALL map to JDA 6.4.1's enum name and native name; unknown locales SHALL map
+### Requirement: Locale names have an enum and a native form
+Each Discord locale SHALL map to an enum name and a native name (`ENGLISH_US` and `English, US` for en-US); unknown locales SHALL map
 to `UNKNOWN` and `Unknown`.
 
 #### Scenario: Known and unknown locale
 - **WHEN** the names of `en-US` and of an unknown locale are requested
 - **THEN** they are `ENGLISH_US` with `English, US`, and `UNKNOWN` with `Unknown`
 
-### Requirement: Command interaction values follow v3
+### Requirement: Command interactions give their values
 For an application command interaction the placeholders SHALL give `command_name`,
 `full_command_name` (with the subcommand group and subcommand), `subcommand_name` when one was
-used, and `command_string` as JDA built it: `/`, the full name, then ` name: value` per option,
+used, and `command_string`: `/`, the full name, then ` name: value` per option,
 with channels as `#name` and users and roles as `@name`. Context menu commands SHALL give their
 name as `command_string`.
 
@@ -110,10 +110,10 @@ name as `command_string`.
 - **WHEN** the message context command `Report` runs
 - **THEN** `command_name` and `command_string` are `Report` and there is no `subcommand_name`
 
-### Requirement: Component interaction values follow v3
+### Requirement: Component interactions give their values
 For a component interaction the placeholders SHALL give `component_id` and, from the component
-with that ID on the message, a button's `component_label`, `component_style` (the JDA style
-name), and `component_emoji` and `component_emoji_name` when set, or a select's `component_min`,
+with that ID on the message, a button's `component_label`, `component_style` (the style name
+in upper case), and `component_emoji` and `component_emoji_name` when set, or a select's `component_min`,
 `component_max` and `component_placeholder` when set.
 
 #### Scenario: Button and select
@@ -126,8 +126,8 @@ name), and `component_emoji` and `component_emoji_name` when set, or a select's 
 - **WHEN** the message has no component with the interaction's ID, or there is no message
 - **THEN** only `component_id` is given for the component
 
-### Requirement: Interaction language and channel follow v3
-Every interaction SHALL give `language`, the JDA native name of the user's locale, and, when its
+### Requirement: Interactions give their language and channel
+Every interaction SHALL give `language`, the native name of the user's locale, and, when its
 channel has a name, `channel_id` and `channel_name`, plus `channel_category_name` when the channel
 is in a known category. A thread whose parent channel is not cached SHALL give no category instead
 of failing.
@@ -142,9 +142,9 @@ of failing.
 - **WHEN** a command runs in a thread whose parent channel discord.py has not cached
 - **THEN** the values give the thread's ID and name and no `channel_category_name`
 
-### Requirement: Event values follow v3's Placeholder.get(event)
+### Requirement: Event values merge the user's and the interaction's
 The event family SHALL give, for an interaction, the acting-user values of its user with the bot's
-keys, merged with the interaction values, as v3's `Placeholder.get(event)`. Before the bot has
+keys, merged with the interaction values. Before the bot has
 logged in, when the client has no user, it SHALL give the interaction values only.
 
 #### Scenario: Member runs a command
@@ -157,9 +157,9 @@ logged in, when the client has no user, it SHALL give the interaction values onl
 - **WHEN** the client has no user yet
 - **THEN** the values hold the interaction's keys and no `bot_`, `user_` or `member_` keys
 
-### Requirement: Global values follow v3
-`global_values(client)` SHALL give v3's global placeholders, `bot_id` and `bot_name` of the
-client's user, which v3 used for templates rendered without a user. Before the bot has logged in,
+### Requirement: Global values name the bot
+`global_values(client)` SHALL give the global placeholders, `bot_id` and `bot_name` of the
+client's user, for templates rendered without a user. Before the bot has logged in,
 when the client has no user, it SHALL give no values.
 
 #### Scenario: Bot logged in

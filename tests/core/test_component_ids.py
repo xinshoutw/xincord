@@ -96,7 +96,7 @@ def test_codec_as_template_id_builder(tmp_path: Path) -> None:
 
 
 def test_legacy_ticket_ids() -> None:
-    """Requirement: Legacy v3 IDs decode permanently."""
+    """Requirement: Legacy IDs decode permanently."""
     ids = ticket()
 
     assert ids.parse("ticket@a:submit;d:1b;f:2") == ParsedId(
@@ -128,13 +128,13 @@ def test_legacy_ticket_ids() -> None:
     ],
 )
 def test_foreign_and_malformed_ids(custom_id: str) -> None:
-    """Requirement: Legacy v3 IDs decode permanently."""
+    """Requirement: Legacy IDs decode permanently."""
     with pytest.raises(ComponentIdError):
         ticket().parse(custom_id)
 
 
 def test_ownership() -> None:
-    """Requirement: Legacy v3 IDs decode permanently."""
+    """Requirement: Legacy IDs decode permanently."""
     ids = ticket()
 
     assert ids.owns("ticket:1:a=press")

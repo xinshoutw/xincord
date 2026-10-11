@@ -41,7 +41,7 @@ def slash(*options: dict[str, object]) -> dict[str, object]:
 
 
 def test_subcommand_with_options() -> None:
-    """Requirement: Command interaction values follow v3."""
+    """Requirement: Command interactions give their values."""
     data = slash(
         {"type": 7, "name": "where", "value": "10"},
         {"type": 6, "name": "owner", "value": "20"},
@@ -61,7 +61,7 @@ def test_subcommand_with_options() -> None:
 
 
 def test_mentionables_numbers_and_unresolved_entities() -> None:
-    """Requirement: Command interaction values follow v3."""
+    """Requirement: Command interactions give their values."""
     data = slash(
         {"type": 9, "name": "who", "value": "20"},
         {"type": 9, "name": "group", "value": "30"},
@@ -77,7 +77,7 @@ def test_mentionables_numbers_and_unresolved_entities() -> None:
 
 
 def test_context_menu_command() -> None:
-    """Requirement: Command interaction values follow v3."""
+    """Requirement: Command interactions give their values."""
     values = interaction_values(FakeInteraction({"type": 3, "name": "Report", "target_id": "1"}))
 
     assert values["command_name"] == "Report"
@@ -121,7 +121,7 @@ def component_keys(custom_id: str, message: FakeMessage | None) -> dict[str, str
 
 
 def test_button_and_select() -> None:
-    """Requirement: Component interaction values follow v3."""
+    """Requirement: Component interactions give their values."""
     assert component_keys("ticket:1:a=press", components()) == {
         "component_id": "ticket:1:a=press",
         "component_label": "Open",
@@ -148,13 +148,13 @@ def test_button_and_select() -> None:
 
 
 def test_unknown_component() -> None:
-    """Requirement: Component interaction values follow v3."""
+    """Requirement: Component interactions give their values."""
     assert component_keys("gone", components()) == {"component_id": "gone"}
     assert component_keys("gone", None) == {"component_id": "gone"}
 
 
 def test_guild_channel_and_direct_message() -> None:
-    """Requirement: Interaction language and channel follow v3."""
+    """Requirement: Interactions give their language and channel."""
     channel = SimpleNamespace(id=5, name="general", category=SimpleNamespace(name="Text"))
     lobby = SimpleNamespace(id=6, name="lobby", category=None)
     data: dict[str, object] = {"custom_id": "x", "component_type": 2}
@@ -184,7 +184,7 @@ class OrphanThread:
 
 
 def test_thread_with_an_uncached_parent() -> None:
-    """Requirement: Interaction language and channel follow v3."""
+    """Requirement: Interactions give their language and channel."""
     values = interaction_values(FakeInteraction({"type": 1, "name": "x"}, channel=OrphanThread()))
 
     assert (values["channel_id"], values["channel_name"]) == ("8", "help")

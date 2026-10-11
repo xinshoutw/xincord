@@ -49,7 +49,7 @@ async def test_first_selection(store: Store) -> None:
     assert isinstance(document, dict)
     entry = document["5"]
     assert isinstance(entry, dict)
-    assert list(entry) == ["allow_mode", "allow", "block"]  # Moshi's field order
+    assert list(entry) == ["allow_mode", "allow", "block"]  # the stored field order
     assert await settings(store).read_setting(10, 5) == setting
 
 
@@ -134,7 +134,7 @@ async def test_concurrent_changes(store: Store) -> None:
     "document",
     [
         [],
-        {"5": {"allow_mode": True, "allow": []}},  # Moshi required every field
+        {"5": {"allow_mode": True, "allow": []}},  # every field is required
         {"5": {"allow_mode": True, "allow": ["30"], "block": []}},
         {"5": {"allow_mode": True, "allow": [True], "block": []}},
         {"5": {"allow_mode": 1, "allow": [], "block": []}},

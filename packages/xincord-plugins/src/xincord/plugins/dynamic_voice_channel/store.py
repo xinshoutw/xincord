@@ -39,7 +39,7 @@ class Binding:
 async def read_bindings(store: Store, guild_id: int) -> list[Binding]:
     """Return the guild's bindings in the stored order, and write nothing.
 
-    A guild without a document has none; a missing format reads as empty, as Moshi's defaults.
+    A guild without a document has none; a missing format reads as empty.
 
     Raises:
         DataError: The document or one of its entries is not valid.

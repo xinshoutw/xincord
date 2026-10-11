@@ -20,8 +20,8 @@ VALUES = {
     "color": "#ff0000",
 }
 NOW = datetime(2026, 10, 10, 12, 0, tzinfo=UTC)
-# JDA's EmbedBuilder.ZERO_WIDTH_SPACE, a left-to-right mark that stands for an empty field text.
-JDA_EMPTY = chr(0x200E)
+# A left-to-right mark, which stands for an empty field text.
+EMPTY_FIELD = chr(0x200E)
 
 
 def render(tmp_path: Path, text: str, values: dict[str, str] = VALUES) -> Message:
@@ -89,7 +89,7 @@ def test_empty_embeds_are_dropped(tmp_path: Path, embed: str) -> None:
 
 
 def test_color_and_epoch_timestamp(tmp_path: Path) -> None:
-    """Requirement: Colors and timestamps follow v3."""
+    """Requirement: Colors and timestamps are parsed."""
 
     message = render(
         tmp_path,
@@ -103,7 +103,7 @@ def test_color_and_epoch_timestamp(tmp_path: Path) -> None:
 
 
 def test_now_and_placeholder_color(tmp_path: Path) -> None:
-    """Requirement: Colors and timestamps follow v3."""
+    """Requirement: Colors and timestamps are parsed."""
 
     message = render(
         tmp_path,
@@ -117,7 +117,7 @@ def test_now_and_placeholder_color(tmp_path: Path) -> None:
 
 
 def test_invalid_rendered_color_fails(tmp_path: Path) -> None:
-    """Requirement: Colors and timestamps follow v3."""
+    """Requirement: Colors and timestamps are parsed."""
 
     with pytest.raises(TemplateError, match="color"):
         render(tmp_path, 'embeds:\n  - {description: x, color_code: "%dash%"}\n')
@@ -132,7 +132,7 @@ def test_image_url_is_set(tmp_path: Path) -> None:
 
 
 def test_empty_field_text(tmp_path: Path) -> None:
-    """Requirement: Embed fields follow JDA."""
+    """Requirement: Embed fields are trimmed and never empty."""
 
     message = render(
         tmp_path,
@@ -142,13 +142,13 @@ def test_empty_field_text(tmp_path: Path) -> None:
 
     (embed,) = message.embeds
     assert [(field.name, field.value) for field in embed.fields] == [
-        ("-", JDA_EMPTY),
-        (JDA_EMPTY, JDA_EMPTY),
+        ("-", EMPTY_FIELD),
+        (EMPTY_FIELD, EMPTY_FIELD),
     ]
 
 
 def test_padded_field_text(tmp_path: Path) -> None:
-    """Requirement: Embed fields follow JDA."""
+    """Requirement: Embed fields are trimmed and never empty."""
 
     message = render(tmp_path, 'embeds:\n  - fields: [{name: " name ", value: "value\\n\\n"}]\n')
 
@@ -156,9 +156,9 @@ def test_padded_field_text(tmp_path: Path) -> None:
     assert [(field.name, field.value) for field in embed.fields] == [("name", "value")]
 
 
-def test_java_trim(tmp_path: Path) -> None:
-    """Requirement: Embed fields follow JDA."""
-    # Java's String.trim removes the characters up to U+0020 only: control characters go, while
+def test_field_trim(tmp_path: Path) -> None:
+    """Requirement: Embed fields are trimmed and never empty."""
+    # The trim removes the characters up to U+0020 only: control characters go, while
     # a no-break space and an ideographic space stay.
     kept = chr(0xA0) + "x" + chr(0x3000)
 
@@ -172,12 +172,12 @@ def test_java_trim(tmp_path: Path) -> None:
     assert [(field.name, field.value) for field in embed.fields] == [("name", kept)]
 
 
-def test_model_fields_follow_jda(tmp_path: Path) -> None:
-    """Requirement: Embed fields follow JDA."""
+def test_model_fields_trimmed(tmp_path: Path) -> None:
+    """Requirement: Embed fields are trimmed and never empty."""
     path = tmp_path / "template.yml"
     path.write_text('embeds:\n  - fields: [{model_key: "f"}]\n', encoding="utf-8")
 
     message = render_message(load_message(path), VALUES, models={"f": EmbedField(" n ", "")})
 
     (embed,) = message.embeds
-    assert [(field.name, field.value) for field in embed.fields] == [("n", JDA_EMPTY)]
+    assert [(field.name, field.value) for field in embed.fields] == [("n", EMPTY_FIELD)]

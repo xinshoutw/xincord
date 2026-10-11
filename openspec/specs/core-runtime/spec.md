@@ -248,7 +248,7 @@ and the rotation SHALL go on. A full reload SHALL restart the rotation with the 
   activities are shown
 
 ### Requirement: Interaction console lines
-The bot SHALL log `[KIND] <user name>: <text>` for each slash command (`CMD`, with JDA's command
+The bot SHALL log `[KIND] <user name>: <text>` for each slash command (`CMD`, with the command
 string), message command (`MSG`, its name), button (`BTN`), string select (`STRING`), entity
 select (`ENTITY`) and modal (`MODAL`); the text of components and modals SHALL be the custom ID.
 Autocomplete and user commands SHALL NOT be logged.
@@ -262,7 +262,7 @@ Autocomplete and user commands SHALL NOT be logged.
 ### Requirement: Interaction log channels
 For each `interaction_log` target whose `types` include the interaction's type (`command`: slash
 commands, `button`: buttons, `modal`: modals), the bot SHALL send the target's `format`, rendered
-with v3's user keys, the interaction keys, `cl_type` (`CMD`, `BTN` or `MODAL`) and
+with the user keys, the interaction keys, `cl_type` (`CMD`, `BTN` or `MODAL`) and
 `cl_interaction_string`, to the target channel. These messages SHALL NOT ping. A failed send SHALL
 be logged without affecting the others; a full reload SHALL apply new targets.
 

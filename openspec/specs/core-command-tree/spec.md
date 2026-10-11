@@ -1,7 +1,7 @@
 # core-command-tree Specification
 
 ## Purpose
-Gives every application command v3's ephemeral "thinking" response unless it opts out, keeps guild
+Gives every application command an ephemeral "thinking" response unless it opts out, keeps guild
 and global commands apart, and uploads commands to Discord only when they change.
 
 ## Requirements

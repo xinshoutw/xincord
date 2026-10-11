@@ -50,7 +50,7 @@ rendering SHALL be left out of the message.
 - **WHEN** an embed has only `color_code`
 - **THEN** the message has no embeds
 
-### Requirement: Colors and timestamps follow v3
+### Requirement: Colors and timestamps are parsed
 `color_code` SHALL accept `#RRGGBB` and `0xRRGGBB`, rendered first when it uses placeholders.
 `timestamp` SHALL accept `%now%` (the render time) or epoch milliseconds.
 
@@ -104,7 +104,7 @@ required fields. With `is_components_v2`, `content` and `embeds` SHALL be empty 
 component present; without it, `components_v2` SHALL hold only action rows.
 
 #### Scenario: Valid V2 template loads
-- **WHEN** v3's full Components V2 example is loaded
+- **WHEN** the full Components V2 example is loaded
 - **THEN** it loads without warnings
 
 #### Scenario: V2 mode rules
@@ -135,7 +135,7 @@ A section accessory without `type` SHALL be a thumbnail when it has `url`, `file
 - **WHEN** one section's accessory has only `url` and another's only `uid` and `label`
 - **THEN** the first is a thumbnail and the second a button
 
-### Requirement: V2 interactive components follow v3
+### Requirement: V2 interactive components take styles and IDs
 V2 buttons SHALL accept style numbers 1 to 6 or names (PRIMARY or BLUE, SECONDARY, GRAY or GREY,
 SUCCESS or GREEN, DANGER or RED, LINK, PREMIUM); premium buttons need `sku` or `sku_id`; other
 non-link components take `custom_id` (rendered) or `uid` (through the ID builder). Selects SHALL
@@ -158,10 +158,9 @@ its description, fields, image and footer.
 - **THEN** the layout view holds a container with that accent color and texts for the title and
   the field
 
-### Requirement: Embed fields follow JDA
+### Requirement: Embed fields are trimmed and never empty
 Rendering SHALL remove the leading and trailing characters up to U+0020 from each embed field's name
-and value, as Java's `trim` in JDA's fields did, and SHALL give a name or value that is empty
-afterwards the text U+200E, as JDA did, because Discord refuses empty fields. Fields that a
+and value, and SHALL give a name or value that is empty afterwards the text U+200E, because Discord refuses empty fields. Fields that a
 `model_key` supplies SHALL get the same treatment.
 
 #### Scenario: Empty value

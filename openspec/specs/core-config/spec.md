@@ -1,8 +1,8 @@
 # core-config Specification
 
 ## Purpose
-Loads and validates YAML configuration for the core and for plugins, defines the core config
-schema, and migrates the v3 core config.
+Loads and validates YAML configuration for the core and for plugins, and defines the core
+config schema.
 
 ## Requirements
 
@@ -75,33 +75,6 @@ and `format`). The default file SHALL validate and contain no real Discord IDs.
 - **WHEN** an interaction log target lists a type other than command, button or modal
 - **THEN** validation fails at that target
 
-### Requirement: v3 core config migrates to the new schema
-Migration SHALL convert a v3 core config (`general_settings`, `builtin_settings`) to the new
-schema: the token, each `TYPE;text;milliseconds` activity (streaming as `STREAMING;text;url` with
-an optional fourth field for milliseconds), and each console logger target. Entries that cannot be
-converted SHALL be skipped with a report line. The original file SHALL be kept as a backup.
-
-#### Scenario: v3 file is converted
-- **WHEN** a v3 core config with a token, activities and console logger targets is migrated
-- **THEN** the new config holds the same token, activities with durations in seconds, and the
-  same targets under `interaction_log`, and it validates against the core schema
-
-#### Scenario: Streaming activity keeps its URL
-- **WHEN** a v3 activity is `STREAMING;Live;https://twitch.tv/example`
-- **THEN** the migrated activity has type streaming, that url, and the default duration
-
-#### Scenario: Unconvertible entries are reported
-- **WHEN** a v3 activity has fewer than three fields, an unknown type, or a non-numeric duration
-- **THEN** that entry is skipped and the report names it
-
-#### Scenario: Original file is backed up
-- **WHEN** the core config file of a directory is migrated
-- **THEN** the original content is kept as `config.v3.yaml` and `config.yaml` holds the new config
-
-#### Scenario: Migrated file is left alone
-- **WHEN** the config file is already in the new schema, or a backup already exists
-- **THEN** migration changes nothing and reports why
-
 ### Requirement: The core config lists the enabled plugins
 The core config SHALL have `plugins`, the names of the plugins to load in the order given (default
 none). The shipped default SHALL enable none.
@@ -109,58 +82,3 @@ none). The shipped default SHALL enable none.
 #### Scenario: Plugins list
 - **WHEN** the default core config loads, and a config lists AutoRole and Ticket
 - **THEN** the default enables no plugin and the other keeps both names in order
-
-### Requirement: v3 plugin switches migrate to the enabled list
-Migrating a v3 directory SHALL set `plugins` to the names of the directories under `plugins/`
-whose v3 `config.yaml` has `enabled: true`, each renamed plugin under its new name (decision B18
-as amended on 2026-10-10), sorted by name, and report them.
-
-#### Scenario: Enabled v3 plugins
-- **WHEN** a v3 directory has `plugins/AutoRole` with `enabled: true`, `plugins/Ticket` with
-  `enabled: false` and `plugins/SQLiteAPI` without a config
-- **THEN** the migrated config lists only AutoRole and the report names it
-
-#### Scenario: Renamed plugins
-- **WHEN** a v3 directory enables `_Example`, `BasicCalculator`, `SimpleCommand`,
-  `WelcomeByeGuild`, `IntervalPusher`, `Feedbacker`, `TicketAddons`, `NtustManager` and
-  `NtustCourse`
-- **THEN** the migrated config lists `Calculator`, `CustomCommands`, `Example`, `Feedback`,
-  `NtustAnnouncements`, `NtustCourseWatch`, `TicketAwayNotice`, `UptimeHeartbeat` and
-  `WelcomeGoodbye`, and the report names them
-
-### Requirement: Renamed plugins' v3 directories move to their new names
-Migrating a v3 directory SHALL move each renamed plugin's directory, `plugins/<v3 name>/`, to
-`plugins/<new name>/` with its files, so that the plugin finds v3's config and lang files there,
-and report each move. When `plugins/<new name>/` exists already, both directories SHALL stay as
-they are and the report SHALL say so. Nothing SHALL move when the core config is already in the
-new schema or backed up.
-
-#### Scenario: Directory moved
-- **WHEN** a v3 directory with `plugins/Feedbacker/config.yaml` is migrated
-- **THEN** that file is now `plugins/Feedback/config.yaml`, `plugins/Feedbacker` is gone and the
-  report names both directories
-
-#### Scenario: New directory exists
-- **WHEN** a v3 directory with both `plugins/Feedbacker` and `plugins/Feedback` is migrated
-- **THEN** both keep their files and the report says that `plugins/Feedback` exists
-
-#### Scenario: Migrated directory is left alone
-- **WHEN** the core config is already in the new schema, or its backup already exists
-- **THEN** no plugin directory moves
-
-### Requirement: CustomCommands' v3 switch file is set aside
-Migrating a v3 directory SHALL rename `plugins/CustomCommands/config.yaml` to `config.v3.yaml` when
-it holds no key but `enabled` (SimpleCommand's file, moved there), after writing the new core
-config, and report it, so that the plugin writes its bundled commands at its first load. A file
-with other keys, or one with a `config.v3.yaml` beside it, SHALL stay as it is.
-
-#### Scenario: Switch file set aside
-- **WHEN** a v3 directory whose `plugins/SimpleCommand/config.yaml` holds `enabled: true` is
-  migrated
-- **THEN** `plugins/CustomCommands/config.v3.yaml` holds that text, no `config.yaml` is left
-  there, the core config lists CustomCommands and the report names both files
-
-#### Scenario: Other files stay
-- **WHEN** `plugins/CustomCommands/config.yaml` lists commands, or a `config.v3.yaml` exists
-  beside a switch file
-- **THEN** the file stays, and for the second the report says why
