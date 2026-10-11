@@ -40,7 +40,7 @@
 
 - [x] 6.1 xfail tests for "Each board remembers what it posted" against stubs in `store.py`
 - [x] 6.2 Implement the documents, `remember` and their loading and saving; remove the markers
-- [ ] 6.3 xfail tests for "New announcements are posted in board order" and "Problems are logged
+- [x] 6.3 xfail tests for "New announcements are posted in board order" and "Problems are logged
       without flooding or showing the keys" against a stub `Watcher.check`
 - [ ] 6.4 Implement the passes, the announcements, the posts and their logs; remove the markers
 
