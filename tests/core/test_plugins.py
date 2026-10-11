@@ -499,7 +499,6 @@ async def test_hot_load_needs_the_intents(
     assert fake_plugins.calls() == ["Alpha", "Late"]
 
 
-@pytest.mark.xfail(strict=True, reason="Hot reload follows dependencies and intents")
 async def test_missing_intents_are_named(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:

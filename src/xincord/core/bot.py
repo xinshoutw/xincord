@@ -94,6 +94,7 @@ class Bot(commands.Bot):
         self._config = config or CoreConfig()
         self._status: asyncio.Task[None] | None = None
         self._relayed: set[str] = set()
+        self._repaired = False  # whether a READY uploaded every scope with force
 
     @override
     async def setup_hook(self) -> None:
@@ -104,8 +105,13 @@ class Bot(commands.Bot):
         logger.info("Plugins loaded: %s", ", ".join(self.loaded) or "none")
 
     async def on_ready(self) -> None:
-        """Upload the commands that changed: the global ones, then each guild's."""
-        await self._sync_commands(force=False)
+        """Upload the commands, global ones first: all at the first READY, then only changes.
+
+        The forced upload at the first READY repairs commands that another program overwrote, so
+        a restart repairs them.
+        """
+        await self._sync_commands(force=not self._repaired)
+        self._repaired = True
         for guild in self.guilds:
             logger.info("Guild loaded: %s (%s)", guild.name, guild.id)
         self._rotate_status(restart=False)  # on_ready fires again after reconnects
@@ -144,16 +150,16 @@ class Bot(commands.Bot):
                 logger.exception("Reload failed")
                 if self.is_ready() and self.loaded != before:
                     # The plugins that the failed reload unloaded take their commands along.
-                    await self._sync_commands(force=True)
+                    await self._sync_commands(force=False)
                 return f"Reload failed: {error}"
             summary = f"Reloaded: {', '.join(reloaded) or 'none'}."
             if failed:
                 summary += f" Failed: {', '.join(failed)} (see the log)."
-            # Logged before the upload, which may wait a minute for Discord's rate limit.
+            # Logged before the upload, which can wait for Discord's rate limit.
             logger.info("%s", summary)
             if self.is_ready():
-                # A manual reload also repairs the commands on Discord.
-                await self._sync_commands(force=True)
+                # Only the scopes whose commands changed: Discord allows few uploads a minute.
+                await self._sync_commands(force=False)
                 if plugin is None:
                     self._rotate_status(restart=True)
             return summary
@@ -296,7 +302,8 @@ class Bot(commands.Bot):
             msg = f"plugin {info.name} is already loaded"
             raise PluginError(msg)
         if missing := [flag for flag, on in info.intents if on and not getattr(self.intents, flag)]:
-            msg = f"plugin {info.name} needs the {', '.join(missing)} intents; restart to load it"
+            noun = "intent" if len(missing) == 1 else "intents"
+            msg = f"plugin {info.name} needs the {', '.join(missing)} {noun}; restart to load it"
             raise PluginError(msg)
         if absent := [dep for dep in info.depends if dep not in self._loaded]:
             msg = f"plugin {info.name} needs {', '.join(absent)}, which is not loaded"

@@ -1,14 +1,14 @@
 ## 1. Uploads
 
-- [ ] 1.1 xfail tests for "Commands are uploaded when ready" (the first READY forced, a later one
+- [x] 1.1 xfail tests for "Commands are uploaded when ready" (the first READY forced, a later one
       not) and "Reloads upload the commands and never overlap" (reloads sync without force, also
       after a failed reload that unloaded a plugin)
-- [ ] 1.2 Force at the first READY only and sync reloads without force; remove the markers
+- [x] 1.2 Force at the first READY only and sync reloads without force; remove the markers
 
 ## 2. Missing intents
 
-- [ ] 2.1 xfail test for "Hot reload follows dependencies and intents" (one intent, several)
-- [ ] 2.2 Singular and plural in the error; remove the marker
+- [x] 2.1 xfail test for "Hot reload follows dependencies and intents" (one intent, several)
+- [x] 2.2 Singular and plural in the error; remove the marker
 
 ## 3. Close
 

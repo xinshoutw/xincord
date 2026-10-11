@@ -51,7 +51,7 @@ async def test_edited_config(operator: Operator, monkeypatch: pytest.MonkeyPatch
 
     assert summary == "Reloaded: CustomCommands."
     assert await names(bot) == ["cub-card", "rules"]
-    assert syncs == [("global", True), (1, True)]
+    assert syncs == [("global", False), (1, False)]  # the guild's payload changed
 
 
 async def test_broken_edit(operator: Operator) -> None:

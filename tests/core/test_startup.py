@@ -199,7 +199,6 @@ async def test_stop_signal(
     assert len(closed) == 1
 
 
-@pytest.mark.xfail(strict=True, reason="Commands are uploaded when ready")
 async def test_ready(store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Commands are uploaded when ready."""
     bot = Bot([], root=tmp_path, data=tmp_path / "data", store=store)

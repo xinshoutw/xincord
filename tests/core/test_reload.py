@@ -164,13 +164,7 @@ async def test_named_plugin(installed: FakePlugins, store: Store) -> None:
 @pytest.mark.parametrize(
     ("ready", "uploads"),
     [
-        pytest.param(
-            True,
-            [("global", False), (1, False)],
-            marks=pytest.mark.xfail(
-                strict=True, reason="Reloads upload the commands and never overlap"
-            ),
-        ),
+        (True, [("global", False), (1, False)]),
         (False, []),
     ],
 )
@@ -225,7 +219,6 @@ async def test_full_reload_after_a_drop(installed: FakePlugins, store: Store) ->
     assert bot.loaded == ("Alpha", "Beta")
 
 
-@pytest.mark.xfail(strict=True, reason="Reloads upload the commands and never overlap")
 async def test_upload_after_a_reload_that_unloads(
     installed: FakePlugins, store: Store, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -249,7 +242,6 @@ async def test_upload_after_a_reload_that_unloads(
     assert syncs == [("global", False), (1, False)]
 
 
-@pytest.mark.xfail(strict=True, reason="Reloads upload the commands and never overlap")
 async def test_summary_before_the_upload(
     installed: FakePlugins,
     store: Store,
