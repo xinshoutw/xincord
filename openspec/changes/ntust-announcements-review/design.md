@@ -50,6 +50,18 @@ records them, and only then deletes the old messages and their entries: a restar
 post during the model's retries leaves the old post. A non-NTUST link or an article without
 content is posted again as its title link, as a first post would be.
 
+### Splitting at the content's structure
+
+`messages.split` picks each cut among the line breaks that fit. A break before a line ranks by
+that line: a heading (`#` to `######` and a space, or a line wholly in bold, the prompt's small
+headings) first, then a blank line, then a list item (`-`, `*`, `+`, a bullet or `1.` and a space),
+then any line. The best-ranked break past half the limit wins, the latest of its rank; when none is
+past half, the latest break that fits; else the hard cut at the limit. A break right after a
+heading never counts, so a heading goes to the next part with its text. Line breaks at a cut are
+dropped. Without headings, blank lines or list items the parts are v3's. v3 behaved differently: it
+cut after the last line break that fit, which split paragraphs and lists and left headings at the
+end of a message. The half-limit rule keeps a heading near the start from making a tiny part.
+
 ### The prompts
 
 `review-prompt` gets the prompt's tokens plus `{{markdown}}`; a missing key falls back to the

@@ -71,6 +71,32 @@ key.
 - **WHEN** `review-prompt` lacks `{{markdown}}`
 - **THEN** the plugin does not load and the error names `review-prompt`
 
+### Requirement: Long content is split at its structure
+A part SHALL end before a heading (a `#` line or a line wholly in bold), at a blank line, before a
+list item or at a line break, preferring them in that order among the breaks past half the limit,
+else at the last break that fits, else at the limit, never inside a character. A part SHALL NOT end
+right after a heading. The line breaks at a cut SHALL be left out.
+
+#### Scenario: Before a heading
+- **WHEN** a heading and a blank line both fit past half the limit
+- **THEN** the part ends before the heading
+
+#### Scenario: At a blank line
+- **WHEN** no heading but a blank line fits past half the limit
+- **THEN** the part ends at that blank line
+
+#### Scenario: Before a list item
+- **WHEN** neither fits past half the limit, but a list item starts there
+- **THEN** the part ends before the last such list item, not at a later plain line break
+
+#### Scenario: No short parts
+- **WHEN** the only heading and blank lines that fit are in the first half of the limit
+- **THEN** the part ends at a later break, not at them
+
+#### Scenario: Heading kept with its text
+- **WHEN** the last break that fits follows a heading
+- **THEN** the part ends before that heading, which starts the next part
+
 ## MODIFIED Requirements
 
 ### Requirement: The prompt is filled in one pass
@@ -88,3 +114,33 @@ title, `{{page_url}}` with its URL, `{{base_url}}` with `https://` and the URL's
 #### Scenario: Values as they are
 - **WHEN** a title holds `{{html}}`
 - **THEN** the filled prompt shows `{{html}}` in place of the title, not the article's HTML
+
+### Requirement: Announcements become messages within Discord's limits
+Content SHALL be posted in UTF-16 code units: a header of 15 U+FF3F, a line break and the trimmed
+content in one message up to 1975 units, else in parts of at most 1980 units split at its
+structure, the header on the first. A title link SHALL be the header and `# [title](url)`, `\[]`
+escaped, the title cut to fit.
+
+#### Scenario: One message
+- **WHEN** the trimmed content is 1975 units long
+- **THEN** one message holds the header, a line break and the content
+
+#### Scenario: Split at a line break
+- **WHEN** the content is longer and has plain line breaks only, no heading, blank line or list
+  item
+- **THEN** each part ends before the last line break that fits in 1980 units, which no part keeps,
+  as v3 split it
+
+#### Scenario: Split without a line break
+- **WHEN** 4000 units of content have no line break, or a character outside the BMP straddles a
+  limit
+- **THEN** the parts are cut at 1980 units, or before that character
+
+#### Scenario: Blank parts
+- **WHEN** a cut leaves a part of only whitespace
+- **THEN** that part is left out and the others are posted
+
+#### Scenario: Title link
+- **WHEN** a title holds `]` or is 3000 characters long
+- **THEN** the message escapes it, or cuts it with an ellipsis, keeps the whole URL and fits in
+  2000 units

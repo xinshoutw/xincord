@@ -24,6 +24,9 @@ itself asks for fenced code blocks, a likely source of the fences.
 - The plugin remembers each message it posts (the announcement, its channel and all its messages)
   in the store's namespace `NtustAnnouncements.posts`, so that a ❌ finds the announcement after a
   restart.
+- Long conversions are split at their structure (the owner's request): before a heading, at a
+  blank line, before a list item, at a line break, preferred in that order past half the limit,
+  never right after a heading. v3 cut at the last line break that fit.
 - The bundled `prompt` is a new, shorter text (owner's request); `review-prompt` is new. Both are
   zh-TW copy in `config.yaml` (owner review). Operator files keep their own prompt.
 
@@ -36,7 +39,8 @@ None.
 ### Modified Capabilities
 
 - `plugin-ntust-announcements`: refused texts, remembered posts, reviewers' redo and the review
-  prompt (four requirements added); the prompts' tokens (one requirement modified).
+  prompt and the split of long content (five requirements added); the prompts' tokens and the
+  messages (two requirements modified).
 
 ## Impact
 
