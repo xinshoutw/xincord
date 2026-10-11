@@ -162,7 +162,6 @@ async def test_the_bot_left_during_the_load(scene: Scene) -> None:
     assert scene.cog.panels.panels == {}
 
 
-@pytest.mark.xfail(strict=True, reason="Play queues songs and starts them")
 async def test_the_bot_left_while_the_songs_waited(scene: Scene) -> None:
     """Requirement: Play queues songs and starts them."""
     scene.answer("ytsearch:never gonna", LoadKind.SEARCH, song(1))

@@ -230,7 +230,6 @@ async def test_detailed_button_errors(
     assert said(pressed, key, **values)
 
 
-@pytest.mark.xfail(strict=True, reason="Panel buttons control the guild's player")
 async def test_two_quick_presses(scene: Scene) -> None:
     """Requirement: Panel buttons control the guild's player."""
     player = await scene.playing(1)

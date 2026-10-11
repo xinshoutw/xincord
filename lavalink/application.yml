@@ -52,3 +52,5 @@ logging:
   level:
     root: INFO
     lavalink: INFO
+    # Its INFO lines name each load's identifier: every member's search and link.
+    lavalink.server.player.AudioLoaderRestHandler: WARN

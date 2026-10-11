@@ -144,15 +144,20 @@ class MusicPlayer(Commands, Buttons, commands.Cog):
             task.cancel()
 
     async def leave_when_idle(self, session: Session, seconds: float) -> None:
-        """Wait ``seconds``, then leave voice: nothing started meanwhile, or the wait was ended."""
+        """Wait ``seconds``, then leave voice: nothing started meanwhile, or the wait was ended.
+
+        A connection that a new gateway session made discord.py forget is READY's to leave.
+        """
         await self.sleep(seconds)
-        guild = cast("discord.Guild", self.bot.get_guild(session.guild_id))
+        guild = self.bot.get_guild(session.guild_id)
+        if guild is None or (voice := guild.voice_client) is None:
+            return
         logger.info(
             "MusicPlayer: guild %d: nothing played for %g seconds; leaving voice",
             session.guild_id,
             seconds,
         )
-        await cast("discord.VoiceProtocol", guild.voice_client).disconnect(force=True)
+        await voice.disconnect(force=True)
 
     def _idle_ended(self, guild_id: int, task: asyncio.Task[None]) -> None:
         """Forget a finished wait, and log the error that ended it."""
@@ -162,8 +167,10 @@ class MusicPlayer(Commands, Buttons, commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        """READY again: discord.py's new gateway session forgot the bot's voice connections."""
-        raise NotImplementedError
+        """READY again: discord.py's new gateway session forgot the bot's voice connections
+        without telling them, so the bot leaves them, as after a disconnection."""
+        if self.link is not None:
+            await self.link.leave_lost()
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: discord.Guild) -> None:

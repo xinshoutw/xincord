@@ -30,6 +30,9 @@ logger = logging.getLogger(__name__)
 
 REGION = "default"  # lavalink.py's node regions; the plugin has one node
 NAME = "lavalink"  # the node's name in lavalink.py's logs
+# Seconds before a request that the node does not answer fails; lavalink.py's default is aiohttp's
+# 5 minutes, which held a guild's player and a member's command that long.
+REQUEST_TIMEOUT = 15.0
 # What lavalink.py raises when the node does not answer: no node, a refused password, a failed or
 # timed-out request.
 UNAVAILABLE = (
@@ -207,7 +210,9 @@ class NodeLink:
     async def leave_lost(self) -> None:
         """Leave voice where discord.py lost the connection: a new gateway session (READY again)
         forgets its voice clients without telling them."""
-        raise NotImplementedError
+        for voice in list(self.voices.values()):
+            if self.voices.get(voice.guild_id) is voice and voice not in voice.client.voice_clients:
+                await self._leave(voice)
 
     async def close(self) -> None:
         """Leave voice in every guild, then close the node's connection and the client's
@@ -217,16 +222,21 @@ class NodeLink:
         self.closed = True
         try:
             for voice in list(self.voices.values()):
-                try:
-                    await voice.disconnect(force=True)
-                except Exception as error:  # noqa: BLE001 - logged, and the other guilds still leave
-                    logger.warning(
-                        "MusicPlayer: could not leave voice in guild %d: %s",
-                        voice.guild_id,
-                        redact(str(error)),
-                    )
+                await self._leave(voice)
         finally:
             await self.client.close()
+
+    async def _leave(self, voice: LavalinkVoice) -> None:
+        """Leave ``voice``'s channel; a refused leave is logged, and the connection is released
+        all the same."""
+        try:
+            await voice.disconnect(force=True)
+        except Exception as error:  # noqa: BLE001 - logged, and the other guilds still leave
+            logger.warning(
+                "MusicPlayer: could not leave voice in guild %d: %s",
+                voice.guild_id,
+                redact(str(error)),
+            )
 
 
 class LavalinkVoice(discord.VoiceProtocol):
@@ -240,6 +250,9 @@ class LavalinkVoice(discord.VoiceProtocol):
         self.link = link
         self.guild_id: int = cast("discord.VoiceChannel", channel).guild.id
         self.released = False
+        # Discord put the bot in a channel through this connection: a voice state without a
+        # channel is its end from then on, and before that the late end of an earlier connection.
+        self.confirmed = False
 
     @override
     async def connect(
@@ -287,8 +300,10 @@ class LavalinkVoice(discord.VoiceProtocol):
         """
         channel_id = cast("str | int | None", data["channel_id"])  # None: the bot left
         if channel_id is None:
-            await self._release()
+            if self.confirmed:
+                await self._release()
             return
+        self.confirmed = True
         player = self.link.client.player_manager.get(self.guild_id)
         if player is not None:
             state = cast("dict[str, str]", player._voice_state)  # noqa: SLF001  # pyright: ignore[reportPrivateUsage, reportUnknownMemberType]
@@ -318,18 +333,22 @@ class LavalinkVoice(discord.VoiceProtocol):
             await self._release()
 
     async def _release(self) -> None:
-        """Forget the connection once: discord.py's record, the node's player, the plugin's."""
+        """Forget the connection once: discord.py's record, the plugin's player, the node's.
+
+        The plugin hears of it before the node's answer, during which the bot may connect again.
+        """
         if self.released:
             return
         self.released = True
         if self.link.voices.get(self.guild_id) is self:
             del self.link.voices[self.guild_id]
-        self.cleanup()
+        if self in self.client.voice_clients:  # not after a new gateway session forgot it
+            self.cleanup()
+        self.link.listener.left(self.guild_id)
         try:
             await self.link.client.player_manager.destroy(self.guild_id)
         except (*UNAVAILABLE, lavalink.RequestError):
             logger.debug("MusicPlayer: the node could not destroy guild %d's player", self.guild_id)
-        self.link.listener.left(self.guild_id)
 
 
 def open_link(user_id: int, node: Node, listener: Listener) -> NodeLink:
@@ -339,6 +358,9 @@ def open_link(user_id: int, node: Node, listener: Listener) -> NodeLink:
     after a refused password, which it logs.
     """
     player = type("NodePlayer", (NodePlayer,), {"listener": listener})
-    client: lavalink.Client[NodePlayer] = lavalink.Client(user_id, player=player)
+    timeout = aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)
+    client: lavalink.Client[NodePlayer] = lavalink.Client(
+        user_id, player=player, request_timeout=timeout
+    )
     client.add_node(node.host, node.port, node.password, REGION, NAME)
     return NodeLink(client, listener)

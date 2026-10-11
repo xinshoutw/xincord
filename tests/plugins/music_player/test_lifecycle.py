@@ -145,6 +145,7 @@ async def test_offline_load(bot: Bot) -> None:
     cog.open_link = cast("Any", open_link)
     starting = cog.starting
 
+    await cog.on_ready()  # a READY handler that ran before the link: nothing to leave
     await bot.remove_cog("MusicPlayer")
 
     assert starting is not None
@@ -262,11 +263,6 @@ async def test_guild_removed_without_voice(scene: Scene) -> None:
     assert scene.link.disconnects == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The bot leaves when idle, disconnected or removed",
-)
 async def test_a_new_gateway_session(scene: Scene) -> None:
     """Requirement: The bot leaves when idle, disconnected or removed."""
     await scene.playing(1)
@@ -279,7 +275,6 @@ async def test_a_new_gateway_session(scene: Scene) -> None:
     assert scene.cog.sessions[10].history.entries == []
 
 
-@pytest.mark.xfail(strict=True, reason="The bot leaves when idle, disconnected or removed")
 async def test_an_idle_leave_after_a_new_gateway_session(
     scene: Scene, caplog: pytest.LogCaptureFixture
 ) -> None:

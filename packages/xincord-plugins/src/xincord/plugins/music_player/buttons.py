@@ -75,7 +75,7 @@ class Buttons(Replies):
                 else:
                     await self.redraw(interaction, session, entry)
             case _:  # pause-resume
-                await (session.resume() if session.paused else session.pause())
+                await session.toggle_pause()
                 if session.playing:
                     await self.redraw(interaction, session)
                 else:  # the songs went while the press waited for the player

@@ -196,8 +196,10 @@ request that the node does not answer within 15 seconds SHALL fail as unavailabl
   new connection
 
 #### Scenario: Connections that a new gateway session dropped
-- **WHEN** READY came again and discord.py no longer holds a guild's connection
-- **THEN** the link leaves that guild's voice and releases its player, and the other guilds stay
+- **WHEN** READY came again and discord.py no longer holds a guild's connection, also when the bot
+  connects there again while the link leaves it
+- **THEN** the link leaves that guild's voice and releases its player, the other guilds stay, and
+  a newer connection keeps its player
 
 #### Scenario: A node that does not answer
 - **WHEN** the node takes a load and answers nothing for 15 seconds

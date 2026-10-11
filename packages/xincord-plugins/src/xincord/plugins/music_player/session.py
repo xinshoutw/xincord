@@ -80,12 +80,18 @@ class Session:
         self.number += 1
         self.changed(self)
 
-    async def enqueue(self, entries: Sequence[Entry]) -> Added:
-        """Add songs; the first starts when nothing plays."""
+    async def enqueue(self, entries: Sequence[Entry]) -> Added | None:
+        """Add songs; the first starts when nothing plays.
+
+        None, adding nothing, while the bot is not in voice: it may leave while the songs load or
+        wait for the player.
+        """
         async with self.lock:
+            if (player := self.player) is None:
+                return None
             added = self.history.add(entries)
             if added.start is not None:
-                await self._start(added.start)
+                await self._start(player, added.start)
             return added
 
     async def pause(self) -> bool:
@@ -106,6 +112,18 @@ class Session:
             self.paused = False
             return True
 
+    async def toggle_pause(self) -> None:
+        """v3's pause-resume button: pause the playing song, or resume the paused one.
+
+        The lock orders the choice too, so that two quick presses pause, then resume.
+        """
+        async with self.lock:
+            if self.player is None or not self.playing:
+                return
+            paused = not self.paused
+            await self.player.set_pause(paused)
+            self.paused = paused
+
     async def stop(self) -> None:
         """Forget every song and stop the player, unpaused (v3 kept the pause)."""
         async with self.lock:
@@ -115,20 +133,24 @@ class Session:
     async def skip(self) -> Entry | None:
         """Play the next song, or None at the last one."""
         async with self.lock:
-            if not self.playing or (entry := self.history.skip()) is None:
+            if (
+                (player := self.player) is None
+                or not self.playing
+                or (entry := self.history.skip()) is None
+            ):
                 return None
-            await self._start(entry)
+            await self._start(player, entry)
             return entry
 
     async def skip_many(self, count: int) -> Entry | None:
         """Skip ``count`` songs: the song reached, or None when the list ended."""
         async with self.lock:
-            if not self.playing:
+            if (player := self.player) is None or not self.playing:
                 return None
             if (entry := self.history.skip_many(count)) is None:
                 await self._halt()
                 return None
-            await self._start(entry)
+            await self._start(player, entry)
             return entry
 
     async def previous(self) -> Entry | None:
@@ -137,10 +159,10 @@ class Session:
         None when nothing plays, which may change while the call waits for the player.
         """
         async with self.lock:
-            if not self.playing:
+            if (player := self.player) is None or not self.playing:
                 return None
             entry = self.history.previous(self.position())
-            await self._start(entry)
+            await self._start(player, entry)
             return entry
 
     def toggle_loop(self) -> LoopMode:
@@ -194,24 +216,20 @@ class Session:
             await self._follow(self.history.ended(self.loop, failed=True))
 
     async def _follow(self, entry: Entry | None) -> None:
-        """Start ``entry``, or stop the player when the history went idle."""
-        if entry is None:
+        """Start ``entry``, or stop the player when the history went idle; a song played, so
+        the bot is in voice."""
+        if entry is None or (player := self.player) is None:
             await self._halt()
         else:
-            await self._start(entry)
+            await self._start(player, entry)
 
-    async def _start(self, entry: Entry) -> None:
-        """Play ``entry`` as a new number, unpaused at the guild's volume.
-
-        When the bot is not connected, or the node refuses, the history goes idle.
-        """
+    async def _start(self, player: Player, entry: Entry) -> None:
+        """Play ``entry`` on ``player`` as a new number, unpaused at the guild's volume; when the
+        node refuses, the history goes idle."""
         self.number += 1
         self.paused = False
         try:
-            if self.player is None:
-                self.history.idle()
-                return
-            await self.player.play(entry.track, number=self.number, volume=self.volume)
+            await player.play(entry.track, number=self.number, volume=self.volume)
         except BaseException:
             self.history.idle()
             raise

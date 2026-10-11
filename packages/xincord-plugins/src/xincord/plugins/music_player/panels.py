@@ -52,6 +52,7 @@ class Panels:
         self.sleep: Sleep = asyncio.sleep
         self.clock: Callable[[], float] = time.monotonic
         self.panels: dict[int, Panel] = {}  # by member
+        self.closed = False  # set by close: a later panel is not tracked
 
     async def open(
         self,
@@ -61,14 +62,21 @@ class Panels:
         screen: Screen,
         interaction: discord.Interaction,
     ) -> None:
-        """Track a member's new panel, deleting their previous one, as v3 kept one per user."""
-        if (previous := self.panels.pop(user_id, None)) is not None:
-            _stop(previous)
-            await _delete(previous)
+        """Track a member's new panel, deleting their previous one, as v3 kept one per user.
+
+        The new panel is the member's before the old one's deletion is answered, during which
+        their next command may open another; after ``close``, a panel stays as it is.
+        """
+        if self.closed:
+            return
+        previous = self.panels.pop(user_id, None)
         panel = Panel(user_id, guild_id, message_id, screen, interaction, self.clock())
         self.panels[user_id] = panel
         panel.task = asyncio.create_task(self._run(panel), name="MusicPlayer panel")
         panel.task.add_done_callback(_ended)
+        if previous is not None:
+            _stop(previous)
+            await _delete(previous)
 
     def touch(self, message_id: int, interaction: discord.Interaction) -> bool:
         """A press on the panel ``message_id``: it lives on, edited through ``interaction``.
@@ -99,6 +107,7 @@ class Panels:
 
     async def close(self) -> None:
         """End every refresh and wait for them, as the plugin unloads."""
+        self.closed = True
         tasks = [cast("asyncio.Task[None]", panel.task) for panel in self.panels.values()]
         self.panels.clear()
         for task in tasks:

@@ -74,13 +74,15 @@ class Listener:
 
 @dataclass
 class Guild:
-    """A guild whose voice state changes are recorded, or refused when ``refuse`` is set."""
+    """A guild whose voice state changes are recorded, then wait for ``gate`` if set, or are
+    refused when ``refuse`` is set."""
 
     id: int
     states: list[tuple[int | None, bool, bool]] = field(
         default_factory=list[tuple[int | None, bool, bool]]
     )
     refuse: bool = False
+    gate: asyncio.Event | None = None
 
     async def change_voice_state(
         self, *, channel: Channel | None, self_mute: bool = False, self_deaf: bool = False
@@ -89,6 +91,8 @@ class Guild:
             msg = "the gateway is closed"
             raise ConnectionError(msg)
         self.states.append((None if channel is None else channel.id, self_mute, self_deaf))
+        if self.gate is not None:
+            await self.gate.wait()
 
 
 @dataclass
@@ -283,10 +287,12 @@ async def test_disconnect_and_close(scene: Scene) -> None:
     node = scene.node
     voice = await scene.voice()
     channel = cast("Channel", voice.channel)
+    state = {"guild_id": str(GUILD), "user_id": "99", "session_id": "voice-1"}
+    await voice.on_voice_state_update(cast("Any", {**state, "channel_id": "20"}))
 
     await voice.disconnect(force=True)
     await voice.on_voice_state_update(  # Discord's answer, after the protocol let go
-        cast("Any", {"guild_id": str(GUILD), "user_id": "99", "channel_id": None})
+        cast("Any", {**state, "channel_id": None})
     )
     await scene.link.close()
     await node.until(lambda: node.closed == 1)
@@ -372,8 +378,8 @@ async def test_close_leaves_voice(scene: Scene) -> None:
     await node.until(lambda: node.closed == 1)
 
     assert channel.guild.states == [(20, False, False), (None, False, False)]
-    assert node.deleted == ["11", str(GUILD)]  # lavalink.py asks the node about any guild
-    assert scene.recorder.left == [11, GUILD]
+    assert node.deleted == [str(GUILD)]
+    assert scene.recorder.left == [GUILD]
 
 
 async def test_a_refused_connection(scene: Scene) -> None:
@@ -415,7 +421,6 @@ async def test_close_when_a_leave_is_refused(
     assert "the gateway is closed" in caplog.text
 
 
-@pytest.mark.xfail(strict=True, reason="Songs load and play through a Lavalink node")
 async def test_a_new_connection_while_the_node_deletes(scene: Scene) -> None:
     """Requirement: Songs load and play through a Lavalink node."""
     node = scene.node
@@ -439,7 +444,6 @@ async def test_a_new_connection_while_the_node_deletes(scene: Scene) -> None:
     assert scene.client.voice_clients == [second]
 
 
-@pytest.mark.xfail(strict=True, reason="Songs load and play through a Lavalink node")
 async def test_a_late_leave_of_the_previous_connection(scene: Scene) -> None:
     """Requirement: Songs load and play through a Lavalink node."""
     state = {"guild_id": str(GUILD), "user_id": str(BOT_ID)}
@@ -464,11 +468,6 @@ async def test_a_late_leave_of_the_previous_connection(scene: Scene) -> None:
     assert scene.node.deleted == [str(GUILD)]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Songs load and play through a Lavalink node",
-)
 async def test_connections_that_a_new_session_dropped(scene: Scene) -> None:
     """Requirement: Songs load and play through a Lavalink node."""
     dropped = await scene.voice()
@@ -488,7 +487,6 @@ async def test_connections_that_a_new_session_dropped(scene: Scene) -> None:
     assert scene.client.voice_clients == [kept]
 
 
-@pytest.mark.xfail(strict=True, reason="Songs load and play through a Lavalink node")
 async def test_a_node_that_does_not_answer(monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Songs load and play through a Lavalink node."""
     module = importlib.import_module("xincord.plugins.music_player.node")
@@ -507,3 +505,23 @@ async def test_a_node_that_does_not_answer(monkeypatch: pytest.MonkeyPatch) -> N
         finally:
             hold.set()
             await link.close()
+
+
+@pytest.mark.xfail(strict=True, reason="Songs load and play through a Lavalink node")
+async def test_a_connection_while_a_lost_one_leaves(scene: Scene) -> None:
+    """Requirement: Songs load and play through a Lavalink node."""
+    lost = await scene.voice()
+    guild = cast("Channel", lost.channel).guild
+    scene.client._connection._remove_voice_client(GUILD)  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
+    guild.gate = asyncio.Event()  # the gateway is slow to take the leave
+    leaving = asyncio.create_task(scene.link.leave_lost())
+    await until(lambda: guild.states[-1][0] is None)
+
+    new = await scene.voice()  # a member's /play meanwhile
+    guild.gate.set()
+    await leaving
+
+    assert scene.link.voices == {GUILD: new}
+    assert scene.client.voice_clients == [new]
+    assert scene.recorder.left == []  # the plugin keeps the new connection's player
+    assert scene.node.deleted == []

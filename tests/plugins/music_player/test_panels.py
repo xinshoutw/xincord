@@ -9,8 +9,6 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, cast
 
-import pytest
-
 from discord_fakes import FakeInteraction, embed_dict, not_found
 from music_fakes import Clock, text
 from plugin_fakes import until
@@ -18,6 +16,8 @@ from xincord.plugins.music_player.panels import Panel, Panels
 from xincord.plugins.music_player.replies import Screen
 
 if TYPE_CHECKING:
+    import pytest
+
     from conftest import Scene
 
 DELETED: tuple[str, dict[str, object]] = ("delete_original_response", {})
@@ -259,7 +259,6 @@ async def test_a_refused_refresh(scene: Scene) -> None:
     assert scene.clock.under_way() == 0
 
 
-@pytest.mark.xfail(strict=True, reason="Panels refresh themselves and expire")
 async def test_two_panels_at_once() -> None:
     """Requirement: Panels refresh themselves and expire."""
     clock = Clock()
@@ -280,7 +279,6 @@ async def test_two_panels_at_once() -> None:
     assert clock.under_way() == 0
 
 
-@pytest.mark.xfail(strict=True, reason="Panels refresh themselves and expire")
 async def test_a_panel_after_the_unload() -> None:
     """Requirement: Panels refresh themselves and expire."""
     clock = Clock()

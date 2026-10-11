@@ -114,6 +114,7 @@ async def test_cleanup() -> None:
     await session.ended(1, EndReason.CLEANUP)  # the node dropped the song
     added = await session.enqueue([song(3)])
 
+    assert added is not None
     assert added.start == song(3)
     assert player.played()[-1] == ("Song 3", 2, VOLUME)
 
@@ -220,6 +221,7 @@ async def test_songs_wait_while_one_plays() -> None:
     added = await session.enqueue([song(2)])
     await session.ended(1, EndReason.FINISHED)
 
+    assert added is not None
     assert added.start is None
     assert player.played() == [("Song 1", 1, VOLUME), ("Song 2", 2, VOLUME)]
 
@@ -247,14 +249,14 @@ async def test_volume_without_a_player() -> None:
 
 
 async def test_songs_added_while_disconnected() -> None:
-    """Requirement: The bot leaves when idle, disconnected or removed."""
+    """Requirement: Play queues songs and starts them."""
     session = Session(10, VOLUME, lambda _session: None)
 
     added = await session.enqueue([song(1)])
 
-    assert added.start == song(1)  # it would start, but no player is there
+    assert added is None  # the bot is not in voice: nothing is added
     assert session.playing is False
-    assert session.history.entries == [song(1)]
+    assert session.history.entries == []
 
 
 async def test_a_refused_start() -> None:

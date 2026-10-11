@@ -211,7 +211,6 @@ async def test_stop_without_a_voice_connection(scene: Scene) -> None:
     assert reply(stop) == DELETED
 
 
-@pytest.mark.xfail(strict=True, reason="Members control playback with v3's replies")
 async def test_pause_while_the_bot_leaves(scene: Scene) -> None:
     """Requirement: Members control playback with v3's replies."""
     player = await scene.playing(1)

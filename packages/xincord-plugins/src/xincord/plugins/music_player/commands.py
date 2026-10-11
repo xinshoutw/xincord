@@ -211,10 +211,9 @@ class Commands(Replies):
             await self.tell(interaction, "empty-playlist")
             return
         session = self.session(guild_of(interaction).id)
-        if session.player is None:  # the bot left voice during the load
+        if (added := await session.enqueue(entries)) is None:  # the bot left voice meanwhile
             await self.tell(interaction, "not-connected")
             return
-        added = await session.enqueue(entries)
         if not added.added:
             await self.tell(interaction, "queue-full")
             return
@@ -252,21 +251,24 @@ class Commands(Replies):
 
     async def pause_song(self, interaction: discord.Interaction) -> None:
         """``/pause``: pause the song and show the ``pause`` panel; any member, as in v3."""
-        if (session := self.playing(interaction)) is None:
+        session = self.playing(interaction)
+        done = session is not None and await session.pause()
+        # The songs may go while the command waits for the player or the node answers.
+        if session is None or not session.playing:
             await self.tell(interaction, "nothing-playing")
-        elif not await session.pause():  # the songs may have gone while it waited
-            await self.tell(interaction, "already-paused" if session.playing else "nothing-playing")
+        elif not done:
+            await self.tell(interaction, "already-paused")
         else:
             await self.show(interaction, Screen("pause"), session)
 
     async def resume_song(self, interaction: discord.Interaction) -> None:
         """``/resume``: resume the song and show the ``resume`` panel."""
-        if (session := self.playing(interaction)) is None:
+        session = self.playing(interaction)
+        done = session is not None and await session.resume()
+        if session is None or not session.playing:  # as for /pause
             await self.tell(interaction, "nothing-playing")
-        elif not await session.resume():  # the songs may have gone while it waited
-            await self.tell(
-                interaction, "already-playing" if session.playing else "nothing-playing"
-            )
+        elif not done:
+            await self.tell(interaction, "already-playing")
         else:
             await self.show(interaction, Screen("resume"), session)
 
