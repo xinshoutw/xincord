@@ -6,6 +6,7 @@ Kotlin:
 """
 
 import json
+import ssl
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -15,7 +16,13 @@ from aiohttp.test_utils import RawTestServer
 
 from plugin_fakes import FIXTURES
 from xincord.plugins.ntust_announcements.gemini import GeminiError
-from xincord.plugins.ntust_announcements.web import FetchError, Page, answer_text, open_web
+from xincord.plugins.ntust_announcements.web import (
+    FetchError,
+    Page,
+    answer_text,
+    open_web,
+    page_context,
+)
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -222,3 +229,18 @@ async def test_page_encoding(server: Server) -> None:
 
     # Without a charset, UTF-8 with replacement characters, as Java's BodyHandlers.ofString.
     assert page.text == "caf\N{REPLACEMENT CHARACTER} \N{REPLACEMENT CHARACTER}"
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
+)
+def test_page_certificates() -> None:
+    """Requirement: Board pages list their announcements."""
+    context = page_context()
+
+    # Python 3.13 made the strict X.509 checks a default, and NTUST's certificate chain lacks a
+    # Subject Key Identifier, which they refuse (2026-10-11); Java's HttpClient took it.
+    assert ssl.create_default_context().verify_flags & ssl.VERIFY_X509_STRICT
+    assert not context.verify_flags & ssl.VERIFY_X509_STRICT
+    assert context.verify_mode == ssl.CERT_REQUIRED
+    assert context.check_hostname

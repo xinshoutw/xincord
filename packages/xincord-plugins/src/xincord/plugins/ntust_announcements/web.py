@@ -20,6 +20,7 @@ from .gemini import GeminiError
 from .pages import trim
 
 if TYPE_CHECKING:
+    import ssl
     from collections.abc import AsyncGenerator
 
 API = "https://generativelanguage.googleapis.com"  # Gemini's REST API
@@ -47,6 +48,11 @@ class FetchError(Exception):
         """Keep the status."""
         super().__init__(f"code {status}")
         self.status = status
+
+
+def page_context() -> ssl.SSLContext:
+    """TLS for the pages: certificates and host names verified, without the strict X.509 checks."""
+    raise NotImplementedError
 
 
 def _field(value: object, name: str) -> object:

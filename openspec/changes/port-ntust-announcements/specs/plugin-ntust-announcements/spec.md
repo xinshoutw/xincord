@@ -85,6 +85,11 @@ Titles are the links' text with whitespace collapsed, links resolve against the 
 - **WHEN** a board's page redirects
 - **THEN** it is read where the redirect leads, and its links resolve against that page
 
+#### Scenario: NTUST's certificates
+- **WHEN** a page is fetched over HTTPS
+- **THEN** its certificate and host name are verified without Python's strict X.509 checks, which
+  NTUST's certificate chain fails
+
 ### Requirement: Article pages give their content as minified HTML
 A link SHALL count as an NTUST article when it matches v3's pattern
 (`https://<host>.ntust.edu.tw/p/<digits, -, comma, r>.php...`). Its page SHALL give the outer HTML
