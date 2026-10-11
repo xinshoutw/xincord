@@ -8,8 +8,6 @@ Kotlin:
 
 from typing import TYPE_CHECKING, Any
 
-import pytest
-
 from plugin_fakes import golden
 
 if TYPE_CHECKING:
@@ -25,7 +23,6 @@ def localized(expected: dict[str, Any], index: int) -> dict[str, str]:
     return {locale: expected[locale][index] for locale in ("en-US", "zh-TW")}
 
 
-@pytest.mark.xfail(strict=True, reason="Commands keep v3's names, options and localizations")
 async def test_command_payloads(bot: Bot) -> None:
     """Requirement: Commands keep v3's names, options and localizations."""
     tree: CommandTree = bot.tree  # pyright: ignore[reportAssignmentType]

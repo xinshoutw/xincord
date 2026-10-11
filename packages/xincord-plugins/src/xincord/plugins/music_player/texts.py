@@ -1,0 +1,30 @@
+"""The texts that v3 wrote in its code, from ``text.yaml``.
+
+Kotlin:
+    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:278-956
+    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/Event.kt:79-118
+"""
+
+from typing import TYPE_CHECKING
+
+from xincord.core.placeholders import render
+
+if TYPE_CHECKING:
+    from xincord.core.i18n import Lang
+
+TEXT = "text"  # the stem of the lang file that holds them
+PREFIX = "music_player@"  # the placeholders' prefix, v3's
+
+
+def text(lang: Lang, key: str, locale: str, **values: object) -> str:
+    """The text ``key`` in ``locale`` with its ``%music_player@<name>%`` values, as written.
+
+    A key missing in ``locale`` falls back to zh-TW, which v3 showed every member.
+    """
+    filled = {f"{PREFIX}{name}": str(value) for name, value in values.items()}
+    return render(lang.text(f"{TEXT}.{key}", locale), filled)
+
+
+def raw(lang: Lang, key: str, locale: str) -> str:
+    """The text ``key`` in ``locale`` with its placeholders, for code that fills them later."""
+    return lang.text(f"{TEXT}.{key}", locale)

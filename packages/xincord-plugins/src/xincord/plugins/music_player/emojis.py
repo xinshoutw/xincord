@@ -1,0 +1,25 @@
+"""The application's emojis by their configured names, and Unicode ones for the missing.
+
+Kotlin:
+    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/util/MusicPlayerUtils.kt:51-65
+"""
+
+VS16 = "\N{VARIATION SELECTOR-16}"  # the emoji presentation of the symbols below
+# What stands for an emoji that the application lacks, by config key: v3 failed every panel then.
+FALLBACKS = {
+    "progress_white_start": "\N{BLACK PARALLELOGRAM}",
+    "progress_white_full": "\N{BLACK PARALLELOGRAM}",
+    "progress_white_end": "\N{BLACK PARALLELOGRAM}",
+    "progress_black": "\N{WHITE PARALLELOGRAM}",
+    "progress_black_end": "\N{WHITE PARALLELOGRAM}",
+    "media_play": "\N{BLACK RIGHT-POINTING TRIANGLE}" + VS16,
+    "media_pause": "\N{DOUBLE VERTICAL BAR}" + VS16,
+    "media_ordered": "\N{BLACK RIGHTWARDS ARROW}" + VS16,
+    "media_repeat_once": (
+        "\N{CLOCKWISE RIGHTWARDS AND LEFTWARDS OPEN CIRCLE ARROWS WITH CIRCLED ONE OVERLAY}"
+    ),
+    "media_previous": "\N{BLACK LEFT-POINTING DOUBLE TRIANGLE WITH VERTICAL BAR}" + VS16,
+    "media_pause_resume": "\N{BLACK RIGHT-POINTING TRIANGLE WITH DOUBLE VERTICAL BAR}" + VS16,
+    "media_next": "\N{BLACK RIGHT-POINTING DOUBLE TRIANGLE WITH VERTICAL BAR}" + VS16,
+    "media_disconnect": "\N{EJECT SYMBOL}" + VS16,
+}

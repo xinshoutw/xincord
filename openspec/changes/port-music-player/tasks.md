@@ -37,7 +37,7 @@
 
 - [x] 6.1 xfail tests for "Commands keep v3's names, options and localizations", "Members bring
       the bot into voice and send it away" and "Play queues songs and starts them"
-- [ ] 6.2 Build the commands, the voice checks and `/play`; remove the markers
+- [x] 6.2 Build the commands, the voice checks and `/play`; remove the markers
 - [ ] 6.3 xfail tests for "Members control playback with v3's replies" and "Volume, queue, shuffle
       and now playing keep v3's replies"
 - [ ] 6.4 Implement the eight other commands; remove the markers

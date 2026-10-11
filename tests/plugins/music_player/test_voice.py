@@ -20,11 +20,6 @@ ALICE = Requester(1, "Alice", "alice", "https://cdn.example/alice.png")
 DELETED: tuple[str, dict[str, object]] = ("delete_original_response", {})
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Members bring the bot into voice and send it away",
-)
 async def test_join(scene: Scene) -> None:
     """Requirement: Members bring the bot into voice and send it away."""
     interaction = scene.who(VOICE)
@@ -35,11 +30,6 @@ async def test_join(scene: Scene) -> None:
     assert interaction.sent == [DELETED]  # as v3: no confirmation
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Members bring the bot into voice and send it away",
-)
 async def test_join_moves_the_bot(scene: Scene) -> None:
     """Requirement: Members bring the bot into voice and send it away."""
     await scene.connect(OTHER)
@@ -61,11 +51,6 @@ async def test_join_moves_the_bot(scene: Scene) -> None:
         pytest.param(FULL, "cannot-connect", id="full"),
     ],
 )
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Members bring the bot into voice and send it away",
-)
 async def test_join_refused(scene: Scene, channel: int | None, key: str) -> None:
     """Requirement: Members bring the bot into voice and send it away."""
     interaction = scene.who(channel)
@@ -76,11 +61,6 @@ async def test_join_refused(scene: Scene, channel: int | None, key: str) -> None
     assert scene.link.connects == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Members bring the bot into voice and send it away",
-)
 async def test_disconnect(scene: Scene) -> None:
     """Requirement: Members bring the bot into voice and send it away."""
     await scene.connect(VOICE)
@@ -95,3 +75,32 @@ async def test_disconnect(scene: Scene) -> None:
     assert scene.cog.sessions[10].history.entries == []
     assert leave.sent[0] == DELETED
     assert again.sent[-1] == ("edit_original_response", {"content": text("not-connected")})
+
+
+async def test_join_where_the_bot_is(scene: Scene) -> None:
+    """Requirement: Members bring the bot into voice and send it away."""
+    await scene.connect(VOICE)
+    interaction = scene.who(VOICE)
+
+    await scene.cog.join_voice(interaction.as_interaction())
+
+    assert scene.link.connects == [(10, VOICE)]
+    assert scene.guild.voice_moves == []
+    assert interaction.sent == [DELETED]
+
+
+async def test_join_without_a_node(scene: Scene) -> None:
+    """Requirement: Members bring the bot into voice and send it away."""
+    scene.link.available = False
+    interaction = scene.who(VOICE)
+
+    await scene.cog.join_voice(interaction.as_interaction())
+
+    assert interaction.sent == [("edit_original_response", {"content": text("node-unavailable")})]
+
+
+def test_a_guild_without_music_leaves(scene: Scene) -> None:
+    """Requirement: Members bring the bot into voice and send it away."""
+    scene.cog.left(99)  # a guild where nothing ever played
+
+    assert 99 not in scene.cog.sessions

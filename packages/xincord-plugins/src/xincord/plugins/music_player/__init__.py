@@ -15,6 +15,7 @@ import discord
 from xincord.core.templates import Templates
 
 from .cog import MusicPlayer
+from .commands import COMMANDS
 from .config import Config
 
 if TYPE_CHECKING:
@@ -38,3 +39,6 @@ async def setup(bot: Bot) -> None:
     config = context.config(Config)
     cog = MusicPlayer(bot, config, lang, Templates.load(lang))
     await bot.add_cog(cog)
+    # Guild commands in v3's order. discord.py removes them when the plugin unloads.
+    for name in COMMANDS:
+        bot.tree.add_command(cog.command(name))

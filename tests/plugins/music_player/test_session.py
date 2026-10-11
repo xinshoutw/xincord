@@ -263,3 +263,11 @@ async def test_a_refused_start() -> None:
 
     assert session.playing is False  # nothing plays, and the song stays for a later start
     assert session.history.entries == [song(1)]
+
+
+def test_no_current_song() -> None:
+    """Requirement: Panels show v3's track layout."""
+    session = Session(10, VOLUME, lambda _session: None)
+
+    with pytest.raises(LookupError, match="guild 10 has no song"):
+        session.current()

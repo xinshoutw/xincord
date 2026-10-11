@@ -48,6 +48,17 @@ class Session:
         """Whether a song is on the player, playing or paused."""
         return self.history.active
 
+    def current(self) -> Entry:
+        """The current song, which a panel shows; callers check that one plays.
+
+        Raises:
+            LookupError: The history is empty.
+        """
+        if (entry := self.history.current) is None:
+            msg = f"guild {self.guild_id} has no song"
+            raise LookupError(msg)
+        return entry
+
     def position(self) -> int:
         """The playing song's position in milliseconds, 0 when nothing plays."""
         return self.player.position if self.player is not None and self.playing else 0

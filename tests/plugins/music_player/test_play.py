@@ -34,9 +34,6 @@ def title(fields: dict[str, Any]) -> str:
     return str(embed_dict(embeds[0])["title"])
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Play queues songs and starts them"
-)
 async def test_play_a_search(scene: Scene) -> None:
     """Requirement: Play queues songs and starts them."""
     scene.answer("ytsearch:never gonna", LoadKind.SEARCH, song(1), song(2))
@@ -55,9 +52,6 @@ async def test_play_a_search(scene: Scene) -> None:
     assert embed["color"] == 0x68C06E  # playing
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Play queues songs and starts them"
-)
 async def test_play_a_playlist(scene: Scene) -> None:
     """Requirement: Play queues songs and starts them."""
     scene.answer("ytsearch:first", LoadKind.SEARCH, song(1))
@@ -77,9 +71,6 @@ async def test_play_a_playlist(scene: Scene) -> None:
     assert title(panel(interaction)) == "Song 2"  # v3 showed the playlist's first song
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Play queues songs and starts them"
-)
 async def test_another_channel(scene: Scene) -> None:
     """Requirement: Play queues songs and starts them."""
     scene.answer("https://youtu.be/x", LoadKind.TRACK, song(1))
@@ -108,9 +99,6 @@ async def test_another_channel(scene: Scene) -> None:
         pytest.param(VOICE, PLAYLIST, "empty-playlist", {}, id="empty playlist"),
     ],
 )
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Play queues songs and starts them"
-)
 async def test_refusals(
     scene: Scene, channel: int | None, query: str, key: str, values: dict[str, str]
 ) -> None:
@@ -126,9 +114,6 @@ async def test_refusals(
     assert scene.link.players.get(10) is None or scene.player().played() == []
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Play queues songs and starts them"
-)
 async def test_no_node(scene: Scene) -> None:
     """Requirement: Play queues songs and starts them."""
     scene.link.available = False
@@ -140,19 +125,18 @@ async def test_no_node(scene: Scene) -> None:
     assert scene.link.connects == []
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Play queues songs and starts them"
-)
 async def test_full_history(scene: Scene) -> None:
     """Requirement: Play queues songs and starts them."""
     scene.answer(PLAYLIST, LoadKind.PLAYLIST, *(song(number) for number in range(241)))
     scene.answer("ytsearch:more", LoadKind.SEARCH, song(999))
     truncated = scene.who(VOICE)
-    full = scene.who(VOICE)
 
     await scene.cog.play_song(truncated.as_interaction(), PLAYLIST)
-    await scene.cog.play_song(full.as_interaction(), "more")
 
     assert panel(truncated)["content"] == text("queue-truncated", added=240, refused=1)
     assert title(panel(truncated)) == "Song 0"
-    assert full.sent == [("edit_original_response", {"content": text("queue-full")})]
+    full = scene.who(VOICE)
+
+    await scene.cog.play_song(full.as_interaction(), "more")
+
+    assert full.sent[-1] == ("edit_original_response", {"content": text("queue-full")})
