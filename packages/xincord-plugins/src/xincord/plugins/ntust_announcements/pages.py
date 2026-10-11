@@ -13,6 +13,7 @@ from urllib.parse import urljoin, urlsplit
 
 from .config import Layout
 from .markup import parse
+from .strings import trim
 
 if TYPE_CHECKING:
     from .config import Board
@@ -37,7 +38,6 @@ MINIFY = (
     (re.compile(r"\s{2,}", re.ASCII), " "),
     (re.compile(r"\n\s*\n", re.ASCII), "\n"),
 )
-NEXT_LINE = "\x85"  # Python's isspace() takes it; Kotlin's isWhitespace() does not
 
 
 @dataclass(frozen=True)
@@ -139,18 +139,3 @@ def minify(html: str) -> str:
     for pattern, replacement in MINIFY:
         text = pattern.sub(replacement, text)
     return trim(text)
-
-
-def _whitespace(character: str) -> bool:
-    """Kotlin's ``Char.isWhitespace()``."""
-    return character.isspace() and character != NEXT_LINE
-
-
-def trim(text: str) -> str:
-    """``text`` without the leading and trailing characters that Kotlin's ``trim()`` removes."""
-    start, end = 0, len(text)
-    while start < end and _whitespace(text[start]):
-        start += 1
-    while end > start and _whitespace(text[end - 1]):
-        end -= 1
-    return text[start:end]

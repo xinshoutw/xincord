@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import cast
 
-from .pages import trim
+from .strings import trim
 
 GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta"  # Gemini's REST API
 GEMINI_MODEL = "gemini-2.5-flash"  # v3's model

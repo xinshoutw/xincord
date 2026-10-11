@@ -18,7 +18,7 @@ from xincord.plugins.failures import Failures
 from xincord.plugins.redaction import redact
 
 from .api import ApiError
-from .pages import trim
+from .strings import trim
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Sequence

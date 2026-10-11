@@ -12,7 +12,7 @@ from itertools import accumulate
 from typing import TYPE_CHECKING
 from urllib.parse import quote
 
-from .pages import trim
+from .strings import trim
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

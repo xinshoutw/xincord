@@ -22,8 +22,8 @@ from xincord.plugins.ntust_announcements.pages import (
     complete_url,
     is_article,
     minify,
-    trim,
 )
+from xincord.plugins.ntust_announcements.strings import trim
 
 PAGES = FIXTURES / "plugins" / "ntust_announcements"
 GOLDEN = golden("ntust_announcements")

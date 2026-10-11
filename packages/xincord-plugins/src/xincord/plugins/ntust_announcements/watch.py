@@ -17,8 +17,9 @@ import discord
 from xincord.plugins.failures import Failures
 
 from .messages import content_messages, link_message
-from .pages import article_html, board_links, is_article, trim
+from .pages import article_html, board_links, is_article
 from .store import DataError, remember
+from .strings import trim
 from .web import FetchError
 
 if TYPE_CHECKING:
