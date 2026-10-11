@@ -67,7 +67,7 @@
       left behind) and fix its findings xfail-first (9.3 to 9.19; design, "Cross-review")
 - [x] 9.3 xfail test for a channel that refuses posts (found in the review: every pass converted
       the articles again)
-- [ ] 9.4 Keep an article's messages until they are posted; remove the marker
+- [x] 9.4 Keep an article's messages until they are posted; remove the marker
 - [ ] 9.5 xfail test for a message part of only whitespace (found in the review: the rest was lost)
 - [ ] 9.6 Drop blank parts; remove the marker
 - [ ] 9.7 xfail tests for an announcement that raises and for deeply nested pages (found in the

@@ -62,6 +62,9 @@ class Watcher:
     articles: Failures = field(default_factory=Failures)
     posts: Failures = field(default_factory=Failures)
     document: Failures = field(default_factory=Failures)
+    # The messages of announcements that the channel refused, by URL, until they are posted or
+    # leave the page.
+    ready: dict[str, list[str]] = field(default_factory=dict[str, list[str]])
 
     @property
     def name(self) -> str:
@@ -112,6 +115,8 @@ class Watcher:
                 await self.posted.save(self.board.name, kept)
         if (tidied := remember(stored, links, posted)) != kept:
             await self.posted.save(self.board.name, tidied)  # new order, titles or links that left
+        on_page = {link.url for link in links}
+        self.ready = {url: messages for url, messages in self.ready.items() if url in on_page}
 
     async def _links(self) -> list[Link] | None:
         """The page's entries with a title and a link, or None when the page failed (logged)."""
@@ -163,20 +168,37 @@ class Watcher:
     async def _announce(self, link: Link) -> bool:
         """Post one announcement; whether it counts as posted (v3's ``contentParser``).
 
+        Messages that the channel refused wait in ``ready`` for the next pass, so that a refusing
+        channel (a wrong ID, a missing permission) costs no Gemini attempt at each pass.
+        """
+        messages = self.ready.get(link.url)
+        if messages is None:
+            messages = await self._messages(link)
+            if messages is None:
+                return False
+        if await self._post(link, messages):
+            self.ready.pop(link.url, None)
+            return True
+        self.ready[link.url] = messages
+        return False
+
+    async def _messages(self, link: Link) -> list[str] | None:
+        """An announcement's messages, or None when its article page failed (logged).
+
         An NTUST article goes through Gemini; any other link, or an article whose content cannot
-        be converted, is posted as its title link. An article page that fails is left for the
-        next pass, which v3 never gave it.
+        be converted, is its title link. An article page that fails is left for the next pass,
+        which v3 never gave it.
         """
         if not is_article(link.url):
-            return await self._post(link, [link_message(link.title, link.url)])
+            return [link_message(link.title, link.url)]
         try:
             page = await self.page(link.url)
         except FetchError as error:
             self._article_failed(error.status, logging.WARNING, link, f"answered with {error}")
-            return False
+            return None
         except NETWORK_ERRORS as error:
             self._article_failed(type(error), logging.ERROR, link, f"failed: {_describe(error)}")
-            return False
+            return None
         if failed := self.articles.succeed():
             logger.info("%s: its articles load again after %d failures", self.name, failed)
         html = article_html(page.text)
@@ -184,7 +206,7 @@ class Watcher:
             logger.warning(
                 "%s: %s has no content to convert; posting its title", self.name, link.url
             )
-            return await self._post(link, [link_message(link.title, link.url)])
+            return [link_message(link.title, link.url)]
         content = await self.convert(html, link)
         if content is None:
             logger.warning(
@@ -192,8 +214,8 @@ class Watcher:
                 self.name,
                 link.url,
             )
-            return await self._post(link, [link_message(link.title, link.url)])
-        return await self._post(link, content_messages(content))
+            return [link_message(link.title, link.url)]
+        return content_messages(content)
 
     def _article_failed(self, kind: object, level: int, link: Link, detail: str) -> None:
         logger.log(

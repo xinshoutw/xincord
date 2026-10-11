@@ -380,7 +380,6 @@ async def test_unexpected_error(scene: Scene, caplog: pytest.LogCaptureFixture) 
     assert record.exc_info is not None
 
 
-@pytest.mark.xfail(strict=True, reason="Each board remembers what it posted")
 async def test_refused_posts(scene: Scene) -> None:
     """Requirement: Each board remembers what it posted."""
     scene.refusals = [forbidden()] * (3 * len(ENTRIES))  # a wrong channel or a missing permission
