@@ -95,7 +95,8 @@ update `uv.lock`, the SHA-pinned actions, the Dockerfile's images, compose's Lav
 
 #### Scenario: Commit messages
 - **WHEN** the commit type of an update is resolved
-- **THEN** it is `build`, or `ci` for GitHub Actions and their runners, and no scope is set
+- **THEN** it is `build`, or `ci` for GitHub Actions and their runners, also where the presets of
+  `config:recommended` give another type, and no scope is set
 
 #### Scenario: Managers
 - **WHEN** the enabled managers are read
