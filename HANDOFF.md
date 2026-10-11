@@ -1,6 +1,9 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-11 after `ntust-announcements-model-config`, the owner's fourth follow-up change:
+Updated 2026-10-11 after `ticket-staff-controls`, the owner's fifth follow-up change: the four
+buttons of a Ticket channel's control row (lock, unlock, save, delete) act for the ticket's staff
+only, anyone else, the ticket's member included, getting the admin-only text, and the row has the
+owner's labels. It followed `ntust-announcements-model-config`, the owner's fourth follow-up change:
 every setting of the model that NtustAnnouncements uses (endpoint, `gemini` or OpenAI-compatible
 `openai` format, model, temperature, output limit, timeouts, rate limit, retries) is a key of its
 `config.yaml` with v3's values as defaults, applied by a reload, and its logs name no product. It
@@ -421,7 +424,12 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
   appended under the guild's lock after a `place` callback puts the button on the message (and
   takes it off again when the store fails). `targets.py` (the `/add-ticket` checks), `archive.py`
   (thread, webhook, forwarding, flattening, failures over Protocols in `channels.py`),
-  `controls.py` (`ControlRow`: lock, unlock, delete, save and its select), `ids.py`, `cog.py`
+  `controls.py` (`ControlRow`: lock, unlock, delete, save and its select; since
+  `ticket-staff-controls`, the owner's request, the four buttons share one check, `_staff`, for
+  the entry's staff roles or Administrator, @everyone left out of a member's roles (`_role_ids`),
+  and `_refuse` answers the others before any request to Discord: v3's acknowledgement for a user
+  who is no member, else `error.not-found` or `error.admin-only`, ephemerally; the labels are the
+  owner's `control.*`), `ids.py`, `cog.py`
   (commands, builder sessions per user and guild with the builder message's ID, confirmation,
   tickets, routes, left guilds). A changed draft is kept only once Discord took the builder that
   shows it (`_screen`). Channel names are the member's username, TicketAwayNotice's contract
@@ -554,7 +562,7 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 `rename-plugins`, `uptime-heartbeat-keep-pushing`, `custom-commands-from-config`,
 `chat-logger-split-storage`, `port-ticket`, `port-ticket-away-notice`,
 `port-ntust-announcements`, `port-ntust-course-watch`, `port-music-player`,
-`ntust-announcements-model-config`. Each one's `design.md` in
+`ntust-announcements-model-config`, `ticket-staff-controls`. Each one's `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
@@ -575,9 +583,10 @@ only and never stops a listener (`uptime-heartbeat-keep-pushing`); CustomCommand
 commands in its config file (`custom-commands-from-config`); ChatLogger keeps 5 years by default in
 its own files, starting a new file when one grows too large (`chat-logger-split-storage`);
 NtustAnnouncements takes every model setting from its config, with an OpenAI-compatible format
-(`ntust-announcements-model-config`). Not started yet: the v3 data import (`xincord migrate`)
-before cutover, which must read a renamed plugin's v3 data from `plugins/<new name>/` once
-`migrate_v3` moved it (or from both places), write
+(`ntust-announcements-model-config`); Ticket's control row is for the ticket's staff only, with
+the owner's labels (`ticket-staff-controls`). Not started yet: the v3 data import
+(`xincord migrate`) before cutover, which must read a renamed plugin's v3 data from
+`plugins/<new name>/` once `migrate_v3` moved it (or from both places), write
 the new store namespaces (`WelcomeGoodbye`), and import ChatLogger's message files as
 `chat-logger-split-storage`'s design plans ("Migration").
 
@@ -668,6 +677,15 @@ this answers the review queue's NtustAnnouncements choice "Config surface" for t
 pages' fetch limit and timeouts and the message split stay constants), and the change's own
 choices are in the review queue.
 
+Requested on 2026-10-11, while the owner was away: the member who opened a ticket must not use the
+ticket channel's control row. Lock, unlock, save and delete work for the ticket's staff only (the
+entry's staff roles or Administrator), anyone else getting the existing admin-only text
+ephemerally with nothing changed, the not-found answer and the acknowledgement before any request
+to Discord kept; and the row gets the owner's labels in both languages. Done in
+`ticket-staff-controls`; this answers the review queue's Ticket choices "Lock and unlock" (staff
+only) and "Delete by a non-staff member" (the admin-only text), deleted there, and the change's own
+choices are in the review queue ("Ticket control row").
+
 1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
    (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script
    fills that list; plugins that are not enabled no longer create files under `plugins/<Name>/`;
@@ -692,7 +710,10 @@ choices are in the review queue.
 6. **Ticket** (review queue, "Ticket"): whether ticket channels should take a `ticket-` prefix so
    that TicketAwayNotice's default prefixes match them; the Message Content intent for the archive;
    `TZ` for the archive's times; the v3 data import before anyone uses `/add-ticket` on v3 panels
-   (until then a new button takes index 0, the v3 button's, and both open the new entry).
+   (until then a new button takes index 0, the v3 button's, and both open the new entry) and
+   before staff need the control rows of v3's ticket channels (until then, since
+   `ticket-staff-controls`, their lock and unlock answer the not-found text, as save and delete
+   always did); exported `text.yaml` files keep the old labels until renewed or edited.
 7. **TicketAwayNotice** (review queue, "TicketAwayNotice"): the Presence intent must be allowed in
    the developer portal before the plugin is enabled, or Discord refuses the bot's connection; at
    cutover, `guild_id` must be the shop's guild, since the guild filter now applies (the READY check
@@ -1166,6 +1187,13 @@ setup-uv v10.2.0, setup-node v7.1.0.
   Ollama's OpenAI-compatible endpoint takes `max_tokens` (no `max_completion_tokens`) and ignores
   the key; Gemini's is `https://generativelanguage.googleapis.com/v1beta/openai/` with a bearer key;
   aiohttp refuses an `Authorization` header together with credentials in the URL (`ValueError`).
+
+- pyright does not narrow a union with `==` against a string literal (`found == "error.admin-only"`
+  leaves `Entry | str`, since a class may define `__eq__`): narrow with `isinstance`, or pass the
+  literal on (Ticket's `delete` in the xfail commit of `ticket-staff-controls`).
+- discord.py's `Member.roles` lists @everyone, the default role whose ID is the guild's, among every
+  member's roles; JDA's `getRoles()` left it out. Leave it out before matching configured role IDs
+  (Ticket's `_role_ids`, found in `ticket-staff-controls`' cross-review).
 
 **v3 behaviors never to reproduce:** loading plugins in reverse dependency order, non-atomic JSON
 writes that reset corrupt files, recursive placeholder expansion, shared mutable placeholder

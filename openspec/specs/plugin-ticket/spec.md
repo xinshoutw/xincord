@@ -27,7 +27,8 @@ modal templates) with a `text.yaml` per locale, which its first load writes to
 The plugin SHALL take the texts that v3 wrote in its code from `text.yaml`: replies to one user
 in that user's locale and public messages (the control row, the archive's markers) in the default
 locale, zh-TW, a missing locale or key falling back to zh-TW. zh-TW SHALL hold v3's texts, en-US
-English ones; values SHALL be inserted as written.
+English ones, except the control row's labels (`control.*`), which SHALL be the owner's in both;
+values SHALL be inserted as written.
 
 #### Scenario: A reply in the user's locale
 - **WHEN** a member whose client is en-US, zh-TW or ja presses a panel button whose data is gone
@@ -36,6 +37,12 @@ English ones; values SHALL be inserted as written.
 #### Scenario: Public texts in the default locale
 - **WHEN** an en-US member opens a ticket
 - **THEN** the control row's labels are the zh-TW ones
+
+#### Scenario: The control row's labels
+- **WHEN** the plugin loads its bundled lang files
+- **THEN** `control.lock`, `control.unlock`, `control.save` and `control.delete` are the owner's
+  labels in zh-TW, and `Click to lock`, `Click to unlock`, `Save conversation` and `Delete` in
+  en-US
 
 ### Requirement: Panels are stored as v3's documents
 Each guild's panels SHALL be one document in the store's namespace `Ticket` under the guild ID:
@@ -292,15 +299,31 @@ it, and the bot allowed it on top of its own copied overwrite.
 - **THEN** none of the category's overwrites is copied
 
 ### Requirement: The control row locks and unlocks the ticket
-Lock and unlock SHALL acknowledge at once, deny or allow the ticket's member View Channel in the
-channel keeping the overwrite's other permissions, and show the locked or unlocked row (unlock:
-green `🔓`; lock: gray `🔒`; save: blue `💾`; delete: red `🗑`) with the same fields; anyone in the
-channel may press them, as in v3; a failure SHALL be reported ephemerally.
+Lock and unlock SHALL act only for the ticket's staff (a staff role of the row's entry but
+@everyone, or Administrator): acknowledged before any request to Discord, they SHALL deny or allow
+the ticket's member View Channel, other permissions kept, and show the other row (unlock: green
+`🔓`; lock: gray `🔒`; save: blue `💾`; delete: red `🗑`) with the same fields. Failures SHALL be
+told ephemerally; any other member SHALL get the admin-only text, a row without its entry the
+not-found text.
 
 #### Scenario: Lock and unlock
-- **WHEN** someone presses lock, then unlock
+- **WHEN** a staff member presses lock, then unlock
 - **THEN** the member's overwrite denies, then allows View Channel, and the row shows unlock, then
   lock
+
+#### Scenario: Not the ticket's staff
+- **WHEN** the ticket's member, or another member without a staff role or Administrator, presses
+  lock or unlock
+- **THEN** the reply is the admin-only text, ephemerally, and no overwrite or row changes
+
+#### Scenario: No entry
+- **WHEN** the row's panel button is not stored
+- **THEN** the reply is the not-found text, ephemerally, and no overwrite or row changes
+
+#### Scenario: @everyone among the staff roles
+- **WHEN** the entry's staff roles hold @everyone, whose ID is the guild's, and the ticket's
+  member, holding no other staff role, presses lock or unlock
+- **THEN** the reply is the admin-only text, ephemerally, and no overwrite or row changes
 
 #### Scenario: A member who left
 - **WHEN** the ticket's member left the guild
@@ -308,16 +331,18 @@ channel may press them, as in v3; a failure SHALL be reported ephemerally.
 
 ### Requirement: Administrators delete the ticket
 Delete SHALL look the entry up by the row's message and index: without one, the not-found text; for
-a member with one of its staff roles or Administrator, an acknowledgement and the channel's
-deletion (a refusal reported); for others, an acknowledgement only, as in v3.
+a member with one of its staff roles but @everyone, or Administrator, an acknowledgement and the
+channel's deletion (a refusal reported); for any other member, the ticket's member too, the
+admin-only text, ephemerally, the channel kept.
 
 #### Scenario: Deletion
 - **WHEN** a member with staff role 3 presses delete
 - **THEN** the press is acknowledged and the channel deleted
 
 #### Scenario: Not a staff member
-- **WHEN** a member without a staff role or Administrator presses delete
-- **THEN** the press is acknowledged and nothing else happens
+- **WHEN** the ticket's member, or another member without a staff role or Administrator, presses
+  delete
+- **THEN** the reply is the admin-only text, ephemerally, and the channel stays
 
 ### Requirement: Administrators choose where to save the conversation
 Save SHALL answer v3's not-found or admin-only text, or ephemerally offer a text channel select.
@@ -394,8 +419,12 @@ the message.
 - **THEN** the reason modal opens, and the core rewrites the panel's IDs in the new format
 
 #### Scenario: v3's control row
-- **WHEN** someone presses `ticket@a:lock;d:<hex user ID>;e:<message ID>;f:0`
+- **WHEN** a staff member presses `ticket@a:lock;d:<hex user ID>;e:<message ID>;f:0`
 - **THEN** the member is locked out and the row shows new-format IDs
+
+#### Scenario: v3's control row pressed by the ticket's member
+- **WHEN** the ticket's member presses the same button
+- **THEN** the reply is the admin-only text, and the core still rewrites the row's IDs
 
 ### Requirement: Leaving a guild forgets its panels
 When the bot leaves a guild, the plugin SHALL delete the guild's panels, as v3 did, and its

@@ -426,7 +426,7 @@ here; delete a section once it is empty.
 - Confirming answers failures and keeps the builder (v3 deleted it first and failed silently).
 - Ticket channels get an overwrite that lets the bot see them (v3 needed Administrator or a staff role); a reason too long for one message arrives in several (v3: the channel had no controls); a missing panel or category answers v3's error (v3: "thinking" forever).
 - The opener pings the staff roles only: `@everyone` and other mentions typed in a reason no longer ping (v3 pinged them).
-- Lock and unlock answer at once and report failures (v3: the press failed when the member had left).
+- Lock and unlock answer before any request to Discord and report failures (v3: the press failed when the member had left); since `ticket-staff-controls` they are for staff only (next section).
 - The archive pings nobody, splits long messages, links files over the guild's upload limit, renames authors whose name Discord refuses for webhooks, deletes its empty thread when the webhook cannot be made, and reports every failure (v3 hung).
 - Panels of guilds the bot left while offline are deleted at READY (v3 deleted them only when it saw the leave).
 - `/add-ticket` with a text that is no message ID shows at most 100 characters of it in the error.
@@ -435,8 +435,6 @@ here; delete a section once it is empty.
 - Texts: `text.yaml` per locale, replies in the user's locale (zh-TW where the plugin has no files, as v3's templates) and public texts (control row, archive markers) in zh-TW; alternative: v3's Chinese texts for every user.
 - Builder defaults follow the administrator's language; alternative: v3's zh-TW defaults for everyone.
 - v3's four English errors translated for zh-TW; alternative: keep them in English.
-- Lock and unlock: kept v3's no permission check (anyone in the channel, the member included); alternative: staff only, as save and delete.
-- Delete by a non-staff member: kept v3's silent acknowledgement; alternative: the admin-only text, as save answers.
 - No config: the archive's thread names and markers use the host's zone (UTC in the container); alternative: a `timeZone` key as Giveaway's.
 - The category's overwrites are copied only when the bot is an administrator or holds every permission they set (JDA's fallback); alternative: always copy and let Discord refuse.
 - A ticket channel whose opener is refused is deleted; alternative: keep it without controls, as v3.
@@ -457,6 +455,23 @@ here; delete a section once it is empty.
 - Run the v3 data import before anyone uses `/add-ticket` on a v3 panel (see the choice above).
 - Unverified without Discord: Discord's exact webhook username rules, and how a long archive behaves near Discord's rate limits.
 - Packaging was checked: the wheel's lang files, `xincord --no-online` from the built wheels, and the compose image with the fourteen ported plugins; a discord.py probe walked every flow with HTTP recorded (archived design, "Checks").
+
+## Ticket control row (`ticket-staff-controls`)
+
+### User-visible changes
+- Lock, unlock, save and delete work for the ticket's staff only: a member with one of the panel button's staff roles, or Administrator. Anyone else, the ticket's member included, gets the existing admin-only text (`error.admin-only`, en-US "Only administrators can use this.") as an ephemeral reply in their language, and nothing changes. Before, lock and unlock worked for anyone who saw the channel (the member could lock themselves out), and delete did nothing without a word; save already answered so.
+- Lock and unlock on a row whose panel button is no longer stored answer the not-found text, as save and delete already did; before, they worked without it. This covers v3's ticket channels until the v3 data import stores v3's panels, and tickets whose panels were deleted when the bot left their guild.
+- New labels (`control.*` in both `text.yaml` files): `Click to lock`, `Click to unlock`, `Save conversation` and `Delete` in en-US, and the zh-TW words the owner gave. The row is a public message in the default locale (zh-TW), so every reader sees the zh-TW labels; the en-US ones show nowhere today.
+- Rows already posted keep their labels until they are rebuilt, which the next lock or unlock does; save and delete leave the row as it is, and the core's upgrade of v3's IDs keeps a v3 row's labels.
+- Exported lang files (`plugins/Ticket/lang/<locale>/text.yaml`) keep the old labels until renewed with `--force-renew-lang-resources` (which renews every enabled plugin's lang files, edits included) or edited by hand (the four `control.*` lines).
+### Choices made without the owner
+- A user who is no member keeps v3's silent acknowledgement on all four buttons; Discord sends the member with every interaction in a guild, so this cannot happen in a ticket channel; alternative: the admin-only text.
+- @everyone never counts as a staff role: discord.py lists it among every member's roles (JDA did not), so a panel whose staff roles hold it (an edited or imported document) made every member staff on save and delete since `port-ticket`, and would have on lock and unlock; found in the cross-review and fixed, as v3 decided; alternative: count it, letting every member use such a panel's rows.
+- Lock and unlock need the panel button's stored entry, which names the staff roles, as save and delete do: a ticket whose entry is gone (above) can no longer be locked, unlocked, saved or deleted from its row, and staff change or delete such a channel by hand; alternative: let Administrators use the row without the entry.
+### Manual checks
+- Smoke checklist in `openspec/changes/archive/2026-10-11-ticket-staff-controls/design.md`: the ticket's member presses each button (the admin-only text, nothing changes); a member with the staff role and an Administrator lock, unlock, save and delete; a row posted before the change takes the new labels at its next lock or unlock.
+- After the v3 data import, staff lock and unlock a v3 ticket (until then they answer the not-found text).
+- Done: the wheel holds both `text.yaml` files with the new labels; the tests press every button as staff, as the ticket's member, as another member, on a row without its entry and with @everyone among the staff roles, and a v3 row as the ticket's member; a cross-review found no high or medium defect, and its three low findings are fixed (archived design, "Cross-review").
 
 ## TicketAwayNotice (v3 TicketAddons, `port-ticket-away-notice`)
 

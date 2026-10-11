@@ -314,7 +314,8 @@ async def setup(bot: Bot) -> None:
   checked after `interaction.guild is None` (never true in a guild: discord.py creates a placeholder
   guild). A reply v3 rendered in `event.guild.locale` uses
   `(interaction.guild_locale or interaction.locale).value` (WelcomeGoodbye's `_guild` and
-  `_reply`).
+  `_reply`). v3's `member.roles` left out @everyone, which discord.py's `Member.roles` lists (its
+  ID is the guild's): drop it before matching configured role IDs (Ticket's `_role_ids`).
 - A v3 reply posted with `event.channel.sendMessage(...)` after the defer: send it to
   `interaction.channel` when that has `send` (a `runtime_checkable` Protocol, so fakes need no
   discord base class; forums and categories have none), then `delete_original_response()`; on
