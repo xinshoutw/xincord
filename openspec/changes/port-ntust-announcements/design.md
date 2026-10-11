@@ -478,6 +478,10 @@ exceptions, and the largest `fetch-interval`.
   entries: 10 to 20 per board, the student resource room's `412` page included) and found a
   Language Center article's container, on the host (Python 3.14.8, OpenSSL 3.5.9). The first try
   stopped at the Academic Affairs boards: their host leaves out TWCA's intermediate.
+- After the cross-review's fixes (2026-10-11): the wheel also ships `twca-secure-ssl-ca.pem`;
+  `xincord --no-online` from fresh wheels exited 1 with the bundled config and 0 with example
+  values; the probe gave the same requests; the image loaded all sixteen plugins again and read
+  `www.academic.ntust.edu.tw` through the page context, which Python's default context refused.
 - Found while checking and fixed in this change: NTUST's certificates and Python's strict X.509
   checks, the academic host's missing intermediate (`page_context`), and pydantic's `min_length`,
   which counted only the valid items and so also called the bundled config's 18 boards an empty
