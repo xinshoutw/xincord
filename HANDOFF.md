@@ -608,17 +608,14 @@ the repository and the GHCR package public; (4) the cutover, with Claude operati
 production host and migrating v3's data with one-off scripts. Work in the main session, without
 subagents.
 
-Progress on 2026-10-12: step (1) is under way. The core's run under compose and batches 1 and 2 of
-the Discord checks passed (section 6), and the owner's follow-ups of the walk-through are done
+Progress on 2026-10-12: step (1) is done. The core's run under compose and batches 1 and 2 of the
+Discord checks passed (section 6), and the owner's follow-ups of the walk-through are done
 (`compose-run-fixes`, `reload-uploads-changes`, `timezone-from-env`, `chat-logger-keep-deleted`,
-`ntust-announcements-review`, `ntust-announcements-redo-feedback`). Left for step (1), batch 3 on
-the test guild: Ticket with its control row (the second account as the ticket's member and
-`Staff` as the staff role), TicketAwayNotice (the owner invisible, a channel named `ticket-...`),
-DynamicVoiceChannel (the `Lobby`), VoiceLogger and ChatLogger (their listen channels
-`#logs-voice` and `#logs-chat`), NtustCourseWatch (`/course-add` in `#course-watch`), and
-MusicPlayer's rest (a move between channels, a moderator's disconnection, leaving after 10 idle
-minutes, the node stopped and started). Then the review queue's remaining items
-(`docs/porting/owner-review.md`), and steps (2) to (4).
+`ntust-announcements-review`, `ntust-announcements-redo-feedback`). The owner skipped batch 3 (the
+voice plugins, Ticket, TicketAwayNotice, the loggers' listen channels, NtustCourseWatch and
+MusicPlayer's rest): nothing in it was needed before the cutover, whose own checks are in the review
+queue (`docs/porting/owner-review.md`), now a list of the cutover's steps, what to watch afterwards
+and the release settings. Next: steps (2) to (4).
 
 The test environment (2026-10-12): the owner's Mac runs compose in `~/IdeaProjects/xincord` with
 the owner's test application `xincord-test` (1558847245061849158) in the guild `xincord-test`
@@ -821,6 +818,18 @@ typed end time (`TZ=Asia/Taipei`), and NtustAnnouncements' redo by the owner's �
 account's ❌ ignored). The owner then asked for a sign while a redo runs: done in
 `ntust-announcements-redo-feedback` (⏳ on the marked message).
 
+Decided on 2026-10-12 (night): the owner skipped batch 3 of the Discord checks, after Claude had
+prepared it and verified TicketAwayNotice's warning for a user ID that is not a member (none for
+the right one). Nothing in batch 3 was needed before the cutover: the plugins' flows are tested and
+were probed through discord.py's own objects, and what only production shows is a cutover step
+(the production application's privileged intents, a smoke test of Ticket and DynamicVoiceChannel
+after the migration) or watched afterwards, as the review queue lists. The remaining user-visible
+changes and the five choices of `ntust-announcements-review` stand as implemented; the queue keeps
+only the cutover's steps, what to watch afterwards and the release settings. The owner asked about
+DynamicVoiceChannel's `format-name-2`: v3's command required a second name format, stored it and
+never used it (v3's own example added `%dvc@info%` to the custom name, a placeholder v3 never
+had); the port keeps v3's command and data as they were.
+
 1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
    (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script
    fills that list; plugins that are not enabled no longer create files under `plugins/<Name>/`;
@@ -836,9 +845,10 @@ account's ❌ ignored). The owner then asked for a sign while a redo runs: done 
    operator enables it, or Discord refuses the bot's connection.
 4. **Lavalink image:** verified in port-music-player: `ghcr.io/lavalink-devs/lavalink:4.2.2`
    (Ubuntu, arm64) turned healthy on the owner's Mac with both plugins, and the plugin reached it
-   from the bot's image; a real voice test (DAVE) needs a token (review queue, "MusicPlayer").
+   from the bot's image; the real voice test with DAVE passed on the test guild (2026-10-12).
    **VoiceLogger status events** were built in port-voice-logger (the core relays the gateway
-   event; the audit log is read raw); what needs a real guild is in `docs/porting/owner-review.md`.
+   event; the audit log is read raw); what no real guild showed yet is in the review queue
+   ("After cutover").
 5. **Giveaway's time zone:** typed end times follow `TZ` in `.env` (`timezone-from-env`; the
    owner's Mac has `Asia/Taipei`); the production host's `.env` needs it too (or `timeZone` in
    `plugins/Giveaway/config.yaml`), or they are read 8 hours off in UTC. Whether v3's running
@@ -848,7 +858,8 @@ account's ❌ ignored). The owner then asked for a sign while a redo runs: done 
    `/add-ticket` on v3 panels (until then a new button takes index 0, the v3 button's, and both
    open the new entry) and before staff need the control rows of v3's ticket channels (until then,
    since `ticket-staff-controls`, their lock and unlock answer the not-found text, as save and
-   delete always did); exported `text.yaml` files keep the old labels until renewed or edited.
+   delete always did); exported `text.yaml` files keep the old labels until renewed or edited
+   (v3 had no `text.yaml`, so production exports the new labels).
 7. **TicketAwayNotice** (review queue, "TicketAwayNotice"): the Presence intent must be allowed in
    the developer portal before the plugin is enabled, or Discord refuses the bot's connection; at
    cutover, `guild_id` must be the shop's guild, since the guild filter now applies (the READY check
@@ -859,8 +870,8 @@ account's ❌ ignored). The owner then asked for a sign while a redo runs: done 
    the v3 data import") before enabling the plugin, or its first pass posts every board's first
    page; add `boards` with the 18 channel IDs to the migrated
    `plugins/NtustAnnouncements/config.yaml`; `{{now}}` follows `TZ` in `.env` (UTC when unset).
-   The model settings (review queue, "NtustAnnouncements model settings") keep v3's values unless
-   the file sets them.
+   The model settings keep v3's values unless the file sets them; set a current `model`, and take
+   the bundled prompt, `reject-texts`, `reviewers` and `review-prompt` (review queue).
 9. **NtustCourseWatch** (review queue, "NtustCourseWatch"): before each course selection, set
    `semester` and `start` in `plugins/NtustCourseWatch/config.yaml` (the defaults are v3's 1142
    and 2025-12-26 09:00); during the first selection, check in the log that NTUST answers the
@@ -870,8 +881,8 @@ account's ❌ ignored). The owner then asked for a sign while a redo runs: done 
 10. **MusicPlayer** (review queue, "MusicPlayer"): before the first `docker compose up`, copy
    `.env.example` to `.env` and set `LAVALINK_PASSWORD` (every compose command needs it now) and
    the same `lavalink.password` in `bot/plugins/MusicPlayer/config.yaml`; Spotify, if wanted, in
-   `.env`; check the application's emojis (v3's names) and a real voice session with DAVE
-   (`openspec/changes/archive/2026-10-11-port-music-player/design.md`, smoke checklist).
+   `.env`; check the production application's emojis (v3's names). DAVE passed on the test guild
+   (2026-10-12).
 
 ## 7. Verified facts and pitfalls
 
