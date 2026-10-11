@@ -32,7 +32,7 @@ from xincord.plugins.ntust_announcements.web import FetchError, Page
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from xincord.core.storage import Store
+    from xincord.core.storage import JSON, Store
 
 PAGES = FIXTURES / "plugins" / "ntust_announcements"
 BOARD = "STUDENT_DORMITORY"
@@ -49,6 +49,8 @@ ARTICLES = [link for link in ENTRIES if is_article(link.url)]  # all but the Goo
 BOARD_PAGE = (PAGES / "student-dormitory.html").read_text(encoding="utf-8")
 ARTICLE_PAGE = (PAGES / "student-article.html").read_text(encoding="utf-8")
 LOGGER = "xincord.plugins.ntust_announcements"
+# v3's itemTypeName, which Moshi wrote when the list was not empty (CacheCollectionManager.kt:143).
+ITEM_TYPE = "tw.xinshou.discord.plugin.ntustmanager.announcement.AnnouncementLink"
 
 
 def table(links: list[Link]) -> str:
@@ -470,3 +472,47 @@ async def test_parsing_off_the_event_loop(scene: Scene, monkeypatch: pytest.Monk
 
     assert len(threads) == 1 + len(ARTICLES)
     assert not any(threads)
+
+
+async def test_v3_document_in_a_pass(scene: Scene, store: Store) -> None:
+    """Requirement: Each board remembers what it posted."""
+    # v3's MongoDB value, as the planned v3 data import copies it.
+    items: list[JSON] = [
+        {"type": link.board, "url": link.url, "title": link.title} for link in ENTRIES[:3]
+    ]
+    await store.put(NAMESPACE, BOARD, {"items": items, "itemTypeName": ITEM_TYPE})
+
+    await scene.watcher.check()
+
+    assert scene.sent == expected_posts(ENTRIES[3:])
+    assert await scene.stored() == tuple(ENTRIES)
+
+
+async def test_redirected_page(scene: Scene) -> None:
+    """Requirement: Board pages list their announcements."""
+    moved = "https://student.ntust.edu.tw/moved/list.php"
+    relative = Link(BOARD, "406-1053-1,r1436.php", "Relative")
+    rooted = Link(BOARD, "/p/406-1053-2,r1436.php", "Rooted")
+    scene.pages[BOARD_URL] = Page(moved, table([relative, rooted]))  # where the redirect led
+    article = "https://student.ntust.edu.tw/p/406-1053-2,r1436.php"
+    scene.pages[article] = Page(article, ARTICLE_PAGE)
+
+    await scene.watcher.check()
+
+    assert [link.url for link in await scene.stored()] == [
+        "https://student.ntust.edu.tw/moved/406-1053-1,r1436.php",
+        article,
+    ]
+
+
+async def test_empty_pages_logged_once(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Problems are logged without flooding or showing the keys."""
+    scene.pages[BOARD_URL] = Page(BOARD_URL, "<p>Maintenance</p>")  # a layout NTUST changed
+
+    with caplog.at_level(logging.DEBUG, logger=LOGGER):
+        for _ in range(3):
+            await scene.watcher.check()
+
+    [warning] = plugin_lines(caplog, logging.WARNING)
+    assert warning.endswith(f"its page {BOARD_URL} lists no entries")
+    assert len([line for line in plugin_lines(caplog, logging.DEBUG) if "no entries" in line]) == 2

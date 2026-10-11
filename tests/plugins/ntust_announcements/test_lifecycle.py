@@ -197,3 +197,24 @@ async def test_tests_stay_offline() -> None:
     async with open_web("gemini-2.5-flash") as web:
         with pytest.raises(OSError, match="the tests do not reach the network"):
             await web.page(DORMITORY_URL)
+
+
+async def test_reload(scene: Scene) -> None:
+    """Requirement: Boards are checked from READY until the plugin unloads."""
+    [old] = scene.cog.tasks
+    await scene.ready.waiters(1)
+
+    summary = await scene.bot.reload("NtustAnnouncements")  # the console's and /xincord's reload
+
+    assert "NtustAnnouncements" in summary
+    assert old.done()  # the old loops ended with the old cog
+    cog = scene.cog  # the new version's
+    [new] = cog.tasks
+    cog.open_web = scene.web.open
+    cog.sleep = scene.clock.sleep
+    scene.ready.set()
+    await scene.clock.asleep(2)
+
+    assert not new.done()
+    assert scene.web.opened == 1  # only the new cog's loops run
+    assert len(scene.posts(101)) == 6
