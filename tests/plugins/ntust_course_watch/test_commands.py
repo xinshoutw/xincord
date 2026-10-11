@@ -138,6 +138,26 @@ async def test_invalid_code(cog: NtustCourseWatch, store: Store, typed: str) -> 
     assert replies(fake) == [ENGLISH["invalid-code"]]
 
 
+@pytest.mark.xfail(strict=True, reason="Members register courses in a channel")
+@pytest.mark.parametrize(
+    "typed",
+    [
+        pytest.param("C", id="one letter"),
+        pytest.param("CE162A", id="a department's prefix"),
+        pytest.param("CE162A00", id="eight characters"),
+    ],
+)
+async def test_short_codes(cog: NtustCourseWatch, store: Store, typed: str) -> None:
+    """Requirement: Members register courses in a channel."""
+    fake = interaction()
+
+    await cog.add_course(fake.as_interaction(), typed)
+
+    # NTUST matches a code as a prefix: "C" would ask about most of the catalogue at every round.
+    assert await store.get(NAMESPACE, KEY) is None
+    assert replies(fake) == [ENGLISH["invalid-code"]]
+
+
 async def test_twenty_characters(cog: NtustCourseWatch) -> None:
     """Requirement: Members register courses in a channel."""
     fake = interaction()

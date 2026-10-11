@@ -45,10 +45,10 @@ the Web Dashboard (B13).
   `info.yaml`. No component IDs: v3 had no components (its derived `ntustcourse@` prefix was
   unused).
 - `lang/en-US/` holds v3's English texts, verbatim, and is the default locale, because every v3
-  text was English: `register.yaml` (the descriptions) and `text.yaml` (the replies and the alerts,
-  with `%ncw@...%` placeholders). `lang/zh-TW/` translates them (the skill's rule for texts that v3
-  hard-coded in one language, as Ticket's). Command names and the option name stay v3's for every
-  locale (no `name` keys), so members type the same commands.
+  text was English: `register.yaml` (the names and descriptions) and `text.yaml` (the replies and
+  the alerts, with `%ncw@...%` placeholders). `lang/zh-TW/` translates them (the skill's rule for
+  texts that v3 hard-coded in one language, as Ticket's). Command names and the option name stay
+  v3's in every locale (both `register.yaml` files repeat them), so members type the same commands.
 - The bundled `config.yaml` holds v3's values with comments: the plugin loads as it is, and the
   `--no-online` and image checks need no example values.
 
@@ -131,7 +131,7 @@ the Web Dashboard (B13).
 ### Commands
 
 - `cog.command(name)` builds `course-add`, `course-remove` and `course-list` from the `COMMANDS`
-  table: v3's names (plain strings), descriptions from `register.yaml` (`lang.command`), a
+  table: names and descriptions from `register.yaml` (`lang.command`, v3's texts by default), a
   required string option renamed `id` (the parameter is `code`) described in one `describe` call;
   guild commands, no default permissions (every member), deferred ephemerally by the command tree,
   as v3's core did. Replies edit the deferral with the text in the member's locale

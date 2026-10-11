@@ -139,6 +139,30 @@ async def test_broken_document(store: Store, document: JSON) -> None:
     assert await store.get(NAMESPACE, KEY) == document  # never overwritten
 
 
+@pytest.mark.xfail(strict=True, reason="Registrations are kept as v3's document")
+async def test_stored_codes(store: Store) -> None:
+    """Requirement: Registrations are kept as v3's document."""
+    name = chr(0x5FAE) + chr(0x7A4D) + chr(0x5206)  # a course's name typed as its code in v3
+    document: JSON = {
+        "": {"5": ["1"]},
+        "ce162a001 ": {"5": ["2"]},  # v3 stored codes as typed
+        "CE162A001": {"5": ["1", "2"], "6": ["3"]},
+        name: {"6": ["3"]},
+        "C": {"5": ["4"]},
+    }
+    await store.put(NAMESPACE, KEY, document)
+    registrations = Registrations(store)
+
+    # Codes read as /course-add reads them, the same course's registrations merged; the others,
+    # which NTUST would answer with most of its catalogue or nothing, are left out.
+    assert await registrations.load() == {"CE162A001": {5: (2, 1), 6: (3,)}}
+    assert await registrations.add("CE162A002", 5, 1)
+    assert await store.get(NAMESPACE, KEY) == {
+        "CE162A001": {"5": ["2", "1"], "6": ["3"]},
+        "CE162A002": {"5": ["1"]},
+    }
+
+
 async def test_concurrent_registrations(store: Store) -> None:
     """Requirement: Registrations are kept as v3's document."""
     registrations = Registrations(store)

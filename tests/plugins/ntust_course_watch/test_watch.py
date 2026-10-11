@@ -141,6 +141,21 @@ async def test_full_at_the_first_check(
     assert fakes.posts == []
 
 
+@pytest.mark.xfail(strict=True, reason="Registrations are kept as v3's document")
+async def test_stored_codes_asked(cog: NtustCourseWatch, fakes: Fakes, store: Store) -> None:
+    """Requirement: Registrations are kept as v3's document."""
+    await store.put(
+        NAMESPACE, KEY, {"": {"5": ["1"]}, "C": {"5": ["1"]}, "ce162a001": {"5": ["1"]}}
+    )
+    watcher = fakes.watcher(cog)
+
+    for _ in range(3):
+        await watcher.step()
+
+    # "" would ask for the whole semester, which NTUST no longer answers.
+    assert fakes.asked == [("1142", "CE162A001")] * 3
+
+
 async def test_full_after_another_channel_registered(cog: NtustCourseWatch, fakes: Fakes) -> None:
     """Requirement: Channels hear once when a course fills."""
     await cog.registrations.add("CE162A001", 5, 1)
