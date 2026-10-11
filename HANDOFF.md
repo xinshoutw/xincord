@@ -565,7 +565,7 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 `port-ntust-announcements`, `port-ntust-course-watch`, `port-music-player`,
 `ntust-announcements-model-config`, `ticket-staff-controls`, `dependency-updates`, `release-pipeline`, `compose-run-fixes`, `reload-uploads-changes`,
 `timezone-from-env`, `chat-logger-keep-deleted`, `ntust-announcements-review`,
-`ntust-announcements-redo-feedback`. Each one's `design.md` in
+`ntust-announcements-redo-feedback`, `pypi-per-package`. Each one's `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
@@ -843,6 +843,15 @@ owner had made the repository public earlier that night, and the GHCR package `x
 public with its first push: an anonymous pull of `ghcr.io/xinshoutw/xincord:0.1.0` and its
 `--no-online` run passed. Left to the owner: the pending trusted publishers on PyPI and LICENSE
 (review queue, "Releases and dependencies").
+
+Decided on 2026-10-12 (night), after PyPI refused a second pending publisher with the same
+repository, workflow and environment ("already been registered for a different project name"):
+one environment per package. Done in `pypi-per-package`: the `pypi` job publishes `xincord`, then
+`pypi-plugins` publishes `xincord-plugins` in the new `pypi-plugins` environment, which Claude
+created on the owner's approval like `pypi`; a 1.0.0 release asks for two approvals. The owner
+registered `xincord`'s pending publisher; `xincord-plugins`' takes the environment `pypi-plugins`.
+The owner also chose to reset the production bot's token at the cutover (the new token goes to
+xincord only) and to migrate only the v3 bot (BotCore 3.2.1), not another bot on the host.
 
 1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
    (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script

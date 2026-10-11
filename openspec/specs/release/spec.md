@@ -50,15 +50,17 @@ release or publishing.
 - **THEN** the steps that log in, push, release or publish are skipped
 
 ### Requirement: PyPI from 1.0.0
-The workflow SHALL publish to PyPI only for tags of version 1.0.0 or later, in a job that runs in the
-`pypi` environment with OpenID Connect trusted publishing and no stored token, uploading the files
-attached to the GitHub Release. Every action in the workflow SHALL be pinned to a commit SHA with
-its version in a comment, and jobs SHALL get only the permissions they use.
+The workflow SHALL publish to PyPI only for tags of version 1.0.0 or later, one job per
+distribution with OpenID Connect trusted publishing and no stored token: `xincord` in the `pypi`
+environment, then `xincord-plugins` in `pypi-plugins`, each uploading its own files from the GitHub
+Release. Every action in the workflow SHALL be pinned to a commit SHA with its version in a
+comment, and jobs SHALL get only the permissions they use.
 
 #### Scenario: Publishing waits for 1.0.0
-- **WHEN** the PyPI job is read
-- **THEN** it runs only on tags outside `v0.`, in the `pypi` environment, with `id-token: write`,
-  downloads the Release's files and publishes them with trusted publishing
+- **WHEN** the PyPI jobs are read
+- **THEN** both run only on tags outside `v0.`, `xincord`'s in the `pypi` environment and
+  `xincord-plugins`' in `pypi-plugins` after it, each with `id-token: write`, downloading its own
+  files from the Release and publishing them with trusted publishing
 
 #### Scenario: Pinned actions and permissions
 - **WHEN** every `uses:` and permission of the workflow is read
