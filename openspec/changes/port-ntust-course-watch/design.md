@@ -351,6 +351,10 @@ guard; Discord's limits; and no error text leaking anything.
   semester, posted the available alert with `allowed_mentions` `{"users": [1], "parse": []}`, then
   the full alert with `{"parse": []}`, each step about 1.5 seconds after the previous one; a 404 on a
   post deleted the channel's registrations.
+- After the cross-review's fixes (2026-10-11): `xincord --no-online` from fresh wheels loaded
+  NtustCourseWatch with NtustAnnouncements (their shared TLS package); the probe gave the same
+  requests, with the new `invalid-code` text; the rebuilt image loaded all seventeen plugins again
+  and read the course through the plugin's context, which Python's default context refused.
 - Live, on 2026-10-11, before writing the plugin: v3's whole-catalogue request for semester 1151
   got no answer in 60 seconds, then a 500 after 120; a request for the code prefix `CE162A`
   answered in under a second (the fixture's source).
