@@ -3,6 +3,7 @@
 ``lavalink_fakes`` stands for the node itself, for the tests of the lavalink.py adapter.
 """
 
+import asyncio
 from dataclasses import dataclass, field
 from functools import cache
 from importlib.resources import files
@@ -13,12 +14,11 @@ import yaml
 from xincord.plugins.music_player.audio import Loaded, LoadKind, NodeUnavailableError, Track
 
 if TYPE_CHECKING:
-    import asyncio
-
     from xincord.plugins.music_player.audio import Listener
 
 type Call = tuple[str, object]  # a player method and what it got
 PACKAGE = "xincord.plugins.music_player"
+WAIT = 5  # seconds before a test's wait gives up
 
 
 @cache
@@ -165,3 +165,52 @@ class FakeVoice:
         self.link.players.pop(guild.id, None)
         assert self.link.listener is not None
         self.link.listener.left(guild.id)
+
+
+@dataclass
+class Clock:
+    """The plugin's waits and monotonic time: a wait lasts until the test moves the time on.
+
+    ``advance`` moves the time and ends the waits under way; ``asleep(n)`` waits until ``n``
+    waits are under way, so that a test knows that a loop finished a round.
+    """
+
+    time: float = 1000.0
+    waits: list[float] = field(default_factory=list[float])  # every wait asked, in order
+    _pending: list[asyncio.Future[None]] = field(default_factory=list[asyncio.Future[None]])
+    _changed: asyncio.Condition = field(default_factory=asyncio.Condition)
+
+    def monotonic(self) -> float:
+        """Stands for ``time.monotonic``."""
+        return self.time
+
+    async def sleep(self, seconds: float) -> None:
+        """Stands for ``asyncio.sleep``: record the wait and wait for ``advance``."""
+        future = asyncio.get_running_loop().create_future()
+        async with self._changed:
+            self._pending.append(future)
+            self.waits.append(seconds)
+            self._changed.notify_all()
+        await future
+
+    def under_way(self) -> int:
+        """The waits under way."""
+        return sum(1 for future in self._pending if not future.done())
+
+    async def asleep(self, count: int) -> None:
+        """Wait until ``count`` waits are under way.
+
+        Raises:
+            TimeoutError: They were not within ``WAIT`` seconds.
+        """
+        async with asyncio.timeout(WAIT), self._changed:
+            await self._changed.wait_for(lambda: self.under_way() >= count)
+
+    async def advance(self, seconds: float) -> None:
+        """Move the time on by ``seconds`` and end the waits under way."""
+        self.time += seconds
+        pending, self._pending = self._pending, []
+        for future in pending:
+            if not future.done():
+                future.set_result(None)
+        await asyncio.sleep(0)  # let the woken tasks run up to their next await

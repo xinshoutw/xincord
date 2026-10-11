@@ -13,6 +13,7 @@ from discord.ext import commands
 
 from .commands import SEARCH_DEADLINE, Commands
 from .emojis import FALLBACKS
+from .panels import Panels
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
 
     from .audio import Link, Player
     from .config import Config
+    from .panels import Panel
     from .session import Session
 
 
@@ -46,6 +48,11 @@ class MusicPlayer(Commands, commands.Cog):
         # v3's cache of autocomplete searches by input, the oldest out first; a reload clears it.
         self.searches: OrderedDict[str, tuple[app_commands.Choice[str], ...]] = OrderedDict()
         self.search_deadline = SEARCH_DEADLINE  # seconds; tests shorten it
+        self.panels = Panels(self.refresh_panel)
+
+    async def refresh_panel(self, panel: Panel) -> bool:
+        """Edit ``panel`` with the guild's current song; False once Discord refused the edit."""
+        raise NotImplementedError
 
     def joined(self, guild_id: int, player: Player) -> None:
         """The bot is connecting in the guild: its session plays on ``player``."""

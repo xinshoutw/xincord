@@ -21,11 +21,12 @@ from discord_fakes import (
     FakeGuild,
     FakeInteraction,
     FakeMember,
+    FakeMessage,
     FakeVoiceChannel,
     Sent,
     voice_state,
 )
-from music_fakes import FakeLink, FakePlayer, loaded, song
+from music_fakes import Clock, FakeLink, FakePlayer, loaded, song
 from plugin_fakes import Ready, load_plugin
 from xincord.plugins.music_player.history import Entry, Requester
 
@@ -119,6 +120,8 @@ class Scene:
     link: FakeLink
     guild: FakeGuild
     sent: list[Sent] = field(default_factory=list[Sent])
+    clock: Clock = field(default_factory=Clock)
+    messages: int = 1000  # the ID of the last response's message
 
     @property
     def cog(self) -> MusicPlayer:
@@ -150,13 +153,39 @@ class Scene:
         user_id: int = 1,
     ) -> FakeInteraction:
         """A command of a member in voice channel ``channel``, in ``locale``; its ``sent`` holds
-        its own responses only."""
+        its own responses only, and its response is a message of its own (a panel's)."""
+        self.messages += 1
         return FakeInteraction(
             data={},
             user=self.member(channel, user_id=user_id),
             guild=self.guild,
             locale=locale,
             client=SimpleNamespace(user=BOT_USER),
+            original=FakeMessage(id=self.messages, flags=discord.MessageFlags(ephemeral=True)),
+        )
+
+    def press(
+        self,
+        action: str,
+        message: int,
+        *,
+        channel: int | None = VOICE,
+        legacy: bool = False,
+        user_id: int = 1,
+    ) -> FakeInteraction:
+        """A press of a panel's ``action`` button on the panel ``message``, v3's ID if ``legacy``.
+
+        A panel is ephemeral: only its member presses it.
+        """
+        custom_id = f"musicplayer@a:{action}" if legacy else f"music_player:1:a={action}"
+        return FakeInteraction(
+            data={"custom_id": custom_id, "component_type": 2},
+            type=discord.InteractionType.component,
+            user=self.member(channel, user_id=user_id),
+            guild=self.guild,
+            client=SimpleNamespace(user=BOT_USER),
+            message=FakeMessage(id=message, flags=discord.MessageFlags(ephemeral=True)),
+            original=FakeMessage(id=message, flags=discord.MessageFlags(ephemeral=True)),
         )
 
     def answer(self, identifier: str, kind: LoadKind, *tracks: Track, error: str = "") -> None:
@@ -213,4 +242,6 @@ async def scene(store: Store, tmp_path: Path, config: str | None) -> Scene:
     scene = Scene(bot, link, guild, sent)
     link.listener = cast("Any", scene.cog)
     scene.cog.link = cast("Any", link)
+    scene.cog.panels.sleep = scene.clock.sleep
+    scene.cog.panels.clock = scene.clock.monotonic
     return scene

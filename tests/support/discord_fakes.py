@@ -136,6 +136,8 @@ class FakeInteraction:
     edit_errors: list[Exception | None] = field(default_factory=list[Exception | None])
     # What response.edit_message raises, as when Discord refuses the edited message.
     refuse_edit: Exception | None = None
+    # What delete_original_response raises once it recorded the deletion (a dismissed message).
+    delete_error: Exception | None = None
 
     @property
     def guild_id(self) -> int | None:
@@ -166,8 +168,10 @@ class FakeInteraction:
         return self.original
 
     async def delete_original_response(self) -> None:
-        """Record the deletion of the deferred response."""
+        """Record the deletion of the deferred response, then raise ``delete_error`` if set."""
         self.sent.append(("delete_original_response", {}))
+        if self.delete_error is not None:
+            raise self.delete_error
 
     def as_interaction(self) -> discord.Interaction:
         """This fake, typed as the discord.py interaction it stands for."""
