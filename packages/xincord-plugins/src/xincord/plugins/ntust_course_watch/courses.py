@@ -22,6 +22,7 @@ CODE = re.compile(r"[0-9A-Z]{9,20}")
 # Kotlin's toIntOrNull(): an optional sign and decimal digits of any script, within an Int.
 INT = re.compile(r"[+-]?\d+")
 INT_MIN, INT_MAX = -(2**31), 2**31 - 1
+BMP_END = 0xFFFF  # Kotlin's String is UTF-16: a character beyond it was two surrogates, no digit
 LANGUAGE = "zh"  # course names in Chinese, as v3 asked
 
 
@@ -58,9 +59,10 @@ class Course:
 def to_int_or_none(text: str) -> int | None:
     """Kotlin's ``String.toIntOrNull()``: a sign and decimal digits of any script within an Int.
 
+    Digits outside the BMP were two surrogates in Kotlin's UTF-16 strings, which no digit is.
     Python refuses to convert more than 4,300 digits, far beyond an Int unless they are zeros.
     """
-    if INT.fullmatch(text) is None:
+    if INT.fullmatch(text) is None or any(ord(char) > BMP_END for char in text):
         return None
     try:
         number = int(text)

@@ -118,9 +118,9 @@ class Watcher:
                 failed,
             )
         self._keep(registered)
-        previous = self.courses.pop(code, None)
-        if course is None:  # NTUST lists no such course: as v3, which kept the listed ones
-            return
+        if course is None:  # NTUST lists no such course this time: as v3 skipped an empty answer,
+            return  # the course keeps the state of its last listing
+        previous = self.courses.get(code)
         self.courses[code] = course
         channels = registered[code]
         if not course.full:

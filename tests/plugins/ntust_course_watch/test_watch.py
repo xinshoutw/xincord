@@ -157,7 +157,6 @@ async def test_stored_codes_asked(cog: NtustCourseWatch, fakes: Fakes, store: St
     assert fakes.asked == [("1142", "CE162A001")] * 3
 
 
-@pytest.mark.xfail(strict=True, reason="Channels hear once when a course fills")
 async def test_course_missing_from_one_answer(cog: NtustCourseWatch, fakes: Fakes) -> None:
     """Requirement: Channels hear once when a course fills."""
     await cog.registrations.add("CE162A001", 5, 1)

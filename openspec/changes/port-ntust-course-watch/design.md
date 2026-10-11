@@ -102,7 +102,7 @@ the Web Dashboard (B13).
   (`AnswerError` otherwise); other entries are not read, so one malformed course no longer fails
   every course (v3: the whole poll). No entry: the course is unknown.
 - `Course.limit` is `Restrict2` read as Kotlin's `toIntOrNull()` (a sign and decimal digits of any
-  script within 32 bits), else 0; a number counts as its JSON text, as Moshi's `nextString` read it
+  script in the BMP, since Kotlin's strings are UTF-16, within 32 bits), else 0; a number counts as its JSON text, as Moshi's `nextString` read it
   (60 is `"60"`, 60.0 is `"60.0"`, 0). `full` is `ChooseStudent >= limit`, so a cap of 0 or text is
   always full, as in v3.
 
@@ -156,7 +156,8 @@ the Web Dashboard (B13).
   registered it forgets its states and returns; else it reads the registrations, takes the next
   code after the last one asked about (sorted, wrapping around), asks about it and handles the
   answer: the course's previous state (from its previous check) and the new one decide the alerts.
-  A failed request keeps the previous state. States of codes no longer registered are dropped.
+  A failed request, or an answer without the course, keeps the previous state, as v3 skipped an
+  empty answer. States of codes no longer registered are dropped.
 - Any unexpected `Exception` in a step is logged with its traceback and the loop goes on;
   cancellation stays quiet. `cog_unload` sets `closed`, cancels the loop and the posts under way and
   awaits them, so the session closes before the bot's HTTP client; a reload builds a new cog (v3

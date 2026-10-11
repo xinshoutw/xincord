@@ -164,8 +164,9 @@ X.509 checks: the last entry of the answer whose `CourseNo` is the code. It has 
 - **THEN** the course is the last entry with its code, with its name, its count and its limit
 
 #### Scenario: Limits
-- **WHEN** `Restrict2` is `"60"`, `"0"`, `""`, `"abc"`, `"99999999999"`, the number 60 or 60.0
-- **THEN** the limit is 60, 0, 0, 0, 0, 60 or 0, and a course without seats is full
+- **WHEN** `Restrict2` is `"60"`, `"0"`, `""`, `"abc"`, `"99999999999"`, 60 in digits outside the
+  BMP, the number 60 or 60.0
+- **THEN** the limit is 60, 0, 0, 0, 0, 0, 60 or 0, and a course without seats is full
 
 #### Scenario: Course missing from the answer
 - **WHEN** no entry has the code
@@ -248,6 +249,10 @@ course's name and code, pinging nobody.
 #### Scenario: Seats come and go
 - **WHEN** the course alternates between seats and full faster than `alert-interval`
 - **THEN** each available alert is followed by at most one full alert
+
+#### Scenario: Missing from one answer
+- **WHEN** a course that had seats is missing from the next answer and full at the one after
+- **THEN** the channels that heard about its seats get the full alert
 
 #### Scenario: Full at the first check
 - **WHEN** a course is full at its first check

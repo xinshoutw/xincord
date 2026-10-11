@@ -109,7 +109,6 @@ def test_to_int_or_none(text: str, number: int | None) -> None:
     assert to_int_or_none(text) == number
 
 
-@pytest.mark.xfail(strict=True, reason="Course seats come from NTUST's course query")
 def test_digits_outside_the_bmp() -> None:
     """Requirement: Course seats come from NTUST's course query."""
     sixty = chr(0x1D7D4) + chr(0x1D7CE)  # MATHEMATICAL BOLD DIGIT SIX and ZERO
