@@ -254,8 +254,8 @@ class Commands(Replies):
         """``/pause``: pause the song and show the ``pause`` panel; any member, as in v3."""
         if (session := self.playing(interaction)) is None:
             await self.tell(interaction, "nothing-playing")
-        elif not await session.pause():
-            await self.tell(interaction, "already-paused")
+        elif not await session.pause():  # the songs may have gone while it waited
+            await self.tell(interaction, "already-paused" if session.playing else "nothing-playing")
         else:
             await self.show(interaction, Screen("pause"), session)
 
@@ -263,8 +263,10 @@ class Commands(Replies):
         """``/resume``: resume the song and show the ``resume`` panel."""
         if (session := self.playing(interaction)) is None:
             await self.tell(interaction, "nothing-playing")
-        elif not await session.resume():
-            await self.tell(interaction, "already-playing")
+        elif not await session.resume():  # the songs may have gone while it waited
+            await self.tell(
+                interaction, "already-playing" if session.playing else "nothing-playing"
+            )
         else:
             await self.show(interaction, Screen("resume"), session)
 

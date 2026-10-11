@@ -68,7 +68,6 @@ async def test_pause_and_resume(scene: Scene) -> None:
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="Members control playback with v3's replies")
 async def test_pause_and_resume_while_the_songs_go(scene: Scene) -> None:
     """Requirement: Members control playback with v3's replies."""
     await scene.playing(1)
