@@ -97,7 +97,7 @@ async def test_bind_outside_a_category(cog: DynamicVoiceChannel, store: Store, l
 
 async def test_replies_get_the_interactions_values(store: Store, tmp_path: Path) -> None:
     """Requirement: Administrators bind lobbies."""
-    # An operator's template with v3's Placeholder.get(event) keys.
+    # An operator's template with the interaction's placeholder keys.
     path = tmp_path / "plugins" / "DynamicVoiceChannel" / "lang" / "en-US" / "message"
     path.mkdir(parents=True)
     title = "%user_name% ran %full_command_name% (%bot_name%)"
@@ -130,7 +130,7 @@ async def test_unbind(cog: DynamicVoiceChannel, store: Store, locale: str) -> No
 
 async def test_unbind_matches_the_current_name(cog: DynamicVoiceChannel, store: Store) -> None:
     """Requirement: Administrators unbind lobbies."""
-    # As in v3, a lobby renamed since it was bound no longer names its binding.
+    # A lobby renamed since it was bound no longer names its binding.
     await bind(store, 10, Binding(20, "Lobby", "A"))
     interaction = run("unbind")
 
@@ -156,7 +156,7 @@ async def test_unbind_outside_a_category(
 
 async def test_outside_a_guild(cog: DynamicVoiceChannel, store: Store) -> None:
     """Requirement: The command is a localized administrator guild command."""
-    # Guild commands never run outside a guild; v3's handler assumed a guild too.
+    # Guild commands never run outside a guild.
     bind_command, unbind_command = run("bind"), run("unbind")
     bind_command.guild = unbind_command.guild = None
 

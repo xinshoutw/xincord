@@ -1,9 +1,8 @@
-# Golden data for the Economy tests. The text is v3's, from
-# XsDiscordBotKt@3a59607:Plugins/Economy/src/main/resources/.
+# Golden data for the Economy tests: the bundled texts, unless noted.
 
-# v3's config.yaml without its Google OAuth notes, with example administrator IDs in place of the
-# real ones v3 shipped.
-v3_config: |
+# An operator's config.yaml with unknown keys (enabled and Google Sheets keys) and example
+# administrator IDs.
+operator_config: |
   enabled: false
   client_id: "xxx.xxx.com"
   client_secret: "xxx-xxx-xxx"
@@ -145,7 +144,7 @@ changes:
         - {name: "總消費 [=]", value: "20 ➣ 30 元", inline: false}
 
 # The boards per locale with a limit of three rows, for users 2, 1, 3 and 4 with the money 50, 20,
-# 20 and 1 and the cost 5, 0, 9 and 1. The rows come from v3's description template, whose YAML
+# 20 and 1 and the cost 5, 0, 9 and 1. The rows come from the description template, whose YAML
 # escapes are a tab and newlines.
 boards:
   top-money:
@@ -173,7 +172,7 @@ boards:
 
 # The translated payloads of the nine guild commands; keys that are not listed here are not
 # compared. 8 is the Administrator permission; option type 6 is a user and 4 an integer. The
-# texts come from v3's Register.kt and register.yaml.
+# texts come from register.yaml.
 commands:
   - type: 1
     name: "balance"

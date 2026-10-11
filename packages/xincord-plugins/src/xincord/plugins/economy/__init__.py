@@ -12,11 +12,11 @@ from .config import Config
 if TYPE_CHECKING:
     from xincord.core.bot import Bot
 
-DEPENDS: tuple[str, ...] = ()  # v3's GoogleSheetAPI served only the dead Sheets storage (B12)
+DEPENDS: tuple[str, ...] = ()
 SOFT_DEPENDS: tuple[str, ...] = ()
 # Discord resolves the member option in the interaction, and nothing reads the member cache.
 INTENTS = discord.Intents.none()
-# Replies use the user's locale and fall back to this one, as in v3.
+# Replies use the user's locale and fall back to this one.
 DEFAULT_LOCALE = "zh-TW"
 
 
@@ -32,9 +32,9 @@ async def setup(bot: Bot) -> None:
     check_boards(lang, templates)
     cog = Economy(context.config(Config), context.store, lang, templates)
     await bot.add_cog(cog)
-    # Guild commands, as in v3. discord.py removes them when the plugin unloads.
+    # Guild commands; discord.py removes them when the plugin unloads.
     for name in COMMANDS:
         bot.tree.add_command(cog.command(name))
-    # Buttons with IDS's IDs, v3's economy@ too, reach cog.handle; the core drops the route when
-    # the plugin unloads.
+    # Buttons with IDS's IDs, legacy economy@ ones too, reach cog.handle; the core drops the route
+    # when the plugin unloads.
     bot.route(__name__, IDS, cog.handle)

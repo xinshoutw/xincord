@@ -1,4 +1,4 @@
-# v3's zh-TW register.yaml, with format-name-2 (dvc-one-name-format removed it from the bundled file).
+# An older zh-TW register.yaml, with format-name-2, which the bundled file no longer has.
 dynamic-voice-channel:
   name: "動態語音頻道"
   description: "動態語音頻道"

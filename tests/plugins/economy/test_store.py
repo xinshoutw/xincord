@@ -1,4 +1,4 @@
-"""Each guild's wallets in the store, as v3's data/<guildId>.json documents."""
+"""Each guild's wallets in the store, one document per guild."""
 
 import asyncio
 from typing import TYPE_CHECKING
@@ -15,7 +15,7 @@ ADD_MONEY = OPERATIONS["add-money"]
 
 
 async def test_first_change(store: Store) -> None:
-    """Requirement: Wallets are kept per guild in v3's documents."""
+    """Requirement: Wallets are kept per guild."""
     assert await change(store, 10, 7, ADD_MONEY, 5) == (Wallet(), Wallet(money=5))
 
     assert await store.items(NAMESPACE) == {"10": {"7": {"cost": 0, "money": 5}}}
@@ -28,7 +28,7 @@ async def test_first_change(store: Store) -> None:
 
 
 async def test_user_without_a_wallet(store: Store) -> None:
-    """Requirement: Wallets are kept per guild in v3's documents."""
+    """Requirement: Wallets are kept per guild."""
     await store.put(NAMESPACE, "10", {"7": {"cost": 1, "money": 2}})
 
     assert await read(store, 10, 8) == Wallet()
@@ -38,14 +38,14 @@ async def test_user_without_a_wallet(store: Store) -> None:
 
 
 async def test_other_entries_kept(store: Store) -> None:
-    """Requirement: Wallets are kept per guild in v3's documents."""
+    """Requirement: Wallets are kept per guild."""
     await store.put(
         NAMESPACE,
         "10",
         {
-            "7": {"money": 1, "cost": 2, "note": "not v3's"},
+            "7": {"money": 1, "cost": 2, "note": "not a wallet field"},
             "8": {"cost": 3, "money": 4},
-            "data": {"anything": True},  # v3 kept keys that are not user IDs in the file
+            "data": {"anything": True},  # a key that is not a user ID
             "007": {"cost": 5, "money": 6},
         },
     )
@@ -64,7 +64,7 @@ async def test_other_entries_kept(store: Store) -> None:
 
 
 async def test_amounts_stay_exact(store: Store) -> None:
-    """Requirement: Wallets are kept per guild in v3's documents."""
+    """Requirement: Wallets are kept per guild."""
     await change(store, 10, 7, OPERATIONS["set-money"], 2**53 + 1)  # past a double's precision
     await change(store, 10, 7, ADD_MONEY, 2**53)
 
@@ -85,7 +85,7 @@ async def test_amounts_stay_exact(store: Store) -> None:
     ids=["quoted", "null-field", "missing", "boolean", "fraction", "null", "list"],
 )
 async def test_unreadable_entry(store: Store, entry: JSON) -> None:
-    """Requirement: Wallets are kept per guild in v3's documents."""
+    """Requirement: Wallets are kept per guild."""
     document: JSON = {"7": entry, "8": {"cost": 0, "money": 3}}
     await store.put(NAMESPACE, "10", document)
 
@@ -103,7 +103,7 @@ async def test_unreadable_entry(store: Store, entry: JSON) -> None:
 
 
 async def test_unreadable_document(store: Store) -> None:
-    """Requirement: Wallets are kept per guild in v3's documents."""
+    """Requirement: Wallets are kept per guild."""
     await store.put(NAMESPACE, "10", [1, 2])
 
     with pytest.raises(DataError, match=r"guild 10"):

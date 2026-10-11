@@ -1,4 +1,4 @@
-"""The wallet commands, the boards and v3's balance button."""
+"""The wallet commands, the boards and the balance button."""
 
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple, cast
@@ -25,16 +25,15 @@ if TYPE_CHECKING:
     from .config import Config
     from .wallet import Kind, Wallet
 
-# v3 declared no fields and only checked its prefix; a codec needs one field, and v3's plugins
-# start with the action.
+# The legacy IDs carry no fields, only the prefix; a codec needs one field, the action.
 IDS = ComponentIds("economy", ("action",), legacy_prefix="economy@")
-BAD_VALUE = "Bad Value"  # v3's reply to a negative amount, the same in every locale
-# v3's boards and what each ranks.
+BAD_VALUE = "Bad Value"  # the reply to a negative amount, the same in every locale
+# The boards and what each ranks.
 BOARDS: dict[str, Kind] = {"top-money": "money", "top-cost": "cost"}
 
 
 class CommandSpec(NamedTuple):
-    """One of v3's commands: the handler that serves it and v3's base texts."""
+    """One of the commands: the handler that serves it and its base texts."""
 
     kind: Literal["balance", "board", "change"]
     description: str
@@ -43,7 +42,7 @@ class CommandSpec(NamedTuple):
 
 
 MODIFY = "Specify the member to modify."
-# v3's commands, in v3's order, with the texts of Register.kt.
+# The commands, in their order, with their base texts.
 COMMANDS = {
     "balance": CommandSpec(
         "balance", "Get current money from member", "Specify the member to query."
@@ -82,10 +81,10 @@ class Economy(commands.Cog):
         self.templates = templates
 
     def command(self, name: str) -> app_commands.Command[Any, ..., None]:
-        """Build v3's command ``name``, localized from ``register.yaml``.
+        """Build the command ``name``, localized from ``register.yaml``.
 
-        ``balance`` is for everyone, as v3's ``DefaultMemberPermissions.ENABLED``; Discord shows
-        the others to administrators by default, and their handlers check ``admin_id``, as in v3.
+        ``balance`` is for everyone; Discord shows the others to administrators by default, and
+        their handlers check ``admin_id``.
         """
         lang, spec = self.lang, COMMANDS[name]
         command: app_commands.Command[Any, ..., None]
@@ -125,14 +124,13 @@ class Economy(commands.Cog):
         interaction: discord.Interaction,
         member: discord.Member | discord.User | None = None,
     ) -> None:
-        """Show the user's wallet, or ``member``'s to an administrator (v3's ``/balance``).
+        """Show the user's wallet, or ``member``'s to an administrator.
 
-        ``member`` is a user option, as v3's ``asUser``: users outside the guild count. A user whom
-        ``admin_id`` does not list and who names someone else gets ``no-permission``, where v3
-        silently showed their own wallet. Reading writes nothing; v3 created the wallet.
+        ``member`` is a user option: users outside the guild count. A user whom ``admin_id`` does
+        not list and who names someone else gets ``no-permission``. Reading writes nothing.
         """
         guild = interaction.guild
-        if guild is None:  # guild commands run in guilds only, as v3's guard assumed
+        if guild is None:  # guild commands run in guilds only
             return
         target = member or interaction.user
         if target.id != interaction.user.id and not self._is_admin(interaction):
@@ -145,14 +143,14 @@ class Economy(commands.Cog):
     async def change_wallet(
         self, interaction: discord.Interaction, member: discord.Member | discord.User, value: int
     ) -> None:
-        """Change ``member``'s wallet by ``value`` as the invoked command does (v3's six commands).
+        """Change ``member``'s wallet by ``value`` as the invoked command does.
 
-        As in v3, a user whom ``admin_id`` does not list gets ``no-permission`` before the value is
+        A user whom ``admin_id`` does not list gets ``no-permission`` before the value is
         looked at, and a negative value gets ``Bad Value``; 0 is a change. The reply is the message
         named like the command, with ``member``'s values and the amounts before and after.
         """
         guild = interaction.guild
-        if guild is None:  # guild commands run in guilds only, as v3's guard assumed
+        if guild is None:  # guild commands run in guilds only
             return
         if not self._is_admin(interaction):
             await self._no_permission(interaction)
@@ -170,14 +168,13 @@ class Economy(commands.Cog):
         await self._reply(interaction, name, values)
 
     async def show_board(self, interaction: discord.Interaction) -> None:
-        """Show the guild's money or cost board to an administrator (v3's two board commands).
+        """Show the guild's money or cost board to an administrator.
 
-        As in v3, a user whom ``admin_id`` does not list gets ``no-permission``, and the board is
-        the message named like the command, rendered with the user's values (v3's
-        ``Placeholder.get(event.user)``). Nothing is written; v3 created the guild's file.
+        A user whom ``admin_id`` does not list gets ``no-permission``, and the board is the message
+        named like the command, rendered with the user's values. Nothing is written.
         """
         guild = interaction.guild
-        if guild is None:  # guild commands run in guilds only, as v3's guard assumed
+        if guild is None:  # guild commands run in guilds only
             return
         if not self._is_admin(interaction):
             await self._no_permission(interaction)
@@ -192,13 +189,12 @@ class Economy(commands.Cog):
     async def handle(self, interaction: discord.Interaction, _parsed: ParsedId) -> None:
         """Show the presser's wallet for a button with an Economy ID; ``setup`` routes them here.
 
-        v3 checked only the ``economy@`` prefix, so the ID's fields do not matter. As in v3's
-        ``deferReply(true)``, the response is deferred ephemerally and then shows ``balance``;
-        other components, modals and presses outside a guild get no answer. Reading writes nothing;
-        v3 created the wallet.
+        The ID's fields do not matter. The response is deferred ephemerally and then shows
+        ``balance``; other components, modals and presses outside a guild get no answer. Reading
+        writes nothing.
         """
         guild = interaction.guild
-        # Only button presses carry this type: v3 left selects and modals unanswered.
+        # Only button presses carry this type: selects and modals get no answer.
         kind = cast("Mapping[str, object]", interaction.data or {}).get("component_type")
         if guild is None or kind != discord.ComponentType.button.value:
             return
@@ -212,19 +208,19 @@ class Economy(commands.Cog):
         return interaction.user.id in self.config.admin_id
 
     async def _no_permission(self, interaction: discord.Interaction) -> None:
-        """Answer ``no-permission``, which v3 rendered with its global placeholders only."""
+        """Answer ``no-permission``, rendered with the global placeholders only."""
         await self._reply(interaction, "no-permission", global_values(interaction.client))
 
     async def _reply(
         self, interaction: discord.Interaction, name: str, values: dict[str, str]
     ) -> None:
-        """Edit the deferred response into the message ``name``, in the user's locale, as v3."""
+        """Edit the deferred response into the message ``name``, in the user's locale."""
         message = self.templates.message(name, interaction.locale.value)
         await _edit(interaction, render_message(message, values))
 
 
 async def _edit(interaction: discord.Interaction, message: Message) -> None:
-    """Replace the response that the command tree deferred ephemerally, as v3's core did."""
+    """Replace the response that the command tree deferred ephemerally."""
     await interaction.edit_original_response(
         content=message.content, embeds=message.embeds, view=message.view, attachments=message.files
     )
@@ -233,8 +229,7 @@ async def _edit(interaction: discord.Interaction, message: Message) -> None:
 def check_boards(lang: Lang, templates: Templates) -> None:
     """Check that each locale's board templates hold the template of the board's rows.
 
-    The rows come from the first embed's description, as in v3, which threw at each use without
-    one; here the plugin does not load.
+    The rows come from the first embed's description; without one, the plugin does not load.
 
     Raises:
         TemplateError: A board template has no first embed with a description, or it is a model.
@@ -253,9 +248,9 @@ def _board(
 ) -> Message:
     """Render a board: one row per ranked wallet in the first embed, the only embed kept.
 
-    Each row renders the first embed's description with ``values`` and v3's ``index``,
+    Each row renders the first embed's description with ``values`` and ``index``,
     ``name_mention`` and ``economy_board``; the rows replace that description, and the message keeps
-    only that embed, as v3's ``setEmbeds``. Without rows the embed has no description, as in v3.
+    only that embed. Without rows the embed has no description.
     """
     row = template.embeds[0].description or ""  # check_boards made sure it is there
     rows = "".join(
@@ -284,11 +279,11 @@ def _command_name(interaction: discord.Interaction) -> str:
 def _user_values(
     interaction: discord.Interaction, user: discord.Member | discord.User
 ) -> dict[str, str]:
-    """v3's ``Placeholder.get(user)``: the user's keys and the bot's."""
+    """The user's keys and the bot's."""
     bot = interaction.client.user
     return {} if bot is None else actor_values(user, bot)
 
 
 def _wallet_values(wallet: Wallet) -> dict[str, str]:
-    """The wallet's keys, v3's ``economy_money`` and ``economy_cost``."""
+    """The wallet's keys, ``economy_money`` and ``economy_cost``."""
     return {"economy_money": str(wallet.money), "economy_cost": str(wallet.cost)}

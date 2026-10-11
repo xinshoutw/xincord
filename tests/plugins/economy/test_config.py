@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from xincord.plugins.economy.config import Config
 
 GOLDEN = golden("economy")
-# v3's keys for the dead Google Sheets storage, which only warn now.
+# Keys for a Google Sheets storage, which only warn.
 SHEETS_KEYS = (
     "client_id",
     "client_secret",
@@ -47,10 +47,14 @@ def warned_keys(caplog: pytest.LogCaptureFixture) -> set[str]:
     return {message.split(marker)[-1] for message in caplog.messages if marker in message}
 
 
-async def test_v3_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture) -> None:
+async def test_file_with_unknown_keys(
+    tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
+) -> None:
     """Requirement: The config lists the administrators."""
     with caplog.at_level(logging.WARNING):
-        bot = await load_plugin("Economy", tmp_path / "plugins", store, config=GOLDEN["v3_config"])
+        bot = await load_plugin(
+            "Economy", tmp_path / "plugins", store, config=GOLDEN["operator_config"]
+        )
 
     config = loaded_config(bot)
     assert config.admin_id == (111111111111111111, 222222222222222222)

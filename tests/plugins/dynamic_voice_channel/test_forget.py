@@ -77,7 +77,7 @@ async def test_the_bot_leaves(bot: Bot, store: Store) -> None:
 
     await dispatch(bot, "guild_remove", FakeGuild(10).as_guild())
 
-    # v3 deleted the binding file only, and kept the bindings in memory.
+    # The other guilds keep their bindings and rooms.
     assert await kept(store) == (["20", "30"], ["20", "30"])
 
 
@@ -89,7 +89,7 @@ async def test_left_while_offline(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Requirement: Data is forgotten with the guild."""
-    # Guild 20 is unavailable (an outage), which v3 counted as left; the bot left guild 30.
+    # Guild 20 is unavailable (an outage), not left; the bot left guild 30.
     await store_three(store)
     guilds = {10: available_guild(rest.sent), 20: FakeGuild(20, unavailable=True)}
     monkeypatch.setattr(bot, "get_guild", guilds.get)

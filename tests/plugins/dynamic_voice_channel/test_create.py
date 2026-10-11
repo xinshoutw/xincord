@@ -65,7 +65,7 @@ async def cloning(task: asyncio.Task[None], lobby: FakeVoiceChannel) -> None:
 
 
 def created(lobby_id: int = 30, name: str = "| Bob") -> list[Sent]:
-    """v3's requests for a room: copy, move the copy, rename and move, permissions."""
+    """The requests for a room: copy, move the copy, rename and move, permissions."""
     return [
         ("channel.clone", {"id": lobby_id}),
         (f"PATCH /channels/{lobby_id + 1000}", {"json": {"position": 0}}),
@@ -80,7 +80,7 @@ async def test_first_join(bot: Bot, store: Store, rest: FakeRest, who: str) -> N
     await bind_lobby(store)
     guild, lobby = lobby_guild(rest.sent)
 
-    await join(bot, bob(guild, is_bot=who == "bot"), lobby)  # bots get rooms too, as in v3
+    await join(bot, bob(guild, is_bot=who == "bot"), lobby)  # bots get rooms too
 
     assert rest.sent == created()
     assert await read_rooms(store, 10) == {30: 7}
@@ -107,7 +107,7 @@ async def test_not_alone(bot: Bot, store: Store, rest: FakeRest) -> None:
         ("lobby", 20, discord.ChannelType.voice),
         ("Lobby", 21, discord.ChannelType.voice),
         ("Lobby", None, discord.ChannelType.voice),
-        ("Lobby", 20, discord.ChannelType.stage_voice),  # v3's asVoiceChannel threw here
+        ("Lobby", 20, discord.ChannelType.stage_voice),  # a stage channel is no lobby
     ],
 )
 async def test_not_a_lobby(
@@ -143,7 +143,7 @@ async def test_a_tracked_room_is_not_a_lobby(bot: Bot, store: Store, rest: FakeR
 
 async def test_same_channel(bot: Bot, store: Store, rest: FakeRest) -> None:
     """Requirement: Joining an empty lobby creates a room."""
-    # discord.py reports mutes, deafens and streams too; JDA's voice update did not.
+    # discord.py reports mutes, deafens and streams too.
     await bind_lobby(store)
     guild, lobby = lobby_guild(rest.sent)
     member = bob(guild)
@@ -205,7 +205,7 @@ async def test_unusable_name(
     with caplog.at_level(logging.WARNING):
         await join(bot, bob(guild), lobby)
 
-    # v3's setName threw here, which also skipped the move and the permissions.
+    # The rename is skipped; the move and the permissions still go.
     assert rest.sent == [
         ("channel.clone", {"id": 30}),
         ("PATCH /channels/1030", {"json": {"position": 0}}),
@@ -230,7 +230,7 @@ async def test_copy_refused(
     with caplog.at_level(logging.WARNING):
         await join(bot, bob(guild), lobby)
 
-    # v3 tracked the lobby anyway, and deleted it once it was empty.
+    # Nothing is tracked.
     assert rest.sent == []
     assert await read_rooms(store, 10) == {}
     [record] = caplog.records
@@ -256,7 +256,7 @@ async def test_later_step_refused(
     with caplog.at_level(logging.WARNING):
         await join(bot, bob(guild), lobby)
 
-    # v3's chain stopped at the first failure.
+    # Each step runs, whatever failed before.
     assert rest.sent == expected
     assert await read_rooms(store, 10) == {30: 7}
     [record] = caplog.records

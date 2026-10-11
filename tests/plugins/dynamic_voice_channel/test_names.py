@@ -6,7 +6,7 @@ from discord_fakes import BOT_USER, FakeGuild, FakeMember
 from xincord.plugins.dynamic_voice_channel.names import custom_name, room_name, room_values
 
 GUILD = FakeGuild(10)
-EMOJI = chr(0x1F600)  # outside the BMP: two UTF-16 code units, as JDA counted them
+EMOJI = chr(0x1F600)  # outside the BMP: two UTF-16 code units
 
 
 @pytest.mark.parametrize(
@@ -58,7 +58,7 @@ def test_typed_text_stays() -> None:
     """Requirement: Room names follow format 1."""
     member = FakeMember(GUILD, id=7, name="alice", nick="%user_id%")
 
-    # v3 expanded the display name again, into the member's ID.
+    # The display name is shown as typed, placeholders included.
     assert room_name("%dvc@custom_name%", room_values(member, BOT_USER)) == "%user_id%"
     assert room_name("%unknown% %dvc@custom_name%", {}) == "%unknown% %dvc@custom_name%"
 

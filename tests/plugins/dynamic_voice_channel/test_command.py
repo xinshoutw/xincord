@@ -93,7 +93,7 @@ async def test_voice_channels_only() -> None:
     # Discord resolves the channel, which the transformer passes on as it is.
     assert await option.transform(interaction, LOBBY) is LOBBY
     assert option.type is discord.AppCommandOptionType.channel
-    assert option.channel_types == [discord.ChannelType.voice]  # JDA's cast took voice only
+    assert option.channel_types == [discord.ChannelType.voice]  # voice channels only
 
 
 def bind_options(payload: list[dict[str, Any]]) -> list[str]:
@@ -104,18 +104,20 @@ def bind_options(payload: list[dict[str, Any]]) -> list[str]:
 
 
 async def test_bind_has_one_format(bot: Bot) -> None:
-    """Requirement: v3's second format is ignored."""
+    """Requirement: A second name format is ignored."""
     _, guild_payload = await cast("CommandTree", bot.tree).payloads()
 
     assert bind_options(guild_payload) == ["channel", "format-name-1"]
 
 
-async def test_v3_lang_files(store: Store, tmp_path: Path) -> None:
-    """Requirement: v3's second format is ignored."""
+async def test_older_lang_files(store: Store, tmp_path: Path) -> None:
+    """Requirement: A second name format is ignored."""
     lang = tmp_path / "plugins" / "DynamicVoiceChannel" / "lang"
     for locale in ("en-US", "zh-TW"):
         (lang / locale).mkdir(parents=True)
-        fixture = FIXTURES / "plugins" / "dynamic_voice_channel" / f"v3-register-{locale}.yaml"
+        fixture = (
+            FIXTURES / "plugins" / "dynamic_voice_channel" / f"two-formats-register-{locale}.yaml"
+        )
         shutil.copy(fixture, lang / locale / "register.yaml")
 
     bot = await load_plugin("DynamicVoiceChannel", tmp_path / "plugins", store)

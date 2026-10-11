@@ -65,7 +65,7 @@ async def test_last_member_leaves(bot: Bot, store: Store, rest: FakeRest) -> Non
 
 async def test_move_into_a_lobby(bot: Bot, store: Store, rest: FakeRest) -> None:
     """Requirement: Empty rooms are deleted."""
-    # v3 handled the joined channel first, then the left one, and so does the plugin.
+    # The joined channel is handled first, then the left one.
     guild, room = room_guild(rest.sent)
     await bind(store, 10, Binding(20, "Lobby", "| %dvc@custom_name%"))
     await track(store, 10, 50, 7)
@@ -133,7 +133,7 @@ async def test_deletion_refused(
     with caplog.at_level(logging.WARNING):
         await leave(bot, bob(guild), room)
 
-    # v3 forgot the room anyway, and never tried again.
+    # The room stays tracked for another try.
     assert await read_rooms(store, 10) == {50: 7}
     [record] = caplog.records
     assert record.levelno == logging.WARNING
@@ -143,7 +143,7 @@ async def test_deletion_refused(
 
 async def test_leaving_during_the_creation(bot: Bot, store: Store, rest: FakeRest) -> None:
     """Requirement: Empty rooms are deleted."""
-    # v3 tracked the room in memory at once and in MongoDB later, and read MongoDB on the leave.
+    # A leave during the creation finds the room once it is tracked.
     guild, _ = room_guild(rest.sent)
     await bind(store, 10, Binding(20, "Lobby", "| %dvc@custom_name%"))
     lobby = guild.get_channel(30)

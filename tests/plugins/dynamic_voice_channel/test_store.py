@@ -27,7 +27,7 @@ LOBBY = Binding(20, "Lobby", "A")
 
 
 async def test_first_binding(store: Store) -> None:
-    """Requirement: Bindings are kept per guild in v3's documents."""
+    """Requirement: Bindings are kept per guild."""
     await bind(store, 10, LOBBY)
 
     document = await store.get(NAMESPACE, "10")
@@ -40,13 +40,13 @@ async def test_first_binding(store: Store) -> None:
 
 
 async def test_guild_without_bindings(store: Store) -> None:
-    """Requirement: Bindings are kept per guild in v3's documents."""
+    """Requirement: Bindings are kept per guild."""
     assert await read_bindings(store, 10) == []
     assert await store.keys(NAMESPACE) == []
 
 
 async def test_missing_formats(store: Store) -> None:
-    """Requirement: Bindings are kept per guild in v3's documents."""
+    """Requirement: Bindings are kept per guild."""
     # Moshi's default for formatName1; unknown fields are ignored.
     await store.put(NAMESPACE, "10", [{"categoryId": 20, "defaultName": "Lobby", "x": 1}])
 
@@ -54,7 +54,7 @@ async def test_missing_formats(store: Store) -> None:
 
 
 def test_find() -> None:
-    """Requirement: Bindings are kept per guild in v3's documents."""
+    """Requirement: Bindings are kept per guild."""
     first, other, second = (
         Binding(20, "Lobby", "A"),
         Binding(21, "Lobby"),
@@ -62,7 +62,7 @@ def test_find() -> None:
     )
     bindings = [other, first, second]
 
-    assert find(bindings, 20, "Lobby") is first  # v3's set kept the first of duplicates
+    assert find(bindings, 20, "Lobby") is first  # the first of duplicates
     assert find(bindings, 21, "Lobby") is other
     assert find(bindings, 20, "lobby") is None  # names match exactly, case included
     assert find(bindings, 22, "Lobby") is None
@@ -70,8 +70,8 @@ def test_find() -> None:
 
 
 async def test_binding_again(store: Store) -> None:
-    """Requirement: Bindings are kept per guild in v3's documents."""
-    # v3's bind appended a second entry instead of replacing the first.
+    """Requirement: Bindings are kept per guild."""
+    # Two entries for one lobby, as an older bind appended them.
     other: dict[str, JSON] = {"categoryId": 21, "defaultName": "Other", "note": "kept"}
     await store.put(
         NAMESPACE,
@@ -94,7 +94,7 @@ async def test_binding_again(store: Store) -> None:
 
 
 async def test_unbinding(store: Store) -> None:
-    """Requirement: Bindings are kept per guild in v3's documents."""
+    """Requirement: Bindings are kept per guild."""
     await bind(store, 10, LOBBY)
 
     assert await unbind(store, 10, 20, "Lobby")
@@ -104,7 +104,7 @@ async def test_unbinding(store: Store) -> None:
 
 
 async def test_unbinding_duplicates(store: Store) -> None:
-    """Requirement: Bindings are kept per guild in v3's documents."""
+    """Requirement: Bindings are kept per guild."""
     await store.put(
         NAMESPACE,
         "10",
@@ -121,7 +121,7 @@ async def test_unbinding_duplicates(store: Store) -> None:
 
 
 async def test_dropping_bindings(store: Store) -> None:
-    """Requirement: Bindings are kept per guild in v3's documents."""
+    """Requirement: Bindings are kept per guild."""
     for binding in (Binding(20, "A"), Binding(21, "B"), Binding(22, "C")):
         await bind(store, 10, binding)
 
@@ -134,7 +134,7 @@ async def test_dropping_bindings(store: Store) -> None:
 
 
 async def test_concurrent_binds(store: Store) -> None:
-    """Requirement: Bindings are kept per guild in v3's documents."""
+    """Requirement: Bindings are kept per guild."""
     lobbies = [Binding(20, f"Lobby {number}") for number in range(20)]
 
     await asyncio.gather(*(bind(store, 10, lobby) for lobby in lobbies))
@@ -159,7 +159,7 @@ async def test_concurrent_binds(store: Store) -> None:
     ],
 )
 async def test_unreadable_entry(store: Store, document: JSON) -> None:
-    """Requirement: Bindings are kept per guild in v3's documents."""
+    """Requirement: Bindings are kept per guild."""
     await store.put(NAMESPACE, "10", document)
 
     with pytest.raises(DataError, match="guild 10"):
@@ -228,7 +228,7 @@ async def test_unreadable_rooms(store: Store, document: JSON) -> None:
 
 
 async def test_second_format_ignored(store: Store) -> None:
-    """Requirement: v3's second format is ignored."""
+    """Requirement: A second name format is ignored."""
     stored: list[JSON] = [
         {"categoryId": 20, "defaultName": "Lobby", "formatName1": "A", "formatName2": "B"},
         {"categoryId": 21, "defaultName": "Lobby", "formatName1": "C", "formatName2": 2},

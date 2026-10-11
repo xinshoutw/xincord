@@ -33,7 +33,7 @@ ADMINS = "admin_id: [1]\n"  # an operator's config.yaml that lists the administr
 
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as Economy."""
-    # No dependencies: v3's GoogleSheetAPI served only the dead Sheets storage. No intents: Discord
+    # No dependencies. No intents: Discord
     # resolves the member option, and nothing reads the member cache.
     assert discover(["Economy"]) == [PluginInfo("Economy", "xincord.plugins.economy")]
 

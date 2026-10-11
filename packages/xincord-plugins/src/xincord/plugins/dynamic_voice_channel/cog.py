@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 class VoiceChannelOption(app_commands.Transformer[discord.Client]):
-    """v3's ``channel`` options: Discord offers voice channels only, which JDA's cast required.
+    """The ``channel`` options: Discord offers voice channels only.
 
     A ``discord.VoiceChannel`` annotation would need the channel in discord.py's cache; this passes
     on the channel that Discord resolved. WelcomeGoodbye and Feedback have the same transformer
@@ -43,7 +43,7 @@ class VoiceChannelOption(app_commands.Transformer[discord.Client]):
     @property
     @override
     def channel_types(self) -> list[discord.ChannelType]:
-        """Voice channels only; v3 threw for the others, stage channels included."""
+        """Voice channels only, stage channels excluded."""
         return [discord.ChannelType.voice]
 
     @override
@@ -53,15 +53,15 @@ class VoiceChannelOption(app_commands.Transformer[discord.Client]):
 
 
 class SubcommandSpec(NamedTuple):
-    """One of v3's subcommands: its description and its options, with v3's base texts."""
+    """One of the subcommands: its description and its options, with their base texts."""
 
     description: str
-    # Each parameter of the callback, with v3's option name and description.
+    # Each parameter of the callback, with its option name and description.
     options: dict[str, tuple[str, str]]
 
 
-ROOT = "dynamic-voice-channel"  # v3's command, and the root of its register.yaml keys
-# v3's subcommands, in v3's order, with the texts of Register.kt.
+ROOT = "dynamic-voice-channel"  # the command, and the root of its register.yaml keys
+# The subcommands, in their order, with their base texts.
 SUBCOMMANDS = {
     "bind": SubcommandSpec(
         "bind a voice channel",
@@ -87,9 +87,9 @@ class DynamicVoiceChannel(commands.Cog):
         self.templates = templates
 
     def command(self) -> app_commands.Group:
-        """Build v3's ``/dynamic-voice-channel``, localized from ``register.yaml``.
+        """Build ``/dynamic-voice-channel``, localized from ``register.yaml``.
 
-        As in v3, only administrators see it by default; there is no other check. The group is
+        Only administrators see it by default; there is no other check. The group is
         built here, so its module is the plugin's and unloading the plugin removes it.
         """
         lang = self.lang
@@ -105,7 +105,7 @@ class DynamicVoiceChannel(commands.Cog):
     def _subcommand(
         self, name: str, callback: Callable[..., Coroutine[Any, Any, None]]
     ) -> app_commands.Command[Any, ..., None]:
-        """Build v3's subcommand ``name`` with ``callback``, the cog's bound method."""
+        """Build the subcommand ``name`` with ``callback``, the cog's bound method."""
         lang, spec = self.lang, SUBCOMMANDS[name]
         key = f"{ROOT}.subcommands.{name}"
         command: app_commands.Command[Any, ..., None] = app_commands.Command(
@@ -133,14 +133,14 @@ class DynamicVoiceChannel(commands.Cog):
         channel: app_commands.Transform[app_commands.AppCommandChannel, VoiceChannelOption],
         format_name_1: str,
     ) -> None:
-        """Bind ``channel``'s category and name as a lobby with the room format (v3's ``bind``).
+        """Bind ``channel``'s category and name as a lobby with the room format.
 
-        A binding of the same category and name is replaced; v3 added a duplicate. The reply is
+        A binding of the same category and name is replaced. The reply is
         ``bind-success``, or ``must-under-category`` for a channel outside a category, where
         nothing is stored.
         """
         guild = interaction.guild
-        if guild is None:  # guild commands run in guilds only, as v3's handler assumed
+        if guild is None:  # guild commands run in guilds only
             return
         if channel.category_id is None:
             await self._reply(interaction, "must-under-category")
@@ -160,13 +160,13 @@ class DynamicVoiceChannel(commands.Cog):
         interaction: discord.Interaction,
         channel: app_commands.Transform[app_commands.AppCommandChannel, VoiceChannelOption],
     ) -> None:
-        """Remove the bindings of ``channel``'s category and current name (v3's ``unbind``).
+        """Remove the bindings of ``channel``'s category and current name.
 
         The reply is ``unbind-success``, ``unbind-fail`` when there was no such binding, or
         ``must-under-category`` for a channel outside a category.
         """
         guild = interaction.guild
-        if guild is None:  # guild commands run in guilds only, as v3's handler assumed
+        if guild is None:  # guild commands run in guilds only
             return
         if channel.category_id is None:
             await self._reply(interaction, "must-under-category")
@@ -185,11 +185,10 @@ class DynamicVoiceChannel(commands.Cog):
     async def on_voice_state_update(
         self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState
     ) -> None:
-        """Give a member who joined a lobby alone a room of their own (v3's voice update).
+        """Give a member who joined a lobby alone a room of their own.
 
-        discord.py also reports mutes, deafens and streams, which keep the channel; JDA's voice
-        update did not. JDA ran its listener on the event thread, with the cache as of the event;
-        discord.py runs listeners as tasks, and later events may change the cache meanwhile, so
+        discord.py also reports mutes, deafens and streams, which keep the channel. discord.py runs
+        listeners as tasks, and later events may change the cache meanwhile, so
         the joined channel's members are read first, before anything awaits. A guild's voice
         changes are then handled one after another.
         """
@@ -229,8 +228,7 @@ class DynamicVoiceChannel(commands.Cog):
         """Delete the data of the guilds that the bot left, and check the available guilds' data.
 
         By ``on_ready``, discord.py knows every guild of the session, unavailable ones included.
-        v3's ``JsonManager`` deleted the file of a guild it did not know when it first loaded,
-        unavailable ones included, inside a loop that then threw. An unavailable guild (an outage)
+        An unavailable guild (an outage)
         is left alone: discord.py knows it without its channels. A guild whose stored data cannot
         be read is skipped with an error, so that the others are still checked and the plugin
         still loads into a ready bot.
@@ -257,13 +255,13 @@ class DynamicVoiceChannel(commands.Cog):
         return self.store.lock(f"{NAMESPACE}:voice:{guild_id}")
 
     async def _reply(self, interaction: discord.Interaction, key: str) -> None:
-        """Edit the deferred response into the message ``key``, in the user's locale, as v3.
+        """Edit the deferred response into the message ``key``, in the user's locale.
 
-        The values are v3's ``Placeholder.get(event)``, which threw outside text channels.
+        The values are the interaction's placeholder values.
         """
         template = self.templates.message(key, interaction.locale.value)
         message = render_message(template, placeholder_values(interaction))
-        # The command tree deferred the response ephemerally, as v3's core did.
+        # The command tree deferred the response ephemerally.
         await interaction.edit_original_response(
             content=message.content,
             embeds=message.embeds,

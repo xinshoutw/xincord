@@ -1,6 +1,4 @@
-# Golden data for the DynamicVoiceChannel tests. The text is v3's, from
-# XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/resources/lang/, except the en-US
-# unbind-fail title, whose grammar is corrected ("was not found" instead of "is not be found").
+# Golden data for the DynamicVoiceChannel tests: the bundled texts.
 
 # The embed of each reply per locale, as Embed.to_dict() without "type" and "flags".
 replies:
@@ -17,9 +15,8 @@ replies:
 
 # The translated payload of the guild command; keys that are not listed here are not compared. 8 is
 # the Administrator permission; option type 1 is a subcommand, 3 a string and 7 a channel, and
-# channel type 2 is a voice channel. The texts come from v3's Register.kt and register.yaml: the
-# en-US option name of the format is name-format-1, unlike the base name. v3's format-name-2 is
-# gone (dvc-one-name-format).
+# channel type 2 is a voice channel. The texts come from register.yaml: the en-US
+# option name of the format is name-format-1, unlike the base name.
 commands:
   - type: 1
     name: "dynamic-voice-channel"

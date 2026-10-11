@@ -11,12 +11,11 @@ if TYPE_CHECKING:
     from xincord.core.storage import JSON, Store
 
 NAMESPACE = "DynamicVoiceChannel"  # the bindings: the plugin's name, keys are guild IDs
-# The rooms the plugin created, by guild ID; v3 kept them in MongoDB's
-# DynamicVoiceChannel.generated_cache.
+# The rooms the plugin created, by guild ID.
 ROOMS = f"{NAMESPACE}.rooms"
 ROOM_ID = re.compile(r"[1-9][0-9]*")  # the keys of a rooms document: channel IDs in decimal
 
-type Key = tuple[int, str]  # a binding's category ID and lobby name, v3's DataContainer identity
+type Key = tuple[int, str]  # a binding's category ID and lobby name, its identity
 
 
 class DataError(Exception):
@@ -25,10 +24,7 @@ class DataError(Exception):
 
 @dataclass(frozen=True)
 class Binding:
-    """v3's ``DataContainer``: a lobby, by its category and exact name, and the room format.
-
-    v3's second format, which v3 stored and never used, is gone (``dvc-one-name-format``).
-    """
+    """A lobby, by its category and exact name, and the room format."""
 
     category_id: int
     default_name: str
@@ -46,7 +42,7 @@ async def read_bindings(store: Store, guild_id: int) -> list[Binding]:
     A guild without a document has none; a missing format reads as empty, as Moshi's defaults.
 
     Raises:
-        DataError: The document or one of its entries is not v3's.
+        DataError: The document or one of its entries is not valid.
     """
     return [binding for _, binding in await _read(store, guild_id)]
 
@@ -54,8 +50,7 @@ async def read_bindings(store: Store, guild_id: int) -> list[Binding]:
 def find(bindings: Iterable[Binding], category_id: int, name: str) -> Binding | None:
     """Return the first binding of ``category_id`` whose lobby name is exactly ``name``.
 
-    v3 compared names exactly, case included, and kept the first of duplicate entries when it
-    loaded a guild's file.
+    Names compare exactly, case included; of duplicate entries, the first counts.
     """
     return next((binding for binding in bindings if binding.key == (category_id, name)), None)
 
@@ -63,11 +58,10 @@ def find(bindings: Iterable[Binding], category_id: int, name: str) -> Binding | 
 async def bind(store: Store, guild_id: int, binding: Binding) -> None:
     """Store ``binding`` in place of those with the same category and lobby name.
 
-    The new entry goes after the guild's other entries, which stay as they are. v3 appended a
-    duplicate instead, which won until the next restart and lost afterwards.
+    The new entry goes after the guild's other entries, which stay as they are.
 
     Raises:
-        DataError: The document or one of its entries is not v3's; nothing is written.
+        DataError: The document or one of its entries is not valid; nothing is written.
     """
     async with _lock(store, guild_id):
         entries = await _read(store, guild_id)
@@ -79,7 +73,7 @@ async def unbind(store: Store, guild_id: int, category_id: int, name: str) -> bo
     """Remove the bindings of ``category_id`` and ``name``; return whether there was one.
 
     Raises:
-        DataError: The document or one of its entries is not v3's; nothing is written.
+        DataError: The document or one of its entries is not valid; nothing is written.
     """
     return await _remove(store, guild_id, {(category_id, name)}) > 0
 
@@ -88,7 +82,7 @@ async def drop(store: Store, guild_id: int, keys: Collection[Key]) -> None:
     """Remove the bindings whose category and lobby name are in ``keys``.
 
     Raises:
-        DataError: The document or one of its entries is not v3's; nothing is written.
+        DataError: The document or one of its entries is not valid; nothing is written.
     """
     await _remove(store, guild_id, keys)
 
@@ -121,7 +115,7 @@ async def read_rooms(store: Store, guild_id: int) -> dict[int, int]:
 async def track(store: Store, guild_id: int, room_id: int, owner_id: int) -> None:
     """Record ``room_id`` as a room of the guild, created for ``owner_id``.
 
-    v3 kept the owner too, as the value of the room's MongoDB document, and never read it.
+    The owner is kept with the room.
 
     Raises:
         DataError: The document is not an object of room IDs to member IDs; nothing is written.
@@ -151,10 +145,7 @@ async def untrack(store: Store, guild_id: int, room_id: int) -> None:
 
 
 async def forget(store: Store, guild_id: int) -> None:
-    """Delete the guild's bindings and rooms.
-
-    v3 deleted the guild's binding file only, and left its rooms in MongoDB.
-    """
+    """Delete the guild's bindings and rooms."""
     async with _lock(store, guild_id):
         await store.delete(NAMESPACE, str(guild_id))
         await store.delete(ROOMS, str(guild_id))
@@ -169,7 +160,7 @@ async def guild_ids(store: Store) -> list[int]:
 def _lock(store: Store, guild_id: int) -> asyncio.Lock:
     """The lock of the guild's documents: every change reads and writes them under it.
 
-    discord.py runs handlers concurrently; v3 synchronized on its in-memory objects.
+    discord.py runs handlers concurrently.
     """
     return store.lock(f"{NAMESPACE}:{guild_id}")
 
@@ -186,11 +177,9 @@ async def _read(store: Store, guild_id: int) -> list[tuple[JSON, Binding]]:
 
 
 def _binding(entry: JSON, guild_id: int) -> Binding:
-    """The binding of v3's entry; other fields are ignored, as Moshi ignored them.
+    """The binding of an entry; other fields, ``formatName2`` among them, are ignored.
 
-    ``formatName2`` is one of them now, whatever its value. Moshi refused an entry without
-    ``categoryId`` or ``defaultName``, or with a null format, and Core then replaced the guild's
-    whole file with an empty list.
+    An entry without ``categoryId`` or ``defaultName``, or with a null format, raises.
     """
     fields = entry if isinstance(entry, dict) else {}
     category_id, name = fields.get("categoryId"), fields.get("defaultName")
@@ -200,13 +189,13 @@ def _binding(entry: JSON, guild_id: int) -> Binding:
         or not isinstance(name, str)
         or not isinstance(format_1, str)
     ):
-        msg = f"guild {guild_id}: a binding is not v3's: {entry!r}"
+        msg = f"guild {guild_id}: a binding is not valid: {entry!r}"
         raise DataError(msg)
     return Binding(category_id, name, format_1)
 
 
 def _entry(binding: Binding) -> dict[str, JSON]:
-    """v3's entry for ``binding``, in Moshi's field order, which a migration can copy as it is."""
+    """The entry for ``binding``."""
     return {
         "categoryId": binding.category_id,
         "defaultName": binding.default_name,

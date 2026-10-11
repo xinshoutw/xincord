@@ -1,4 +1,4 @@
-# v3's en-US register.yaml, with format-name-2 (dvc-one-name-format removed it from the bundled file).
+# An older en-US register.yaml, with format-name-2, which the bundled file no longer has.
 dynamic-voice-channel:
   name: "dynamic-voice-channel"
   description: "Dynamic Voice Channel"

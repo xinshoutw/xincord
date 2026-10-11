@@ -82,7 +82,7 @@ async def test_no_wallet_yet(cog: Economy, store: Store) -> None:
     [embed] = replied(interaction)
     assert embed["title"] == GOLDEN["balance"]["en-US"]["title"].replace("bob", "alice")
     assert amounts(embed) == ["0 $", "0 $"]
-    assert await store.keys(NAMESPACE) == []  # v3 created the wallet and the guild's file
+    assert await store.keys(NAMESPACE) == []  # reading writes nothing
 
 
 @pytest.mark.parametrize("member", [BOB, FakeUser(id=7, name="bob")], ids=["member", "user"])
@@ -90,7 +90,7 @@ async def test_administrator_names_a_member(
     cog: Economy, store: Store, member: FakeMember | FakeUser
 ) -> None:
     """Requirement: The balance shows a wallet."""
-    # A user outside the guild comes as a discord.User, as v3's asUser read anyone.
+    # A user outside the guild comes as a discord.User.
     await give_bob(store)
     interaction = balance(ADMIN)
 

@@ -1,4 +1,4 @@
-"""Wallets, v3's operations on them and the boards' ranking, without Discord or storage."""
+"""Wallets, the operations on them and the boards' ranking, without Discord or storage."""
 
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Literal
@@ -14,8 +14,7 @@ type Operation = Callable[[Wallet, int], Wallet]
 class Wallet:
     """A user's money (the balance) and cost (the spending) in one guild, 0 and 0 at first.
 
-    Python's integers are exact and never wrap, where v3's 32-bit ``Int`` did; either amount may be
-    negative, as in v3.
+    Python's integers are exact and never wrap; either amount may be negative.
     """
 
     money: int = 0
@@ -23,36 +22,36 @@ class Wallet:
 
 
 def add_money(wallet: Wallet, value: int) -> Wallet:
-    """Add ``value`` to the money (v3's ``addMoney``)."""
+    """Add ``value`` to the money ."""
     return replace(wallet, money=wallet.money + value)
 
 
 def remove_money(wallet: Wallet, value: int) -> Wallet:
-    """Move ``value`` from the money to the cost: a purchase (v3's ``removeMoneyAddCost``)."""
+    """Move ``value`` from the money to the cost: a purchase."""
     return Wallet(money=wallet.money - value, cost=wallet.cost + value)
 
 
 def set_money(wallet: Wallet, value: int) -> Wallet:
-    """Set the money to ``value`` (v3's ``setMoney``)."""
+    """Set the money to ``value`` ."""
     return replace(wallet, money=value)
 
 
 def add_cost(wallet: Wallet, value: int) -> Wallet:
-    """Add ``value`` to the cost (v3's ``addCost``)."""
+    """Add ``value`` to the cost ."""
     return replace(wallet, cost=wallet.cost + value)
 
 
 def remove_cost(wallet: Wallet, value: int) -> Wallet:
-    """Subtract ``value`` from the cost (v3's ``removeCost``)."""
+    """Subtract ``value`` from the cost ."""
     return replace(wallet, cost=wallet.cost - value)
 
 
 def set_cost(wallet: Wallet, value: int) -> Wallet:
-    """Set the cost to ``value`` (v3's ``setCost``)."""
+    """Set the cost to ``value`` ."""
     return replace(wallet, cost=value)
 
 
-# v3's change commands, in v3's order, and what each does to the member's wallet.
+# The change commands, in their order, and what each does to the member's wallet.
 OPERATIONS: Mapping[str, Operation] = {
     "add-money": add_money,
     "remove-money": remove_money,
@@ -66,8 +65,7 @@ OPERATIONS: Mapping[str, Operation] = {
 def rank(wallets: Mapping[int, Wallet], kind: Kind, limit: int) -> list[tuple[int, int]]:
     """Return the first ``limit`` user IDs and amounts, from the highest money or cost.
 
-    Every wallet counts, those at 0 too, as in v3. Equal amounts are ordered by user ID, the lowest
-    first: v3 kept them in the order of a Java ``HashMap``, which no one could predict.
+    Every wallet counts, those at 0 too. Equal amounts are ordered by user ID, the lowest first.
     """
     amounts = [
         (user_id, wallet.money if kind == "money" else wallet.cost)

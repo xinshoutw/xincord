@@ -88,12 +88,12 @@ async def test_empty_board(cog: Economy, store: Store) -> None:
     board = dict(GOLDEN["boards"]["top-cost"]["en-US"])
     del board["description"]
     assert edited(interaction) == ("", [board])
-    assert await store.keys(NAMESPACE) == []  # v3 created the guild's file
+    assert await store.keys(NAMESPACE) == []  # reading writes nothing
 
 
 async def test_operator_template(store: Store, tmp_path: Path) -> None:
     """Requirement: Administrators see the boards."""
-    # As v3's setEmbeds: the rows replace the first embed's description, the user's values fill
+    # The rows replace the first embed's description, the user's values fill
     # them, the other embeds go and the content stays.
     operator_template(
         tmp_path / "plugins",

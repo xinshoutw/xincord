@@ -1,4 +1,4 @@
-"""The six change commands, their permission check and v3's ``Bad Value``."""
+"""The six change commands, their permission check and ``Bad Value``."""
 
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast
@@ -147,7 +147,7 @@ async def test_negative_amount(cog: Economy, store: Store, name: str) -> None:
 
     await change_by(cog, interaction, BOB, -1)
 
-    # v3's text, the same in every locale, as plain content.
+    # The text, the same in every locale, as plain content.
     assert interaction.sent == [("edit_original_response", {"content": "Bad Value"})]
     assert await read(store, 10, BOB.id) == Wallet(money=100, cost=20)
 

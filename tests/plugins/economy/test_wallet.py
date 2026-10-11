@@ -1,4 +1,4 @@
-"""v3's operations on a wallet and the boards' ranking, without Discord or storage."""
+"""The operations on a wallet and the boards' ranking, without Discord or storage."""
 
 import pytest
 
@@ -17,20 +17,20 @@ CHANGED = {
 
 @pytest.mark.parametrize(("name", "expected"), CHANGED.items(), ids=list(CHANGED))
 def test_each_operation(name: str, expected: Wallet) -> None:
-    """Requirement: Changes follow v3's arithmetic."""
+    """Requirement: Changes are exact integer arithmetic."""
     assert OPERATIONS[name](Wallet(money=100, cost=20), 30) == expected
 
 
 def test_past_32_bits() -> None:
-    """Requirement: Changes follow v3's arithmetic."""
-    # v3's Int wrapped 2147483647 + 1 to -2147483648, and asInt threw for values beyond 32 bits.
+    """Requirement: Changes are exact integer arithmetic."""
+    # Past 32 bits, the amounts stay exact.
     assert OPERATIONS["add-money"](Wallet(money=2**31 - 1), 1) == Wallet(money=2**31)
     assert OPERATIONS["add-money"](Wallet(money=2**53), 2**53) == Wallet(money=2**54)
     assert OPERATIONS["remove-money"](Wallet(), 2**53) == Wallet(money=-(2**53), cost=2**53)
 
 
 def test_amounts_go_negative() -> None:
-    """Requirement: Changes follow v3's arithmetic."""
+    """Requirement: Changes are exact integer arithmetic."""
     assert OPERATIONS["remove-money"](Wallet(money=10), 30) == Wallet(money=-20, cost=30)
     assert OPERATIONS["remove-cost"](Wallet(cost=10), 30) == Wallet(cost=-20)
 

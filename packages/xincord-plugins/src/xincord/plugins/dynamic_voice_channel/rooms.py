@@ -25,10 +25,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# v3's raw positions, which JDA's ChannelManager sent: the new lobby first, the room below it.
+# The raw positions sent: the new lobby first, the room below it.
 COPY_POSITION = 0
 ROOM_POSITION = 1
-# What the member may do in their room, on top of the lobby's overwrites (JDA's bits 4 and 28).
+# What the member may do in their room, on top of the lobby's overwrites (bits 4 and 28).
 OWNER = discord.PermissionOverwrite(manage_channels=True, manage_permissions=True)
 
 
@@ -66,11 +66,10 @@ async def create(
 ) -> None:
     """Make ``lobby`` ``member``'s room if it is a bound lobby, and copy it as the new lobby.
 
-    The lobby must be a voice channel (v3's ``asVoiceChannel`` threw for a stage channel) whose
+    The lobby must be a voice channel, not a stage channel, whose
     category and exact name match a binding, must not be a tracked room, and must still hold the
-    member. The room is tracked once the copy exists, so that deleting it never loses the lobby:
-    v3 tracked it first, and a refused copy got the lobby itself deleted. Each later step logs its
-    own failure and the others still run, where v3's chain stopped at the first one.
+    member. The room is tracked once the copy exists, so that deleting it never loses the lobby.
+    Each later step logs its own failure and the others still run.
     """
     guild = lobby.guild
     if lobby.type is not discord.ChannelType.voice or lobby.category_id is None:
@@ -114,9 +113,9 @@ async def delete(store: Store, channel: Room) -> None:
     """Delete ``channel`` if it is an empty room of the plugin, and forget it.
 
     Emptiness is checked last, right before the request, so that a member who joined meanwhile
-    keeps the room (JDA deleted it on the leave event). A room that Discord no longer has is
+    keeps the room. A room that Discord no longer has is
     forgotten; one that Discord refuses to delete stays tracked with a warning, so that the next
-    leave or READY tries again (v3 forgot it anyway). Untracked channels are never deleted.
+    leave or READY tries again. Untracked channels are never deleted.
     """
     guild = channel.guild
     if channel.id not in await read_rooms(store, guild.id) or channel.voice_states:
@@ -134,9 +133,9 @@ async def delete(store: Store, channel: Room) -> None:
 async def check(store: Store, guild: discord.Guild) -> None:
     """Drop the guild's stale bindings, delete its empty rooms and forget its missing ones.
 
-    As v3's startup did, a binding goes when its category is gone or holds no voice channel with
-    the lobby's exact name, with a warning. v3 never looked at its rooms again: rooms that emptied
-    while the bot was away stayed, and so did the records of deleted ones.
+    A binding goes when its category is gone or holds no voice channel with the lobby's exact name,
+    with a warning. Rooms that emptied while the bot was away are deleted, and the records of
+    deleted ones forgotten.
     """
     stale: list[Binding] = []
     for binding in await read_bindings(store, guild.id):
@@ -163,8 +162,7 @@ async def check(store: Store, guild: discord.Guild) -> None:
 def _missing(guild: discord.Guild, binding: Binding) -> str | None:
     """Why ``binding``'s lobby no longer exists in ``guild``, or None when it does.
 
-    JDA's ``getVoiceChannelsByName(name, false)`` matched voice channels by exact name, stage
-    channels excluded.
+    Voice channels match by exact name, stage channels excluded.
     """
     category = guild.get_channel(binding.category_id)
     if category is None or category.type is not discord.ChannelType.category:
@@ -178,10 +176,10 @@ def _missing(guild: discord.Guild, binding: Binding) -> str | None:
 
 
 async def _patch(bot: commands.Bot, channel: VocalGuildChannel, **fields: object) -> None:
-    """Send JDA's ``PATCH /channels/<id>`` with ``fields``.
+    """Send ``PATCH /channels/<id>`` with ``fields``.
 
     discord.py's ``edit(position=...)`` renumbers every voice channel of the guild in one bulk
-    request; JDA's ``setPosition`` sent the channel's raw position, which this keeps.
+    request; this sends the channel's raw position.
     """
     route = Route("PATCH", "/channels/{channel_id}", channel_id=channel.id)
     await bot.http.request(route, json=fields)

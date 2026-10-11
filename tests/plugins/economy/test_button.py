@@ -1,4 +1,4 @@
-"""v3's ``economy@`` buttons: any button with an Economy ID shows the presser's wallet."""
+"""Legacy ``economy@`` buttons: any button with an Economy ID shows the presser's wallet."""
 
 from typing import TYPE_CHECKING, Any, cast
 
@@ -40,7 +40,7 @@ def press(
 
 
 def shown(interaction: FakeInteraction) -> list[dict[str, Any]]:
-    """The embeds of the ephemeral response: deferred, then edited, as v3's deferReply(true)."""
+    """The embeds of the ephemeral response: deferred, then edited."""
     deferred, (method, fields) = interaction.sent[:2]
     assert deferred == ("response.defer", {"ephemeral": True, "thinking": True})
     assert method == "edit_original_response"
@@ -74,7 +74,7 @@ async def test_no_wallet_yet(cog: Economy, store: Store) -> None:
 
     [embed] = shown(interaction)
     assert [field["value"] for field in embed["fields"]] == ["0 $", "0 $"]
-    assert await store.keys(NAMESPACE) == []  # v3 created the wallet
+    assert await store.keys(NAMESPACE) == []  # reading writes nothing
 
 
 async def test_outside_a_guild(cog: Economy) -> None:
@@ -110,7 +110,7 @@ def posted(custom_id: str, interaction: FakeInteraction) -> FakeMessage:
     return FakeMessage([discord.ActionRow(payload)], interaction.sent)
 
 
-async def test_v3_button_routed(bot: Bot, store: Store) -> None:
+async def test_legacy_button_routed(bot: Bot, store: Store) -> None:
     """Requirement: Economy buttons show the presser's wallet."""
     await give_bob(store)
     interaction = press("economy@")

@@ -29,7 +29,7 @@ VALID = Binding(20, "Lobby", "| %dvc@custom_name%")
 STALE = (
     Binding(21, "Gone"),  # the category is gone
     Binding(20, "Renamed"),  # no voice channel with that name in the category
-    Binding(22, "Stage"),  # a stage channel only, which v3's voice channel lookup skipped
+    Binding(22, "Stage"),  # a stage channel only, which is no lobby
     Binding(30, "Lobby"),  # 30 is a voice channel, not a category
 )
 
@@ -93,7 +93,7 @@ async def test_rooms_after_a_restart(
     bot: Bot, store: Store, rest: FakeRest, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Requirement: Bindings and rooms are checked when the bot is ready."""
-    # v3 never deleted rooms that emptied while it was away, nor forgot the deleted ones.
+    # Rooms that emptied while the bot was away are deleted, deleted ones forgotten.
     await store_guild(store, 10)
     guild = checked_guild(rest.sent)
     monkeypatch.setattr(bot, "get_guild", {10: guild}.get)
