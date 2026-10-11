@@ -1,7 +1,4 @@
-"""Validating the config at load: every problem disables the plugin with the key named.
-
-v3 fixed its commands in code, where Discord's rules held by construction:
-"""
+"""Validating the config at load: every problem disables the plugin with the key named."""
 
 import logging
 from typing import TYPE_CHECKING

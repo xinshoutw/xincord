@@ -19,7 +19,7 @@ async def test_owner_offline(scene: Scene) -> None:
     await scene.create(31, "ticket-alice")
     await scene.clock.asleep()
 
-    assert scene.clock.delays == [2.0]  # v3's delay_millis: 2000
+    assert scene.clock.delays == [2.0]  # delay_millis: 2000
     assert scene.notices() == []  # not before the wait ends
 
     await scene.settle()
@@ -47,7 +47,7 @@ async def test_owner_back_during_the_wait(scene: Scene) -> None:
     await scene.status("online")
     await scene.settle()
 
-    assert scene.notices() == []  # v3 posted anyway
+    assert scene.notices() == []  # nothing posted
 
 
 @pytest.mark.parametrize(
@@ -67,13 +67,13 @@ async def test_channel_gone_during_the_wait(
     await scene.parse(event, payload)
     await scene.settle()
 
-    assert scene.notices() == []  # v3 posted, and the request failed
+    assert scene.notices() == []  # nothing posted, no failed request
 
 
 async def test_owner_not_cached(scene: Scene) -> None:
     """Requirement: The notice waits for the delay while the owner is offline."""
     await scene.uncache_owner()
-    # A member from Discord's REST API has no presence: discord.py says offline, as JDA did.
+    # A member from Discord's REST API has no presence: discord.py says offline.
     scene.rest.answers[LOOKUP] = [payloads.member(20, "owner"), payloads.member(20, "owner")]
 
     await scene.create(31, "ticket-alice")
@@ -97,10 +97,10 @@ async def test_channels_created_together(scene: Scene) -> None:
 
 
 @pytest.mark.parametrize("notice", [GOLDEN["operator_notice"]], ids=["operator"])
-async def test_operator_v3_notice(scene: Scene) -> None:
+async def test_operator_notice(scene: Scene) -> None:
     """Requirement: The notice waits for the delay while the owner is offline."""
     await scene.create(31, "ticket-alice")
     await scene.settle()
 
-    # v3's layout as the operator wrote it, and v3's global placeholders.
+    # The layout as the operator wrote it, and the global placeholders.
     assert scene.notices() == [(31, [GOLDEN["operator_embed"]])]

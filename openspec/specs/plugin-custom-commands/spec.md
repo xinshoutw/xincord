@@ -2,17 +2,16 @@
 
 ## Purpose
 The commands that the plugin's `config.yaml` lists answer with message templates, in the channel or
-as a public or ephemeral reply; the bundled ones are v3's five administrator commands, which post
-a shop's bank payment instructions publicly in the channel.
+as a public or ephemeral reply; the bundled ones are five administrator commands, which post a
+shop's bank payment instructions publicly in the channel.
 
 ## Requirements
 
 ### Requirement: The plugin installs as CustomCommands
 The `xincord-plugins` distribution SHALL register the plugin in the `xincord.plugins` entry-point
 group as `CustomCommands`, pointing to `xincord.plugins.custom_commands`, with no dependencies or
-intents. It SHALL bundle a `config.yaml` that defines v3's five commands and v3's five zh-TW
-message templates, with example values in place of v3's bank account numbers, which its first load
-writes to `plugins/CustomCommands/`, and no `register.yaml`.
+intents. It SHALL bundle a `config.yaml` that defines five commands, and five zh-TW message templates with
+example bank account numbers, which its first load writes to `plugins/CustomCommands/`, and no `register.yaml`.
 
 #### Scenario: Discovered by name
 - **WHEN** discovery runs with `CustomCommands` enabled
@@ -33,12 +32,12 @@ the message, the plugin SHALL log a warning and edit the deferred response into 
 
 #### Scenario: Message
 - **WHEN** an administrator runs `cub-none-card`
-- **THEN** the channel receives v3's embed for it, with its title, thumbnail, fields and the colour
+- **THEN** the channel receives its embed, with its title, thumbnail, fields and the colour
   `#9BD9D5`, and the deferred response is deleted
 
 #### Scenario: Every command
 - **WHEN** each of the five commands runs
-- **THEN** the channel receives v3's embed of the template with the command's name, with an example
+- **THEN** the channel receives the embed of the template with the command's name, with an example
   account number
 
 #### Scenario: Default locale
@@ -58,7 +57,7 @@ the message, the plugin SHALL log a warning and edit the deferred response into 
 
 #### Scenario: Template key
 - **WHEN** an entry named `pay` sets `template: ctcb-remit`
-- **THEN** `/pay` posts v3's `ctcb-remit` embed
+- **THEN** `/pay` posts the `ctcb-remit` embed
 
 #### Scenario: Components and files
 - **WHEN** the operator's template has a link button, or a Components V2 layout with a local file
@@ -78,11 +77,11 @@ The plugin SHALL register a guild command for each entry of `commands` in its `c
 the entry's `name`, `description` and `localizations` (a name and a description per Discord
 locale), the default member permissions that `permissions` lists by discord.py's names
 (Administrator when omitted, none when empty) and, when `guilds` lists guild IDs, in those guilds
-only. The bundled entries SHALL be v3's five commands.
+only. The bundled entries SHALL be the five shop commands.
 
 #### Scenario: Command payload
 - **WHEN** the plugin is loaded with the bundled config and the commands are translated
-- **THEN** the guild payload holds the five commands with v3's names, description and zh-TW
+- **THEN** the guild payload holds the five commands with their names, description and zh-TW
   localizations, no options and the administrator default permission, and the global payload
   holds none of them
 
@@ -174,7 +173,7 @@ command's template is missing from the default locale or fails to render.
 - **THEN** the plugin loads
 
 #### Scenario: Missing commands
-- **WHEN** `config.yaml` holds only v3's `enabled: true`
+- **WHEN** `config.yaml` holds only `enabled: true`
 - **THEN** the plugin does not load and the log names `commands`
 
 ### Requirement: Config changes apply on reload

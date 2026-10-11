@@ -1,4 +1,4 @@
-"""v3's ``wbg@`` placeholders for the replies and the welcome and bye messages."""
+"""The ``wbg@`` placeholders for the replies and the welcome and bye messages."""
 
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
@@ -23,8 +23,8 @@ if TYPE_CHECKING:
 
     from .store import Bindings
 
-PREFIX = "wbg@"  # v3's prefix of the plugin's keys
-NONE = "-"  # v3's text for a missing value
+PREFIX = "wbg@"  # the prefix of the plugin's keys
+NONE = "-"  # the text for a missing value
 
 
 @runtime_checkable
@@ -61,7 +61,7 @@ class GuildChannels(GuildLike, Protocol):
 
 
 def text_channel(channel: object) -> TextChannelLike | None:
-    """Return ``channel`` if it is a text channel, as JDA's ``ChannelType.TEXT``.
+    """Return ``channel`` if it is a text channel.
 
     Announcement channels, threads, voice and stage channels and forums are not. ``channel`` may
     be a discord.py channel, the channel of a command option or None.
@@ -79,7 +79,7 @@ def command_values(
     selected: TextChannelLike | None = None,
     previous: int = 0,
 ) -> dict[str, str]:
-    """Return v3's ``forCommand`` values for a reply in ``guild``.
+    """Return the values for a reply in ``guild``.
 
     Args:
         interaction: The command.
@@ -111,7 +111,7 @@ def member_event_values(
     bindings: Bindings,
     event_type: str,
 ) -> dict[str, str]:
-    """Return v3's ``forMemberEvent`` values for a welcome or bye message.
+    """Return the values for a welcome or bye message.
 
     Args:
         bot: The bot's user; None before it has logged in.
@@ -121,7 +121,7 @@ def member_event_values(
         bindings: The guild's channels.
         event_type: ``join`` or ``leave``.
     """
-    # v3's Placeholder.get(member), or Placeholder.get(user) for a departed user.
+    # The member's placeholder values, or the user's for a departed user.
     actor = {} if bot is None else actor_values(user, bot)
     return actor | _subject_values(user, guild, event_type) | _bound_values(guild, bindings)
 
@@ -151,7 +151,7 @@ def _stored_channel_values(guild: GuildChannels, base: str, channel_id: int) -> 
     """The ``wbg@<base>_*`` keys of a stored channel ID, 0 when unbound.
 
     The ID and the mention come from the stored ID, also for a deleted channel; the name and the
-    type from the guild's cached text channel, else ``-``, as v3's ``getTextChannelById``.
+    type from the guild's cached text channel, else ``-``.
     """
     cached = text_channel(guild.get_channel(channel_id)) if channel_id else None
     return channel_values(cached, PREFIX, base, NONE) | {

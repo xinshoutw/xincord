@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as UptimeHeartbeat."""
-    # No dependencies and no intents: v3 handled no gateway event.
+    # No dependencies and no intents: the plugin handles no gateway event.
     assert discover(["UptimeHeartbeat"]) == [
         PluginInfo("UptimeHeartbeat", "xincord.plugins.uptime_heartbeat")
     ]
@@ -32,4 +32,4 @@ async def test_first_load_creates_the_config(store: Store, tmp_path: Path) -> No
     bundled = files("xincord.plugins.uptime_heartbeat").joinpath("config.yaml")
     assert written == bundled.read_text(encoding="utf-8")
     assert yaml.safe_load(written) == {"listeners": []}
-    assert not (directory / "lang").exists()  # v3 had no text
+    assert not (directory / "lang").exists()  # no text

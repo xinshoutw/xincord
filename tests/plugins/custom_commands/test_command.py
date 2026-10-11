@@ -1,4 +1,4 @@
-"""The registration of the commands that the config lists: v3's five by default."""
+"""The registration of the commands that the config lists: five by default."""
 
 from typing import TYPE_CHECKING, Any, cast
 

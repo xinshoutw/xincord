@@ -17,10 +17,10 @@ if TYPE_CHECKING:
 
     from .config import Config
 
-# Button IDs: example:1:a=<action>;b=<count>. A ported plugin lists its v3 fields first, in v3
-# order, and passes legacy_prefix (and legacy_hex); v3's _Example had no components.
+# Button IDs: example:1:a=<action>;b=<count>. A plugin with legacy IDs lists their fields first,
+# in their order, and passes legacy_prefix (and legacy_hex).
 IDS = ComponentIds("example", ("action", "count"))
-NONE = "none"  # the text of an omitted option2, as in v3
+NONE = "none"  # the text of an omitted option2
 OPTION1_MAX = 1024  # Discord's limit for an embed field's value
 
 
@@ -67,12 +67,12 @@ class Example(commands.Cog):
     ) -> None:
         """Turn the deferred response into the example embed above a counter at 0."""
         values = self._values(interaction, 0) | {
-            "_Example@option1": option1,
-            "_Example@option2": NONE if option2 is None else str(option2),
+            "example@option1": option1,
+            "example@option2": NONE if option2 is None else str(option2),
         }
         locale = interaction.locale.value
         reply = render_message(self.templates.message("example", locale), values)
-        # The command tree deferred the response ephemerally, as v3's core did.
+        # The command tree deferred the response ephemerally.
         await interaction.edit_original_response(
             content=reply.content, embeds=reply.embeds, view=self._counter(locale, values)
         )
@@ -90,12 +90,11 @@ class Example(commands.Cog):
     def _values(self, interaction: discord.Interaction, count: int) -> dict[str, str]:
         """Return the placeholder values that both templates can use.
 
-        ``placeholder_values`` is v3's ``Placeholder.get(event)``: the acting user's keys and the
-        interaction's.
+        ``placeholder_values`` gives the acting user's keys and the interaction's.
         """
         return placeholder_values(interaction) | {
-            "_Example@example_key": self.config.example_key,
-            "_Example@count": str(count),
+            "example@example_key": self.config.example_key,
+            "example@count": str(count),
         }
 
     def _counter(

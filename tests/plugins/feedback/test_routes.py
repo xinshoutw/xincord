@@ -1,4 +1,4 @@
-"""Routing a form's star presses and submissions, in v3's ID format too."""
+"""Routing a form's star presses and submissions, in the legacy ID format too."""
 
 from typing import TYPE_CHECKING, cast
 
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from xincord.core.bot import Bot
     from xincord.plugins.feedback.cog import Feedback
 
-V3_STAR = "feedbacker@a:submit_star;b:7;d:6;c:{count}"  # inventory section 4, as v3 emitted it
+LEGACY_STAR = "feedbacker@a:submit_star;b:7;d:6;c:{count}"  # a legacy form's star
 NEW_STAR = "feedback:1:a=submit_star;b=7;d=6;c={count}"
 COMPONENT = discord.InteractionType.component
 MODAL = discord.InteractionType.modal_submit
@@ -70,9 +70,9 @@ def star_ids(view: object) -> list[str | None]:
     return [item.custom_id for item in view.children if isinstance(item, discord.ui.Button)]
 
 
-async def test_v3_star_button(bot: Bot) -> None:
-    """Requirement: v3's forms keep working."""
-    interaction = press(V3_STAR.format(count=3), V3_STAR)
+async def test_legacy_star_button(bot: Bot) -> None:
+    """Requirement: Legacy forms keep working."""
+    interaction = press(LEGACY_STAR.format(count=3), LEGACY_STAR)
 
     await bot.on_interaction(interaction.as_interaction())
 
@@ -81,12 +81,12 @@ async def test_v3_star_button(bot: Bot) -> None:
     assert modal.custom_id == "feedback:1:a=submit_form;c=3;d=6"
     upgraded = interaction.sent[2][1]["view"]  # the core's upgrade after the handler
     assert star_ids(upgraded) == [NEW_STAR.format(count=count) for count in range(1, 6)]
-    assert IDS.upgrade(V3_STAR.format(count=3)) == NEW_STAR.format(count=3)
+    assert IDS.upgrade(LEGACY_STAR.format(count=3)) == NEW_STAR.format(count=3)
 
 
-async def test_v3_modal(bot: Bot) -> None:
-    """Requirement: v3's forms keep working."""
-    interaction = submit("feedbacker@a:submit_form;c:3;d:6", V3_STAR)
+async def test_legacy_modal(bot: Bot) -> None:
+    """Requirement: Legacy forms keep working."""
+    interaction = submit("feedbacker@a:submit_form;c:3;d:6", LEGACY_STAR)
 
     await bot.on_interaction(interaction.as_interaction())
 
@@ -96,7 +96,7 @@ async def test_v3_modal(bot: Bot) -> None:
 
 
 async def test_new_ids(bot: Bot) -> None:
-    """Requirement: v3's forms keep working."""
+    """Requirement: Legacy forms keep working."""
     pressed = press(NEW_STAR.format(count=5), NEW_STAR)
     submitted = submit("feedback:1:a=submit_form;c=5;d=6", NEW_STAR)
 
@@ -116,7 +116,7 @@ async def test_new_ids(bot: Bot) -> None:
     ],
 )
 async def test_other_action(cog: Feedback, kind: discord.InteractionType, custom_id: str) -> None:
-    """Requirement: v3's forms keep working."""
+    """Requirement: Legacy forms keep working."""
     interaction = FakeInteraction({"custom_id": custom_id}, type=kind)
 
     await cog.handle(interaction.as_interaction(), IDS.parse(custom_id))

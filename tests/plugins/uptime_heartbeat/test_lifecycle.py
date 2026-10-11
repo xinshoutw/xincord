@@ -99,7 +99,7 @@ async def test_unloaded_during_a_push(
     await cog.bot.remove_cog("UptimeHeartbeat")
 
     assert all(task.cancelled() for task in tasks)
-    assert plugin_problems(caplog) == []  # v3 logged a spurious failure
+    assert plugin_problems(caplog) == []  # no spurious failure
 
 
 async def test_unloaded_during_a_ping(
@@ -168,7 +168,7 @@ async def test_independent_listeners(
     cog.sleep = sleep  # read when the loops start, at READY
     ready.set()
     _silent, gone, alive = cog.tasks
-    await until(lambda: {gone, alive} <= sleeping)  # v3 ended /gone's loop after its 404
+    await until(lambda: {gone, alive} <= sleeping)  # /gone's loop goes on after its 404
 
     assert {url.path for _, url in monitor.requests} == {"/silent", "/gone", "/alive"}
     assert not any(task.done() for task in cog.tasks)  # /silent still waits for its answer

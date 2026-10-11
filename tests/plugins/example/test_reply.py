@@ -99,7 +99,7 @@ async def test_command_placeholders(store: Store, tmp_path: Path) -> None:
 
 async def test_placeholder_text_in_an_option(cog: Example) -> None:
     """Requirement: The reply echoes the options."""
-    text = "%bot_name% %_Example@option1%"
+    text = "%bot_name% %example@option1%"
 
     edit = await run(cog, text)
 

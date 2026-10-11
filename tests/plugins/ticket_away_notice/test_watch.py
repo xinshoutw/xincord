@@ -22,8 +22,8 @@ def test_prefix_match() -> None:
     assert config.watches(10, "ticket-1")
     assert config.watches(10, "order-")
     assert not config.watches(10, "my-ticket-1")
-    assert not config.watches(10, "TICKET-1")  # case-sensitive, as Kotlin's startsWith
-    assert not config.watches(11, "ticket-1")  # another guild: v3's filter did not work (B1)
+    assert not config.watches(10, "TICKET-1")  # case-sensitive
+    assert not config.watches(11, "ticket-1")  # another guild
 
 
 async def test_text_channel_with_a_prefix(scene: Scene) -> None:
@@ -37,7 +37,7 @@ async def test_text_channel_with_a_prefix(scene: Scene) -> None:
 async def test_threads_and_voice_channels(scene: Scene) -> None:
     """Requirement: New channels whose names start with a prefix are watched."""
     await scene.create_thread(41, "ticket-alice")
-    await scene.create(32, "order-bob", kind=VOICE)  # v3 threw for both (B2)
+    await scene.create(32, "order-bob", kind=VOICE)  # a thread and a voice channel
     await scene.settle()
 
     assert sorted(scene.notices()) == [(32, [GOLDEN["notice"]]), (41, [GOLDEN["notice"]])]
@@ -75,7 +75,7 @@ async def test_channels_that_take_no_messages(
 ) -> None:
     """Requirement: New channels whose names start with a prefix are watched."""
     with caplog.at_level(logging.WARNING):
-        await scene.create(31, "ticket-alice", kind=kind)  # v3 threw (B2)
+        await scene.create(31, "ticket-alice", kind=kind)  # takes messages
         await scene.settle()
 
     assert scene.notices() == []

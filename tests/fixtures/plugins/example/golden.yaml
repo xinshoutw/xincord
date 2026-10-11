@@ -1,6 +1,4 @@
-# Golden data for the Example tests. The text is v3's, from
-# XsDiscordBotKt@3a59607:Plugins/_Example/src/main/resources/lang/; the "Config value" field and
-# the counter button are new in xincord.
+# Golden data for the Example tests: the bundled texts.
 
 # The translated payload of /example-command; keys that are not listed here are not compared.
 command:
@@ -48,7 +46,7 @@ reply:
       - {name: "選項 2", value: "2", inline: false}
       - {name: "設定值", value: "example_value", inline: false}
 
-# The counter button's label, with {count} for %_Example@count%.
+# The counter button's label, with {count} for %example@count%.
 counter:
   en-US: "Count: {count}"
   zh-TW: "計數：{count}"

@@ -1,4 +1,4 @@
-# TicketAwayNotice (v3 TicketAddons): list it under `plugins` in the core config.yaml to enable
+# TicketAwayNotice: list it under `plugins` in the core config.yaml to enable
 # it. The bot then needs the Presence and Server Members intents, allowed for it in the Discord
 # developer portal: without them, Discord refuses the bot's connection.
 

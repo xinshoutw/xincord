@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 DEPENDS: tuple[str, ...] = ()
 SOFT_DEPENDS: tuple[str, ...] = ()
 INTENTS = discord.Intents.none()
-# Replies use the user's locale and fall back to this one, as in v3.
+# Replies use the user's locale and fall back to this one.
 DEFAULT_LOCALE = "zh-TW"
 
 

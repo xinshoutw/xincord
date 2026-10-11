@@ -27,21 +27,21 @@ while the config waits for the operator.
   `lang/zh-TW/message/not-online.yaml`, and no `register.yaml`
 
 ### Requirement: The config names the guild, the owner, the prefixes and the delay
-`config.yaml` SHALL keep v3's keys, none with a default: `guild_id` and `user_id`, positive
-integers, quoted or not; `prefix`, a non-empty list of texts, numbers read as text as v3 did;
-`delay_millis`, 1 to 9223372036854775807 ms. The bundled file SHALL hold v3's prefixes and delay
-and 0 for both IDs, so that the plugin loads once the operator sets them. A v3 file SHALL load with
-a warning naming `enabled`; an invalid file SHALL disable only this plugin, naming the key.
+`config.yaml` SHALL hold these keys, none with a default: `guild_id` and `user_id`, positive
+integers, quoted or not; `prefix`, a non-empty list of texts, numbers read as text;
+`delay_millis`, 1 to 9223372036854775807 ms. The bundled file SHALL hold two prefixes, a delay
+and 0 for both IDs, so that the plugin loads once the operator sets them. A file with `enabled` SHALL
+load with a warning naming it; an invalid file SHALL disable only this plugin, naming the key.
 
-#### Scenario: v3 config file
-- **WHEN** `config.yaml` is v3's: `enabled: true`, both IDs as 18-digit numbers, quoted or not, two
+#### Scenario: An operator's config file
+- **WHEN** `config.yaml` holds `enabled: true`, both IDs as 18-digit numbers, quoted or not, two
   prefixes and `delay_millis: 2000`
-- **THEN** the plugin loads and logs a warning that names `enabled`, and v3's Chinese prefix, which
+- **THEN** the plugin loads and logs a warning that names `enabled`, and the Chinese prefix, which
   the bundled file keeps, matches a channel named after it
 
 #### Scenario: Numbers as prefixes
 - **WHEN** `prefix` lists an unquoted `2024`, which YAML reads as a number
-- **THEN** the plugin loads with the prefix `2024`, as v3 read it
+- **THEN** the plugin loads with the prefix `2024`
 
 #### Scenario: Bundled config
 - **WHEN** the plugin loads with the bundled `config.yaml`
@@ -53,7 +53,7 @@ a warning naming `enabled`; an invalid file SHALL disable only this plugin, nami
 
 ### Requirement: New channels whose names start with a prefix are watched
 In the guild `guild_id` only, a new channel or thread whose name starts with one of `prefix`,
-compared case-sensitively as in v3, SHALL start a notice when it takes messages: text,
+compared case-sensitively, SHALL start a notice when it takes messages: text,
 announcement, voice and stage channels and threads, except the threads that the bot starts itself
 (Ticket's archives). Other guilds and names SHALL be left alone, and so SHALL categories and
 forums, which take no messages, without an error.
@@ -86,9 +86,9 @@ forums, which take no messages, without an error.
 
 ### Requirement: The notice waits for the delay while the owner is offline
 When a notice starts, the plugin SHALL read the member `user_id` from discord.py's cache, else from
-Discord, whose member has no presence and counts as offline, as in v3. Only while that member is
+Discord, whose member has no presence and counts as offline. Only while that member is
 offline SHALL it wait `delay_millis` without holding up other events, then check again that the
-channel exists and that the member is offline, and post `not-online` rendered in zh-TW with v3's
+channel exists and that the member is offline, and post `not-online` rendered in zh-TW with the
 global placeholders (`bot_id`, `bot_name`).
 
 #### Scenario: Owner offline
@@ -116,8 +116,8 @@ global placeholders (`bot_id`, `bot_name`).
 - **WHEN** a second channel with a prefix is created while the first one's notice waits
 - **THEN** both wait at once, and each gets the notice
 
-#### Scenario: Operator's v3 notice
-- **WHEN** `plugins/TicketAwayNotice/lang/zh-TW/message/not-online.yaml` is an operator's v3-style
+#### Scenario: Operator's notice
+- **WHEN** `plugins/TicketAwayNotice/lang/zh-TW/message/not-online.yaml` is an operator's
   file, its text in the embed title and `%bot_name%` in its footer
 - **THEN** the notice shows the title as written and the bot's name in the footer
 

@@ -27,8 +27,7 @@ class UptimeHeartbeat(commands.Cog):
         """Start one loop per listener; each waits until the bot is ready.
 
         ``setup`` runs before the gateway connects, and ``--no-online`` never connects, so nothing
-        is pushed before READY. In a ready bot, as after a reload, the loops push at once: v3
-        started its pushers when it loaded, after JDA was ready.
+        is pushed before READY. In a ready bot, as after a reload, the loops push at once.
         """
         self.tasks = tuple(
             asyncio.create_task(
@@ -42,7 +41,7 @@ class UptimeHeartbeat(commands.Cog):
         """Cancel the loops and wait for them, so that their HTTP sessions are closed.
 
         No failure ends a loop, so this is where they end. A reload builds a new cog from the new
-        config, as v3's ``reload()`` restarted every pusher.
+        config, which restarts every loop.
         """
         for task in self.tasks:
             task.cancel()

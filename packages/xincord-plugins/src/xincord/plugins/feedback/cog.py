@@ -24,13 +24,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# v3's fields in v3's order, all text, and v3's prefix, so that v3's forms keep working.
+# The legacy fields in their order, all text, and the legacy prefix: legacy forms keep working.
 IDS = ComponentIds(
     "feedback",
     ("action", "user_id", "star_count", "submit_channel_id"),
     legacy_prefix="feedbacker@",
 )
-FEEDBACK = "form"  # the custom ID of the modal's text input, v3's
+FEEDBACK = "form"  # the custom ID of the modal's text input
 
 
 class FormError(Exception):
@@ -54,7 +54,7 @@ class Postable(Protocol):
 
 
 class TextChannelOption(app_commands.Transformer[discord.Client]):
-    """v3's ``submit-channel`` option: Discord offers text channels only, as JDA's ``TEXT``.
+    """The ``submit-channel`` option: Discord offers text channels only.
 
     discord.py's ``discord.TextChannel`` annotation would also offer announcement channels and need
     the channel in the cache; this passes on the channel that Discord resolved. WelcomeGoodbye has
@@ -91,7 +91,7 @@ class Feedback(commands.Cog):
     def command(self) -> app_commands.Command[Any, ..., None]:
         """Build ``/feedback``, localized from ``register.yaml``.
 
-        As in v3, a guild command that every member sees: ``create_form`` checks Administrator.
+        A guild command that every member sees: ``create_form`` checks Administrator.
         """
         lang = self.lang
         command: app_commands.Command[Any, ..., None] = app_commands.Command(
@@ -113,8 +113,8 @@ class Feedback(commands.Cog):
     async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
         """Send a form's star press or submitted modal to its handler; ``setup`` routes here.
 
-        As in v3, a press is a ``submit_star`` button and a submission a ``submit_form`` modal, in
-        v3's ID format too; anything else gets no response.
+        A press is a ``submit_star`` button and a submission a ``submit_form`` modal, in the legacy
+        ID format too; anything else gets no response.
         """
         action = parsed.fields.get("action")
         if interaction.type is discord.InteractionType.component and action == "submit_star":
@@ -132,11 +132,11 @@ class Feedback(commands.Cog):
 
         ``member`` is a user option: discord.py passes the member that Discord resolved, or the
         user when Discord resolved none, where a ``discord.Member`` annotation would fail before
-        the callback and leave the response "thinking", as v3's ``asMember!!`` did.
+        the callback and leave the response "thinking".
 
-        As in v3, the form goes to the command's channel in the administrator's locale, and the
-        response that the command tree deferred says whether it was posted. Where v3 left that
-        response "thinking", it says ``form_failure`` and the log says why.
+        The form goes to the command's channel in the administrator's locale, and the response that
+        the command tree deferred says whether it was posted: on a failure it says ``form_failure``
+        and the log says why.
         """
         if not interaction.permissions.administrator:
             await interaction.edit_original_response(content=self.config.form_no_permission)
@@ -164,7 +164,7 @@ class Feedback(commands.Cog):
         if submit_channel.type != discord.ChannelType.text:
             msg = f"the submit channel {_name(submit_channel)} is not a text channel"
             raise FormError(msg)
-        # Discord resolves a member only for users in the guild; v3's asMember!! threw here.
+        # Discord resolves a member only for users in the guild.
         if not isinstance(member, MemberLike):
             msg = f"{_name(member)} is not a member of the guild"
             raise FormError(msg)
@@ -173,7 +173,7 @@ class Feedback(commands.Cog):
             msg = f"the channel {_name(interaction.channel)} takes no messages"
             raise FormError(msg)
         bot = interaction.client.user
-        # v3's Placeholder.get(member) for the rated member.
+        # The rated member's placeholder values.
         values = ({} if bot is None else actor_values(member, bot)) | {
             "fb_submit_channel_id": str(submit_channel.id)
         }
@@ -183,7 +183,7 @@ class Feedback(commands.Cog):
     async def press_star(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
         """Open the feedback modal for the rated member, then highlight the pressed star.
 
-        Anyone else gets ``form_not_you``. As in v3, the modal is rendered in the member's locale
+        Anyone else gets ``form_not_you``. The modal is rendered in the member's locale
         with the press's values and the star count and the submit channel of the button's ID.
         """
         if fields["user_id"] != str(interaction.user.id):
@@ -204,15 +204,15 @@ class Feedback(commands.Cog):
     ) -> None:
         """Post the member's stars and feedback in the submit channel, then delete the form.
 
-        As in v3, the submission is acknowledged without a message and the review is rendered in
-        the guild's locale with the submitter's values; the feedback is shown as typed. Unlike v3,
-        the form is deleted only once the review is posted: otherwise it stays for another try,
+        The submission is acknowledged without a message and the review is rendered in the guild's
+        locale with the submitter's values; the feedback is shown as typed. The form is deleted
+        only once the review is posted: otherwise it stays for another try,
         the member gets ``form_submit_failure`` and the log says why.
         """
         rating = stars(star_count(fields["star_count"]))
         channel_id = int(fields["submit_channel_id"])
         feedback = modal_values(interaction.data).get(FEEDBACK, "")
-        await interaction.response.defer()  # v3's deferEdit: the modal closes, nothing is shown
+        await interaction.response.defer()  # the modal closes, nothing is shown
         try:
             await self._post_review(interaction, channel_id, rating, feedback)
         except FormError as error:
@@ -239,7 +239,7 @@ class Feedback(commands.Cog):
             msg = f"channel {channel_id} is not one of its text channels"
             raise FormError(msg)
         bot = interaction.client.user
-        # v3's Placeholder.get(event.member) for the submitter.
+        # The submitter's placeholder values.
         values = ({} if bot is None else actor_values(interaction.user, bot)) | {
             "fb_stars": rating,
             "fb_content": feedback,
@@ -270,8 +270,8 @@ async def _send(channel: Postable, message: Message) -> None:
 async def _highlight(interaction: discord.Interaction) -> None:
     """Edit the pressed form so that its pressed star stands out; a refusal is logged.
 
-    v3 queued this edit on the interaction's hook before the modal acknowledged the press, which
-    Discord may refuse; the bot edits its own message instead, after the modal opened.
+    The bot edits its own message after the modal opened: an edit through the interaction
+    before the modal acknowledged the press could be refused.
     """
     message = cast("discord.Message", interaction.message)  # every component interaction has one
     pressed = str(cast("Mapping[str, object]", interaction.data or {}).get("custom_id", ""))
@@ -284,9 +284,9 @@ async def _highlight(interaction: discord.Interaction) -> None:
 
 
 async def _delete_form(interaction: discord.Interaction) -> None:
-    """Delete the form whose review was posted, as v3 did; a failure is logged.
+    """Delete the form whose review was posted; a failure is logged.
 
-    The second of two submissions from two clients finds the form gone, as in v3.
+    The second of two submissions from two clients finds the form gone.
     """
     form = cast("discord.Message", interaction.message)  # the modal was opened from the form
     try:
@@ -296,7 +296,7 @@ async def _delete_form(interaction: discord.Interaction) -> None:
 
 
 def _text_channel(guild: discord.Guild | None, channel_id: int) -> Postable | None:
-    """The guild's cached text channel ``channel_id``, as v3's ``getTextChannelById``."""
+    """The guild's cached text channel ``channel_id``."""
     channel = None if guild is None else guild.get_channel(channel_id)
     is_text = getattr(channel, "type", None) == discord.ChannelType.text
     return _postable(channel) if is_text else None

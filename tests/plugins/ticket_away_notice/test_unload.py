@@ -20,7 +20,7 @@ async def test_unload_during_the_wait(scene: Scene, caplog: pytest.LogCaptureFix
     [notice] = cog.notices
 
     with caplog.at_level(logging.WARNING):
-        # What an unload or a reload does to the cog; v3's queueAfter could not be cancelled.
+        # What an unload or a reload does to the cog.
         await scene.bot.remove_cog("TicketAwayNotice")
         scene.clock.wake()
         async with asyncio.timeout(WAIT):

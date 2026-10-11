@@ -8,8 +8,7 @@ from pydantic import AfterValidator, ConfigDict, Field
 from xincord.core.config import Model
 
 PING = "%ping%"  # the URL's only placeholder: the REST ping, replaced before each push
-# v3's Int refused larger values at load; v3 also took 0 and negatives, which made the loop push
-# without pause.
+# A positive 32-bit integer: 0 or a negative interval would push without pause.
 MAX_INTERVAL = 2_147_483_647
 SCHEMES = frozenset({"http", "https"})
 
@@ -17,8 +16,8 @@ SCHEMES = frozenset({"http", "https"})
 def _push_url(url: str) -> str:
     """Accept ``url`` if it is an http or https URL with a host once ``%ping%`` is a number.
 
-    v3 took any string and failed at every push; checked here, a typo names the key at load. The
-    errors never quote the URL, whose path, query or user info can hold the push token or a
+    Checked at load, so that a typo names the key instead of failing every push. The errors
+    never quote the URL, whose path, query or user info can hold the push token or a
     password.
     """
     try:
@@ -35,7 +34,7 @@ def _push_url(url: str) -> str:
 
 
 class Listener(Model):
-    """A URL to push and the delay between pushes, with v3's keys."""
+    """A URL to push and the delay between pushes."""
 
     # pydantic's errors show no input: the core logs them with their traceback.
     model_config = ConfigDict(hide_input_in_errors=True)
@@ -47,9 +46,9 @@ class Listener(Model):
 class Config(Model):
     """``plugins/UptimeHeartbeat/config.yaml``; the bundled ``config.yaml`` lists no listeners.
 
-    v3's ``enabled`` key is gone: the core config's ``plugins`` list enables the plugin.
+    The core config's ``plugins`` list enables the plugin; an ``enabled`` key here only warns.
     """
 
     model_config = ConfigDict(hide_input_in_errors=True)  # no URL in the errors, as in Listener
 
-    listeners: tuple[Listener, ...]  # required, as in v3
+    listeners: tuple[Listener, ...]  # required

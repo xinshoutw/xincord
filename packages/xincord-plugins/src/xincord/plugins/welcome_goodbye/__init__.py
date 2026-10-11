@@ -13,21 +13,21 @@ if TYPE_CHECKING:
 
 DEPENDS: tuple[str, ...] = ()
 SOFT_DEPENDS: tuple[str, ...] = ()
-# Member joins and removals need the privileged members intent, which v3's core always requested.
+# Member joins and removals need the privileged members intent.
 INTENTS = discord.Intents(members=True)
-# Replies and messages use the guild's locale and fall back to this one, as in v3.
+# Replies and messages use the guild's locale and fall back to this one.
 DEFAULT_LOCALE = "zh-TW"
 
 
 async def setup(bot: Bot) -> None:
     """Load the lang files and the templates, then add the cog and its commands.
 
-    The plugin has no config: v3's only key was ``enabled``. Its data is in the shared store.
+    The plugin has no config. Its data is in the shared store.
     """
     context = bot.plugin_context(__name__)
     lang = context.lang(DEFAULT_LOCALE)
     cog = WelcomeGoodbye(bot, context.store, lang, Templates.load(lang))
     await bot.add_cog(cog)
-    # Guild commands, as in v3. discord.py removes them when the plugin unloads.
+    # Guild commands; discord.py removes them when the plugin unloads.
     for name in COMMANDS:
         bot.tree.add_command(cog.command(name))

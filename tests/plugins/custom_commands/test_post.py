@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 GOLDEN = golden("custom_commands")
 NAMES = ("cub-none-card", "tsib-none-card", "ctcb-none-card", "ctcb-remit", "chpytwtp-remit")
-# An operator's command that posts one of v3's templates under another name.
+# An operator's command that posts one of the bundled templates under another name.
 PAY = """\
 commands:
   - {name: pay, description: Pay us, template: ctcb-remit}

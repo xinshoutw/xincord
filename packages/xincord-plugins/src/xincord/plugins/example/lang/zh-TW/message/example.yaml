@@ -8,12 +8,12 @@ embeds:
 
     fields:
       - name: "選項 1"
-        value: "%_Example@option1%"
+        value: "%example@option1%"
 
       - name: "選項 2"
-        value: "%_Example@option2%"
+        value: "%example@option2%"
 
       - name: "設定值"
-        value: "%_Example@example_key%"
+        value: "%example@example_key%"
 
     color_code: "#00FFFF"

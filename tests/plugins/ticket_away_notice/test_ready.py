@@ -1,7 +1,4 @@
-"""The guild and the owner are checked when the bot is ready, and on a load into a ready bot.
-
-v3 checked nothing: with its guild filter broken (B1), a wrong guild_id went unnoticed.
-"""
+"""The guild and the owner are checked when the bot is ready, and on a load into a ready bot."""
 
 import logging
 from typing import TYPE_CHECKING

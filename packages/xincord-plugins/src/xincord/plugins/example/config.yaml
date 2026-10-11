@@ -1,4 +1,4 @@
 # Example: list it under `plugins` in the core config.yaml to enable it.
 
-# Shown in the reply of /example-command as %_Example@example_key%.
+# Shown in the reply of /example-command as %example@example_key%.
 example_key: "example_value"

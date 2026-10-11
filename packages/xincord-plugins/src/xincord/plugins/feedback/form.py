@@ -1,15 +1,15 @@
-"""The stars of a form: v3's star text, the star count that an ID carries and the highlight."""
+"""The stars of a form: the star text, the star count that an ID carries and the highlight."""
 
 import discord
 
-MAX_STARS = 5  # v3's five star buttons
-FULL, EMPTY = "★ ", "☆ "  # v3's stars, each followed by a space
-# The counts an ID may carry, as v3's templates write them: v3's repeat threw outside 0 to 5.
+MAX_STARS = 5  # five star buttons
+FULL, EMPTY = "★ ", "☆ "  # the stars, each followed by a space
+# The counts an ID may carry, as the templates write them: 0 to 5.
 COUNTS = {str(count): count for count in range(MAX_STARS + 1)}
 
 
 def stars(count: int) -> str:
-    """Return v3's ``%fb_stars%`` for ``count`` stars of five, trailing space included."""
+    """Return ``%fb_stars%`` for ``count`` stars of five, trailing space included."""
     return FULL * count + EMPTY * (MAX_STARS - count)
 
 
@@ -30,7 +30,7 @@ def highlight(message: discord.Message, pressed: str) -> discord.ui.View | disco
     """Return the message's components with the pressed button primary and the others secondary.
 
     Only buttons with an ID change: link and premium buttons keep their style, and the message's
-    other components stay (v3 rebuilt the action rows and dropped the rest). The view is a fresh
+    other components stay. The view is a fresh
     copy, stopped so that discord.py never dispatches its presses: the core routes them.
     """
     view_type = discord.ui.LayoutView if message.flags.components_v2 else discord.ui.View

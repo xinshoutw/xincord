@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 type Sleep = Callable[[float], Awaitable[object]]
 
-NOTICE = "not-online"  # v3's template
+NOTICE = "not-online"  # the notice's template
 MAX_EMBEDS = 10  # Discord's limit for a message, which discord.py checks before sending
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class TicketAwayNotice(commands.Cog):
     def __init__(self, bot: commands.Bot, config: Config, lang: Lang, templates: Templates) -> None:
         """Keep the bot, the config and the notice's template.
 
-        A reload builds a new cog from the files, as v3's ``reload()`` rebuilt its template.
+        A reload builds a new cog from the files.
         """
         self.bot = bot
         self.config = config
@@ -82,8 +82,8 @@ class TicketAwayNotice(commands.Cog):
     async def cog_unload(self) -> None:
         """Cancel the notices under way and wait for them to end.
 
-        An unload and a reload remove the cog, so a notice that waits then is dropped; v3's
-        ``queueAfter`` could not be cancelled. discord.py removes the listeners first, but a
+        An unload and a reload remove the cog, so a notice that waits then is dropped.
+        discord.py removes the listeners first, but a
         listener that it scheduled as a task before can still run afterwards: ``closed`` makes it
         start nothing.
         """
@@ -102,8 +102,7 @@ class TicketAwayNotice(commands.Cog):
         """Warn about a configured guild that the bot is not in and an owner who is not in it.
 
         With the members intent, discord.py fires ``on_ready`` once it cached the guilds' members;
-        an unavailable guild (an outage) has none to look at. v3 checked nothing, and with its
-        guild filter broken (B1), a wrong ``guild_id`` went unnoticed.
+        an unavailable guild (an outage) has none to look at.
         """
         guild = self.bot.get_guild(self.config.guild_id)
         if guild is None:
@@ -117,12 +116,12 @@ class TicketAwayNotice(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_channel_create(self, channel: discord.abc.GuildChannel) -> None:
-        """A new channel, of any kind: v3's ``ChannelCreateEvent``."""
+        """A new channel, of any kind."""
         self.watch(channel)
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread: discord.Thread) -> None:
-        """A new thread or forum post, which JDA's ``ChannelCreateEvent`` covered too.
+        """A new thread or forum post.
 
         discord.py dispatches it for threads created since the bot connected only; a thread the
         bot joins is ``on_thread_join``.
@@ -133,8 +132,7 @@ class TicketAwayNotice(commands.Cog):
         """Start a notice for ``channel`` if the config watches it and it takes messages.
 
         The guild and the name are read before anything waits. Categories and forums take no
-        messages and are skipped; v3's ``asTextChannel()`` threw for every channel but a text
-        channel (B2). The notice runs as a task, so the listener holds nothing up.
+        messages and are skipped. The notice runs as a task, so the listener holds nothing up.
         """
         guild_id = channel.guild.id
         if self.closed or not self.config.watches(guild_id, channel.name):
@@ -156,8 +154,8 @@ class TicketAwayNotice(commands.Cog):
     def _started_by_bot(self, channel: discord.abc.GuildChannel | discord.Thread) -> bool:
         """Whether ``channel`` is a thread that the bot started, such as Ticket's archive.
 
-        An archive thread takes the ticket channel's name, which may start with a prefix; v3 never
-        posted in threads (B2). Channels carry no creator, and Ticket's tickets are meant to get the
+        An archive thread takes the ticket channel's name, which may start with a prefix.
+        Channels carry no creator, and Ticket's tickets are meant to get the
         notice.
         """
         user = self.bot.user
@@ -181,8 +179,8 @@ class TicketAwayNotice(commands.Cog):
     async def _wait_and_post(self, guild_id: int, channel: Postable) -> None:
         """Post the notice in ``channel`` after the delay, if it is due before and after it.
 
-        v3 checked the owner once and queued the message with ``queueAfter``, which nothing could
-        cancel: it was posted into a channel deleted meanwhile, or after the owner came online.
+        Checked again after the wait, so that no notice goes into a channel deleted meanwhile, or
+        after the owner came online.
         """
         if await self._due(guild_id, channel.id) is None:
             return
@@ -207,8 +205,7 @@ class TicketAwayNotice(commands.Cog):
         """The owner's member in ``guild``, or None with a warning when Discord has none.
 
         It comes from discord.py's cache, which the members and presences intents keep current,
-        else from Discord, as v3's ``retrieveMemberById``: such a member has no presence, and
-        discord.py says it is offline, as JDA did.
+        else from Discord: such a member has no presence, and discord.py says it is offline.
         """
         owner = self.config.user_id
         member = guild.get_member(owner)
@@ -231,10 +228,10 @@ class TicketAwayNotice(commands.Cog):
         return member
 
     async def _post(self, guild: discord.Guild, channel: Postable) -> None:
-        """Post the ``not-online`` template in v3's zh-TW, with v3's global placeholders.
+        """Post the ``not-online`` template in zh-TW, with the global placeholders.
 
-        v3 rendered it without a substitutor, which left the bot's ``bot_id`` and ``bot_name``. A
-        notice that Discord refuses is a warning that names the channel and the guild.
+        The template gets the bot's ``bot_id`` and ``bot_name``. A notice that Discord refuses is a
+        warning that names the channel and the guild.
         """
         template = self.templates.message(NOTICE, self.lang.default_locale)
         message = render_message(template, global_values(self.bot))
@@ -261,7 +258,7 @@ def check_notice(lang: Lang, templates: Templates) -> None:
 
     The plugin gives no component IDs and no models, so a component with a ``uid`` or a
     ``model_key`` fails, as do a missing ``file_path`` and too many rows; Discord refuses more
-    than ten embeds and an empty message. v3 failed at each notice. The render has no placeholder
+    than ten embeds and an empty message. The render has no placeholder
     values, and the files it opens are closed.
 
     Raises:

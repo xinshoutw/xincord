@@ -12,14 +12,14 @@ if TYPE_CHECKING:
 
 DEPENDS: tuple[str, ...] = ()
 SOFT_DEPENDS: tuple[str, ...] = ()
-# No gateway events: v3 registered a listener without handlers.
+# No gateway events.
 INTENTS = discord.Intents.none()
 
 
 async def setup(bot: Bot) -> None:
     """Load the config and add the cog.
 
-    The plugin has no lang files: v3 had no text.
+    The plugin has no lang files: it has no text.
     """
     context = bot.plugin_context(__name__)
     await bot.add_cog(UptimeHeartbeat(bot, context.config(Config)))

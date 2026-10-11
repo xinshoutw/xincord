@@ -1,4 +1,4 @@
-"""The Feedback config: v3's replies and the two new failure replies."""
+"""The Feedback config: the three required replies and the two failure replies."""
 
 import logging
 from typing import TYPE_CHECKING, cast
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from xincord.plugins.feedback.config import Config
 
 GOLDEN = golden("feedback")
-REPLIES = ("form_no_permission", "form_not_you", "form_success")  # v3's, all required
+REPLIES = ("form_no_permission", "form_not_you", "form_success")  # all required
 DEFAULTS = {
     "form_failure": "Failed to create the form",
     "form_submit_failure": "Failed to submit the feedback",
@@ -48,7 +48,7 @@ def replies(config: Config) -> dict[str, str]:
 
 
 def operator_file(**changes: str | None) -> str:
-    """An operator's config.yaml: v3's three replies in English, with ``changes`` (None drops)."""
+    """An operator's config.yaml: the required replies in English, with ``changes`` (None drops)."""
     values: dict[str, str | None] = {name: name.replace("_", " ") for name in REPLIES}
     values |= changes
     return yaml.safe_dump({key: value for key, value in values.items() if value is not None})
@@ -61,16 +61,18 @@ async def test_bundled_file(tmp_path: Path, store: Store) -> None:
     assert replies(loaded_config(bot)) == GOLDEN["config"]
 
 
-async def test_v3_file(tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture) -> None:
+async def test_operator_file(
+    tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
+) -> None:
     """Requirement: The config holds the replies."""
-    v3_file: str = GOLDEN["v3_config"]
+    operator: str = GOLDEN["operator_config"]
 
     with caplog.at_level(logging.WARNING):
-        bot = await load_plugin("Feedback", tmp_path / "plugins", store, config=v3_file)
+        bot = await load_plugin("Feedback", tmp_path / "plugins", store, config=operator)
 
     assert "unknown key enabled" in caplog.text
-    v3_replies = {name: GOLDEN["config"][name] for name in REPLIES}
-    assert replies(loaded_config(bot)) == v3_replies | DEFAULTS
+    required = {name: GOLDEN["config"][name] for name in REPLIES}
+    assert replies(loaded_config(bot)) == required | DEFAULTS
 
 
 @pytest.mark.parametrize(

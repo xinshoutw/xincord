@@ -17,9 +17,9 @@ Reply = Annotated[str, StringConstraints(pattern=r"\S", max_length=REPLY_MAX)]
 class Config(Model):
     """``plugins/Feedback/config.yaml``: the plugin's replies, sent as written.
 
-    v3's ``enabled`` key is gone: the core config's ``plugins`` list enables the plugin. v3's three
-    replies are required, as in v3; the two failure replies are new, and their English defaults
-    serve v3's files, whose failures were hard-coded English. The bundled file holds zh-TW texts.
+    The core config's ``plugins`` list enables the plugin; an ``enabled`` key here only warns. The
+    first three replies are required; the two failure replies have English defaults. The bundled
+    file holds zh-TW texts.
     """
 
     form_no_permission: Reply  # to a user without Administrator who runs the command

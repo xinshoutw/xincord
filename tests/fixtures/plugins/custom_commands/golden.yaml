@@ -1,10 +1,8 @@
-# Golden data for the CustomCommands tests. The text is v3's, from
-# XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/resources/lang/zh-TW/, except the bank
-# account numbers: v3's templates held real ones, and the bundled templates hold the example
-# value 000000000000.
+# Golden data for the CustomCommands tests: the bundled texts, whose bank account numbers are the
+# example value 000000000000.
 
 # Each command's message, posted in zh-TW whatever the user's locale, as Embed.to_dict() without
-# "type" and "flags". The colour is v3's 0x9bd9d5.
+# "type" and "flags". The colour is 0x9bd9d5.
 messages:
   cub-none-card:
     title: "國泰世華 - 無卡"
@@ -45,7 +43,7 @@ messages:
       - {name: "銀行帳號", value: "`000000000000`", inline: false}
 
 # The translated payloads of the five guild commands; keys that are not listed here are not
-# compared. v3 had zh-TW localizations only, and 8 is the Administrator permission.
+# compared. The commands have zh-TW localizations only, and 8 is the Administrator permission.
 commands:
   - type: 1
     name: "cub-none-card"

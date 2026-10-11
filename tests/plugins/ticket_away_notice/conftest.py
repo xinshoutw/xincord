@@ -31,7 +31,7 @@ GUILD = 10  # the watched guild
 OTHER_GUILD = 11  # a guild that the config does not name, where the owner is a member too
 OWNER = 20  # the member whose status decides the notice
 GENERAL = 30  # a text channel of guild 10, the parent of new threads
-# Guild 10 and owner 20, two ASCII prefixes and v3's 2 seconds; the bundled file waits for IDs.
+# Guild 10 and owner 20, two ASCII prefixes and 2 seconds; the bundled file waits for IDs.
 CONFIG = """\
 guild_id: 10
 user_id: 20
@@ -69,7 +69,7 @@ def rest(monkeypatch: pytest.MonkeyPatch) -> FakeRest:
 
 @pytest.fixture(autouse=True)
 def logged_in(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The bot's user, which discord.py sets at the login, for v3's ``bot_*`` values."""
+    """The bot's user, which discord.py sets at the login, for the ``bot_*`` values."""
     monkeypatch.setattr(Bot, "user", property(lambda _bot: BOT_USER))
 
 

@@ -1,4 +1,4 @@
-"""One listener's loop: the REST ping, the push and its outcome (v3's IntervalPusher class)."""
+"""One listener's loop: the REST ping, the push and its outcome."""
 
 import logging
 import time
@@ -26,29 +26,28 @@ type Sleep = Callable[[float], Awaitable[object]]
 
 logger = logging.getLogger(__name__)
 
-NO_PING = -1  # what %ping% becomes when the ping cannot be measured, as in v3
+NO_PING = -1  # what %ping% becomes when the ping cannot be measured
 # A failed ping: Discord's errors, aiohttp's, and OSError for the network, timeouts included.
 PING_ERRORS = (discord.DiscordException, aiohttp.ClientError, OSError)
-# v3's limits: 10 seconds to connect and 30 seconds for the whole request.
+# 10 seconds to connect and 30 seconds for the whole request.
 TIMEOUT = aiohttp.ClientTimeout(total=30, connect=10)
 # A push that did not reach the monitor: aiohttp's errors and OSError, timeouts included.
 NETWORK_ERRORS = (aiohttp.ClientError, OSError)
 SUCCESS = range(200, 300)
 # Failed pushes logged as warnings, with what the status means: Uptime Kuma's answer for an unknown
-# or paused push token (v3 stopped the listener), and Cloudflare's when the monitor is offline.
+# or paused push token, and Cloudflare's when the monitor is offline.
 WARNINGS = {404: "the status monitor refused the push", 521: "the status monitor is offline"}
 
 
 def build_url(template: str, ping: int) -> str:
-    """Replace every ``%ping%`` in ``template`` with ``ping``, as v3's ``String.replace``."""
+    """Replace every ``%ping%`` in ``template`` with ``ping``."""
     return template.replace(PING, str(ping))
 
 
 async def rest_ping(client: discord.Client, clock: Callable[[], float] = time.perf_counter) -> int:
     """Time a ``GET /users/@me`` request to Discord in whole milliseconds.
 
-    JDA's ``getRestPing()`` timed the same request; discord.py has no REST ping, and this is the
-    request that its own login sends.
+    discord.py has no REST ping: this times the request that its own login sends.
     """
     start = clock()
     await client.http.request(Route("GET", "/users/@me"))
@@ -56,14 +55,14 @@ async def rest_ping(client: discord.Client, clock: Callable[[], float] = time.pe
 
 
 def open_session() -> aiohttp.ClientSession:
-    """An HTTP session for one listener's pushes, with v3's limits; the caller closes it."""
+    """An HTTP session for one listener's pushes, with the limits above; the caller closes it."""
     return aiohttp.ClientSession(timeout=TIMEOUT)
 
 
 async def get_status(session: aiohttp.ClientSession, url: str) -> int:
-    """Send one push, a GET that follows no redirect as in v3, and return its status code.
+    """Send one push, a GET that follows no redirect, and return its status code.
 
-    The body is not read: v3 read it into a string and ignored it.
+    The body is not read.
     """
     async with session.get(url, allow_redirects=False) as response:
         return response.status
@@ -79,7 +78,7 @@ class Pusher:
     ping: Ping
     sleep: Sleep
     # The failure episodes of the pushes and the pings: only a kind of failure that is new in its
-    # episode is logged at its level (the owner's decision of 2026-10-10; v3 logged every failure).
+    # episode is logged at its level (the owner's decision of 2026-10-10).
     pushes: Failures = field(default_factory=Failures)
     pings: Failures = field(default_factory=Failures)
 
@@ -91,9 +90,9 @@ class Pusher:
     async def run(self) -> None:
         """Push at once, then again ``interval`` seconds after each attempt, until cancelled.
 
-        The delay follows each attempt, as v3's ``delay`` did, so the period is the interval plus
-        the request time; ``discord.ext.tasks.loop`` would schedule from each start instead. No
-        failure ends the loop (v3's ended after a 404): the plugin's unload cancels it.
+        The delay follows each attempt, so the period is the interval plus the request time;
+        ``discord.ext.tasks.loop`` would schedule from each start instead. No failure ends the
+        loop, a 404 included: the plugin's unload cancels it.
         """
         logger.info(
             "UptimeHeartbeat listener %d started (every %d s)",
@@ -107,15 +106,15 @@ class Pusher:
     async def url(self) -> str:
         """The listener's URL with the REST ping in place of ``%ping%``, or ``-1`` if it fails.
 
-        Discord is asked only when the URL uses the ping; v3 asked at every push. Whatever fails,
-        the push goes on with ``-1``, as v3's ``buildUrl`` caught every ``Exception``.
+        Discord is asked only when the URL uses the ping. Whatever fails, the push goes on with
+        ``-1``.
         """
         template = self.listener.url
         if PING not in template:
             return template
         try:
             ping = await self.ping()
-        except Exception as error:  # noqa: BLE001 - any failure leaves -1 in the URL, as in v3
+        except Exception as error:  # noqa: BLE001 - any failure leaves -1 in the URL
             # Discord's, aiohttp's and the network's errors need no traceback; others show it.
             expected = isinstance(error, PING_ERRORS)
             detail = f": {describe(error)}" if expected else f"\n{format_traceback(error)}"
@@ -134,9 +133,8 @@ class Pusher:
     async def push(self) -> None:
         """Push once and log the outcome; no failure stops the listener.
 
-        A new failure is logged at v3's level, a repeated one at debug level. A cancelled push
-        raises ``CancelledError``, which is no ``Exception``, and logs nothing; v3 caught the
-        cancellation while it waited for the ping and logged a spurious failure.
+        A new failure is logged at its level, a repeated one at debug level. A cancelled push
+        raises ``CancelledError``, which is no ``Exception``, and logs nothing.
         """
         url = self.listener.url  # with the ping in it once it is measured
         try:

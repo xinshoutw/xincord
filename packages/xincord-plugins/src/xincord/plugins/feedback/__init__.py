@@ -18,7 +18,7 @@ SOFT_DEPENDS: tuple[str, ...] = ()
 # cache that discord.py's default intents fill.
 INTENTS = discord.Intents.none()
 # The prompt and the modal use the user's locale and the review the guild's; each falls back to
-# this one, as in v3.
+# this one.
 DEFAULT_LOCALE = "zh-TW"
 
 
@@ -28,8 +28,8 @@ async def setup(bot: Bot) -> None:
     lang = context.lang(DEFAULT_LOCALE)
     cog = Feedback(context.config(Config), lang, Templates.load(lang))
     await bot.add_cog(cog)
-    # A guild command, as in v3. discord.py removes it when the plugin unloads.
+    # A guild command; discord.py removes it when the plugin unloads.
     bot.tree.add_command(cog.command())
-    # Star presses and submitted modals with IDS's IDs, v3's too, reach cog.handle; the core drops
-    # the route when the plugin unloads.
+    # Star presses and submitted modals with IDS's IDs, legacy ones too, reach cog.handle; the core
+    # drops the route when the plugin unloads.
     bot.route(__name__, IDS, cog.handle)

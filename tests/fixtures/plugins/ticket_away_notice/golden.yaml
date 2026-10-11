@@ -1,9 +1,7 @@
-# Golden data for the TicketAwayNotice tests, from
-# XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/resources/.
+# Golden data for the TicketAwayNotice tests: the bundled texts, unless noted.
 
-# v3's config.yaml as an operator who enabled it kept it, with placeholder IDs instead of the
-# shop's: the IDs unquoted, as v3 shipped them, and quoted, as v3's String keys read them too.
-v3_config:
+# An operator's config.yaml with an `enabled` key and placeholder IDs, unquoted and quoted.
+operator_config:
   unquoted: |
     enabled: true
     guild_id: 111111111111111111
@@ -21,14 +19,14 @@ v3_config:
       - "ticket-"
     delay_millis: 2000
 
-# The bundled notice as Embed.to_dict() gives it, without "type" and "flags": v3's text and
+# The bundled notice as Embed.to_dict() gives it, without "type" and "flags": its text and
 # footer with an example shop name and channel IDs, the text in the description.
 notice:
   author: {name: "範例商店"}
   description: "營業時間參考請看 <#111111111111111111> \n如果老闆沒有馬上回你代表人不在，請等老闆回覆訊息，並且先說出需要購買的商品還有 <#222222222222222222>"
   footer: {text: "❖ ORDERLY SERVER ❖"}
 
-# An operator's notice in v3's layout (the text in the title), with placeholder values and the
+# An operator's notice with the text in the title, with placeholder values and the
 # bot's name in the footer, and the embed that it gives for the bot xincord.
 operator_notice: |
   embeds:
@@ -43,5 +41,5 @@ operator_embed:
   title: "營業時間參考請看 <#111111111111111111> \n如果老闆沒有馬上回你代表人不在，請等老闆回覆訊息，並且先說出需要購買的商品還有 <#222222222222222222>"
   footer: {text: "❖ xincord ❖"}
 
-# A channel named after v3's first prefix, as another ticket system named its channels.
+# A channel named after the first prefix, as another ticket system named its channels.
 chinese_channel: "客服單-001"

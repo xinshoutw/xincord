@@ -9,8 +9,8 @@ bind.
 ### Requirement: The plugin installs as WelcomeGoodbye
 The `xincord-plugins` distribution SHALL register the plugin in the `xincord.plugins` entry-point
 group as `WelcomeGoodbye`, pointing to `xincord.plugins.welcome_goodbye`, with no dependencies
-and the members intent. It SHALL bundle v3's en-US and zh-TW lang files, which its first load
-writes to `plugins/WelcomeGoodbye/lang/`, and no `config.yaml`: v3's only key was `enabled`.
+and the members intent. It SHALL bundle en-US and zh-TW lang files, which its first load writes
+to `plugins/WelcomeGoodbye/lang/`, and no `config.yaml`.
 
 #### Scenario: Discovered by name
 - **WHEN** discovery runs with `WelcomeGoodbye` enabled
@@ -24,7 +24,7 @@ writes to `plugins/WelcomeGoodbye/lang/`, and no `config.yaml`: v3's only key wa
 
 ### Requirement: Each guild's channels are stored
 The plugin SHALL keep each guild's welcome and bye channel IDs in the store's `WelcomeGoodbye`
-namespace under the guild ID, as v3's document `{"welcomeChannelId": ..., "byeChannelId": ...}`
+namespace under the guild ID, as the document `{"welcomeChannelId": ..., "byeChannelId": ...}`
 with `0` for an unbound channel, and change it under the guild's lock. A guild without a document,
 or a document without a field, SHALL read as unbound, and setting a channel to its current value
 SHALL write nothing.
@@ -33,7 +33,7 @@ SHALL write nothing.
 - **WHEN** the channels of a guild without a document are read
 - **THEN** both are unbound and the namespace stays empty
 
-#### Scenario: v3's document
+#### Scenario: The document
 - **WHEN** channel 5 is set as guild 10's welcome channel
 - **THEN** the store holds `{"welcomeChannelId": 5, "byeChannelId": 0}` under `WelcomeGoodbye`
   and `10`
@@ -54,10 +54,10 @@ SHALL write nothing.
 - **WHEN** a guild's channels are deleted
 - **THEN** its document is gone and other guilds' documents stay
 
-### Requirement: Templates get v3's wbg@ placeholders
-The plugin SHALL render command replies with v3's `Placeholder.get(event)` values and the `wbg@`
+### Requirement: Templates get the wbg@ placeholders
+The plugin SHALL render command replies with the interaction's placeholder values and the `wbg@`
 keys of the guild, the user, the member, the event `command`, the chosen channel, the operator, the
-bound channels and the previous channel; and join and leave messages with v3's `Placeholder.get`
+bound channels and the previous channel; and join and leave messages with the placeholder
 values of the member or user and the `wbg@` keys of the guild, the user, the member when known, the
 event `join` or `leave` and the bound channels.
 
@@ -66,7 +66,7 @@ event `join` or `leave` and the bound channels.
   channel
 - **THEN** `wbg@channel_*` describe `general`, `wbg@operator_name` is the administrator's name,
   `wbg@welcome_channel_is_set` is `true`, `wbg@bye_channel_name` is `rules`, `wbg@event_type` is
-  `command` and v3's interaction keys such as `command_name` are present
+  `command` and the interaction keys such as `command_name` are present
 
 #### Scenario: Bound channel no longer cached
 - **WHEN** the bound welcome channel is not a text channel of the guild any more
@@ -80,7 +80,7 @@ event `join` or `leave` and the bound channels.
 #### Scenario: Member event values
 - **WHEN** a member joins
 - **THEN** the values hold the member's `wbg@user_*` and `wbg@member_*` keys, the guild's
-  `wbg@guild_*` keys, `wbg@event_type` `join`, the bound channels and v3's unprefixed member keys
+  `wbg@guild_*` keys, `wbg@event_type` `join`, the bound channels and the unprefixed member keys
 
 #### Scenario: Departed user
 - **WHEN** a user whom discord.py had not cached leaves
@@ -137,7 +137,7 @@ channel and reply `welcome-unbind-success` or `bye-unbind-success`, whose
 
 ### Requirement: Only administrators change the channels
 Each command SHALL reply `guild-only` when it runs outside a guild and `no-permission` when the
-user lacks the Administrator permission, rendered with v3's `Placeholder.get(event)` values, and
+user lacks the Administrator permission, rendered with the interaction's placeholder values, and
 then neither read nor change the channels.
 
 #### Scenario: Member without Administrator
@@ -170,7 +170,7 @@ channel, and log a warning when Discord refuses the message.
 #### Scenario: Welcome
 - **WHEN** a member joins a guild whose preferred locale is en-US, and then one whose locale is
   zh-TW
-- **THEN** each guild's welcome channel receives v3's welcome embed in its locale, with the guild's
+- **THEN** each guild's welcome channel receives the welcome embed in its locale, with the guild's
   name and icon, the member's name and avatar, the member count, the rules channel and the colour
   `#57F287`
 
@@ -195,7 +195,7 @@ It SHALL ignore the bot's own removal, guilds it does not know and guilds withou
 #### Scenario: Bye
 - **WHEN** a cached member leaves a guild whose preferred locale is en-US, and then one whose
   locale is zh-TW
-- **THEN** each guild's bye channel receives v3's bye embed in its locale, with the colour
+- **THEN** each guild's bye channel receives the bye embed in its locale, with the colour
   `#ED4245`
 
 #### Scenario: Uncached user
@@ -234,15 +234,15 @@ included.
 - **THEN** that guild's channels are deleted
 
 ### Requirement: The commands are localized administrator guild commands
-The plugin SHALL register v3's guild commands `welcome-channel-bind`, `welcome-channel-unbind`,
-`bye-channel-bind` and `bye-channel-unbind` with v3's descriptions, the en-US and zh-TW
+The plugin SHALL register the guild commands `welcome-channel-bind`, `welcome-channel-unbind`,
+`bye-channel-bind` and `bye-channel-unbind` with their descriptions, the en-US and zh-TW
 localizations of `register.yaml` and the Administrator default permission; the bind commands take
 an optional `channel` option that offers text channels only. Each SHALL keep the command tree's
 ephemeral defer.
 
 #### Scenario: Command payload
 - **WHEN** the plugin is loaded and the commands are translated
-- **THEN** the guild payload holds the four commands with v3's names, descriptions, localizations,
+- **THEN** the guild payload holds the four commands with their names, descriptions, localizations,
   options and the Administrator default permission, and the global payload holds none of them
 
 #### Scenario: Command callback

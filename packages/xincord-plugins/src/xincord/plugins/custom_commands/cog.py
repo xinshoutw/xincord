@@ -51,7 +51,7 @@ class CustomCommands(commands.Cog):
     def command(self, spec: CommandSpec) -> app_commands.Command[Any, ..., None]:
         """Build the guild command of the config's entry ``spec``, localized from the entry.
 
-        Only members with the entry's permissions see it by default (administrators, as in v3,
+        Only members with the entry's permissions see it by default (administrators,
         unless the entry says otherwise); Discord enforces that, and a guild's administrators can
         change it in the server's integration settings. An entry that lists guilds is uploaded
         to those guilds only. The command tree defers the command ephemerally unless it replies
@@ -78,13 +78,13 @@ class CustomCommands(commands.Cog):
     async def post_message(self, interaction: discord.Interaction) -> None:
         """Answer with the command's message template, where the command's entry says.
 
-        ``channel``, v3's way: post the message in the command's channel, then delete the deferred
-        response; when the channel takes no messages or refuses this one, the deferred response
-        shows the message instead (v3 had already deleted it). ``public``: defer publicly, since
-        the command tree left it alone, and edit that response into the message. ``ephemeral``:
-        edit the tree's ephemeral deferred response into it. Posts and public replies are rendered
-        in the default locale for every user, as v3's posts; an ephemeral reply in the user's. The
-        placeholders are the user's, the bot's and the interaction's (v3's, the bot's, among them).
+        ``channel``: post the message in the command's channel, then delete the deferred response;
+        when the channel takes no messages or refuses this one, the deferred response shows the
+        message instead. ``public``: defer publicly, since the command tree left it alone, and edit
+        that response into the message. ``ephemeral``: edit the tree's ephemeral deferred response
+        into it. Posts and public replies are rendered in the default locale for every user; an
+        ephemeral reply in the user's. The placeholders are the user's, the bot's and the
+        interaction's.
         A response that Discord refuses is deleted, with a warning.
         """
         name = interaction.command.name if interaction.command else ""
@@ -150,7 +150,7 @@ def _postable(channel: object) -> Postable | None:
 
 
 async def _send(channel: Postable, name: str, message: Message) -> bool:
-    """Send the whole ``message`` to ``channel``, as v3 did; return whether Discord took it."""
+    """Send the whole ``message`` to ``channel``; return whether Discord took it."""
     try:
         await channel.send(
             content=message.content or None,

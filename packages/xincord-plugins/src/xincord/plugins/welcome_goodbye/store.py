@@ -1,4 +1,4 @@
-"""Each guild's welcome and bye channels, kept in the shared store as v3's documents."""
+"""Each guild's welcome and bye channels, kept in the shared store."""
 
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Literal
@@ -11,13 +11,13 @@ type Kind = Literal["welcome", "bye"]
 KINDS: tuple[Kind, ...] = ("welcome", "bye")
 
 NAMESPACE = "WelcomeGoodbye"  # the store namespace: the plugin's name, keys are guild IDs
-# v3's GuildSetting fields, the keys of its plugins/WelcomeByeGuild/data/<guildId>.json files.
+# The document's fields.
 FIELDS: dict[Kind, str] = {"welcome": "welcomeChannelId", "bye": "byeChannelId"}
 
 
 @dataclass(frozen=True)
 class Bindings:
-    """A guild's welcome and bye channel IDs; 0 when a channel is unbound, as in v3."""
+    """A guild's welcome and bye channel IDs; 0 when a channel is unbound."""
 
     welcome: int = 0
     bye: int = 0
@@ -30,7 +30,7 @@ class Bindings:
 async def read(store: Store, guild_id: int) -> Bindings:
     """Return the guild's bindings without writing; a guild without a document has none.
 
-    A missing field reads as unbound and other fields are ignored, as v3's Moshi adapter did.
+    A missing field reads as unbound and other fields are ignored.
     """
     document = await store.get(NAMESPACE, str(guild_id))
     fields = document if isinstance(document, dict) else {}
@@ -47,7 +47,7 @@ async def set_channel(
 
     Returns the bindings afterwards and the channel bound before; nothing is written when the
     channel does not change. The guild's lock keeps concurrent changes from losing one another:
-    discord.py runs handlers concurrently, where v3 had one JDA event thread.
+    discord.py runs handlers concurrently.
     """
     async with store.lock(f"{NAMESPACE}:{guild_id}"):
         bindings = await read(store, guild_id)
@@ -59,7 +59,7 @@ async def set_channel(
 
 
 async def forget(store: Store, guild_id: int) -> None:
-    """Delete the guild's bindings, as v3 deleted its data file."""
+    """Delete the guild's bindings."""
     await store.delete(NAMESPACE, str(guild_id))
 
 
@@ -74,5 +74,5 @@ def _channel_id(value: JSON) -> int:
 
 
 def _document(bindings: Bindings) -> dict[str, JSON]:
-    """v3's ``GuildSetting`` document, which a migration of v3's files can copy as it is."""
+    """The guild's document."""
     return {FIELDS["welcome"]: bindings.welcome, FIELDS["bye"]: bindings.bye}

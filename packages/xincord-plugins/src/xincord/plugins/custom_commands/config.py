@@ -1,4 +1,4 @@
-"""The plugin's ``config.yaml``: the commands, which v3 fixed in its code.
+"""The plugin's ``config.yaml``: the commands.
 
 Each value is checked here against what Discord and discord.py take, so that a mistake names its
 key when the plugin loads instead of failing at each use or at the upload.
@@ -72,12 +72,12 @@ class CommandSpec(Model):
     localizations: dict[Annotated[str, AfterValidator(_locale)], Localization] = Field(
         default_factory=dict[str, Localization]
     )
-    # The message template it posts, lang/<locale>/message/<template>.yaml; v3 named each one
-    # after its command.
+    # The message template it posts, lang/<locale>/message/<template>.yaml; the
+    # command's name when omitted.
     template: str | None = None
-    # discord.py's permission names; v3's commands were for administrators.
+    # discord.py's permission names; administrators when omitted.
     permissions: tuple[Annotated[str, AfterValidator(_permission)], ...] = ("administrator",)
-    # Where the message goes: a post in the command's channel (v3's way), a public reply, or a
+    # Where the message goes: a post in the command's channel (the default), a public reply, or a
     # reply that only the user sees.
     reply: Literal["channel", "public", "ephemeral"] = "channel"
     guilds: tuple[PositiveInt, ...] = ()  # the guilds that get the command; empty for every guild
@@ -89,10 +89,10 @@ class CommandSpec(Model):
 
 
 class Config(Model):
-    """``plugins/CustomCommands/config.yaml``; the bundled file lists v3's five commands.
+    """``plugins/CustomCommands/config.yaml``; the bundled file lists five shop commands.
 
-    ``commands`` is required: the bundled file holds v3's commands, whose zh-TW names Python
-    cannot hold, and a file without the key, such as v3's (only ``enabled``), names it.
+    ``commands`` is required: the bundled file holds the commands, whose zh-TW names Python
+    cannot hold, and a file without the key (one with only ``enabled``, say) names it.
     """
 
     commands: tuple[CommandSpec, ...]

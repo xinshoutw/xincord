@@ -38,7 +38,7 @@ async def test_redirect(monitor: Monitor) -> None:
     async with open_session() as session:
         status = await get_status(session, monitor.url("/api/push/token"))
 
-    assert status == 302  # v3's Java client did not follow redirects either
+    assert status == 302  # no redirect is followed
     assert monitor.requests == [("GET", URL("/api/push/token"))]
 
 

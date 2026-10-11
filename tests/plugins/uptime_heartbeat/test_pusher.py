@@ -122,7 +122,7 @@ async def test_unexpected_ping_error(caplog: pytest.LogCaptureFixture) -> None:
 
     await fakes.pusher().push()
 
-    # Pushed with -1 all the same: v3 caught every error of the ping.
+    # Pushed with -1 all the same: any error of the ping is caught.
     assert fakes.calls == ["ping", f"get {URL.replace('%ping%', '-1')}"]
     [record] = [record for record in caplog.records if record.levelno > logging.INFO]
     assert record.levelno == logging.WARNING
@@ -140,7 +140,7 @@ async def test_no_placeholder() -> None:
     plain = "https://status.example.com/api/push/xxxxxxxxxx?status=up"
 
     assert await fakes.pusher(plain).url() == plain
-    assert fakes.calls == []  # v3 asked Discord at every push
+    assert fakes.calls == []  # Discord is not asked: the URL has no %ping%
 
 
 async def test_measured_round_trip() -> None:
@@ -176,7 +176,7 @@ async def test_not_found(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The status code decides what follows."""
     await Fakes(answers=(404,)).pusher().push()
 
-    # Uptime Kuma's answer for an unknown or paused push token; the loop goes on (v3 stopped it).
+    # Uptime Kuma's answer for an unknown or paused push token; the loop goes on.
     [record] = records_above(caplog, logging.INFO)
     assert record.levelno == logging.WARNING
     assert record.getMessage() == (
@@ -325,7 +325,7 @@ async def test_fixed_delay() -> None:
     with pytest.raises(Stop):
         await fakes.pusher(interval=60).run()
 
-    # The delay follows each attempt, as v3's: not a fixed rate (0, 60, 120).
+    # The delay follows each attempt: not a fixed rate (0, 60, 120).
     assert fakes.starts == [0, 90, 180]
 
 
@@ -345,7 +345,7 @@ async def test_pushing_goes_on_after_a_404() -> None:
     """Requirement: Each listener pushes at once, then after a fixed delay."""
     fakes = Fakes(answers=(200, 404, 404, 200), stop_after=4)
 
-    with pytest.raises(Stop):  # v3 ended the loop after a 404, until a reload or restart
+    with pytest.raises(Stop):  # the 404 does not end the loop: the fake sleep does
         await fakes.pusher().run()
 
     assert fakes.pushes == 4
@@ -379,7 +379,7 @@ async def test_repeated_failure(caplog: pytest.LogCaptureFixture) -> None:
     failure = f"UptimeHeartbeat listener 1: pushing to {ENDPOINT} failed with code 500"
     assert logged(caplog) == [
         (logging.ERROR, failure),
-        (logging.DEBUG, failure),  # v3 logged an error at every push
+        (logging.DEBUG, failure),  # a repeated failure: debug only
         (logging.DEBUG, failure),
     ]
 

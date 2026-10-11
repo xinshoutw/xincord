@@ -1,4 +1,4 @@
-"""Each guild's channels in the store, as v3's data/<guildId>.json documents."""
+"""Each guild's channels in the store, one document per guild."""
 
 import asyncio
 from typing import TYPE_CHECKING
@@ -24,7 +24,7 @@ async def test_unknown_guild(store: Store) -> None:
     assert await store.keys(NAMESPACE) == []
 
 
-async def test_v3_document(store: Store) -> None:
+async def test_document(store: Store) -> None:
     """Requirement: Each guild's channels are stored."""
     assert await set_channel(store, 10, "welcome", 5) == (Bindings(welcome=5), 0)
 

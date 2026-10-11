@@ -22,27 +22,27 @@ load writes to `plugins/Example/`.
   files exist
 
 ### Requirement: The config holds an example key
-`config.yaml` SHALL have an optional text `example_key`, `example_value` by default. A v3 config
-file SHALL still load, with a warning that names its `enabled` key.
+`config.yaml` SHALL have an optional text `example_key`, `example_value` by default. A config file
+with an `enabled` key SHALL still load, with a warning that names the key.
 
 #### Scenario: Missing key uses the default
 - **WHEN** `config.yaml` is empty
 - **THEN** the plugin loads with `example_key` set to `example_value`
 
-#### Scenario: v3 config file
-- **WHEN** `config.yaml` is v3's, with `enabled: false` and `example_key: from-v3`
-- **THEN** the plugin loads with `example_key` set to `from-v3` and logs a warning that names
+#### Scenario: Config file with an enabled key
+- **WHEN** `config.yaml` holds `enabled: false` and `example_key: from-file`
+- **THEN** the plugin loads with `example_key` set to `from-file` and logs a warning that names
   `enabled`
 
 ### Requirement: The reply echoes the options
 The plugin SHALL answer the command by editing the deferred response into the `example` template
-in the user's locale, falling back to zh-TW, with `%_Example@option1%`, `%_Example@option2%`
-(`none` when omitted), `%_Example@example_key%` and v3's command placeholders, under the `counter`
+in the user's locale, falling back to zh-TW, with `%example@option1%`, `%example@option2%`
+(`none` when omitted), `%example@example_key%` and the command placeholders, under the `counter`
 template's button at 0. Option text SHALL be inserted verbatim, in any channel.
 
 #### Scenario: Both options
 - **WHEN** an en-US user runs the command with `first` and `2`
-- **THEN** the response is v3's en-US embed showing `first`, `2` and `example_value`, under a button
+- **THEN** the response is the en-US embed showing `first`, `2` and `example_value`, under a button
   that shows 0 and carries `example:1:a=count;b=0`
 
 #### Scenario: Option 2 omitted
@@ -51,7 +51,7 @@ template's button at 0. Option text SHALL be inserted verbatim, in any channel.
 
 #### Scenario: Locale and fallback
 - **WHEN** a zh-TW user and a Japanese user run the command
-- **THEN** both get v3's zh-TW embed and the zh-TW button
+- **THEN** both get the zh-TW embed and the zh-TW button
 
 #### Scenario: Command placeholders
 - **WHEN** the operator's en-US `example` template has the content
@@ -59,7 +59,7 @@ template's button at 0. Option text SHALL be inserted verbatim, in any channel.
 - **THEN** the response's content is `alice ran /example-command option1: first as xincord`
 
 #### Scenario: Placeholder text in an option
-- **WHEN** `option1` is `%bot_name% %_Example@option1%`
+- **WHEN** `option1` is `%bot_name% %example@option1%`
 - **THEN** the first field shows that text unchanged
 
 #### Scenario: Command in a thread
@@ -69,12 +69,12 @@ template's button at 0. Option text SHALL be inserted verbatim, in any channel.
 ### Requirement: The command is a localized guild command
 The plugin SHALL register the guild command `example-command` with a required text option
 `option1` of at most 1024 characters and an optional integer option `option2`. Names and
-descriptions SHALL default to v3's and be localized in en-US and zh-TW from `register.yaml`. The
+descriptions SHALL be localized in en-US and zh-TW from `register.yaml`. The
 command SHALL keep the command tree's ephemeral defer and answer through the reply.
 
 #### Scenario: Command payload
 - **WHEN** the plugin is loaded and the commands are translated
-- **THEN** the guild payload holds `example-command` with v3's names, descriptions and
+- **THEN** the guild payload holds `example-command` with its names, descriptions and
   localizations and no default member permissions, `option1` required with a maximum length of
   1024, and `option2` optional
 

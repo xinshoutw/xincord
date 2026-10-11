@@ -47,5 +47,5 @@ async def test_first_load_writes_the_files(store: Store, tmp_path: Path) -> None
         assert written == bundled.joinpath(name).read_text(encoding="utf-8")
     lang = directory / "lang"
     assert [path.relative_to(lang).as_posix() for path in lang.rglob("*.yaml")] == [
-        "zh-TW/message/not-online.yaml"  # v3 had no commands, so no register.yaml
+        "zh-TW/message/not-online.yaml"  # no commands, so no register.yaml
     ]

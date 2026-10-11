@@ -25,11 +25,11 @@ writes to `plugins/UptimeHeartbeat/`, and no lang files.
 ### Requirement: The config lists the URLs to push
 `config.yaml` SHALL have a required `listeners` list whose entries have a `url`, an http or https
 URL with a host once `%ping%` is a number, and an `interval` in whole seconds from 1 to 2147483647.
-A v3 config file SHALL load unchanged, with a warning that names its `enabled` key. An invalid file
+A config file with an `enabled` key SHALL load, with a warning that names the key. An invalid file
 SHALL disable only this plugin, with an error that names the key.
 
-#### Scenario: v3 config file
-- **WHEN** `config.yaml` is v3's, with `enabled: true` and one listener whose URL ends in
+#### Scenario: Config file with an enabled key
+- **WHEN** `config.yaml` holds `enabled: true` and one listener whose URL ends in
   `ping=%ping%` and whose interval is 60
 - **THEN** the plugin loads with that listener, and logs a warning that names `enabled`
 
@@ -72,7 +72,7 @@ pushed as written, without the request.
 
 ### Requirement: Each push is one GET request
 Each push SHALL be one GET request to the URL that follows no redirect, limited to 10 seconds to
-connect and 30 seconds in all, as in v3; only the response's status code SHALL be used.
+connect and 30 seconds in all; only the response's status code SHALL be used.
 
 #### Scenario: Status code
 - **WHEN** the monitor answers a push with 204
@@ -123,7 +123,7 @@ with its traceback. No failure SHALL stop the listener: it keeps pushing until t
 ### Requirement: Each listener pushes at once, then after a fixed delay
 Each listener's loop SHALL push as soon as it starts, then wait `interval` seconds after each
 attempt, whatever its outcome and however long it took, so that the period is the interval plus
-the request time, as in v3. Listeners SHALL be independent: one that waits for a monitor or fails
+the request time. Listeners SHALL be independent: one that waits for a monitor or fails
 SHALL not delay or stop the others.
 
 #### Scenario: First push at once

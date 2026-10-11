@@ -1,7 +1,4 @@
-"""Replies: a command answers with a public or an ephemeral reply instead of a post.
-
-v3's commands only posted in the channel:
-"""
+"""Replies: a command answers with a public or an ephemeral reply instead of a post."""
 
 import logging
 from typing import TYPE_CHECKING, cast

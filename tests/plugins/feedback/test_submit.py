@@ -105,7 +105,7 @@ async def test_empty_feedback(cog: Feedback) -> None:
     await run(cog, interaction)
 
     fields = cast("list[dict[str, object]]", review(interaction)["fields"])
-    assert fields[0]["value"] == chr(0x200E)  # JDA's stand-in for an empty field
+    assert fields[0]["value"] == chr(0x200E)  # the stand-in for an empty field
     assert interaction.sent[-1] == DELETED
 
 
@@ -166,7 +166,7 @@ async def test_channel_refuses_the_review(cog: Feedback, caplog: pytest.LogCaptu
 
 @pytest.mark.parametrize("count", ["6", "x"])
 async def test_invalid_star_count_fails_the_submission(cog: Feedback, count: str) -> None:
-    """Requirement: Stars follow v3's text."""
+    """Requirement: Stars are written as text."""
     interaction = submission(count=count)
 
     with pytest.raises(ValueError, match="star count"):

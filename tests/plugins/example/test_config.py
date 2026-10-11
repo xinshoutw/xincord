@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
     from xincord.core.storage import Store
 
-V3_CONFIG = 'enabled: false\nexample_key: "from-v3"\n'
+ENABLED_CONFIG = 'enabled: false\nexample_key: "from-file"\n'
 
 
 async def load_with(config: str, tmp_path: Path, store: Store) -> Example:
@@ -34,13 +34,13 @@ async def test_missing_key_uses_the_default(tmp_path: Path, store: Store) -> Non
     assert cog.config.example_key == "example_value"
 
 
-async def test_v3_config_file(
+async def test_config_with_enabled_key(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: The config holds an example key."""
     with caplog.at_level(logging.WARNING):
-        cog = await load_with(V3_CONFIG, tmp_path, store)
+        cog = await load_with(ENABLED_CONFIG, tmp_path, store)
 
-    assert cog.config.example_key == "from-v3"
+    assert cog.config.example_key == "from-file"
     assert "unknown key enabled" in caplog.text
     assert "unknown key example_key" not in caplog.text

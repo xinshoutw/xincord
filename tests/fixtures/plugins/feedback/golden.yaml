@@ -1,10 +1,9 @@
-# Golden data for the Feedback tests. The text is v3's, from
-# XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/resources/, unless noted.
+# Golden data for the Feedback tests: the bundled texts, unless noted.
 
-# v3's bundled config.yaml, as written (without a final newline).
-v3_config: "enabled: false\n\nform_no_permission: \"您沒有權限！\"\nform_not_you: \"這個表單不是為你建立的！\"\nform_success: \"建立成功\""
+# An operator's config.yaml with `enabled` and the three required replies (no final newline).
+operator_config: "enabled: false\n\nform_no_permission: \"您沒有權限！\"\nform_not_you: \"這個表單不是為你建立的！\"\nform_success: \"建立成功\""
 
-# The replies of the bundled config.yaml: v3's three and the two new failure replies.
+# The replies of the bundled config.yaml: the three required ones and the two failure replies.
 config:
   form_no_permission: "您沒有權限！"
   form_not_you: "這個表單不是為你建立的！"
@@ -12,7 +11,7 @@ config:
   form_failure: "建立失敗"
   form_submit_failure: "送出失敗"
 
-# %fb_stars% for each star count, as v3's "★ ".repeat(n) + "☆ ".repeat(5 - n) wrote it.
+# %fb_stars% for each star count: "★ " n times, then "☆ " up to five.
 fb_stars:
   0: "☆ ☆ ☆ ☆ ☆ "
   1: "★ ☆ ☆ ☆ ☆ "
@@ -61,9 +60,8 @@ review:
     footer: {text: "❖ ORDERLY SERVER ❖"}
     fields: [{name: "評價內容", value: "great", inline: false}]
 
-# The guild command payload, with v3's description and the localizations of register.yaml; no
-# default member permissions, as v3 checked Administrator when the command ran. The name and its
-# en-US localization are xincord's `feedback` (v3: `feedbacker`, renamed in rename-plugins).
+# The guild command payload, with the description and the localizations of register.yaml; no
+# default member permissions, since the command checks Administrator when it runs.
 command:
   type: 1
   name: "feedback"

@@ -1,4 +1,4 @@
-"""The TicketAwayNotice config: v3's keys, without defaults, validated when the plugin loads."""
+"""The TicketAwayNotice config: the keys, without defaults, validated when the plugin loads."""
 
 import logging
 from importlib.resources import files
@@ -26,11 +26,11 @@ delay_millis: 2000
 
 
 @pytest.mark.parametrize("quoting", ["unquoted", "quoted"])
-async def test_v3_config_file(
+async def test_operator_config_file(
     quoting: str, tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: The config names the guild, the owner, the prefixes and the delay."""
-    config = GOLDEN["v3_config"][quoting]
+    config = GOLDEN["operator_config"][quoting]
 
     with caplog.at_level(logging.WARNING):
         bot = await load_plugin("TicketAwayNotice", tmp_path / "plugins", store, config=config)
@@ -61,7 +61,7 @@ async def test_bundled_config(
             "delay_millis: Input should be greater than or equal to 1",
         ),
         (
-            # v3's Long held no more.
+            # 64 bits hold no more.
             ("delay_millis: 2000", "delay_millis: 9223372036854775808"),
             "delay_millis: Input should be less than or equal to 9223372036854775807",
         ),
@@ -86,19 +86,19 @@ async def test_invalid_values(
     assert error in caplog.text
 
 
-def test_v3_prefixes() -> None:
+def test_bundled_prefixes() -> None:
     """Requirement: The config names the guild, the owner, the prefixes and the delay."""
-    v3 = Config.model_validate(yaml.safe_load(GOLDEN["v3_config"]["unquoted"]))
+    operator = Config.model_validate(yaml.safe_load(GOLDEN["operator_config"]["unquoted"]))
     text = files("xincord.plugins.ticket_away_notice").joinpath("config.yaml").read_text("utf-8")
     bundled = Config.model_validate({**yaml.safe_load(text), "guild_id": 1, "user_id": 2})
 
-    assert bundled.prefix == v3.prefix  # v3's two prefixes, the Chinese one first
-    assert v3.watches(111111111111111111, GOLDEN["chinese_channel"])
+    assert bundled.prefix == operator.prefix  # two prefixes, the Chinese one first
+    assert operator.watches(111111111111111111, GOLDEN["chinese_channel"])
 
 
 async def test_numbers_as_prefixes(tmp_path: Path, store: Store) -> None:
     """Requirement: The config names the guild, the owner, the prefixes and the delay."""
-    # YAML reads both as numbers; v3's kaml read them as the text that the file holds.
+    # YAML reads both as numbers; the config reads them as the text that the file holds.
     config = VALID.replace('prefix: ["ticket-"]', "prefix:\n  - 2024\n  - 1.5")
 
     bot = await load_plugin("TicketAwayNotice", tmp_path / "plugins", store, config=config)

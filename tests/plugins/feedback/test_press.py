@@ -197,7 +197,7 @@ async def test_components_v2_form() -> None:
 
 
 async def test_invalid_star_count_fails_the_press(cog: Feedback) -> None:
-    """Requirement: Stars follow v3's text."""
+    """Requirement: Stars are written as text."""
     interaction = press(6)
 
     with pytest.raises(ValueError, match="star count"):

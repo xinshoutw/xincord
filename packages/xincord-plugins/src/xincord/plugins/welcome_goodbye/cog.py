@@ -43,7 +43,7 @@ class Postable(TextChannelLike, Protocol):
 
 
 class TextChannelOption(app_commands.Transformer[discord.Client]):
-    """v3's ``channel`` option: Discord offers text channels only, as JDA's ``ChannelType.TEXT``.
+    """The ``channel`` option: Discord offers text channels only.
 
     discord.py's ``discord.TextChannel`` annotation would also offer announcement channels and
     need the channel in the cache; this passes on the channel that Discord resolved.
@@ -68,14 +68,14 @@ class TextChannelOption(app_commands.Transformer[discord.Client]):
 
 
 class CommandSpec(NamedTuple):
-    """One of v3's commands: the kind of channel it changes and v3's default texts."""
+    """One of the commands: the kind of channel it changes and its default texts."""
 
     kind: Kind
     description: str
     option: str | None = None  # the channel option's description, for the bind commands
 
 
-# v3's commands, in v3's order.
+# The commands, in their order.
 COMMANDS = {
     "welcome-channel-bind": CommandSpec(
         "welcome", "bind channel for welcome message", "welcome output channel"
@@ -109,7 +109,7 @@ class WelcomeGoodbye(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: discord.Guild) -> None:
-        """Delete the channels of a guild that the bot left or was removed from, as v3 did.
+        """Delete the channels of a guild that the bot left or was removed from.
 
         discord.py does not fire this during an outage (``on_guild_unavailable``).
         """
@@ -118,8 +118,7 @@ class WelcomeGoodbye(commands.Cog):
     async def forget_left_guilds(self) -> None:
         """Delete the channels of the guilds the bot is no longer in.
 
-        v3 deleted them only when it saw the bot leave a guild while the plugin was enabled. By
-        ``on_ready``, discord.py knows every guild of the session, unavailable ones included.
+        By ``on_ready``, discord.py knows every guild of the session, unavailable ones included.
         """
         for guild_id in await guild_ids(self.store):
             if self.bot.get_guild(guild_id) is None:
@@ -131,10 +130,10 @@ class WelcomeGoodbye(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
-        """Welcome a member, bots too as in v3, in the guild's welcome channel.
+        """Welcome a member, bots too, in the guild's welcome channel.
 
-        discord.py builds the member from the event and counts it in the guild beforehand, as JDA
-        did, so ``%wbg@guild_member_count%`` includes it.
+        discord.py builds the member from the event and counts it in the guild beforehand, so
+        ``%wbg@guild_member_count%`` includes it.
         """
         await self._greet(member.guild, member, "welcome", "join")
 
@@ -143,7 +142,7 @@ class WelcomeGoodbye(commands.Cog):
         """See off a member who left, was kicked or banned, in the guild's bye channel.
 
         ``on_member_remove`` fires only for cached members; the raw event has the member when
-        discord.py had it, else the user. JDA ignored the bot's own removal, and so does this.
+        discord.py had it, else the user. The bot's own removal is ignored.
         """
         bot = self.bot.user
         guild = self.bot.get_guild(payload.guild_id)
@@ -160,7 +159,7 @@ class WelcomeGoodbye(commands.Cog):
     ) -> None:
         """Send the ``kind`` message to the guild's ``kind`` channel, in the guild's locale.
 
-        As in v3, nothing is sent when the channel is unbound, gone or not a text channel. When
+        Nothing is sent when the channel is unbound, gone or not a text channel. When
         Discord refuses the message, a warning names the guild and the channel.
         """
         bindings = await read(self.store, guild.id)
@@ -190,14 +189,14 @@ class WelcomeGoodbye(commands.Cog):
             )
 
     def command(self, name: str) -> app_commands.Command[Any, ..., None]:
-        """Build v3's command ``name``, localized from ``register.yaml``, for administrators.
+        """Build the command ``name``, localized from ``register.yaml``, for administrators.
 
-        As in v3, only administrators see it by default; Discord enforces that, and a guild that
+        Only administrators see it by default; Discord enforces that, and a guild that
         grants it to others in its integration settings meets the check in ``_guild``. The bind
         commands share ``bind_channel`` and the unbind commands ``unbind_channel``.
         """
         lang, spec = self.lang, COMMANDS[name]
-        key = name.replace("-", "_")  # v3's register.yaml keys
+        key = name.replace("-", "_")  # the register.yaml keys
         description = lang.command(spec.description, f"{key}.description")
         command: app_commands.Command[Any, ..., None]
         if spec.option is None:
@@ -260,9 +259,9 @@ class WelcomeGoodbye(commands.Cog):
         """The command's guild if the user may change its channels; else reply why not.
 
         The commands are hidden from members without Administrator, but a guild can grant them in
-        its integration settings, so v3 also checked the permission when they ran. The owner and
+        its integration settings, so the permission is checked when they run too. The owner and
         administrators have every permission in the channel, and Administrator cannot be set per
-        channel, so the interaction's permissions answer as JDA's ``hasPermission`` did.
+        channel, so the interaction's permissions answer.
         """
         guild = interaction.guild
         if guild is None:  # discord.py gives commands in a guild one, even when not cached
@@ -278,11 +277,11 @@ class WelcomeGoodbye(commands.Cog):
     ) -> None:
         """Edit the deferred ephemeral response into the message ``key``.
 
-        As in v3, it is rendered in the guild's preferred locale, or the user's outside a guild.
+        It is rendered in the guild's preferred locale, or the user's outside a guild.
         """
         locale = (interaction.guild_locale or interaction.locale).value
         reply = render_message(self.templates.message(key, locale), values)
-        # The command tree deferred the response ephemerally, as v3's core did.
+        # The command tree deferred the response ephemerally.
         await interaction.edit_original_response(
             content=reply.content, embeds=reply.embeds, view=reply.view, attachments=reply.files
         )

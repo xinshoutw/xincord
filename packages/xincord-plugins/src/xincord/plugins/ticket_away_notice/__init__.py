@@ -15,10 +15,9 @@ if TYPE_CHECKING:
 DEPENDS: tuple[str, ...] = ()
 SOFT_DEPENDS: tuple[str, ...] = ()
 # The owner's status needs the privileged presences intent, and the privileged members intent keeps
-# the guild's members in discord.py's cache for the presences to land on; v3 asked for presences
-# but cached no members, so it read the owner as offline almost always.
+# the guild's members in discord.py's cache for the presences to land on.
 INTENTS = discord.Intents(members=True, presences=True)
-DEFAULT_LOCALE = "zh-TW"  # v3's only locale, in which the notice is posted for everyone
+DEFAULT_LOCALE = "zh-TW"  # the only locale, in which the notice is posted for everyone
 
 
 async def setup(bot: Bot) -> None:

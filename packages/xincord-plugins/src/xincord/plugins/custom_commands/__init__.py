@@ -1,6 +1,6 @@
 """CustomCommands: the commands of the config post message templates.
 
-The bundled config lists v3's five administrator commands, which post a shop's bank payment
+The bundled config lists five administrator commands, which post a shop's bank payment
 instructions in the channel.
 """
 
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 DEPENDS: tuple[str, ...] = ()
 SOFT_DEPENDS: tuple[str, ...] = ()
 INTENTS = discord.Intents.none()
-# v3's only locale. The messages are public, so every user gets them in it, as in v3.
+# The plugin's only locale. The messages are public, so every user gets them in it.
 DEFAULT_LOCALE = "zh-TW"
 
 
@@ -39,7 +39,6 @@ async def setup(bot: Bot) -> None:
     check(config, lang, templates, context.directory / "config.yaml", taken=taken)
     cog = CustomCommands(config, lang, templates)
     await bot.add_cog(cog)
-    # Guild commands, as in v3, in the config's order. discord.py removes them when the plugin
-    # unloads.
+    # Guild commands, in the config's order. discord.py removes them when the plugin unloads.
     for spec in cog.config.commands:
         bot.tree.add_command(cog.command(spec))

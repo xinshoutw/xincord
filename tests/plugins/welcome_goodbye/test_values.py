@@ -1,4 +1,4 @@
-"""v3's wbg@ placeholders for the replies and the welcome and bye messages."""
+"""The wbg@ placeholders for the replies and the welcome and bye messages."""
 
 import discord
 import pytest
@@ -16,7 +16,7 @@ from discord_fakes import (
 from xincord.plugins.welcome_goodbye.store import Bindings
 from xincord.plugins.welcome_goodbye.values import command_values, member_event_values
 
-# v3's keys (inventory section 7), before the wbg@ prefix.
+# The keys before the wbg@ prefix.
 GUILD_KEYS = (
     "guild_id",
     "guild_name",
@@ -67,7 +67,7 @@ MEMBER_KEYS = (
 )
 EVENT_KEYS = ("event_type", "event_timestamp_unix", "event_timestamp_ms", "event_timestamp_iso")
 OPERATOR_KEYS = ("operator_id", "operator_name", "operator_mention")
-# v3's Placeholder.get(user), then the keys that Placeholder.get(member) adds.
+# The user's placeholder keys, then the keys that a member adds.
 USER_ACTOR_KEYS = ("bot_id", "bot_name", "user_id", "user_mention", "user_name", "user_avatar_url")
 MEMBER_ACTOR_KEYS = ("member_display_name", "member_avatar_url", "member_fixed_name")
 # What Placeholder.get(event) adds for a command in a channel without a category.
@@ -82,7 +82,7 @@ COMMAND_KEYS = (
 
 
 def channel_keys(base: str) -> tuple[str, ...]:
-    """v3's putTextChannel keys for ``base``."""
+    """The channel keys for ``base``."""
     return tuple(f"{base}_{field}" for field in ("id", "name", "mention", "type"))
 
 
@@ -95,7 +95,7 @@ BOUND_KEYS = (
 
 
 def prefixed(*keys: str) -> set[str]:
-    """The keys with v3's wbg@ prefix."""
+    """The keys with the wbg@ prefix."""
     return {f"wbg@{key}" for key in keys}
 
 
@@ -139,7 +139,7 @@ def bind(guild: FakeGuild, user: FakeMember) -> FakeInteraction:
 
 
 def test_command_values() -> None:
-    """Requirement: Templates get v3's wbg@ placeholders."""
+    """Requirement: Templates get the wbg@ placeholders."""
     guild = make_guild()
     interaction = bind(guild, make_member(guild))
 
@@ -192,11 +192,11 @@ def test_command_values() -> None:
 
 
 def test_bound_channels_no_longer_cached() -> None:
-    """Requirement: Templates get v3's wbg@ placeholders."""
+    """Requirement: Templates get the wbg@ placeholders."""
     guild = make_guild()
     interaction = bind(guild, make_member(guild))
 
-    # 7 was deleted; 8 is an announcement channel now, which v3's getTextChannelById skipped.
+    # 7 was deleted; 8 is an announcement channel now, which is no text channel.
     values = command_values(interaction.as_interaction(), guild.as_guild(), Bindings(7, 8))
 
     expected = {
@@ -214,7 +214,7 @@ def test_bound_channels_no_longer_cached() -> None:
 
 
 def test_unbound_channels_and_no_previous_channel() -> None:
-    """Requirement: Templates get v3's wbg@ placeholders."""
+    """Requirement: Templates get the wbg@ placeholders."""
     guild = make_guild()
     interaction = bind(guild, make_member(guild))
 
@@ -246,7 +246,7 @@ def test_unbound_channels_and_no_previous_channel() -> None:
     ],
 )
 def test_previous_channel(previous: int, expected: dict[str, str]) -> None:
-    """Requirement: Templates get v3's wbg@ placeholders."""
+    """Requirement: Templates get the wbg@ placeholders."""
     guild = make_guild()
     interaction = bind(guild, make_member(guild))
 
@@ -259,7 +259,7 @@ def test_previous_channel(previous: int, expected: dict[str, str]) -> None:
 
 
 def test_member_event_values() -> None:
-    """Requirement: Templates get v3's wbg@ placeholders."""
+    """Requirement: Templates get the wbg@ placeholders."""
     guild = make_guild()
 
     values = member_event_values(
@@ -286,7 +286,7 @@ def test_member_event_values() -> None:
 
 
 def test_departed_user() -> None:
-    """Requirement: Templates get v3's wbg@ placeholders."""
+    """Requirement: Templates get the wbg@ placeholders."""
     guild = make_guild()
     user = FakeUser(id=2, name="bob", global_name="Bob")
 
