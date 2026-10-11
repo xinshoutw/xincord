@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -240,3 +241,37 @@ def test_image_turns_off_cpr() -> None:
         keyword == "ENV" and "PROMPT_TOOLKIT_NO_CPR=1" in arguments.split()
         for keyword, arguments in runtime
     )
+
+
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason="Compose service")
+def test_bot_runs_without_a_terminal() -> None:
+    """Requirement: Compose service.
+
+    Without a TTY the console stays off, so the container's log holds no prompt.
+    """
+    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
+    bot = compose["services"]["bot"]
+
+    assert "tty" not in bot
+    assert "stdin_open" not in bot
+
+
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason="Compose service")
+def test_bot_starts_after_the_node_when_it_runs() -> None:
+    """Requirement: Compose service."""
+    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
+
+    # Started, not healthy, and only when the music profile runs it.
+    assert compose["services"]["bot"]["depends_on"] == {
+        "lavalink": {"condition": "service_started", "required": False}
+    }
+
+
+@pytest.mark.xfail(strict=True, raises=KeyError, reason="Lavalink service")
+def test_node_only_with_the_music_profile() -> None:
+    """Requirement: Lavalink service, scenario Only with the music profile."""
+    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
+    example = (ROOT / ".env.example").read_text(encoding="utf-8")
+
+    assert compose["services"]["lavalink"]["profiles"] == ["music"]
+    assert re.search(r"^# COMPOSE_PROFILES=music$", example, re.MULTILINE)
