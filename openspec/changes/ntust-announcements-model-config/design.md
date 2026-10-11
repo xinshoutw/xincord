@@ -121,6 +121,9 @@ other keys, each optional with v3's value as default, in the bundled file betwee
   `Limits` and `urls`, the endpoint and the request URL, whose parts error texts never show.
 - `backoff`: the wait after the n-th failed attempt is `retry_waits[min(n, len) - 1]`, v3's rule
   with v3's list.
+- `config.py` imports `api.py` (the format, the defaults) and `conversion.py` (`Limits`), which
+  imported Kotlin's `trim` from `pages.py`, which imports `config.py`'s `Layout`: a second
+  `refactor` commit moves `trim` into `strings.py`, a module that imports nothing of the plugin.
 
 ### Logs
 

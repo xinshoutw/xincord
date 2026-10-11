@@ -9,11 +9,12 @@ Kotlin:
 """
 
 from enum import StrEnum
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 from urllib.parse import urlsplit
 
 from pydantic import (
     AfterValidator,
+    BeforeValidator,
     ConfigDict,
     Field,
     PositiveInt,
@@ -22,6 +23,20 @@ from pydantic import (
 )
 
 from xincord.core.config import Model
+
+from .api import (
+    CONNECT_TIMEOUT,
+    GEMINI_ENDPOINT,
+    GEMINI_MODEL,
+    REQUEST_TIMEOUT,
+    TEMPERATURE,
+    ApiFormat,
+)
+from .conversion import BACKOFF, MAX_ATTEMPTS, PER_WINDOW, WINDOW
+
+if TYPE_CHECKING:
+    from .api import Api
+    from .conversion import Limits
 
 JAVA_LONG_MAX = 2**63 - 1  # v3's fetch-interval was a Long
 MIN_INTERVAL = 60  # v3's minimum, which it checked only while enabled
@@ -79,6 +94,11 @@ def _page_url(url: str) -> str:
     return url
 
 
+def _not_yet(value: object) -> object:
+    """A stub: the model settings are not read yet."""
+    raise NotImplementedError
+
+
 def _prompt(prompt: str) -> str:
     """Accept a prompt that holds the tokens v3 required."""
     if missing := [token for token in TOKENS if token not in prompt]:
@@ -122,9 +142,42 @@ class Config(Model):
         AfterValidator(_some_keys),
     ]
     prompt: Annotated[str, AfterValidator(_prompt)]  # required, as in v3
+    # The model settings, v3's values by default.
+    api_format: Annotated[ApiFormat, Field(alias="api-format"), BeforeValidator(_not_yet)] = (
+        ApiFormat.GEMINI
+    )
+    endpoint: Annotated[str, BeforeValidator(_not_yet)] = GEMINI_ENDPOINT
     # v3's hard-coded model; it goes into the request's path.
-    model: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9._-]+$")] = "gemini-2.5-flash"
+    model: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9._-]+$")] = GEMINI_MODEL
+    temperature: Annotated[float | None, BeforeValidator(_not_yet)] = TEMPERATURE
+    max_output_tokens: Annotated[
+        int | None, Field(alias="max-output-tokens"), BeforeValidator(_not_yet)
+    ] = None
+    request_timeout: Annotated[float, Field(alias="request-timeout"), BeforeValidator(_not_yet)] = (
+        REQUEST_TIMEOUT
+    )
+    connect_timeout: Annotated[float, Field(alias="connect-timeout"), BeforeValidator(_not_yet)] = (
+        CONNECT_TIMEOUT
+    )
+    rate_limit: Annotated[int, Field(alias="rate-limit"), BeforeValidator(_not_yet)] = PER_WINDOW
+    rate_window: Annotated[float, Field(alias="rate-window"), BeforeValidator(_not_yet)] = WINDOW
+    max_attempts: Annotated[int, Field(alias="max-attempts"), BeforeValidator(_not_yet)] = (
+        MAX_ATTEMPTS
+    )
+    retry_waits: Annotated[
+        tuple[float, ...], Field(alias="retry-waits"), BeforeValidator(_not_yet)
+    ] = BACKOFF
     boards: tuple[Board, ...]
+
+    @property
+    def api(self) -> Api:
+        """The settings of the model's API, for ``web.open_web``."""
+        raise NotImplementedError
+
+    @property
+    def limits(self) -> Limits:
+        """Each key's rate limit and the retries, for ``conversion.Converter``."""
+        raise NotImplementedError
 
     @field_validator("boards")
     @classmethod

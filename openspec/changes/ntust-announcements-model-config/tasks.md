@@ -20,7 +20,9 @@
 
 ## 4. Config
 
-- [ ] 4.1 xfail tests for "The model settings are config" and "The config names the boards, the API
+- [x] 4.0 Move Kotlin's `trim` from `pages.py` into `strings.py` (refactor), so that `config.py`
+      can import `api.py` and `conversion.py` without a cycle through `pages.py`
+- [x] 4.1 xfail tests for "The model settings are config" and "The config names the boards, the API
       keys and the prompt" (the example key), against stub fields and properties in `config.py`
 - [ ] 4.2 Validate the settings, bundle them in `config.yaml`, pass them to the boards with the
       READY line and word the title-link warning neutrally; remove the markers

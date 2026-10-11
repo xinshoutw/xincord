@@ -10,19 +10,25 @@ Kotlin:
 
 import asyncio
 import importlib
+import logging
+from dataclasses import asdict
+from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
+import aiohttp
 import discord
 import pytest
+import yaml
 
 from plugin_fakes import golden, load_plugin, until
-from xincord.plugins.ntust_announcements.api import Api
-from xincord.plugins.ntust_announcements.messages import HEADER
+from xincord.core.config import parse_model
+from xincord.plugins.ntust_announcements.api import Api, ApiFormat
+from xincord.plugins.ntust_announcements.config import Config
+from xincord.plugins.ntust_announcements.conversion import Limits
+from xincord.plugins.ntust_announcements.messages import HEADER, link_message
 from xincord.plugins.ntust_announcements.web import open_web
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from conftest import FakeWeb, Scene
     from plugin_fakes import Ready
     from xincord.core.storage import Store
@@ -30,7 +36,31 @@ if TYPE_CHECKING:
 
 DORMITORY_URL = "https://student.ntust.edu.tw/p/403-1053-1436-1.php"
 RECRUITMENT_URL = "https://lc.ntust.edu.tw/p/403-1070-1626-1.php"
-FIRST_ARTICLE = golden("ntust_announcements")["entries"]["student-dormitory.html"][0]["url"]
+DORMITORY = golden("ntust_announcements")["entries"]["student-dormitory.html"]
+FIRST_ARTICLE = DORMITORY[0]["url"]
+PROMPT = '"{{page_url}} {{base_url}} {{now}} {{html}}"'
+# The dormitory's board alone, its articles sent to a proxy whose path holds a token.
+PROXIED = f"""\
+fetch-interval: 3600
+api-keys: ["key-one"]
+prompt: {PROMPT}
+api-format: openai
+endpoint: "https://proxy.example.com/secret-token/v1/"
+model: "openai/gpt-4o-mini"
+temperature: null
+max-output-tokens: 2048
+request-timeout: 120
+connect-timeout: 10
+rate-limit: 20
+rate-window: 30
+max-attempts: 2
+retry-waits: [7]
+boards:
+  - name: STUDENT_DORMITORY
+    url: "{DORMITORY_URL}"
+    layout: student-affairs
+    channel-id: 101
+"""
 BOARDS = "".join(
     f"""\
   - name: BOARD_{number}
@@ -219,3 +249,75 @@ async def test_reload(scene: Scene) -> None:
     assert not new.done()
     assert scene.web.opened == 1  # only the new cog's loops run
     assert len(scene.posts(101)) == 6
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The model settings are config")
+async def test_settings_reach_the_boards(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: The model settings are config."""
+    settings = parse_model(Path("config.yaml"), yaml.safe_load(PROXIED), Config)
+    scene.cog.config = settings  # as loaded from the file, before READY
+    # aiohttp's errors can name the whole URL, the proxy's token included.
+    scene.web.error = aiohttp.ClientConnectionError(
+        "Cannot connect to https://proxy.example.com/secret-token/v1/chat/completions"
+    )
+
+    with caplog.at_level(logging.DEBUG):
+        scene.ready.set()
+        for count in range(1, 6):  # five articles: two attempts each, 7 seconds between them
+            await scene.clock.asleep(count)
+            await scene.clock.wake()
+        await scene.clock.asleep(6)
+
+    assert scene.web.apis == [settings.api]
+    assert scene.clock.waits == [7] * 5 + [3600]
+    assert len(scene.web.prompts) == 10
+    # Every entry posted as its title link, the articles after their second failed attempt.
+    assert scene.posts(101) == [link_message(entry["title"], entry["url"]) for entry in DORMITORY]
+    lines = [record.getMessage() for record in caplog.records]
+    assert (
+        "NtustAnnouncements: converting articles with openai/gpt-4o-mini at "
+        "https://proxy.example.com (api-format openai)"
+    ) in lines
+    assert (
+        f"NtustAnnouncements: conversion attempt 1 of 2 at {FIRST_ARTICLE} failed with key 1: "
+        "Cannot connect to https://proxy.example.com"
+    ) in lines
+    assert (
+        f"NtustAnnouncements board STUDENT_DORMITORY: posting {FIRST_ARTICLE} as its title, "
+        "since the model could not convert it"
+    ) in lines
+    assert "secret" not in caplog.text
+    for record in caplog.records:
+        assert "gemini" not in f"{record.name} {record.getMessage()}".lower()
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The model settings are config")
+async def test_reload_applies_the_settings(scene: Scene, tmp_path: Path) -> None:
+    """Requirement: The model settings are config."""
+    await scene.ready.waiters(1)
+    file = tmp_path / "plugins" / "NtustAnnouncements" / "config.yaml"
+    settings = """\
+api-format: openai
+endpoint: "http://127.0.0.1:11434/v1"
+model: "llama3.2"
+temperature: 0.2
+request-timeout: 600
+rate-limit: 60
+max-attempts: 3
+retry-waits: [1, 2]
+"""
+    file.write_text(file.read_text(encoding="utf-8").replace("boards:", f"{settings}boards:"))
+
+    await scene.bot.reload("NtustAnnouncements")  # an operator's edit, then a reload
+
+    cog = scene.cog  # the new version's; the reload imported the plugin's modules again
+    assert asdict(cog.config.api) == asdict(
+        Api(ApiFormat.OPENAI, "http://127.0.0.1:11434/v1", "llama3.2", 0.2, None, 600, 30)
+    )
+    assert asdict(cog.config.limits) == asdict(Limits(60, 60, 3, (1, 2)))
+    cog.open_web = scene.web.open
+    cog.sleep = scene.clock.sleep
+    scene.ready.set()
+    await scene.clock.asleep(2)
+
+    assert scene.web.apis == [cog.config.api]

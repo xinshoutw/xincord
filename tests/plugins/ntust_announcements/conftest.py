@@ -137,7 +137,7 @@ class FakeWeb:
     """NTUST's pages and the model: the boards' copies, a student article for every article.
 
     ``hold``, when set to an event, keeps page fetches waiting until it is set; prompts that name
-    a URL in ``stuck`` never get an answer.
+    a URL in ``stuck`` never get an answer; ``error``, when set, fails every attempt.
     """
 
     pages: dict[str, str] = field(
@@ -152,6 +152,7 @@ class FakeWeb:
     prompts: list[str] = field(default_factory=list[str])
     stuck: set[str] = field(default_factory=set[str])
     hold: asyncio.Event | None = None
+    error: Exception | None = None
     under_way: int = 0  # page fetches under way
     most: int = 0  # the most page fetches under way at once
     opened: int = 0
@@ -175,6 +176,8 @@ class FakeWeb:
     async def generate(self, key: str, prompt: str) -> str:
         del key
         self.prompts.append(prompt)
+        if self.error is not None:
+            raise self.error
         if any(url in prompt for url in self.stuck):
             await asyncio.Event().wait()  # until cancelled
         return self.answer
