@@ -565,7 +565,8 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 `port-ntust-announcements`, `port-ntust-course-watch`, `port-music-player`,
 `ntust-announcements-model-config`, `ticket-staff-controls`, `dependency-updates`, `release-pipeline`, `compose-run-fixes`, `reload-uploads-changes`,
 `timezone-from-env`, `chat-logger-keep-deleted`, `ntust-announcements-review`,
-`ntust-announcements-redo-feedback`, `pypi-per-package`. Each one's `design.md` in
+`ntust-announcements-redo-feedback`, `pypi-per-package`, `dvc-one-name-format`. Each one's
+`design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
@@ -852,6 +853,20 @@ created on the owner's approval like `pypi`; a 1.0.0 release asks for two approv
 registered `xincord`'s pending publisher; `xincord-plugins`' takes the environment `pypi-plugins`.
 The owner also chose to reset the production bot's token at the cutover (the new token goes to
 xincord only) and to migrate only the v3 bot (BotCore 3.2.1), not another bot on the host.
+
+Requested on 2026-10-12 (night): remove DynamicVoiceChannel's `format-name-2`. Done in
+`dvc-one-name-format`: `bind` takes one format; v3's `formatName2` is ignored when read, whatever its
+value, and new entries leave it out; exported `register.yaml` files that still hold the option keep
+loading.
+
+Decided on 2026-10-12 (night), step (4): xincord runs on the production host in
+`~/selfhost/Discord/xincord` (a clone at a release tag, compose with the bot and Lavalink), next to
+v3's directory, which stays untouched for a rollback; it enables the plugins that production runs
+now (AutoRole, Calculator, BotInfo, ChatLogger, DynamicVoiceChannel, Economy, UptimeHeartbeat,
+MusicPlayer, NtustAnnouncements, Ticket and VoiceLogger; v3's ChannelConverter was not ported).
+Production runs v3 3.2.x, whose plugin configs have no `enabled` key, so the `plugins` list is
+written by hand. Claude first rehearses the one-off migration on a copy of the production data while
+v3 keeps running; then the owner sets the cutover's time.
 
 1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
    (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script

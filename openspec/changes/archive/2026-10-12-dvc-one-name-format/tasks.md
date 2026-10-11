@@ -7,5 +7,5 @@
 
 ## 2. Close
 
-- [ ] 2.1 Gate passes, push, CI green
-- [ ] 2.2 Archive the change and run `openspec validate --all --strict`; update `HANDOFF.md`
+- [x] 2.1 Gate passes, push, CI green
+- [x] 2.2 Archive the change and run `openspec validate --all --strict`; update `HANDOFF.md`

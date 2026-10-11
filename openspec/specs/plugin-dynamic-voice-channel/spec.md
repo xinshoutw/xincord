@@ -25,24 +25,23 @@ no `config.yaml`: v3's only key was `enabled`.
 
 ### Requirement: Bindings are kept per guild in v3's documents
 The plugin SHALL keep a guild's bindings in the store under `DynamicVoiceChannel` and the guild's
-ID as v3's list of `{"categoryId", "defaultName", "formatName1", "formatName2"}`. A missing format
-SHALL read as empty and reading SHALL never write. A binding SHALL replace those of the same
-category and lobby name; removing the last one SHALL delete the document. Concurrent changes
-SHALL never lose one another. An entry that is not v3's shape SHALL raise an error and never be
-overwritten.
+ID as v3's list of `{"categoryId", "defaultName", "formatName1"}`. A missing format SHALL read as
+empty and reading SHALL never write. A binding SHALL replace those of the same category and lobby
+name; removing the last one SHALL delete the document. Concurrent changes SHALL never lose one
+another. An entry that is not v3's shape SHALL raise an error and never be overwritten.
 
 #### Scenario: First binding
-- **WHEN** guild 10 binds the lobby `Lobby` of category 20 with the formats `A` and `B`
-- **THEN** the store holds `[{"categoryId": 20, "defaultName": "Lobby", "formatName1": "A",
-  "formatName2": "B"}]` under `DynamicVoiceChannel` and `10`
+- **WHEN** guild 10 binds the lobby `Lobby` of category 20 with the format `A`
+- **THEN** the store holds `[{"categoryId": 20, "defaultName": "Lobby", "formatName1": "A"}]` under
+  `DynamicVoiceChannel` and `10`
 
 #### Scenario: Guild without bindings
 - **WHEN** the bindings of a guild without a document are read
 - **THEN** there are none and the namespace stays empty
 
 #### Scenario: Missing formats
-- **WHEN** a stored entry has no `formatName1` and no `formatName2`
-- **THEN** both read as empty texts
+- **WHEN** a stored entry has no `formatName1`
+- **THEN** its format reads as an empty text
 
 #### Scenario: Binding again
 - **WHEN** the document holds two entries for category 20 and `Lobby`, as v3's `bind` appended
@@ -60,7 +59,7 @@ overwritten.
 - **THEN** all 20 are stored
 
 #### Scenario: Unreadable entry
-- **WHEN** an entry has no `categoryId`, a text `categoryId` or a null format
+- **WHEN** an entry has no `categoryId`, a text `categoryId` or a null `formatName1`
 - **THEN** reading and changing the guild's bindings raise an error and the document stays
 
 ### Requirement: Rooms are tracked per guild
@@ -109,14 +108,14 @@ characters, SHALL not be used.
 - **THEN** there is no name
 
 ### Requirement: Administrators bind lobbies
-`bind` SHALL store a binding of the `channel` option's category, its name and both formats,
-replacing one of the same category and name, and edit the deferred response into `bind-success`.
-A channel outside a category SHALL get `must-under-category`, and nothing SHALL be written.
-Replies SHALL be rendered in the user's locale with v3's values of the interaction.
+`bind` SHALL store a binding of the `channel` option's category, its name and the format, replacing
+one of the same category and name, and edit the deferred response into `bind-success`. A channel
+outside a category SHALL get `must-under-category`, and nothing SHALL be written. Replies SHALL be
+rendered in the user's locale with v3's values of the interaction.
 
 #### Scenario: Bind
 - **WHEN** an administrator with an en-US or a zh-TW client binds the voice channel `Lobby` of
-  category 20 with the formats `A` and `B`
+  category 20 with the format `A`
 - **THEN** the binding is stored and the response is v3's `bind-success` embed in that locale
 
 #### Scenario: Bind outside a category
@@ -140,14 +139,14 @@ outside a category SHALL get `must-under-category`.
 
 ### Requirement: The command is a localized administrator guild command
 The plugin SHALL register v3's guild command `dynamic-voice-channel` with the subcommands `bind`
-(`channel`, `format-name-1` and `format-name-2`, all required) and `unbind` (`channel`), with v3's
-names, descriptions and en-US and zh-TW localizations, visible to administrators by default. The
+(`channel` and `format-name-1`, both required) and `unbind` (`channel`), with v3's names,
+descriptions and en-US and zh-TW localizations, visible to administrators by default. The
 `channel` options SHALL offer voice channels only. The tree SHALL defer both ephemerally.
 
 #### Scenario: Command payload
 - **WHEN** the guild command payload is built
-- **THEN** the command has v3's texts, localizations and subcommands, the default member
-  permissions 8, and channel options limited to voice channels (type 2)
+- **THEN** the command has v3's texts, localizations and subcommands without `format-name-2`, the
+  default member permissions 8, and channel options limited to voice channels (type 2)
 
 #### Scenario: Command callbacks
 - **WHEN** each subcommand runs
@@ -280,3 +279,19 @@ longer exist. A guild whose stored data cannot be read SHALL be skipped with an 
 #### Scenario: Unreadable data
 - **WHEN** one guild's stored bindings cannot be read when the bot becomes ready
 - **THEN** an error names that guild, and the other guilds are still checked
+
+### Requirement: v3's second format is ignored
+A binding SHALL have one name format. v3's `formatName2`, which v3 required, stored and never used,
+SHALL be ignored when an entry is read, whatever its value, and left out of the entries that `bind`
+writes, the guild's other entries staying as stored. An operator's `register.yaml` that still holds
+`format-name-2` SHALL load, its keys unused.
+
+#### Scenario: v3's entry
+- **WHEN** a stored entry holds `"formatName2": "B"`, another `"formatName2": 2`, and then another
+  lobby of the guild is bound
+- **THEN** both entries read with their `formatName1` and stay as stored, and the new entry holds
+  no `formatName2`
+
+#### Scenario: v3's lang files
+- **WHEN** the plugin loads with en-US and zh-TW `register.yaml` files that hold `format-name-2`
+- **THEN** it loads, and `bind` has the options `channel` and `format-name-1` only
