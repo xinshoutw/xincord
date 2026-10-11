@@ -20,6 +20,11 @@ INT_MIN, INT_MAX = -(2**31), 2**31 - 1
 LANGUAGE = "zh"  # course names in Chinese, as v3 asked
 
 
+def course_code(text: str) -> str | None:
+    """A course code as members type it, read as NTUST writes it; None when it cannot be one."""
+    raise NotImplementedError
+
+
 class AnswerError(Exception):
     """The course query's answer is not what the plugin reads."""
 

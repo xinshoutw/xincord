@@ -11,10 +11,15 @@ from typing import TYPE_CHECKING, Any, cast
 import aiohttp
 import pytest
 
-from plugin_fakes import Ready
+from plugin_fakes import Ready, load_plugin
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Iterator
+    from pathlib import Path
+
+    from xincord.core.bot import Bot
+    from xincord.core.storage import Store
+    from xincord.plugins.ntust_course_watch.cog import NtustCourseWatch
 
 PACKAGE = "xincord.plugins.ntust_course_watch"
 LOCAL_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
@@ -62,3 +67,23 @@ async def ready(monkeypatch: pytest.MonkeyPatch) -> AsyncGenerator[Ready]:
     readiness = Ready(monkeypatch)
     yield readiness
     await readiness.close()
+
+
+@pytest.fixture
+def config() -> str | None:
+    """The plugin's config.yaml, the bundled one unless a test parametrizes it."""
+    return None
+
+
+@pytest.fixture
+async def bot(store: Store, tmp_path: Path, config: str | None) -> Bot:
+    """A bot that loaded the plugin with ``config``, offline; its loop waits for READY."""
+    return await load_plugin("NtustCourseWatch", tmp_path / "plugins", store, config=config)
+
+
+@pytest.fixture
+def cog(bot: Bot) -> NtustCourseWatch:
+    """The loaded plugin's cog."""
+    cog = bot.get_cog("NtustCourseWatch")
+    assert cog is not None
+    return cast("NtustCourseWatch", cog)
