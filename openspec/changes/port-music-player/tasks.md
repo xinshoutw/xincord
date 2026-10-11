@@ -29,7 +29,7 @@
 
 ## 5. Node
 
-- [ ] 5.1 Add the local fake Lavalink node (`tests/support/lavalink_fakes.py`) and xfail tests for
+- [x] 5.1 Add the local fake Lavalink node (`tests/support/lavalink_fakes.py`) and xfail tests for
       "Songs load and play through a Lavalink node" against stubs in `node.py`
 - [ ] 5.2 Implement the lavalink.py adapter and the voice protocol; remove the markers
 

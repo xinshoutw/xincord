@@ -6,7 +6,10 @@ give fakes.
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+    import discord
 
 STREAM_LENGTH = 2**63 - 1  # lavaplayer's length of a stream, Java's Long.MAX_VALUE
 
@@ -90,4 +93,51 @@ class Player(Protocol):
 
     async def stop(self) -> None:
         """Stop the song; the node ends it as stopped."""
+        ...
+
+
+class Listener(Protocol):
+    """What the node tells the plugin about a guild: the cog's side of the link."""
+
+    def joined(self, guild_id: int, player: Player) -> None:
+        """The bot is connecting to voice in the guild, and ``player`` plays there."""
+        ...
+
+    def left(self, guild_id: int) -> None:
+        """The bot left voice in the guild, or Discord disconnected it; its player is gone."""
+        ...
+
+    async def ended(self, guild_id: int, number: int, reason: EndReason) -> None:
+        """The node ended the song started as ``number``."""
+        ...
+
+    async def stuck(self, guild_id: int, number: int) -> None:
+        """The node reported the song started as ``number`` stuck."""
+        ...
+
+
+class Link(Protocol):
+    """The plugin's connection to the node, from READY until the plugin unloads."""
+
+    @property
+    def available(self) -> bool:
+        """Whether the node is connected."""
+        ...
+
+    async def load(self, identifier: str) -> Loaded:
+        """Load ``identifier`` on the node.
+
+        Raises:
+            NodeUnavailableError: No node answers.
+        """
+        ...
+
+    def voice(
+        self, client: discord.Client, channel: discord.abc.Connectable
+    ) -> discord.VoiceProtocol:
+        """The voice protocol that ``channel.connect(cls=link.voice)`` connects with."""
+        ...
+
+    async def close(self) -> None:
+        """Close the connection to the node."""
         ...
