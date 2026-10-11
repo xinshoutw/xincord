@@ -151,6 +151,16 @@ Needs a token, a test guild, a second account, a staff role and a panel posted w
 5. With a `plugins/Ticket/lang/zh-TW/text.yaml` from an earlier start, the labels stay the old ones
    until `--force-renew-lang-resources` or an edit of its `control.*` lines.
 
+## Checks (2026-10-11)
+
+- The `xincord-plugins` wheel (`uv build --package xincord-plugins`) holds both `text.yaml` files
+  with the owner's labels under `control.*`.
+- No new probe: a refusal is `response.send_message(..., ephemeral=True)` and a staff press
+  `response.defer()` then `edit_original_response(view=...)`, the calls that `port-ticket`'s probe
+  recorded through discord.py's own objects for save's admin-only reply and for lock (archived
+  design, "Checks"); the tests drive the four buttons through the plugin's route handler and v3's
+  rows through `bot.on_interaction`.
+
 ## Scenario audit
 
 | Requirement | Scenario | Tests |

@@ -16,9 +16,9 @@
 
 ## 3. Checks and docs
 
-- [ ] 3.1 The wheel ships both `text.yaml` files with the new labels
-- [ ] 3.2 Porting guide rows
-- [ ] 3.3 Audit: every scenario of the delta has a test
+- [x] 3.1 The wheel ships both `text.yaml` files with the new labels
+- [x] 3.2 Porting guide rows
+- [x] 3.3 Audit: every scenario of the delta has a test
 - [ ] 3.4 Push the work so far (CI green); cross-review (a subagent); record its findings and fix
       them xfail-first
 
