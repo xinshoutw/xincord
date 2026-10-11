@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Protocol
 if TYPE_CHECKING:
     import discord
 
-STREAM_LENGTH = 2**63 - 1  # lavaplayer's length of a stream, Java's Long.MAX_VALUE
+STREAM_LENGTH = 2**63 - 1  # the node's length of a stream, the largest 64-bit integer
 
 
 class LoadKind(StrEnum):
@@ -50,7 +50,7 @@ class Loaded:
 
 
 class EndReason(StrEnum):
-    """Why the node ended a song: Lavalink's reasons, as lavaplayer's."""
+    """Why the node ended a song: Lavalink's reasons."""
 
     FINISHED = "finished"
     LOAD_FAILED = "loadFailed"
@@ -88,7 +88,7 @@ class Player(Protocol):
         ...
 
     async def set_volume(self, volume: int) -> None:
-        """Change the volume, 100 being the source's, as lavaplayer's."""
+        """Change the volume, 100 being the source's."""
         ...
 
     async def stop(self) -> None:

@@ -1,4 +1,4 @@
-"""v3's eleven guild commands: names, descriptions, options and localizations."""
+"""The eleven guild commands: names, descriptions, options and localizations."""
 
 from typing import TYPE_CHECKING, Any
 
@@ -18,12 +18,12 @@ def localized(expected: dict[str, Any], index: int) -> dict[str, str]:
 
 
 async def test_command_payloads(bot: Bot) -> None:
-    """Requirement: Commands keep v3's names, options and localizations."""
+    """Requirement: Commands have their names, options and localizations."""
     tree: CommandTree = bot.tree  # pyright: ignore[reportAssignmentType]
     global_payload, payload = await tree.payloads(10)
 
     names = {expected["name"] for expected in GOLDEN["commands"]}
-    assert not names & {command["name"] for command in global_payload}  # guild commands, as v3's
+    assert not names & {command["name"] for command in global_payload}  # guild commands
     assert [command["name"] for command in payload] == [
         expected["name"] for expected in GOLDEN["commands"]
     ]

@@ -1,4 +1,4 @@
-"""What the panels show: v3's identifier rule, times, bar, thumbnails, values and queue."""
+"""What the panels show: the identifier rule, times, bar, thumbnails, values and queue."""
 
 from importlib.resources import files
 from pathlib import Path
@@ -57,7 +57,7 @@ def panel_buttons(view: object) -> list[tuple[str | None, int, str]]:
 
 
 def bar(white: int, *, end: bool = False) -> str:
-    """v3's BAR_ARRAY entry with ``white`` full white segments between its ends."""
+    """The bar with ``white`` full white segments between its ends."""
     if end:
         return "<ws>" + "<wf>" * 13 + "<we>"
     return "<ws>" + "<wf>" * white + "<b>" * (13 - white) + "<be>"
@@ -77,8 +77,7 @@ def bar(white: int, *, end: bool = False) -> str:
     ],
 )
 def test_searches_and_links(query: str, expected: str) -> None:
-    """Requirement: Queries become Lavalink identifiers as in v3."""
-    # The vectors of the inventory, section 13.1.
+    """Requirement: Queries become Lavalink identifiers."""
     assert display.identifier(query) == expected
 
 
@@ -95,16 +94,16 @@ def test_searches_and_links(query: str, expected: str) -> None:
     ],
 )
 def test_times(milliseconds: int, text: str) -> None:
-    """Requirement: Panels show v3's track layout."""
+    """Requirement: Panels show the track layout."""
     assert display.format_time(milliseconds) == text
 
 
 def test_lengths() -> None:
-    """Requirement: Panels show v3's track layout."""
+    """Requirement: Panels show the track layout."""
     stream = Track("QAAB", "Radio", "Station", None, "radio", STREAM_LENGTH, stream=True)
 
     assert display.length_text(SONG, "INFINITE") == "03:34"
-    assert display.length_text(stream, "INFINITE") == "INFINITE"  # v3's formatTime(MAX_VALUE)
+    assert display.length_text(stream, "INFINITE") == "INFINITE"  # a stream
 
 
 @pytest.mark.parametrize(
@@ -118,7 +117,7 @@ def test_lengths() -> None:
     ],
 )
 def test_progress_bar(position: int, white: int, *, end: bool) -> None:
-    """Requirement: Panels show v3's track layout."""
+    """Requirement: Panels show the track layout."""
     expected = (
         f"<play> {display.format_time(max(position, 0))}{bar(white, end=end)}03:34"
         if position >= 0
@@ -129,7 +128,7 @@ def test_progress_bar(position: int, white: int, *, end: bool) -> None:
 
 
 def test_streams_and_paused_songs() -> None:
-    """Requirement: Panels show v3's track layout."""
+    """Requirement: Panels show the track layout."""
     stream = Track("QAAB", "Radio", "Station", None, "radio", STREAM_LENGTH, stream=True)
     empty = Track("QAAC", "Silence", "Nobody", None, "silence", 0)
 
@@ -151,13 +150,12 @@ def test_streams_and_paused_songs() -> None:
     ],
 )
 def test_youtube_ids(url: str, video: str | None) -> None:
-    """Requirement: Panels show v3's track layout."""
-    # The vectors of the inventory, section 13.5.
+    """Requirement: Panels show the track layout."""
     assert display.youtube_id(url) == video
 
 
 def test_thumbnails() -> None:
-    """Requirement: Panels show v3's track layout."""
+    """Requirement: Panels show the track layout."""
     artwork = Track(
         "QAAD",
         "Song",
@@ -174,13 +172,13 @@ def test_thumbnails() -> None:
 
     assert display.thumbnail(artwork) == "https://i1.sndcdn.com/artworks-x.jpg"
     assert display.thumbnail(SONG) == "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg"
-    # v3 fell back to the node's identifier when its patterns found no video ID.
+    # The node's identifier, when the patterns find no video ID in the link.
     assert display.thumbnail(feature) == "https://img.youtube.com/vi/id/maxresdefault.jpg"
-    assert display.thumbnail(other) == "https://i.meee.com.tw/GHexAW6.png"  # v3's default
+    assert display.thumbnail(other) == "https://i.meee.com.tw/GHexAW6.png"  # the default image
 
 
 def test_track_values() -> None:
-    """Requirement: Panels show v3's track layout."""
+    """Requirement: Panels show the track layout."""
     entry = Entry(SONG, ALICE)
 
     playing = display.track_values(
@@ -221,7 +219,7 @@ def test_track_values() -> None:
 
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_golden_panels(locale: str) -> None:
-    """Requirement: Panels show v3's track layout."""
+    """Requirement: Panels show the track layout."""
     lang = Lang.load(
         "MusicPlayer", Path(str(files("xincord.plugins.music_player") / "lang")), "zh-TW"
     )

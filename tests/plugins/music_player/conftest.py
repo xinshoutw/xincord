@@ -173,7 +173,7 @@ class Scene:
         legacy: bool = False,
         user_id: int = 1,
     ) -> FakeInteraction:
-        """A press of a panel's ``action`` button on the panel ``message``, v3's ID if ``legacy``.
+        """A press of the panel ``message``'s ``action`` button, by a legacy ID if ``legacy``.
 
         A panel is ephemeral: only its member presses it.
         """

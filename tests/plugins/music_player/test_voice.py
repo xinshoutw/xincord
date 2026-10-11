@@ -22,7 +22,7 @@ async def test_join(scene: Scene) -> None:
     await scene.cog.join_voice(interaction.as_interaction())
 
     assert scene.link.connects == [(10, VOICE)]
-    assert interaction.sent == [DELETED]  # as v3: no confirmation
+    assert interaction.sent == [DELETED]  # no confirmation
 
 
 async def test_join_moves_the_bot(scene: Scene) -> None:
@@ -33,7 +33,7 @@ async def test_join_moves_the_bot(scene: Scene) -> None:
     await scene.cog.join_voice(interaction.as_interaction())
 
     assert scene.link.connects == [(10, OTHER)]
-    assert scene.guild.voice_moves == [VOICE]  # JDA's openAudioConnection moved the bot
+    assert scene.guild.voice_moves == [VOICE]  # the bot moves
     assert interaction.sent == [DELETED]
 
 
@@ -60,7 +60,7 @@ async def test_disconnect(scene: Scene) -> None:
     """Requirement: Members bring the bot into voice and send it away."""
     await scene.connect(VOICE)
     await scene.cog.sessions[10].enqueue([Entry(song(1), ALICE)])
-    leave = scene.who(None)  # any member, even outside voice, as in v3
+    leave = scene.who(None)  # any member, even outside voice
     again = scene.who(None)
 
     await scene.cog.leave_voice(leave.as_interaction())

@@ -53,7 +53,7 @@ class MusicPlayer(Commands, Buttons, commands.Cog):
         self.link: Link | None = None
         self.emojis: Mapping[str, str] = FALLBACKS
         self.random: random.Random = random.SystemRandom()  # /shuffle's order; tests seed it
-        # v3's cache of autocomplete searches by input, the oldest out first; a reload clears it.
+        # The cache of autocomplete searches by input, the oldest out first; a reload clears it.
         self.searches: OrderedDict[str, tuple[app_commands.Choice[str], ...]] = OrderedDict()
         self.search_deadline = SEARCH_DEADLINE  # seconds; tests shorten it
         self.panels = Panels(self.refresh_panel)
@@ -78,8 +78,8 @@ class MusicPlayer(Commands, Buttons, commands.Cog):
     async def cog_unload(self) -> None:
         """Leave voice in every guild, delete the panels and close the node's client.
 
-        v3's unload left its players, connections and threads running (bug B23): a reload stops
-        the music now. Work under way ends first, so that nothing starts after the unload.
+        A reload stops the music. Work under way ends first, so that nothing starts after the
+        unload.
         """
         self.closed = True
         waiting = [cast("asyncio.Task[None]", self.starting), *self.idle.values()]
@@ -92,8 +92,7 @@ class MusicPlayer(Commands, Buttons, commands.Cog):
         await self.panels.close()
 
     async def start(self) -> None:
-        """At READY: the link to the node, then the application's emojis (v3 read them at first
-        use, blocking an event thread, and broke every panel when one was missing)."""
+        """At READY: the link to the node, then the application's emojis."""
         await self.bot.wait_until_ready()
         user = cast("discord.ClientUser", self.bot.user)
         self.link = self.open_link(user.id, self.config.lavalink, self)
@@ -120,8 +119,7 @@ class MusicPlayer(Commands, Buttons, commands.Cog):
         """A session started or stopped playing, or connected or left: start or end its wait.
 
         A connected session with nothing playing leaves voice after ``auto_leave_timeout`` (0:
-        never); a song that starts, or a disconnection, ends the wait. v3 declared the timeout and
-        never left (bug B10).
+        never); a song that starts, or a disconnection, ends the wait.
         """
         guild_id = session.guild_id
         if session.player is not None and not session.playing:
@@ -169,10 +167,7 @@ class MusicPlayer(Commands, Buttons, commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: discord.Guild) -> None:
-        """The bot left a guild: leave its voice and forget its player, songs, volume and panels.
-
-        v3 kept its managers forever (bug B16).
-        """
+        """The bot left a guild: leave its voice and forget its player, songs, volume and panels."""
         if (voice := guild.voice_client) is not None:
             await voice.disconnect(force=True)
         self.sessions.pop(guild.id, None)
@@ -181,8 +176,7 @@ class MusicPlayer(Commands, Buttons, commands.Cog):
     async def refresh_panel(self, panel: Panel) -> bool:
         """Edit ``panel`` with the guild's current song; False once Discord refused the edit.
 
-        Nothing plays: the panel stays as it is, as in v3. The queue panel shows the current
-        queue (v3's refreshes of it always failed, bug B6).
+        Nothing plays: the panel stays as it is. The queue panel shows the current queue.
         """
         session = self.sessions.get(panel.guild_id)
         if session is None or not session.playing:

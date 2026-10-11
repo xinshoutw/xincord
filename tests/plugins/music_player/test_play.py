@@ -65,7 +65,7 @@ async def test_play_a_playlist(scene: Scene) -> None:
         "Song 4",
     ]
     assert scene.player().played() == [("Song 1", 1, 40)]  # it waits after the playing one
-    assert title(panel(interaction)) == "Song 2"  # v3 showed the playlist's first song
+    assert title(panel(interaction)) == "Song 2"  # the song added first is the one shown
 
 
 async def test_another_channel(scene: Scene) -> None:

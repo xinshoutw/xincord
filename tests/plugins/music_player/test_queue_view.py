@@ -1,4 +1,4 @@
-"""The queue panel's list of upcoming songs: v3's lines, within Discord's limits."""
+"""The queue panel's list of upcoming songs: its lines, within Discord's limits."""
 
 import pytest
 
@@ -60,7 +60,7 @@ def test_ten_lines_per_field() -> None:
     embed = display.queue_embed([entry(n) for n in range(1, 26)], live_length="-", more=MORE)
 
     lines = [field.value.split("\n") for field in embed.fields if field.value]
-    assert [len(chunk) for chunk in lines] == [10, 10, 5]  # v3's chunked(10)
+    assert [len(chunk) for chunk in lines] == [10, 10, 5]  # ten lines a field
     assert lines[1][0].startswith("11. **Song 11**")  # the numbers go on across fields
 
 

@@ -60,7 +60,7 @@ async def test_idle_timeout(scene: Scene) -> None:
     await scene.cog.session(10).ended(1, EndReason.FINISHED)  # the last song ended
     await started()
     assert scene.clock.under_way() == 1
-    await scene.clock.advance(600)  # v3's auto_leave_timeout, which v3 never applied (B10)
+    await scene.clock.advance(600)  # the default auto_leave_timeout
     await until(lambda: scene.link.disconnects == [10])
 
     assert scene.clock.waits[-1] == 600.0
@@ -219,7 +219,7 @@ async def test_unload(scene: Scene) -> None:
 
     await scene.bot.remove_cog("MusicPlayer")
 
-    assert scene.link.disconnects == [10]  # v3 left its players running (B23)
+    assert scene.link.disconnects == [10]  # the unload leaves voice
     assert DELETED in command.sent
     assert scene.link.closed is True
     assert cog.panels.panels == {}

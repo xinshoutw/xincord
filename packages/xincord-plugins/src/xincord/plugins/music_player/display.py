@@ -1,4 +1,4 @@
-"""What the panels show: v3's identifier rule, times, progress bar, thumbnails and queue."""
+"""What the panels show: the identifier rule, times, progress bar, thumbnails and queue."""
 
 import re
 from dataclasses import dataclass
@@ -18,17 +18,17 @@ if TYPE_CHECKING:
     from .audio import Track
     from .history import Entry
 
-PREFIX = "music_player@"  # v3's placeholder prefix
-SEARCH = "ytsearch:"  # v3 searched YouTube for anything that is no link
+PREFIX = "music_player@"  # the placeholder prefix
+SEARCH = "ytsearch:"  # a YouTube search for anything that is no link
 LINK_HOSTS = ("youtube.com", "youtu.be", "soundcloud.com", "spotify.com")
-BAR_LENGTH = 15  # v3's PROGRESS_BAR_LENGTH: the bar's emojis
-STEPS = BAR_LENGTH - 1  # the white segments' positions: v3's BAR_ARRAY has 15 entries
+BAR_LENGTH = 15  # the bar's emojis
+STEPS = BAR_LENGTH - 1  # the white segments' positions: 15 bars in all
 PLAYING_COLOR = "0x68c06e"
 PAUSED_COLOR = "0xba9c55"
 QUEUE_COLOR = 0x9BD9D5
 YOUTUBE_IMAGE = "https://img.youtube.com/vi/{}/maxresdefault.jpg"
-DEFAULT_IMAGE = "https://i.meee.com.tw/GHexAW6.png"  # v3's fallback thumbnail
-# Java's \w is ASCII: re.ASCII keeps Python's from matching other letters.
+DEFAULT_IMAGE = "https://i.meee.com.tw/GHexAW6.png"  # the fallback thumbnail
+# \w is ASCII here: re.ASCII keeps Python's from matching other letters.
 YOUTUBE_PATTERNS = tuple(
     re.compile(pattern, re.ASCII)
     for pattern in (
@@ -37,8 +37,8 @@ YOUTUBE_PATTERNS = tuple(
         r"youtube\.com(?:\.\w{2})?/v/([a-zA-Z0-9_-]+)",
     )
 )
-QUEUE_FIELD = "\N{EM DASH}"  # v3's field name
-LINES_PER_FIELD = 10  # v3's chunked(10)
+QUEUE_FIELD = "\N{EM DASH}"  # the queue fields' name
+LINES_PER_FIELD = 10
 FIELD_LIMIT = 1024  # Discord's limit for a field's value
 MAX_FIELDS = 25  # Discord's limit for an embed's fields
 QUEUE_BUDGET = 4000  # of Discord's 6000 for a message's embeds; the track's embed has the rest
@@ -58,7 +58,7 @@ class Look:
 
 
 def identifier(query: str) -> str:
-    """The node's identifier for a member's query, as v3 routed it.
+    """The node's identifier for a member's query.
 
     Links pass as written (anything that starts with ``http`` or names YouTube, SoundCloud or
     Spotify); everything else is a YouTube search, ``ytsearch:`` prefixes included.
@@ -69,7 +69,7 @@ def identifier(query: str) -> str:
 
 
 def format_time(milliseconds: int) -> str:
-    """v3's ``mm:ss``, or ``hh:mm:ss`` from an hour on; a negative time reads as ``00:00``."""
+    """``mm:ss``, or ``hh:mm:ss`` from an hour on; a negative time reads as ``00:00``."""
     seconds = max(milliseconds, 0) // 1000
     minutes, hours = seconds // 60, seconds // 3600
     if hours:
@@ -78,20 +78,20 @@ def format_time(milliseconds: int) -> str:
 
 
 def _stream(track: Track) -> bool:
-    """Whether ``track`` has no length: a stream, as lavaplayer's ``Long.MAX_VALUE`` says."""
+    """Whether ``track`` has no length: a stream, whose length is ``STREAM_LENGTH``."""
     return track.stream or track.length == STREAM_LENGTH
 
 
 def length_text(track: Track, live_length: str) -> str:
-    """A song's length as v3 showed it: ``live_length`` for a stream."""
+    """A song's length: ``live_length`` for a stream."""
     return live_length if _stream(track) else format_time(track.length)
 
 
 def progress_bar(position: int, track: Track, *, playing: bool, look: Look) -> str:
-    """v3's ``song_duration``: the play or pause emoji, the times and 15 bar emojis.
+    """The play or pause emoji, the times and 15 bar emojis.
 
     A stream, or a song without a length, shows the emoji and ``live`` instead. The bar's step is
-    ``floor(position / length * 14)``, kept between 0 and 14 (v3 failed past the length).
+    ``floor(position / length * 14)``, kept between 0 and 14.
     """
     emoji = look.emojis["media_play" if playing else "media_pause"]
     if _stream(track) or track.length <= 0:
@@ -101,7 +101,7 @@ def progress_bar(position: int, track: Track, *, playing: bool, look: Look) -> s
 
 
 def _bar(step: int, emojis: Mapping[str, str]) -> str:
-    """v3's ``BAR_ARRAY[step]``: the white start, ``step`` white segments and the black rest."""
+    """The bar at ``step``: the white start, ``step`` white segments and the black rest."""
     start, full = emojis["progress_white_start"], emojis["progress_white_full"]
     if step == STEPS:
         return start + full * (BAR_LENGTH - 2) + emojis["progress_white_end"]
@@ -110,7 +110,7 @@ def _bar(step: int, emojis: Mapping[str, str]) -> str:
 
 
 def youtube_id(url: str) -> str | None:
-    """The video ID in a YouTube link, by v3's three patterns, or None."""
+    """The video ID in a YouTube link, by three patterns, or None."""
     for pattern in YOUTUBE_PATTERNS:
         if match := pattern.search(url):
             return match[1]
@@ -118,10 +118,9 @@ def youtube_id(url: str) -> str | None:
 
 
 def thumbnail(track: Track) -> str:
-    """The node's artwork, YouTube's image of a YouTube link, or v3's default image.
+    """The node's artwork, YouTube's image of a YouTube link, or the default image.
 
-    v3 never used the artwork (SoundCloud and Spotify songs got the default); for YouTube it took
-    the video ID of the link, else the song's identifier.
+    For a YouTube link, the video ID comes from the link, else from the song's identifier.
     """
     if track.artwork_url and track.artwork_url.startswith("http"):
         return track.artwork_url
@@ -134,10 +133,10 @@ def thumbnail(track: Track) -> str:
 def track_values(
     entry: Entry, *, position: int, playing: bool, loop: LoopMode, look: Look
 ) -> dict[str, str]:
-    """v3's ``music_player@`` values of a panel showing ``entry``.
+    """The ``music_player@`` values of a panel showing ``entry``.
 
-    ``playing`` is the player's state (a song playing and not paused), which v3 showed for any song
-    a panel named; ``position`` is the shown song's, 0 for a song that does not play.
+    ``playing`` is the player's state (a song playing and not paused), shown for any song a panel
+    names; ``position`` is the shown song's, 0 for a song that does not play.
     """
     track, requester = entry.track, entry.requester
     loop_emoji = "media_ordered" if loop is LoopMode.SEQUENTIAL else "media_repeat_once"
@@ -153,22 +152,21 @@ def track_values(
         "song_requester_avatar_url": requester.avatar_url,
         "song_requester_id": str(requester.id),
         "player_current_color": PLAYING_COLOR if playing else PAUSED_COLOR,
-        # v3's key, misspelt, so that operators' templates keep working.
+        # The key, misspelt, as operators' templates name it.
         "player_currnet_loop_mode_emoji": look.emojis[loop_emoji],
     }
     return {PREFIX + key: value for key, value in values.items()}
 
 
 def emoji_values(emojis: Mapping[str, str]) -> dict[str, str]:
-    """The four button emojis that v3's templates named by the author's application IDs."""
+    """The four button emojis, by their template keys."""
     return {f"{PREFIX}{key}_emoji": emojis[key] for key in BUTTON_EMOJIS}
 
 
 def queue_embed(entries: Sequence[Entry], *, live_length: str, more: str) -> discord.Embed:
-    """v3's list of the upcoming songs, within Discord's limits; ``more`` counts those left out.
+    """The list of the upcoming songs, within Discord's limits; ``more`` counts those left out.
 
-    Each line is v3's ``n. **title** | author `[length]```, ten to a field named with an em dash.
-    v3 had no limit, and a long queue failed the whole reply.
+    Each line is ``n. **title** | author `[length]```, ten to a field named with an em dash.
     """
     lines = [_queue_line(number, entry, live_length) for number, entry in enumerate(entries, 1)]
     fields = _pack(lines, QUEUE_BUDGET, MAX_FIELDS)

@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from .config import Emojis
 
 VS16 = "\N{VARIATION SELECTOR-16}"  # the emoji presentation of the symbols below
-# What stands for an emoji that the application lacks, by config key: v3 failed every panel then.
+# What stands for an emoji that the application lacks, by config key.
 FALLBACKS = {
     "progress_white_start": "\N{BLACK PARALLELOGRAM}",
     "progress_white_full": "\N{BLACK PARALLELOGRAM}",

@@ -1,4 +1,4 @@
-"""The texts that v3 wrote in its code, from ``text.yaml``."""
+"""The plugin's texts, from ``text.yaml``."""
 
 import traceback
 from typing import TYPE_CHECKING
@@ -9,13 +9,13 @@ if TYPE_CHECKING:
     from xincord.core.i18n import Lang
 
 TEXT = "text"  # the stem of the lang file that holds them
-PREFIX = "music_player@"  # the placeholders' prefix, v3's
+PREFIX = "music_player@"  # the placeholders' prefix
 
 
 def text(lang: Lang, key: str, locale: str, **values: object) -> str:
     """The text ``key`` in ``locale`` with its ``%music_player@<name>%`` values, as written.
 
-    A key missing in ``locale`` falls back to zh-TW, which v3 showed every member.
+    A key missing in ``locale`` falls back to zh-TW.
     """
     filled = {f"{PREFIX}{name}": str(value) for name, value in values.items()}
     return render(lang.text(f"{TEXT}.{key}", locale), filled)
@@ -27,7 +27,7 @@ def raw(lang: Lang, key: str, locale: str) -> str:
 
 
 def describe(error: BaseException) -> str:
-    """The error's message, as v3 showed ``e.message``, or its type when it has none."""
+    """The error's message, or its type when it has none."""
     return str(error) or type(error).__name__
 
 

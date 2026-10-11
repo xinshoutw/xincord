@@ -1,5 +1,5 @@
 """``/pause``, ``/resume``, ``/stop``, ``/skip``, ``/volume``, ``/queue``, ``/shuffle`` and
-``/now-playing`` with v3's replies.
+``/now-playing`` and their replies.
 """
 
 import asyncio
@@ -46,9 +46,9 @@ def seeded(seed: int) -> random.Random:
 
 
 async def test_pause_and_resume(scene: Scene) -> None:
-    """Requirement: Members control playback with v3's replies."""
+    """Requirement: Members control playback."""
     player = await scene.playing(1)
-    paused, again, resumed, still = (scene.who(None) for _ in range(4))  # no voice check (v3)
+    paused, again, resumed, still = (scene.who(None) for _ in range(4))  # no voice check
 
     await scene.cog.pause_song(paused.as_interaction())
     await scene.cog.pause_song(again.as_interaction())
@@ -66,7 +66,7 @@ async def test_pause_and_resume(scene: Scene) -> None:
 
 
 async def test_pause_and_resume_while_the_songs_go(scene: Scene) -> None:
-    """Requirement: Members control playback with v3's replies."""
+    """Requirement: Members control playback."""
     await scene.playing(1)
     session = scene.cog.sessions[10]
     paused, resumed = scene.who(VOICE), scene.who(VOICE)
@@ -85,7 +85,7 @@ async def test_pause_and_resume_while_the_songs_go(scene: Scene) -> None:
 
 @pytest.mark.parametrize("handler", ["pause_song", "resume_song", "now_playing"])
 async def test_nothing_playing(scene: Scene, handler: str) -> None:
-    """Requirement: Members control playback with v3's replies."""
+    """Requirement: Members control playback."""
     interaction = scene.who(VOICE)
 
     await getattr(scene.cog, handler)(interaction.as_interaction())
@@ -94,7 +94,7 @@ async def test_nothing_playing(scene: Scene, handler: str) -> None:
 
 
 async def test_stop(scene: Scene) -> None:
-    """Requirement: Members control playback with v3's replies."""
+    """Requirement: Members control playback."""
     player = await scene.playing(1, 2)
     await scene.cog.session(10).pause()
     stop, again = scene.who(None), scene.who(VOICE)
@@ -104,14 +104,14 @@ async def test_stop(scene: Scene) -> None:
 
     session = scene.cog.sessions[10]
     assert player.calls[-1] == ("stop", None)
-    assert (session.history.entries, session.paused) == ([], False)  # v3 kept the pause (B2)
-    assert scene.link.disconnects == [10]  # /stop leaves too (P2)
+    assert (session.history.entries, session.paused) == ([], False)  # unpaused
+    assert scene.link.disconnects == [10]  # /stop leaves too
     assert reply(stop) == DELETED
     assert told(again, "nothing-playing")
 
 
 async def test_skip(scene: Scene) -> None:
-    """Requirement: Members control playback with v3's replies."""
+    """Requirement: Members control playback."""
     player = await scene.playing(1, 2, 3, 4)
     too_many, two, to_the_end, nothing = (scene.who(VOICE) for _ in range(4))
 
@@ -120,16 +120,16 @@ async def test_skip(scene: Scene) -> None:
     await scene.cog.skip_songs(to_the_end.as_interaction(), 2)
     await scene.cog.skip_songs(nothing.as_interaction(), 1)
 
-    assert told(too_many, "skip-too-many", count=4)  # v3's maximum: the upcoming songs and this
+    assert told(too_many, "skip-too-many", count=4)  # the maximum: the upcoming songs and this
     assert embeds(two)[0]["title"] == "Song 3"
-    assert told(to_the_end, "skipped-to-end")  # v3 re-showed the last song instead (B17)
+    assert told(to_the_end, "skipped-to-end")
     assert told(nothing, "nothing-playing")
     assert player.played()[-1] == ("Song 3", 2, 40)
     assert player.calls[-1] == ("stop", None)
 
 
 async def test_volume(scene: Scene) -> None:
-    """Requirement: Volume, queue, shuffle and now playing keep v3's replies."""
+    """Requirement: Volume, queue, shuffle and now playing reply."""
     before, after = scene.who(None), scene.who(None)
 
     await scene.cog.change_volume(before.as_interaction(), 70)
@@ -145,7 +145,7 @@ async def test_volume(scene: Scene) -> None:
 
 
 async def test_queue(scene: Scene) -> None:
-    """Requirement: Volume, queue, shuffle and now playing keep v3's replies."""
+    """Requirement: Volume, queue, shuffle and now playing reply."""
     await scene.playing(1, 2, 3)
     shown, empty = scene.who(None), scene.who(None)
 
@@ -155,16 +155,16 @@ async def test_queue(scene: Scene) -> None:
 
     track, listing = embeds(shown)
     assert (track["title"], track["color"]) == ("Song 1", GOLDEN["colors"]["queue"])
-    assert "footer" not in track  # v3's queue panel has none
+    assert "footer" not in track  # the queue panel has none
     assert listing["fields"][0]["value"].split("\n") == [
         "1. **Song 2** | Band 2 `[03:34]`",
         "2. **Song 3** | Band 3 `[03:34]`",
     ]
-    assert told(empty, "empty-playlist")  # v3's reply: a song plays and none waits
+    assert told(empty, "empty-playlist")  # a song plays and none waits
 
 
 async def test_shuffle(scene: Scene) -> None:
-    """Requirement: Volume, queue, shuffle and now playing keep v3's replies."""
+    """Requirement: Volume, queue, shuffle and now playing reply."""
     scene.cog.random = seeded(5)
     await scene.playing(1, 2)
     outside, one, three = scene.who(None), scene.who(VOICE), scene.who(VOICE)
@@ -184,7 +184,7 @@ async def test_shuffle(scene: Scene) -> None:
 
 
 async def test_now_playing(scene: Scene) -> None:
-    """Requirement: Volume, queue, shuffle and now playing keep v3's replies."""
+    """Requirement: Volume, queue, shuffle and now playing reply."""
     await scene.playing(1, 2)
     shown = scene.who(None)
 
@@ -195,7 +195,7 @@ async def test_now_playing(scene: Scene) -> None:
 
 
 async def test_stop_without_a_voice_connection(scene: Scene) -> None:
-    """Requirement: Members control playback with v3's replies."""
+    """Requirement: Members control playback."""
     player = FakePlayer()  # a session whose connection Discord dropped as /stop came in
     scene.cog.session(10).attach(player)
     await scene.cog.session(10).enqueue([Entry(song(1), ALICE)])
@@ -209,7 +209,7 @@ async def test_stop_without_a_voice_connection(scene: Scene) -> None:
 
 
 async def test_pause_while_the_bot_leaves(scene: Scene) -> None:
-    """Requirement: Members control playback with v3's replies."""
+    """Requirement: Members control playback."""
     player = await scene.playing(1)
     player.hold = asyncio.Event()  # the node is slow to pause
     paused = scene.who(VOICE)

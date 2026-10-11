@@ -8,8 +8,8 @@ ephemeral panels, while a Lavalink node plays the audio.
 
 ### Requirement: The plugin installs as MusicPlayer
 The `xincord-plugins` distribution SHALL register the plugin in the `xincord.plugins` entry-point
-group as `MusicPlayer`, pointing to `xincord.plugins.music_player`, with no dependencies (v3's
-AudioAPI folds into the plugin's requirements) and the voice states intent. Loading SHALL write the
+group as `MusicPlayer`, pointing to `xincord.plugins.music_player`, with no dependencies
+and the voice states intent. Loading SHALL write the
 bundled `config.yaml` and the zh-TW (default) and en-US `lang/` files to `plugins/MusicPlayer/`.
 
 #### Scenario: Discovered by name
@@ -23,15 +23,15 @@ bundled `config.yaml` and the zh-TW (default) and en-US `lang/` files to `plugin
 
 ### Requirement: The config names the node, the player's defaults, the errors and the emojis
 `config.yaml` SHALL hold `lavalink` (`host`, `port` 1 to 65535, a required non-blank `password`),
-`player.default_volume` (0 to 100, v3's 40), `player.auto_leave_timeout` (milliseconds idle before
-leaving, at least 0, v3's 600000, 0 for never), `messages.show_detailed_errors` (v3's true) and
-`emojis` (v3's nine application emoji names and four for the buttons). Invalid values SHALL keep
+`player.default_volume` (0 to 100, 40 by default), `player.auto_leave_timeout` (milliseconds idle
+before leaving, at least 0, 600000 by default, 0 for never), `messages.show_detailed_errors` (true
+by default) and `emojis` (nine application emoji names and four for the buttons). Invalid values SHALL keep
 the plugin from loading with the key named, the password never shown.
 
-#### Scenario: v3 config file with a node
-- **WHEN** `config.yaml` is v3's with a `lavalink` section added
-- **THEN** the plugin loads with v3's volume, timeout, error setting and emoji names, and warns
-  about each key that v3 never used, `engines` included
+#### Scenario: A config file with unknown keys
+- **WHEN** `config.yaml` holds many keys the plugin does not know, and a `lavalink` section
+- **THEN** the plugin loads with the default volume, timeout, error setting and emoji names, and
+  warns about each unknown key, `engines` included
 
 #### Scenario: Bundled config waits for the password
 - **WHEN** the plugin loads with the bundled `config.yaml`
@@ -46,10 +46,10 @@ the plugin from loading with the key named, the password never shown.
 - **WHEN** the `lavalink` section is invalid and holds a password
 - **THEN** the error does not contain the password
 
-### Requirement: Queries become Lavalink identifiers as in v3
+### Requirement: Queries become Lavalink identifiers
 A query SHALL be passed to the node as written when it starts with `http` or contains
 `youtube.com`, `youtu.be`, `soundcloud.com` or `spotify.com`, and SHALL otherwise be searched on
-YouTube as `ytsearch:<query>`, as v3 did.
+YouTube as `ytsearch:<query>`.
 
 #### Scenario: Searches and links
 - **WHEN** the queries are `never gonna`, `https://youtu.be/x`, `youtu.be/x`,
@@ -58,9 +58,9 @@ YouTube as `ytsearch:<query>`, as v3 did.
 - **THEN** the identifiers are `ytsearch:never gonna`, the five links and `httpfoo` as written,
   and `ytsearch:scsearch:foo`
 
-### Requirement: The history keeps v3's order of play
-Each guild SHALL keep v3's history: the songs in order with the index of the current one. A song
-added while nothing plays SHALL start (v3 only started a first song); skip SHALL go forward;
+### Requirement: The history keeps the order of play
+Each guild SHALL keep a history: the songs in order with the index of the current one. A song
+added while nothing plays SHALL start; skip SHALL go forward;
 previous SHALL restart the current song after 5 seconds or without a previous one, and else go
 back one; shuffle SHALL reorder the upcoming songs only; the history SHALL hold 240 songs at most,
 dropping played songs first and refusing the rest.
@@ -114,12 +114,12 @@ nothing.
 - **WHEN** an end event names a song that a skip already replaced, or reports a stopped song
 - **THEN** nothing changes
 
-### Requirement: Panels show v3's track layout
-Panels SHALL render v3's templates with v3's values: the title, author, link and thumbnail (the
-node's artwork, else YouTube's image for a YouTube link, else v3's default), the requester's
+### Requirement: Panels show the track layout
+Panels SHALL render the templates with these values: the title, author, link and thumbnail (the
+node's artwork, else YouTube's image for a YouTube link, else the default image), the requester's
 username and avatar, the progress bar (play or pause emoji, elapsed time, 15 emojis, length;
 `live` for streams), the colour (green while playing, gold otherwise) and the loop mode's emoji.
-Times SHALL read as v3's `mm:ss` or `hh:mm:ss`.
+Times SHALL read as `mm:ss` or `hh:mm:ss`.
 
 #### Scenario: Times
 - **WHEN** times of 0, 59999, 60000, 3599999, 3600000 and 360000000 ms are shown
@@ -137,21 +137,21 @@ Times SHALL read as v3's `mm:ss` or `hh:mm:ss`.
 #### Scenario: Thumbnails
 - **WHEN** a song has the node's artwork, is a YouTube link without artwork, or neither
 - **THEN** the thumbnail is the artwork, `https://img.youtube.com/vi/<id>/maxresdefault.jpg`, or
-  v3's default image
+  the default image
 
 #### Scenario: Golden panels
 - **WHEN** the `play` and `volume` templates render in en-US and zh-TW
-- **THEN** the footer and the title are v3's text in each locale, with v3's colours and buttons
+- **THEN** the footer and the title are the bundled text in each locale, with their colours and buttons
 
 ### Requirement: The queue view fits Discord's limits
-The `queue` panel SHALL list the upcoming songs as v3 did, numbered from 1, ten lines per field
+The `queue` panel SHALL list the upcoming songs, numbered from 1, ten lines per field
 named `—`, each line `n. **title** | author` with the length in brackets (`live-length` for
 streams), in colour `0x9bd9d5`, and SHALL stop at Discord's limits (1024 characters per field, 25
 fields, 4000 characters in all) with a last line counting the songs left out.
 
 #### Scenario: Short queue
 - **WHEN** three songs are upcoming
-- **THEN** one field lists them numbered 1 to 3 in v3's format
+- **THEN** one field lists them numbered 1 to 3 in that format
 
 #### Scenario: Long queue
 - **WHEN** 500 songs with long titles are upcoming
@@ -204,8 +204,8 @@ request that the node does not answer within 15 seconds SHALL fail as unavailabl
 - **WHEN** the node takes a load and answers nothing for 15 seconds
 - **THEN** the load fails as unavailable and the node's connection stays
 
-### Requirement: Commands keep v3's names, options and localizations
-The plugin SHALL register v3's eleven guild commands for every member, with v3's English
+### Requirement: Commands have their names, options and localizations
+The plugin SHALL register eleven guild commands for every member, with English
 descriptions and the en-US and zh-TW names and descriptions of `register.yaml`: `play` with the
 required `query` (at most 500 characters, autocompleted), `skip` with the optional `count` (1 to
 50) and `volume` with the required `level` (0 to 100, autocompleted). The command tree SHALL defer
@@ -213,7 +213,7 @@ them ephemerally.
 
 #### Scenario: Command payloads
 - **WHEN** the guild payload is built
-- **THEN** it holds the eleven commands with v3's names, descriptions, options, limits and
+- **THEN** it holds the eleven commands with their names, descriptions, options, limits and
   localizations, and no default permissions
 
 ### Requirement: Members bring the bot into voice and send it away
@@ -268,7 +268,7 @@ meanwhile get their reply.
   `no-connect-permission`, `empty-query`, `no-matches`, `load-failed`, `empty-playlist`,
   `queue-full` or `node-unavailable`
 
-### Requirement: Members control playback with v3's replies
+### Requirement: Members control playback
 `/pause` and `/resume` SHALL pause or resume the current song and show the `pause` or `resume`
 panel, or answer `nothing-playing`, `already-paused` or `already-playing`. `/stop` SHALL clear the
 history, unpause, leave and delete the response, or answer `nothing-playing`. `/skip count` SHALL
@@ -296,7 +296,7 @@ skip that many songs and show the `skip` panel, end the list when it skips past 
 - **THEN** the third song plays in the `skip` panel, then `skip-too-many` names 4, then the list
   ends with `skipped-to-end`
 
-### Requirement: Volume, queue, shuffle and now playing keep v3's replies
+### Requirement: Volume, queue, shuffle and now playing reply
 `/volume level` SHALL set the guild's volume, kept until the plugin unloads and used by every song,
 and show the `volume` panel with the levels before and after. `/queue` SHALL show the `queue` panel,
 or `empty-playlist` without upcoming songs. `/shuffle` SHALL reorder the upcoming songs and answer
@@ -377,13 +377,13 @@ or an unload SHALL end the refreshes.
   not tracked
 
 ### Requirement: Panel buttons control the guild's player
-Presses of v3's IDs (`musicplayer@a:<action>`) and new IDs SHALL be acknowledged at once and act on
+Presses of legacy IDs (`musicplayer@a:<action>`) and new IDs SHALL be acknowledged at once and act on
 the guild's player: a member outside voice gets `button-join-voice` in the panel; `previous`,
 `pause-resume`, `skip` and `loop` show the `now-playing` panel, or `previous-no-song`,
 `previous-idle`, `nothing-playing` or `no-more-songs`; `disconnect` stops, leaves and deletes the
 panel, or shows `not-connected`. Other actions get no response.
 
-#### Scenario: v3 and new IDs
+#### Scenario: Legacy and new IDs
 - **WHEN** `musicplayer@a:skip` and `music_player:1:a=skip` are pressed
 - **THEN** both skip to the next song and show it in the panel
 
@@ -465,7 +465,7 @@ connects answer `node-unavailable`.
 - **WHEN** the plugin unloads while the bot plays in a guild
 - **THEN** the bot leaves, the panels are deleted and the node's client is closed
 
-### Requirement: Errors are reported as v3 did
+### Requirement: Errors are reported
 An unexpected error in a command or a press SHALL be logged with its traceback, URLs cut to their
 origin, and answered with `command-error` or `button-error` and the error's text, or with
 `command-error-hidden` or `button-error-hidden` when `messages.show_detailed_errors` is false.

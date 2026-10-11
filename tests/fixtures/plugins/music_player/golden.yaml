@@ -1,8 +1,6 @@
-# Golden data for the MusicPlayer tests. The text is v3's, from
-# XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/ (command/Register.kt and resources/lang/),
-# unless noted.
+# Golden data for the MusicPlayer tests: the bundled texts, unless noted.
 
-# The guild commands in v3's order: the base name and English description of Register.kt, the
+# The guild commands in their order: the base name and English description, the
 # en-US and zh-TW names and descriptions of register.yaml, and the options.
 commands:
   - name: "join"
@@ -88,14 +86,14 @@ volume_title:
   en-US: "Player volume adjusted from 40 ➞ 70"
   zh-TW: "播放音量調整 40 ➞ 70"
 
-# The colours (MusicPlayerUtils.kt:292-296 and the templates).
+# The colours of the templates.
 colors:
   playing: 0x68c06e
   paused: 0xba9c55
   queue: 0x9bd9d5
   volume: 0x7fbf78
 
-# v3's button IDs (inventory section 4), their action, and the new ID of each.
+# The legacy button IDs, their action, and the new ID of each.
 ids:
   "musicplayer@a:previous": ["previous", "music_player:1:a=previous"]
   "musicplayer@a:pause-resume": ["pause-resume", "music_player:1:a=pause-resume"]
@@ -103,7 +101,7 @@ ids:
   "musicplayer@a:loop": ["loop", "music_player:1:a=loop"]
   "musicplayer@a:disconnect": ["disconnect", "music_player:1:a=disconnect"]
 
-# The buttons of the track panels: style and emoji placeholder, in v3's order.
+# The buttons of the track panels: style and emoji placeholder, in their order.
 buttons:
   - [2, "previous"]
   - [2, "pause-resume"]
@@ -111,7 +109,7 @@ buttons:
   - [2, "loop"]
   - [4, "disconnect"]
 
-# v3's texts in zh-TW, for the replies the tests check (MusicPlayer.kt).
+# The zh-TW texts, for the replies the tests check.
 texts:
   nothing-playing: "❌ 目前沒有正在播放的歌曲！"
   join-voice-first: "❌ 您必須先加入語音頻道才能使用此功能！"

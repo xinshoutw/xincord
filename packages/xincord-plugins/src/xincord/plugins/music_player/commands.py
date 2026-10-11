@@ -1,4 +1,4 @@
-"""v3's eleven guild commands, a base of the cog."""
+"""The eleven guild commands, a base of the cog."""
 
 import asyncio
 import logging
@@ -24,17 +24,17 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-QUERY_MAX = 500  # v3's setMaxLength(500)
-SEARCH_DEADLINE = 2.5  # seconds an autocomplete search may take: Discord waits 3 (v3 waited 10)
-SEARCH_MIN = 2  # v3 searched from two characters
-CHOICES = 10  # v3's suggestions
+QUERY_MAX = 500  # a query's longest text
+SEARCH_DEADLINE = 2.5  # seconds an autocomplete search may take: Discord waits 3
+SEARCH_MIN = 2  # searches start from two characters
+CHOICES = 10  # suggestions
 CHOICE = 100  # Discord's limit for a suggestion's name and value
-SEARCHES = 100  # v3's cache of searches
+SEARCHES = 100  # searches kept in the cache
 FOUND = (LoadKind.TRACK, LoadKind.PLAYLIST, LoadKind.SEARCH)  # loads with songs to suggest
 
 
 class CommandSpec(NamedTuple):
-    """One of v3's commands: its ``register.yaml`` key, v3's English description, its handler."""
+    """One of the commands: its ``register.yaml`` key, its English description, its handler."""
 
     key: str
     description: str
@@ -42,13 +42,13 @@ class CommandSpec(NamedTuple):
 
 
 class OptionSpec(NamedTuple):
-    """A command's option: its parameter (v3's option name) and v3's English description."""
+    """A command's option: its parameter (the option's name) and its English description."""
 
     parameter: str
     description: str
 
 
-# v3's commands in v3's order (Register.kt:78-155), with the descriptions of its code.
+# The commands in their order, with their English descriptions.
 COMMANDS = {
     "join": CommandSpec("join", "Make the bot join your voice channel", "join_voice"),
     "disconnect": CommandSpec("disconnect", "Make the bot leave the voice channel", "leave_voice"),
@@ -79,11 +79,10 @@ class Commands(Replies):
     search_deadline: float
 
     def command(self, name: str) -> app_commands.Command[Any, ..., None]:
-        """Build v3's command ``name``, localized from ``register.yaml``, for every member.
+        """Build the command ``name``, localized from ``register.yaml``, for every member.
 
-        A guild command without default permissions, as v3's ``DefaultMemberPermissions.ENABLED``;
-        the command tree defers it ephemerally, as v3's core did. ``query`` and ``level`` are
-        autocompleted.
+        A guild command without default permissions; the command tree defers it ephemerally.
+        ``query`` and ``level`` are autocompleted.
         """
         lang, spec = self.lang, COMMANDS[name]
         command: app_commands.Command[Any, ..., None] = app_commands.Command(
@@ -108,8 +107,8 @@ class Commands(Replies):
     async def join_voice(self, interaction: discord.Interaction) -> None:
         """``/join``: connect to the member's voice channel, or move there, and delete the reply.
 
-        As v3: a voice channel (no stage); the bot needs Connect, and Move Members for a full
-        channel, as JDA checked; no confirmation.
+        A voice channel (no stage); the bot needs Connect, and Move Members for a full channel; no
+        confirmation.
         """
         channel = voice_channel(interaction)
         if channel is None:
@@ -137,7 +136,7 @@ class Commands(Replies):
     async def leave_voice(self, interaction: discord.Interaction) -> None:
         """``/disconnect``: leave voice, which forgets the songs, and delete the reply.
 
-        Any member may, as in v3.
+        Any member may.
         """
         voice = guild_of(interaction).voice_client
         if voice is None:
@@ -153,8 +152,8 @@ class Commands(Replies):
     ) -> None:
         """``/play``: load the query, add its songs and show the first one's ``play`` panel.
 
-        v3's checks in v3's order; the bot connects to the member's channel when it is in none
-        and stays in another one (P4). A search adds its first song, a playlist every song.
+        The bot connects to the member's channel when it is in none and stays in another one. A
+        search adds its first song, a playlist every song.
         """
         channel = voice_channel(interaction)
         if channel is None:
@@ -199,7 +198,7 @@ class Commands(Replies):
             case _:  # a song, or a search's first song
                 tracks = loaded.tracks[:1]
         who = requester(interaction.user)
-        # v3 refused songs without a title.
+        # Songs without a title are refused.
         entries = [Entry(track, who) for track in tracks if track.title.strip()]
         if not entries:
             await self.tell(interaction, "empty-playlist")
@@ -230,7 +229,7 @@ class Commands(Replies):
         return self.link
 
     async def connect(self, channel: discord.VoiceChannel) -> None:
-        """Connect the bot to ``channel`` through the node, neither deafened nor muted (v3).
+        """Connect the bot to ``channel`` through the node, neither deafened nor muted.
 
         Raises:
             NodeUnavailableError: No node is connected.
@@ -244,7 +243,7 @@ class Commands(Replies):
         return session if session is not None and session.playing else None
 
     async def pause_song(self, interaction: discord.Interaction) -> None:
-        """``/pause``: pause the song and show the ``pause`` panel; any member, as in v3."""
+        """``/pause``: pause the song and show the ``pause`` panel; any member."""
         session = self.playing(interaction)
         done = session is not None and await session.pause()
         # The songs may go while the command waits for the player or the node answers.
@@ -281,8 +280,8 @@ class Commands(Replies):
     ) -> None:
         """``/skip``: skip ``count`` songs and show the ``skip`` panel.
 
-        v3's maximum is the upcoming songs and the playing one: skipping that many ends the list
-        (v3 re-showed the last song and never said ``skipped-to-end``).
+        The maximum is the upcoming songs and the playing one: skipping that many ends the list,
+        with ``skipped-to-end``.
         """
         if (session := self.playing(interaction)) is None:
             await self.tell(interaction, "nothing-playing")
@@ -300,7 +299,7 @@ class Commands(Replies):
     ) -> None:
         """``/volume``: set the guild's volume and show the ``volume`` panel with both levels.
 
-        The level stays until the plugin unloads, as v3's per-guild player kept it.
+        The level stays until the plugin unloads.
         """
         session = self.session(guild_of(interaction).id)
         before = await session.set_volume(level)
@@ -315,7 +314,7 @@ class Commands(Replies):
         await self.show(interaction, Screen("queue"), session)
 
     async def shuffle_queue(self, interaction: discord.Interaction) -> None:
-        """``/shuffle``: shuffle the upcoming songs, for a member in voice; no panel, as v3."""
+        """``/shuffle``: shuffle the upcoming songs, for a member in voice; no panel."""
         if voice_channel(interaction) is None:
             await self.tell(interaction, "shuffle-join-voice")
             return
@@ -335,7 +334,7 @@ class Commands(Replies):
     async def cog_app_command_error(
         self, interaction: discord.Interaction, error: app_commands.AppCommandError
     ) -> None:
-        """An error in a command: logged with its traceback and answered, as v3's ``Event``.
+        """An error in a command: logged with its traceback and answered.
 
         A node that stopped answering is no unexpected error: ``node-unavailable``.
         """
@@ -350,11 +349,11 @@ class Commands(Replies):
     async def song_choices(
         self, interaction: discord.Interaction, current: str
     ) -> list[app_commands.Choice[str]]:
-        """``query``'s suggestions: v3's YouTube search of the input, from two characters.
+        """``query``'s suggestions: a YouTube search of the input, from two characters.
 
         Up to ten songs, ``title | author`` within 100 characters and their links as values
-        (Discord refuses longer ones), kept for the 100 latest inputs, the oldest out first, as
-        v3's cache; a search that takes past Discord's deadline, fails or finds nothing suggests
+        (Discord refuses longer ones), kept for the 100 latest inputs, the oldest out first; a
+        search that takes past Discord's deadline, fails or finds nothing suggests
         nothing and is not kept.
         """
         del interaction
@@ -386,7 +385,7 @@ class Commands(Replies):
     async def volume_choices(
         self, interaction: discord.Interaction, current: str
     ) -> list[app_commands.Choice[int]]:
-        """``level``'s suggestion: the guild's volume, as v3's ``current-volume``."""
+        """``level``'s suggestion: the guild's volume."""
         del current
         session = self.sessions.get(guild_of(interaction).id)
         volume = self.config.player.default_volume if session is None else session.volume
@@ -395,7 +394,7 @@ class Commands(Replies):
 
 
 def _can_join(channel: discord.VoiceChannel, guild: discord.Guild) -> bool:
-    """Whether the bot may join ``channel``: Connect, and Move Members when it is full (JDA's)."""
+    """Whether the bot may join ``channel``: Connect, and Move Members when it is full."""
     permissions = channel.permissions_for(guild.me)
     full = 0 < channel.user_limit <= len(channel.voice_states)
     return permissions.connect and (not full or permissions.move_members)

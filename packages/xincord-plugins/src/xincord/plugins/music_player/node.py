@@ -261,7 +261,7 @@ class LavalinkVoice(discord.VoiceProtocol):
     ) -> None:
         """Create the guild's player, hand it to the plugin and ask Discord to connect the bot.
 
-        The bot is neither deafened nor muted, as in v3; Discord's voice updates follow.
+        The bot is neither deafened nor muted; Discord's voice updates follow.
 
         Raises:
             NodeUnavailableError: No node is connected; discord.py then forgets the protocol.

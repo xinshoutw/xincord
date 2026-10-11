@@ -1,8 +1,7 @@
-# The texts that v3 wrote in its code (MusicPlayer.kt, MusicPlayerUtils.kt, HistoryIndexManager.kt
-# and Event.kt), and the few that xincord adds. The plugin fills the %music_player@...%
+# The plugin's texts. The plugin fills the %music_player@...%
 # placeholders; their values are inserted as written.
 
-# Replies to commands (MusicPlayer.kt:335-731, MusicPlayerUtils.kt:97-109).
+# Replies to commands.
 join-voice-first: "❌ 您必須先加入語音頻道才能使用此功能！"
 voice-channel-not-found: "❌ 無法找到您的語音頻道！"
 cannot-connect: "❌ 無法連接到語音頻道！"
@@ -27,19 +26,19 @@ node-unavailable: "❌ 音樂伺服器目前無法使用，請稍後再試"
 queue-full: "❌ 播放清單已滿，無法再加入歌曲！"
 queue-truncated: "播放清單已滿：已加入 %music_player@added% 首歌曲，%music_player@refused% 首未加入"
 
-# The panel's text after a press (MusicPlayer.kt:306-956, HistoryIndexManager.kt:110-157).
+# The panel's text after a press.
 button-join-voice: "❌ 您必須在語音頻道中才能控制音樂播放！"
 previous-no-song: "❌ 沒有正在播放的歌曲"
 previous-idle: "❌ 無法獲取當前播放狀態"
 no-more-songs: "❌ 沒有更多歌曲可播放"
 
-# Unexpected errors, with or without their text (Event.kt:79-118, messages.show_detailed_errors).
+# Unexpected errors, with or without their text (messages.show_detailed_errors).
 command-error: "❌ 處理指令時發生錯誤：%music_player@error%"
 command-error-hidden: "❌ 處理指令時發生錯誤，請稍後再試"
 button-error: "❌ 處理按鈕互動時發生錯誤：%music_player@error%"
 button-error-hidden: "❌ 處理按鈕互動時發生錯誤，請稍後再試"
 
-# Panels and suggestions (MusicPlayerUtils.kt:114-147, MusicPlayer.kt:265-271 and 637-680); the
+# Panels and suggestions; the
 # queue's last line is new in xincord.
 live: "直播中"
 live-length: "∞ (直播)"

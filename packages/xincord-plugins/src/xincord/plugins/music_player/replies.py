@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from .history import Entry
     from .panels import Panels
 
-# v3's model key of the queue panel's list, which v3 (and the core) looked up as written.
+# The model key of the queue panel's list, which the core looks up as written.
 QUEUE_MODEL = "%music_player@player_track_list_model_key%"
 
 
@@ -124,7 +124,7 @@ class Replies:
         )
 
     async def tell(self, interaction: discord.Interaction, key: str, **values: object) -> None:
-        """Edit the response's content into the text ``key``, as v3's ``editOriginal(text)``."""
+        """Edit the response's content into the text ``key``."""
         content = self.text(key, interaction.locale.value, **values)
         await interaction.edit_original_response(content=content)
 
@@ -132,7 +132,7 @@ class Replies:
         self, interaction: discord.Interaction, key: str, error: BaseException
     ) -> None:
         """Tell the user about an unexpected error: ``key`` with its text, URLs cut to their
-        origin, or ``<key>-hidden`` without ``messages.show_detailed_errors``, as v3."""
+        origin, or ``<key>-hidden`` without ``messages.show_detailed_errors``."""
         if self.config.messages.show_detailed_errors:
             await self.tell(interaction, key, error=redact(describe(error)))
         else:
@@ -148,7 +148,7 @@ class Replies:
         content: str = "",
     ) -> None:
         """Edit the command's response into the panel ``screen``, ``content`` above it, and track
-        the panel, which then refreshes itself (v3 tracked it after a successful edit)."""
+        the panel, which then refreshes itself."""
         message = self.render(screen, session, interaction, entry=entry)
         sent = await interaction.edit_original_response(
             content=content or message.content, embeds=list(message.embeds), view=message.view
@@ -159,7 +159,7 @@ class Replies:
     async def redraw(
         self, interaction: discord.Interaction, session: Session, entry: Entry | None = None
     ) -> None:
-        """Edit a pressed panel into the ``now-playing`` screen, as v3's buttons did; any text
+        """Edit a pressed panel into the ``now-playing`` screen; any text
         above it goes."""
         message = self.render(Screen("now-playing"), session, interaction, entry=entry)
         await interaction.edit_original_response(
@@ -168,7 +168,7 @@ class Replies:
 
 
 def requester(member: discord.Member | discord.User) -> Requester:
-    """The member who adds a song, as v3 kept them: ID, display name, username and avatar."""
+    """The member who adds a song: ID, display name, username and avatar."""
     return Requester(member.id, member.display_name, member.name, member.display_avatar.url)
 
 

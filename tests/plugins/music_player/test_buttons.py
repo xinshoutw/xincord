@@ -59,7 +59,7 @@ def said(interaction: FakeInteraction, key: str, **values: object) -> bool:
     ]
 
 
-async def test_v3_and_new_ids(scene: Scene) -> None:
+async def test_legacy_and_new_ids(scene: Scene) -> None:
     """Requirement: Panel buttons control the guild's player."""
     player = await scene.playing(1, 2, 3)
     legacy = scene.press("skip", PANEL, legacy=True)
@@ -79,7 +79,7 @@ async def test_member_outside_voice(scene: Scene) -> None:
 
     pressed = await press(scene, "skip", channel=None)
 
-    assert said(pressed, "button-join-voice")  # v3 never showed it (B3)
+    assert said(pressed, "button-join-voice")
     assert player.played() == [("Song 1", 1, 40)]
 
 
@@ -166,8 +166,8 @@ async def test_loop_without_a_song(scene: Scene) -> None:
     """Requirement: Panel buttons control the guild's player."""
     pressed = await press(scene, "loop")
 
-    assert pressed.sent == [DEFERRED]  # acknowledged; v3 left the press unanswered
-    assert scene.cog.session(10).loop.value == "single"  # v3 changed the mode anyway
+    assert pressed.sent == [DEFERRED]  # acknowledged
+    assert scene.cog.session(10).loop.value == "single"  # the mode changes all the same
 
 
 async def test_unknown_action(scene: Scene) -> None:
@@ -194,7 +194,7 @@ async def test_a_press_extends_the_panel(scene: Scene) -> None:
 
 @pytest.mark.parametrize("config", [HIDDEN])
 async def test_hidden_details(scene: Scene) -> None:
-    """Requirement: Errors are reported as v3 did."""
+    """Requirement: Errors are reported."""
     player = await scene.playing(1, 2)
     player.error = RuntimeError("the node said no")
 
@@ -215,7 +215,7 @@ async def test_hidden_details(scene: Scene) -> None:
 async def test_detailed_button_errors(
     scene: Scene, error: Exception, key: str, values: dict[str, str]
 ) -> None:
-    """Requirement: Errors are reported as v3 did."""
+    """Requirement: Errors are reported."""
     player = await scene.playing(1, 2, 3)
     player.error = error
 

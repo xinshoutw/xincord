@@ -22,8 +22,7 @@ messages:
   show_detailed_errors: true
 
 # The names of the bot application's emojis (Discord Developer Portal, the application's Emojis
-# page; v3's images in Plugins/MusicPlayer/src/main/resources/images). A name that the application
-# lacks shows as a Unicode emoji.
+# page). A name that the application lacks shows as a Unicode emoji.
 emojis:
   progress_white_start: "music_player__line_white_start"
   progress_white_full: "music_player__line_white_full"

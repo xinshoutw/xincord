@@ -1,7 +1,7 @@
-"""The plugin's ``config.yaml``: the Lavalink node, and v3's keys that had an effect.
+"""The plugin's ``config.yaml``: the Lavalink node, the player, the errors and the emojis.
 
-v3's other keys (about 35 that v3 never read, and ``engines.spotify``, which the node's
-``application.yml`` replaces) are not fields: v3's files load, and the core warns about each.
+Other keys (``engines.spotify``: the node's config holds it) are not fields: the core warns about
+each.
 """
 
 from typing import Annotated
@@ -10,7 +10,7 @@ from pydantic import ConfigDict, Field, StringConstraints
 
 from xincord.core.config import Model
 
-JAVA_INT_MAX = 2_147_483_647  # v3 kept the timeout in a Kotlin Int
+TIMEOUT_MAX = 2_147_483_647  # a 32-bit integer
 # An application emoji's name, as Discord takes it: 2 to 32 letters, digits and underscores.
 type EmojiName = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_]{2,32}$")]
 
@@ -31,25 +31,21 @@ class Node(Model):
 
 
 class Player(Model):
-    """v3's ``player`` keys that take effect."""
+    """The ``player`` keys."""
 
-    default_volume: Annotated[int, Field(ge=0, le=100)] = 40  # v3's
-    # Milliseconds with no song playing before the bot leaves; v3 declared it and never left.
-    auto_leave_timeout: Annotated[int, Field(ge=0, le=JAVA_INT_MAX)] = 600_000
+    default_volume: Annotated[int, Field(ge=0, le=100)] = 40
+    # Milliseconds with no song playing before the bot leaves.
+    auto_leave_timeout: Annotated[int, Field(ge=0, le=TIMEOUT_MAX)] = 600_000
 
 
 class Messages(Model):
-    """v3's ``messages.show_detailed_errors``."""
+    """``messages.show_detailed_errors``."""
 
     show_detailed_errors: bool = True
 
 
 class Emojis(Model):
-    """The names of the application's emojis, v3's nine and four for the buttons.
-
-    v3's templates named the four button emojis by the author's application IDs, which no other
-    application can use.
-    """
+    """The names of the application's emojis: nine for the panels and four for the buttons."""
 
     progress_white_start: EmojiName = "music_player__line_white_start"
     progress_white_full: EmojiName = "music_player__line_white_full"
@@ -70,7 +66,7 @@ class Config(Model):
     """``plugins/MusicPlayer/config.yaml``; the bundled ``config.yaml`` holds the same defaults.
 
     ``lavalink`` is required: the bundled file leaves its password empty, so the plugin waits for
-    the operator. v3's ``enabled`` key is gone: the core config's ``plugins`` list enables it.
+    the operator. The core config's ``plugins`` list enables it; an ``enabled`` key only warns.
     """
 
     model_config = ConfigDict(hide_input_in_errors=True)

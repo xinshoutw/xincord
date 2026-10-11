@@ -1,4 +1,4 @@
-"""One guild's history: v3's order of play, without its defects."""
+"""One guild's history and its order of play."""
 
 import random
 
@@ -24,7 +24,7 @@ def titles(entries: list[Entry]) -> list[str]:
 
 
 def test_first_and_later_songs() -> None:
-    """Requirement: The history keeps v3's order of play."""
+    """Requirement: The history keeps the order of play."""
     history = History()
 
     first = history.add([song(1)])
@@ -37,7 +37,7 @@ def test_first_and_later_songs() -> None:
 
 
 def test_a_song_added_after_the_end() -> None:
-    """Requirement: The history keeps v3's order of play."""
+    """Requirement: The history keeps the order of play."""
     history = History()
     history.add([song(1), song(2)])
     history.ended(LoopMode.SEQUENTIAL, failed=False)
@@ -45,7 +45,7 @@ def test_a_song_added_after_the_end() -> None:
 
     added = history.add([song(3)])
 
-    # v3 started only a first song: this one was queued and never played (bug B1).
+    # A song added after the end starts.
     assert added == Added(1, 0, song(3))
     assert (history.index, history.active) == (2, True)
     assert titles(history.entries) == ["Song 1", "Song 2", "Song 3"]
@@ -53,7 +53,7 @@ def test_a_song_added_after_the_end() -> None:
 
 
 def test_skip() -> None:
-    """Requirement: The history keeps v3's order of play."""
+    """Requirement: The history keeps the order of play."""
     history = History()
     history.add([song(1), song(2)])
 
@@ -63,7 +63,7 @@ def test_skip() -> None:
 
 
 def test_skip_many() -> None:
-    """Requirement: The history keeps v3's order of play."""
+    """Requirement: The history keeps the order of play."""
     history = History()
     history.add([song(1), song(2), song(3), song(4)])
 
@@ -75,20 +75,20 @@ def test_skip_many() -> None:
 
 
 def test_previous() -> None:
-    """Requirement: The history keeps v3's order of play."""
+    """Requirement: The history keeps the order of play."""
     history = History()
     history.add([song(1), song(2), song(3)])
 
     assert history.previous(0) == song(1)  # no previous song: restart
     history.skip()
-    assert history.previous(5000) == song(2)  # v3's threshold: restart from 5000 ms
+    assert history.previous(5000) == song(2)  # the threshold: restart from 5000 ms
     assert history.index == 1
     assert history.previous(4999) == song(1)  # before it: back one
     assert history.index == 0
 
 
 def test_shuffle() -> None:
-    """Requirement: The history keeps v3's order of play."""
+    """Requirement: The history keeps the order of play."""
     history = History()
     history.add([song(1), song(2), song(3)])
     history.skip()
@@ -106,7 +106,7 @@ def test_shuffle() -> None:
 
 
 def test_full_history() -> None:
-    """Requirement: The history keeps v3's order of play."""
+    """Requirement: The history keeps the order of play."""
     history = History(limit=5)
     history.add([song(1), song(2), song(3)])
     history.skip()
@@ -115,7 +115,7 @@ def test_full_history() -> None:
     made_room = history.add([song(n) for n in range(4, 8)])
     full = history.add([song(8), song(9)])
 
-    # Played songs leave first and the index follows; v3 then dropped new songs silently (B8).
+    # Played songs leave first and the index follows; the songs that still do not fit are refused.
     assert made_room == Added(4, 0, None)
     assert titles(history.entries) == ["Song 3", "Song 4", "Song 5", "Song 6", "Song 7"]
     assert history.index == 0
@@ -123,7 +123,7 @@ def test_full_history() -> None:
 
 
 def test_full_history_after_the_end() -> None:
-    """Requirement: The history keeps v3's order of play."""
+    """Requirement: The history keeps the order of play."""
     history = History(limit=3)
     history.add([song(1), song(2), song(3)])
     history.skip_many(3)  # the list ended: all three were played
@@ -159,7 +159,7 @@ def test_idle() -> None:
 
 
 def test_stop() -> None:
-    """Requirement: Members control playback with v3's replies."""
+    """Requirement: Members control playback."""
     history = History()
     history.add([song(1), song(2)])
 

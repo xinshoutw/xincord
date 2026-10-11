@@ -63,7 +63,7 @@ async def test_refresh_and_expiry() -> None:
     await clock.advance(5)  # 60 seconds after the command
     await until(lambda: deleted(interaction))
 
-    # v3's log: 12 edits at roughly 5 s intervals (the command's and 11), then the deletion.
+    # 12 edits at 5 s intervals (the command's and 11), then the deletion.
     assert refreshed == [(1000.0 + 5 * step, 43) for step in range(1, 12)]
     assert set(clock.waits) == {5.0}
     assert panels.panels == {}
@@ -91,7 +91,7 @@ async def test_a_press_extends_the_panel() -> None:
 
     assert touched is True
     assert alive
-    assert not deleted(command)  # the press's interaction edits and deletes it now (v3: B4)
+    assert not deleted(command)  # the press's interaction edits and deletes it now
     assert panels.touch(44, press.as_interaction()) is False  # no such panel
 
 
@@ -212,7 +212,7 @@ async def test_queue_panel_refresh(scene: Scene) -> None:
     await scene.clock.asleep(1)
     empty = [embed_dict(embed) for embed in cast("list[Any]", interaction.sent[-1][1]["embeds"])]
 
-    assert after_skip[0]["title"] == "Song 2"  # v3's refresh never rendered the queue (B6)
+    assert after_skip[0]["title"] == "Song 2"  # the refresh renders the queue
     assert after_skip[1]["fields"][0]["value"] == "1. **Song 3** | Band 3 `[03:34]`"
     assert empty[1]["description"] == text("empty-playlist")
 

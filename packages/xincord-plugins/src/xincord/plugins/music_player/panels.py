@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 type Sleep = Callable[[float], Awaitable[object]]
 
-REFRESH = 5.0  # seconds between two edits, v3's
-LIFETIME = 60.0  # seconds after the panel's last interaction before it is deleted, v3's
+REFRESH = 5.0  # seconds between two edits
+LIFETIME = 60.0  # seconds after the panel's last interaction before it is deleted
 
 
 @dataclass
@@ -35,7 +35,7 @@ class Panel:
 
 
 class Panels:
-    """Each member's live panel (v3 kept one per user) and its refresh loop.
+    """Each member's live panel, one per member, and its refresh loop.
 
     ``refresh`` edits a panel with the current song and returns False once Discord refused the
     edit; ``sleep`` and ``clock`` are the loops' waits and time, which tests replace.
@@ -57,7 +57,7 @@ class Panels:
         screen: Screen,
         interaction: discord.Interaction,
     ) -> None:
-        """Track a member's new panel, deleting their previous one, as v3 kept one per user.
+        """Track a member's new panel, deleting their previous one.
 
         The new panel is the member's before the old one's deletion is answered, during which
         their next command may open another; after ``close``, a panel stays as it is.
@@ -76,8 +76,8 @@ class Panels:
     def touch(self, message_id: int, interaction: discord.Interaction) -> bool:
         """A press on the panel ``message_id``: it lives on, edited through ``interaction``.
 
-        The press restarts the 60 seconds and renews the 15-minute token that edits the panel;
-        v3 meant to, but its key never matched (bug B4). False when no such panel is tracked.
+        The press restarts the 60 seconds and renews the 15-minute token that edits the panel.
+        False when no such panel is tracked.
         """
         for panel in self.panels.values():
             if panel.message_id == message_id:
@@ -112,8 +112,8 @@ class Panels:
     async def _run(self, panel: Panel) -> None:
         """Every 5 seconds: delete the panel 60 seconds after its last interaction, else edit it.
 
-        v3 scheduled a task per panel that it never cancelled (bug B5); this one ends with the
-        panel: at its expiry, its replacement, its guild's stop, a refused edit or the unload.
+        The loop ends with the panel: at its expiry, its replacement, its guild's stop, a refused
+        edit or the unload.
         """
         try:
             while True:

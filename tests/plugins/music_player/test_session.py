@@ -114,7 +114,7 @@ async def test_cleanup() -> None:
 
 
 async def test_pause_resume_and_stop() -> None:
-    """Requirement: Members control playback with v3's replies."""
+    """Requirement: Members control playback."""
     player = FakePlayer()
     session = session_with(player)
     assert await session.pause() is False  # nothing plays
@@ -135,7 +135,7 @@ async def test_pause_resume_and_stop() -> None:
 
 
 async def test_skip_unpauses() -> None:
-    """Requirement: Members control playback with v3's replies."""
+    """Requirement: Members control playback."""
     player = FakePlayer()
     session = session_with(player)
     await session.enqueue([song(1), song(2), song(3), song(4)])
@@ -166,14 +166,14 @@ async def test_previous_and_loop() -> None:
     went_back = await session.previous()
 
     assert (restarted, went_back) == (song(2), song(1))
-    assert session.paused is False  # v3's previous kept the pause (B22)
+    assert session.paused is False  # previous unpauses
     assert player.played()[-2:] == [("Song 2", 3, VOLUME), ("Song 1", 4, VOLUME)]
     assert session.position() == 1000
     assert [session.toggle_loop(), session.toggle_loop()] == [LoopMode.SINGLE, LoopMode.SEQUENTIAL]
 
 
 async def test_volume_and_shuffle() -> None:
-    """Requirement: Volume, queue, shuffle and now playing keep v3's replies."""
+    """Requirement: Volume, queue, shuffle and now playing reply."""
     player = FakePlayer()
     session = session_with(player)
     await session.enqueue([song(1), song(2), song(3)])
@@ -200,7 +200,7 @@ async def test_detach() -> None:
     await session.ended(1, EndReason.FINISHED)  # an event after the disconnection
 
     assert (session.player, session.playing, session.history.entries) == (None, False, [])
-    assert (session.volume, session.loop) == (70, LoopMode.SINGLE)  # v3 kept both per guild
+    assert (session.volume, session.loop) == (70, LoopMode.SINGLE)  # both stay per guild
     assert session.position() == 0
     assert changes[-1] is False
     assert player.played() == [("Song 1", 1, VOLUME)]
@@ -221,7 +221,7 @@ async def test_songs_wait_while_one_plays() -> None:
 
 
 async def test_controls_while_nothing_plays() -> None:
-    """Requirement: Members control playback with v3's replies."""
+    """Requirement: Members control playback."""
     session = Session(10, VOLUME, lambda _session: None)
 
     assert await session.skip() is None
@@ -231,7 +231,7 @@ async def test_controls_while_nothing_plays() -> None:
 
 
 async def test_volume_without_a_player() -> None:
-    """Requirement: Volume, queue, shuffle and now playing keep v3's replies."""
+    """Requirement: Volume, queue, shuffle and now playing reply."""
     session = Session(10, VOLUME, lambda _session: None)
 
     assert await session.set_volume(70) == VOLUME
@@ -254,7 +254,7 @@ async def test_songs_added_while_disconnected() -> None:
 
 
 async def test_a_refused_start() -> None:
-    """Requirement: Errors are reported as v3 did."""
+    """Requirement: Errors are reported."""
     player = FakePlayer(error=RuntimeError("the node refused"))
     session = session_with(player)
 
@@ -266,7 +266,7 @@ async def test_a_refused_start() -> None:
 
 
 def test_no_current_song() -> None:
-    """Requirement: Panels show v3's track layout."""
+    """Requirement: Panels show the track layout."""
     session = Session(10, VOLUME, lambda _session: None)
 
     with pytest.raises(LookupError, match="guild 10 has no song"):

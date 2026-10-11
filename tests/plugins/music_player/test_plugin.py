@@ -30,7 +30,7 @@ BUNDLED = (
 
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as MusicPlayer."""
-    # v3's info.yaml: GUILD_VOICE_STATES; AudioAPI, its only dependency, folds into the plugin.
+    # The voice states intent; no dependency.
     assert discover(["MusicPlayer"]) == [
         PluginInfo(
             "MusicPlayer",

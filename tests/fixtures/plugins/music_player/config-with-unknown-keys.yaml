@@ -77,7 +77,7 @@ features:
 performance:
   max_concurrent_searches: 5  # 最大並發搜索數
   search_thread_pool_size: 3  # 搜索線程池大小
-  audio_send_system: "JDA"    # 音頻發送系統: "JDA", "NAS"
+  audio_send_system: "NAS"    # 音頻發送系統
 
 # 快取配置
 cache:

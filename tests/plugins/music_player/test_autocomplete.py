@@ -38,13 +38,13 @@ async def test_song_suggestions(scene: Scene) -> None:
     first = await scene.cog.song_choices(interaction, "never gonna")
     again = await scene.cog.song_choices(interaction, "never gonna")
 
-    assert short == []  # v3's two characters
+    assert short == []  # fewer than two characters
     assert scene.link.loads == [SEARCH]  # the second time came from the cache
     expected = [("T" * 100, "https://www.youtube.com/watch?v=video1")] + [
         (f"Song {number} | Band {number}", f"https://www.youtube.com/watch?v=video{number}")
         for number in range(4, 13)
     ]
-    assert choices(first) == expected  # ten, as v3
+    assert choices(first) == expected  # ten
     assert choices(again) == expected
 
 
@@ -59,7 +59,7 @@ async def test_the_cache_keeps_the_latest_inputs(scene: Scene) -> None:
     await scene.cog.song_choices(interaction, "song 0")
 
     assert scene.link.loads.count("ytsearch:song 100") == 1
-    assert scene.link.loads.count("ytsearch:song 0") == 2  # v3's 100 inputs, the oldest out
+    assert scene.link.loads.count("ytsearch:song 0") == 2  # 100 inputs kept, the oldest out
 
 
 async def test_slow_or_missing_node(scene: Scene) -> None:

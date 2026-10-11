@@ -1,4 +1,4 @@
-"""Unexpected errors: logged with their tracebacks and answered as v3 did."""
+"""Unexpected errors: logged with their tracebacks and answered."""
 
 import logging
 from typing import TYPE_CHECKING, Any, cast
@@ -42,7 +42,7 @@ def failure(scene: Scene, error: Exception) -> app_commands.CommandInvokeError:
 
 
 async def test_detailed_errors(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
-    """Requirement: Errors are reported as v3 did."""
+    """Requirement: Errors are reported."""
     interaction = scene.who()
     error = raised(
         RuntimeError("the node said no at http://lavalink:2333/v4/sessions/s/players/10")
@@ -62,7 +62,7 @@ async def test_detailed_errors(scene: Scene, caplog: pytest.LogCaptureFixture) -
 
 @pytest.mark.parametrize("config", [HIDDEN])
 async def test_hidden_details(scene: Scene) -> None:
-    """Requirement: Errors are reported as v3 did."""
+    """Requirement: Errors are reported."""
     interaction = scene.who()
 
     await scene.cog.cog_app_command_error(
@@ -75,7 +75,7 @@ async def test_hidden_details(scene: Scene) -> None:
 
 
 async def test_a_node_that_went_away(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
-    """Requirement: Errors are reported as v3 did."""
+    """Requirement: Errors are reported."""
     interaction = scene.who()
 
     with caplog.at_level(logging.ERROR):
@@ -88,7 +88,7 @@ async def test_a_node_that_went_away(scene: Scene, caplog: pytest.LogCaptureFixt
 
 
 async def test_a_failing_task(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
-    """Requirement: Errors are reported as v3 did."""
+    """Requirement: Errors are reported."""
 
     async def failing() -> None:
         msg = "the work broke"

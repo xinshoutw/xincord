@@ -64,9 +64,9 @@ class Session:
         self.changed(self)
 
     def detach(self) -> None:
-        """The bot left voice: forget the songs, as v3's ``/disconnect``.
+        """The bot left voice: forget the songs.
 
-        The volume and the loop mode stay, as v3 kept them per guild; the node's later events about
+        The volume and the loop mode stay, per guild; the node's later events about
         the songs are stale.
         """
         self.player = None
@@ -108,7 +108,7 @@ class Session:
             return True
 
     async def toggle_pause(self) -> None:
-        """v3's pause-resume button: pause the playing song, or resume the paused one.
+        """The pause-resume button: pause the playing song, or resume the paused one.
 
         The lock orders the choice too, so that two quick presses pause, then resume.
         """
@@ -120,7 +120,7 @@ class Session:
             self.paused = paused
 
     async def stop(self) -> None:
-        """Forget every song and stop the player, unpaused (v3 kept the pause)."""
+        """Forget every song and stop the player, unpaused."""
         async with self.lock:
             self.history.stop()
             await self._halt()
@@ -149,7 +149,7 @@ class Session:
             return entry
 
     async def previous(self) -> Entry | None:
-        """v3's previous button: restart the song, or play the previous one before 5000 ms.
+        """The previous button: restart the song, or play the previous one before 5000 ms.
 
         None when nothing plays, which may change while the call waits for the player.
         """
@@ -161,7 +161,7 @@ class Session:
             return entry
 
     def toggle_loop(self) -> LoopMode:
-        """Toggle sequential and single-song loop, as v3's loop button."""
+        """Toggle sequential and single-song loop, as the loop button does."""
         single = self.loop is LoopMode.SEQUENTIAL
         self.loop = LoopMode.SINGLE if single else LoopMode.SEQUENTIAL
         return self.loop
@@ -182,7 +182,7 @@ class Session:
         """The node ended the song started as ``number``.
 
         A finished song is followed as the loop mode says; a failed one by the next song, never
-        restarted (v3 looped it forever); a song the node dropped leaves the player idle. Other
+        restarted; a song the node dropped leaves the player idle. Other
         reasons, and events about other songs, change nothing.
         """
         async with self.lock:
@@ -200,10 +200,7 @@ class Session:
                 await self._follow(self.history.ended(self.loop, failed=failed))
 
     async def stuck(self, number: int) -> None:
-        """The node reported the song started as ``number`` stuck: the next song plays.
-
-        v3 left a stuck song playing silence until a member skipped it.
-        """
+        """The node reported the song started as ``number`` stuck: the next song plays."""
         async with self.lock:
             if number != self.number or not self.playing:
                 return

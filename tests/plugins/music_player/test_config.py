@@ -1,4 +1,4 @@
-"""The MusicPlayer config: the Lavalink node, and v3's keys that had an effect."""
+"""The MusicPlayer config: the Lavalink node, the player, the errors and the emojis."""
 
 import logging
 from typing import TYPE_CHECKING, cast
@@ -16,9 +16,11 @@ if TYPE_CHECKING:
     from xincord.plugins.music_player.config import Config
 
 NODE = 'lavalink:\n  password: "example-password"\n'
-# v3's bundled config.yaml as written (no final newline), with the node that xincord needs.
-V3_CONFIG = (FIXTURES / "plugins" / "music_player" / "v3_config.yaml").read_text(encoding="utf-8")
-# The keys of v3's file that v3 never read, or that moved to the node (engines), each warned about.
+# A config.yaml with many keys that the plugin does not know (no final newline).
+UNKNOWN_KEYS_CONFIG = (
+    FIXTURES / "plugins" / "music_player" / "config-with-unknown-keys.yaml"
+).read_text(encoding="utf-8")
+# The file's unknown keys, the node's (engines) among them, each warned about.
 UNUSED = (
     "enabled",
     "command_message_acknowledges",
@@ -35,7 +37,7 @@ UNUSED = (
     "cache",
     "developer",
 )
-V3_EMOJIS = {
+DEFAULT_EMOJIS = {
     "progress_white_start": "music_player__line_white_start",
     "progress_white_full": "music_player__line_white_full",
     "progress_white_end": "music_player__line_white_end",
@@ -45,7 +47,7 @@ V3_EMOJIS = {
     "media_pause": "music_player__media_pause",
     "media_ordered": "music_player__media_ordered",
     "media_repeat_once": "music_player__media_repeat_once",
-    # v3's templates named these by the author's application IDs.
+    # The button emojis.
     "media_previous": "music_player__media_previous",
     "media_pause_resume": "music_player__media_pause_resume",
     "media_next": "music_player__media_next",
@@ -58,23 +60,23 @@ def config_of(bot: Bot) -> Config:
     return cast("MusicPlayer", bot.get_cog("MusicPlayer")).config
 
 
-async def test_v3_config_file_with_a_node(
+async def test_config_file_with_unknown_keys(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: The config names the node, the player's defaults, the errors and the emojis."""
     with caplog.at_level(logging.WARNING):
         bot = await load_plugin(
-            "MusicPlayer", tmp_path / "plugins", store, config=f"{V3_CONFIG}\n{NODE}"
+            "MusicPlayer", tmp_path / "plugins", store, config=f"{UNKNOWN_KEYS_CONFIG}\n{NODE}"
         )
 
     assert bot.loaded == ("MusicPlayer",)
     config = config_of(bot)
     assert (config.lavalink.host, config.lavalink.port) == ("lavalink", 2333)
     assert config.lavalink.password == "example-password"
-    assert config.player.default_volume == 40  # v3's
-    assert config.player.auto_leave_timeout == 600000  # v3's, which now takes effect
+    assert config.player.default_volume == 40  # the default
+    assert config.player.auto_leave_timeout == 600000  # the default
     assert config.messages.show_detailed_errors is True
-    assert config.emojis.model_dump() == V3_EMOJIS
+    assert config.emojis.model_dump() == DEFAULT_EMOJIS
     for key in UNUSED:
         assert f"unknown key {key}\n" in caplog.text
 
@@ -106,7 +108,7 @@ async def test_bundled_config_with_a_password(tmp_path: Path, store: Store) -> N
     assert bot.loaded == ("MusicPlayer",)
     config = config_of(bot)
     assert (config.player.default_volume, config.player.auto_leave_timeout) == (40, 600000)
-    assert config.emojis.model_dump() == V3_EMOJIS
+    assert config.emojis.model_dump() == DEFAULT_EMOJIS
 
 
 @pytest.mark.parametrize(
