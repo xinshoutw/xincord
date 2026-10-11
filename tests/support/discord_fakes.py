@@ -90,6 +90,14 @@ class FakeResponse:
         """Record the modal that answers a button press."""
         self.sent.append(("response.send_modal", {"modal": modal}))
 
+    async def autocomplete(self, choices: list[object], /) -> None:
+        """Record the suggestions that answer an autocomplete."""
+        self.sent.append(("response.autocomplete", {"choices": choices}))
+
+    def is_done(self) -> bool:
+        """Whether the interaction was answered: the fakes record instead."""
+        return False
+
 
 @dataclass
 class FakeFollowup:

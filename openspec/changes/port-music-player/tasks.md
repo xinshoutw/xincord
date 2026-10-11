@@ -41,7 +41,7 @@
 - [x] 6.3 xfail tests for "Members control playback with v3's replies" and "Volume, queue, shuffle
       and now playing keep v3's replies"
 - [x] 6.4 Implement the eight other commands; remove the markers
-- [ ] 6.5 xfail tests for "Autocomplete suggests songs and the current volume" and "Errors are
+- [x] 6.5 xfail tests for "Autocomplete suggests songs and the current volume" and "Errors are
       reported as v3 did"
 - [ ] 6.6 Implement the autocompletes and the error replies; remove the markers
 

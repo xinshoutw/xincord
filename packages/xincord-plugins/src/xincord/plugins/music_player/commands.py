@@ -18,6 +18,7 @@ from .history import Entry
 from .replies import Replies, Screen, requester
 
 if TYPE_CHECKING:
+    from collections import OrderedDict
     from random import Random
 
     from .audio import Link, Loaded, Track
@@ -26,6 +27,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 QUERY_MAX = 500  # v3's setMaxLength(500)
+SEARCH_DEADLINE = 2.5  # seconds an autocomplete search may take: Discord waits 3 (v3 waited 10)
 
 
 class CommandSpec(NamedTuple):
@@ -70,6 +72,8 @@ class Commands(Replies):
     """The commands' handlers, a base of the cog, which sets the attributes."""
 
     random: Random  # /shuffle's order
+    searches: OrderedDict[str, tuple[app_commands.Choice[str], ...]]  # autocomplete's cache
+    search_deadline: float
 
     def command(self, name: str) -> app_commands.Command[Any, ..., None]:
         """Build v3's command ``name``, localized from ``register.yaml``, for every member.
@@ -317,6 +321,12 @@ class Commands(Replies):
             await self.tell(interaction, "nothing-playing")
             return
         await self.show(interaction, Screen("now-playing"), session)
+
+    async def cog_app_command_error(
+        self, interaction: discord.Interaction, error: app_commands.AppCommandError
+    ) -> None:
+        """An unexpected error in a command."""
+        raise NotImplementedError
 
     async def song_choices(
         self, interaction: discord.Interaction, current: str

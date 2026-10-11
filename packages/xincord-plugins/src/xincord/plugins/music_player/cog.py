@@ -6,15 +6,18 @@ Kotlin:
 """
 
 import random
+from collections import OrderedDict
 from typing import TYPE_CHECKING
 
 from discord.ext import commands
 
-from .commands import Commands
+from .commands import SEARCH_DEADLINE, Commands
 from .emojis import FALLBACKS
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+
+    from discord import app_commands
 
     from xincord.core.i18n import Lang
     from xincord.core.templates import Templates
@@ -40,6 +43,9 @@ class MusicPlayer(Commands, commands.Cog):
         self.link: Link | None = None
         self.emojis: Mapping[str, str] = FALLBACKS
         self.random: random.Random = random.SystemRandom()  # /shuffle's order; tests seed it
+        # v3's cache of autocomplete searches by input, the oldest out first; a reload clears it.
+        self.searches: OrderedDict[str, tuple[app_commands.Choice[str], ...]] = OrderedDict()
+        self.search_deadline = SEARCH_DEADLINE  # seconds; tests shorten it
 
     def joined(self, guild_id: int, player: Player) -> None:
         """The bot is connecting in the guild: its session plays on ``player``."""

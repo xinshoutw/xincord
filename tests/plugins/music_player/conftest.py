@@ -181,9 +181,9 @@ class Scene:
 
 
 @pytest.fixture
-async def scene(store: Store, tmp_path: Path) -> Scene:
-    """The plugin loaded with the example password; its link is a fake node's, as after READY."""
-    bot = await load_plugin("MusicPlayer", tmp_path / "plugins", store, config=CONFIG)
+async def scene(store: Store, tmp_path: Path, config: str | None) -> Scene:
+    """The plugin loaded with ``config``; its link is a fake node's, as after READY."""
+    bot = await load_plugin("MusicPlayer", tmp_path / "plugins", store, config=config)
     sent: list[Sent] = []
     guild = FakeGuild(id=10, name="guild")
     full = FakeVoiceChannel(sent=sent, id=FULL, name="full", guild=guild, user_limit=1)
