@@ -5,9 +5,11 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/service/GeminiApiService.kt:111-150
 """
 
+import hashlib
 import json
 import ssl
 from dataclasses import dataclass, field
+from importlib.resources import files
 from typing import TYPE_CHECKING
 
 import pytest
@@ -250,7 +252,6 @@ async def test_pages_use_the_context() -> None:
         assert web_.tls.check_hostname
 
 
-@pytest.mark.xfail(strict=True, reason="Board pages list their announcements")
 def test_missing_intermediate() -> None:
     """Requirement: Board pages list their announcements."""
     # www.academic.ntust.edu.tw sends its own certificate and the root, not TWCA's intermediate
@@ -258,3 +259,15 @@ def test_missing_intermediate() -> None:
     subjects = [str(ca["subject"]) for ca in page_context().get_ca_certs()]
 
     assert any("'TWCA Secure SSL Certification Authority'" in subject for subject in subjects)
+
+
+def test_bundled_intermediate() -> None:
+    """Requirement: Board pages list their announcements."""
+    text = files("xincord.plugins.ntust_announcements").joinpath("twca-secure-ssl-ca.pem")
+    pem = text.read_text("ascii")
+    block = pem[pem.index("-----BEGIN CERTIFICATE-----") :]
+
+    # The certificate that student.ntust.edu.tw sends after its own, as of 2026-10-11.
+    assert hashlib.sha256(ssl.PEM_cert_to_DER_cert(block)).hexdigest() == (
+        "1a2c75fd096e0499e9ff6ac74e526f61eaae3edfc8c2ea4436fee0c24d8b7d0e"
+    )

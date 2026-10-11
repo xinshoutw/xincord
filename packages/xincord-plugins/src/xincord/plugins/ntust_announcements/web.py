@@ -13,6 +13,7 @@ import json
 import ssl
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from importlib.resources import files
 from typing import TYPE_CHECKING, Protocol, cast
 
 import aiohttp
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
 API = "https://generativelanguage.googleapis.com"  # Gemini's REST API
+INTERMEDIATE = "twca-secure-ssl-ca.pem"  # TWCA's intermediate, which one NTUST host leaves out
 OK = 200
 # v3's limits for pages: 30 seconds to connect and 30 for the request.
 PAGE_TIMEOUT = aiohttp.ClientTimeout(total=30, connect=30)
@@ -53,12 +55,17 @@ class FetchError(Exception):
 def page_context() -> ssl.SSLContext:
     """TLS for the pages: certificates and host names verified, without the strict X.509 checks.
 
-    Python 3.13 made ``VERIFY_X509_STRICT`` a default, and the certificate chains of NTUST's three
-    hosts lack a Subject Key Identifier, which those checks refuse (checked on 2026-10-11): no page
-    would load. Java's ``HttpClient``, v3's, accepted them. Gemini keeps Python's default.
+    Python 3.13 made ``VERIFY_X509_STRICT`` a default, and the certificate chains of NTUST's hosts
+    lack a Subject Key Identifier, which those checks refuse (checked on 2026-10-11): no page would
+    load. Java's ``HttpClient``, v3's, accepted them. ``www.academic.ntust.edu.tw`` also leaves out
+    TWCA's intermediate certificate, which OpenSSL needs to reach the root: the context holds that
+    public certificate (valid until 2030-10-16). Gemini keeps Python's default context.
     """
     context = ssl.create_default_context()
     context.verify_flags &= ~ssl.VERIFY_X509_STRICT
+    context.load_verify_locations(
+        cadata=files(__package__).joinpath(INTERMEDIATE).read_text("ascii")
+    )
     return context
 
 

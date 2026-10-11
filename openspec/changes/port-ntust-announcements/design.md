@@ -108,7 +108,11 @@ lists; crossposting; later board pages; commands; the v3 data import itself; the
   `VERIFY_X509_STRICT` (`web.page_context`): Python 3.13 made it a default, and the certificate
   chains of NTUST's three hosts lack a Subject Key Identifier, which it refuses (checked on
   2026-10-11 with Python 3.14.8 and OpenSSL 3.5.9: every page failed, the relaxed context read
-  them); Java's `HttpClient` accepted them. Gemini's requests keep Python's default context.
+  them); Java's `HttpClient` accepted them. `www.academic.ntust.edu.tw` also sends its own
+  certificate twice and the root but not TWCA's intermediate, so OpenSSL cannot build its chain:
+  the package ships that public certificate (`twca-secure-ssl-ca.pem`, TWCA Secure SSL
+  Certification Authority, valid until 2030-10-16, SHA-256 checked by a test) and the context
+  trusts it. Gemini's requests keep Python's default context.
 - The live pages (2026-10-11) confirmed v3's layouts: the Student Affairs and Academic Affairs
   boards are `table.listTB.table` with `thead` and `tbody`, the Language Center's are
   `div.row.listBS`, the student resource room's `412-1053-8272.php` page has the same table (bug 15
@@ -395,11 +399,14 @@ ellipsis, and the operator's log lines (English).
   mention; each board then waited 3600 seconds; the store held v3's document with the dormitory's
   six items; the ready check warned about a board whose channel was a category; `bot.close()`
   ended the loops.
-- Live, once: the plugin's web and parser read the dormitory board's live page (20 entries) on
-  the host (Python 3.14.8, OpenSSL 3.5.9).
+- Live, once each, sequentially: the plugin's web and parser read all 18 bundled boards (229
+  entries: 10 to 20 per board, the student resource room's `412` page included) and found a
+  Language Center article's container, on the host (Python 3.14.8, OpenSSL 3.5.9). The first try
+  stopped at the Academic Affairs boards: their host leaves out TWCA's intermediate.
 - Found while checking and fixed in this change: NTUST's certificates and Python's strict X.509
-  checks (`page_context`), and pydantic's `min_length`, which counted only the valid items and so
-  also called the bundled config's 18 boards an empty list.
+  checks, the academic host's missing intermediate (`page_context`), and pydantic's `min_length`,
+  which counted only the valid items and so also called the bundled config's 18 boards an empty
+  list.
 
 ## Inventory audit
 
