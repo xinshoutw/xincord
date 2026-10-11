@@ -57,10 +57,12 @@ class Watcher:
     alerts: Alerts = field(init=False)
     courses: dict[str, Course] = field(default_factory=dict[str, "Course"])  # at their last check
     cursor: str | None = None  # the code asked about last
-    # Failure episodes of the course query and of the registrations document: each kind of
-    # failure is logged once per episode (v3 printed every failure to stdout).
-    queries: Failures = field(default_factory=Failures)
+    # Failure episodes: each kind of failure is logged once per episode (v3 printed every failure
+    # to stdout). One per code, since the other codes' answers end no code's episode; one for the
+    # registrations document and one for the unexpected errors.
+    queries: dict[str, Failures] = field(default_factory=dict[str, Failures])
     document: Failures = field(default_factory=Failures)
+    errors: Failures = field(default_factory=Failures)
 
     def __post_init__(self) -> None:
         """Measure the alerts' interval from the config."""
@@ -72,13 +74,21 @@ class Watcher:
         Before ``start``, or while nothing is registered, nothing is asked and the states are
         forgotten, so that the first check afterwards alerts as v3's first poll did; v3 polled the
         whole catalogue all the time. The codes are asked about in turn, in sorted order. Any
-        unexpected error is logged with its traceback and the next step comes as usual: v3's loop
-        died at the first exception until the next reload. Cancellation ends the step at once.
+        unexpected error is logged with its traceback, once per kind and episode, and the next step
+        comes as usual: v3's loop died at the first exception until the next reload. Cancellation
+        ends the step at once.
         """
         try:
             await self._step()
-        except Exception:
-            logger.exception("NtustCourseWatch: the step failed")
+        except Exception as error:
+            logger.log(
+                logging.ERROR if self.errors.fail(type(error)) else logging.DEBUG,
+                "NtustCourseWatch: the step failed",
+                exc_info=error,
+            )
+            return
+        if failed := self.errors.succeed():
+            logger.info("NtustCourseWatch: the steps work again after %d failures", failed)
 
     async def _step(self) -> None:
         if self.now() < self.config.start:
@@ -101,9 +111,11 @@ class Watcher:
         except NETWORK_ERRORS as error:
             self._failed(type(error), code, describe(error))
             return
-        if failed := self.queries.succeed():
+        if failed := self.queries.setdefault(code, Failures()).succeed():
             logger.info(
-                "NtustCourseWatch: NTUST's course query works again after %d failures", failed
+                "NtustCourseWatch: NTUST's course query about %s works again after %d failures",
+                code,
+                failed,
             )
         self._keep(registered)
         previous = self.courses.pop(code, None)
@@ -139,7 +151,9 @@ class Watcher:
         code.
         """
         logger.log(
-            logging.WARNING if self.queries.fail(kind) else logging.DEBUG,
+            logging.WARNING
+            if self.queries.setdefault(code, Failures()).fail(kind)
+            else logging.DEBUG,
             "NtustCourseWatch: NTUST's course query about %s failed: %s",
             code,
             detail,
@@ -160,10 +174,12 @@ class Watcher:
     def _keep(self, registered: Registered) -> None:
         """Forget the states of the courses and channels that are no longer registered."""
         self.courses = {code: self.courses[code] for code in self.courses if code in registered}
+        self.queries = {code: self.queries[code] for code in self.queries if code in registered}
         self.alerts.keep(registered)
 
     def _forget(self) -> None:
         self.courses = {}
+        self.queries = {}
         self.alerts = Alerts(self.config.alert_interval)
         self.cursor = None
 

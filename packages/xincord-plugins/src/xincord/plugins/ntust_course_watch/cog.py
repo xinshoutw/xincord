@@ -91,7 +91,9 @@ class NtustCourseWatch(commands.Cog):
         is asked before READY. In a ready bot, as after a reload, the loop starts at once: v3
         started its monitor when it loaded, after JDA was ready.
         """
-        self.tasks = (asyncio.create_task(self._run(), name="NtustCourseWatch"),)
+        task = asyncio.create_task(self._run(), name="NtustCourseWatch")
+        task.add_done_callback(_ended)
+        self.tasks = (task,)
 
     @override
     async def cog_unload(self) -> None:
@@ -153,11 +155,12 @@ class NtustCourseWatch(commands.Cog):
         try:
             await channel.send(content=post.content, allowed_mentions=_mentions(post.users))
         except discord.NotFound:
-            await self.registrations.forget(channel_id)
-            logger.info(
-                "NtustCourseWatch: channel %d is gone; its registrations were forgotten",
-                channel_id,
-            )
+            self.posts.pop(channel_id, None)
+            if await self.registrations.forget(channel_id):  # once for an alert's several posts
+                logger.info(
+                    "NtustCourseWatch: channel %d is gone; its registrations were forgotten",
+                    channel_id,
+                )
             return
         except POST_ERRORS as error:
             kind = error.status if isinstance(error, discord.HTTPException) else type(error)
@@ -247,6 +250,15 @@ class NtustCourseWatch(commands.Cog):
         """
         content = text(self.lang, f"reply.{key}", interaction.locale.value)
         await interaction.edit_original_response(content=content)
+
+
+def _ended(task: asyncio.Task[None]) -> None:
+    """Log the error that ended the loop: nothing awaits it until the plugin unloads."""
+    if not task.cancelled() and (error := task.exception()) is not None:
+        logger.error(
+            "NtustCourseWatch: the loop stopped, so no course is checked until the plugin reloads",
+            exc_info=error,
+        )
 
 
 def _mentions(users: tuple[int, ...]) -> discord.AllowedMentions:

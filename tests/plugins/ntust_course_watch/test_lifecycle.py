@@ -316,7 +316,6 @@ async def test_posts_work_again(scene: Scene, caplog: pytest.LogCaptureFixture) 
     assert "after 1 refusals" in again.message
 
 
-@pytest.mark.xfail(strict=True, reason="Failures are logged without flooding")
 async def test_deleted_channel_with_two_posts(
     scene: Scene, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -337,7 +336,6 @@ async def test_deleted_channel_with_two_posts(
     assert 5 not in scene.cog.posts  # the channel's failure record went with it
 
 
-@pytest.mark.xfail(strict=True, reason="Failures are logged without flooding")
 async def test_loop_ended_by_an_error(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Failures are logged without flooding."""
     [task] = scene.cog.tasks

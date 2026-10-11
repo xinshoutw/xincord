@@ -279,7 +279,6 @@ async def test_unexpected_error(
     assert len(fakes.posts) == 1
 
 
-@pytest.mark.xfail(strict=True, reason="Failures are logged without flooding")
 @pytest.mark.parametrize(
     "failing",
     [
@@ -319,7 +318,6 @@ class LockedStore:
         raise sqlite3.OperationalError(msg)
 
 
-@pytest.mark.xfail(strict=True, reason="Failures are logged without flooding")
 async def test_repeated_unexpected_errors(
     cog: NtustCourseWatch, fakes: Fakes, caplog: pytest.LogCaptureFixture
 ) -> None:

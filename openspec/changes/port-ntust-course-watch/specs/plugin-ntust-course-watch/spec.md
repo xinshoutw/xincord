@@ -254,23 +254,34 @@ course's name and code, pinging nobody.
 - **THEN** no channel hears about it
 
 ### Requirement: Failures are logged without flooding
-Failed requests, refused answers, refused posts and a broken registrations document SHALL be logged
-once per kind of failure and episode, with one line when the step works again; any other error is
-logged with its traceback, and the next step comes as usual. A channel that Discord no longer knows
-(404) SHALL have its registrations forgotten; other refusals keep them.
+Failed requests (per course code), refused posts (per channel), a broken registrations document and
+other errors of a step SHALL be logged once per kind of failure and episode, with one line when it
+works again, the first unexpected error of an episode with its traceback; the next step comes as
+usual. An error that ends the loop SHALL be logged. A channel that Discord no longer knows (404)
+SHALL have its registrations forgotten, logged once; other refusals keep them.
 
 #### Scenario: Failing course query
 - **WHEN** NTUST answers 500 at several steps, then answers again
-- **THEN** one warning names the status, and an info line says that the course query works again
+- **THEN** one warning names the status and the code, and an info line says that the course query
+  works again
+
+#### Scenario: Failing codes among several
+- **WHEN** one or two of four registered codes fail at every step
+- **THEN** one warning names each failing code, and the others' answers end no episode
 
 #### Scenario: Deleted channel
-- **WHEN** Discord answers an alert's post with 404
-- **THEN** the channel's registrations are forgotten and an info line names the channel
+- **WHEN** Discord answers an alert's posts with 404
+- **THEN** the channel's registrations are forgotten and one info line names the channel
 
 #### Scenario: Refused posts
-- **WHEN** Discord refuses a channel's alerts with 403 several times
-- **THEN** one warning names the channel, and its registrations stay
+- **WHEN** Discord refuses a channel's alerts with 403 several times, then takes them again
+- **THEN** one warning names the channel, its registrations stay, and an info line says that it
+  takes the alerts again
 
-#### Scenario: Unexpected error
-- **WHEN** a step raises an unexpected error
-- **THEN** the error is logged with its traceback, and the next step comes
+#### Scenario: Unexpected errors
+- **WHEN** a step raises an unexpected error once, or at every step
+- **THEN** the error is logged with its traceback once per episode, and the next step comes
+
+#### Scenario: The loop ends
+- **WHEN** an error ends the loop, as a session that cannot open
+- **THEN** the error is logged with its traceback

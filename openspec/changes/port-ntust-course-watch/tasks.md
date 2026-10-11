@@ -67,7 +67,7 @@
 - [x] 9.5 xfail tests for one failing code among several, repeated unexpected errors, a loop that
       an error ended and a deleted channel's two posts (found in the review: the log flooded, or
       stayed silent)
-- [ ] 9.6 Keep failure episodes per code and per kind of unexpected error, log the loop's end, drop
+- [x] 9.6 Keep failure episodes per code and per kind of unexpected error, log the loop's end, drop
       a forgotten channel's record and log it once; remove the markers
 - [ ] 9.7 xfail tests for limits written with digits outside the BMP and a course missing from one
       answer (found in the review: v3 read both differently)
