@@ -132,11 +132,6 @@ async def test_bundled_config(
             id="example key",
         ),
         pytest.param(
-            ('api-keys:\n  - "first-key"', "api-keys: []"),
-            "api-keys: Tuple should have at least 1 item after validation, not 0",
-            id="no keys",
-        ),
-        pytest.param(
             (" {{html}}", ""),
             "prompt: Value error, the prompt lacks {{html}}",
             id="prompt without html",
@@ -188,11 +183,6 @@ async def test_bundled_config(
             "model: String should match pattern",
             id="model with a slash",
         ),
-        pytest.param(
-            (BOARDS, "boards: []\n"),
-            "boards: Tuple should have at least 1 item after validation, not 0",
-            id="no boards",
-        ),
     ],
 )
 async def test_invalid_values(
@@ -232,3 +222,50 @@ async def test_keys_stay_hidden(
     assert bot.loaded == ()
     assert "api-keys" in caplog.text  # the error names the key, with its traceback logged
     assert "first-secret-key" not in caplog.text
+
+
+@pytest.mark.xfail(
+    strict=True, reason="The config names the boards, the Gemini keys and the prompt"
+)
+@pytest.mark.parametrize(
+    ("change", "error"),
+    [
+        pytest.param(
+            ('api-keys:\n  - "first-key"', "api-keys: []"),
+            "api-keys: Value error, list at least one key",
+            id="no keys",
+        ),
+        pytest.param(
+            (BOARDS, "boards: []\n"), "boards: Value error, list at least one board", id="no boards"
+        ),
+    ],
+)
+async def test_empty_lists(
+    change: tuple[str, str],
+    error: str,
+    tmp_path: Path,
+    store: Store,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Requirement: The config names the boards, the Gemini keys and the prompt."""
+    old, new = change
+    config = VALID.replace(old, new, 1)
+
+    bot = await load_plugin("NtustAnnouncements", tmp_path / "plugins", store, config=config)
+
+    assert bot.loaded == ()
+    assert error in caplog.text
+
+
+@pytest.mark.xfail(
+    strict=True, reason="The config names the boards, the Gemini keys and the prompt"
+)
+async def test_errors_name_the_invalid_items(
+    tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: The config names the boards, the Gemini keys and the prompt."""
+    await load_plugin("NtustAnnouncements", tmp_path / "plugins", store)
+
+    # pydantic's length check counts the items that validated: 18 invalid boards are no empty list.
+    assert "at least 1 item" not in caplog.text
+    assert "boards.17.channel-id" in caplog.text
