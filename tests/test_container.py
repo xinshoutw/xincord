@@ -3,6 +3,7 @@
 import re
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -199,6 +200,39 @@ def test_remote_cipher() -> None:
     assert environment["YOUTUBE_CIPHER_PASSWORD"] == "${YOUTUBE_CIPHER_PASSWORD:-}"
     assert any(line.startswith("# YOUTUBE_CIPHER_URL=") for line in example)
     assert "# YOUTUBE_CIPHER_PASSWORD=" in example
+
+
+@pytest.mark.xfail(strict=True, reason="Compose service")
+def test_published_image_in_its_own_directory() -> None:
+    """Requirement: Compose service."""
+    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
+    bot = compose["services"]["bot"]
+
+    assert bot["image"] == "ghcr.io/xinshoutw/xincord:${XINCORD_VERSION:-latest}"
+    assert "build" not in bot  # compose would build instead of pulling
+    assert bot["volumes"] == [".:/bot", "data:/bot/data"]
+
+
+@pytest.mark.xfail(strict=True, reason="Compose service")
+def test_building_from_a_clone() -> None:
+    """Requirement: Compose service."""
+    override = yaml.safe_load((ROOT / "compose.build.yaml").read_text(encoding="utf-8"))
+
+    assert override["services"]["bot"] == {"build": ".", "image": "xincord:local"}
+
+
+@pytest.mark.xfail(strict=True, reason="Lavalink service")
+def test_node_config_inline() -> None:
+    """Requirement: Lavalink service."""
+    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
+    config = yaml.safe_load(compose["configs"]["lavalink"]["content"])
+
+    assert compose["services"]["lavalink"]["configs"] == [
+        {"source": "lavalink", "target": "/opt/Lavalink/application.yml"}
+    ]
+    assert "volumes" not in compose["services"]["lavalink"]
+    assert config["server"]["port"] == 2333
+    assert not (ROOT / "lavalink").exists()
 
 
 def test_image_turns_off_cpr() -> None:

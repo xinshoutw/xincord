@@ -1,6 +1,6 @@
 ## 1. Compose without a clone
 
-- [ ] 1.1 xfail tests (the published image and the directory mount, the inline node config, the
+- [x] 1.1 xfail tests (the published image and the directory mount, the inline node config, the
       build override, Renovate's managers)
 - [ ] 1.2 `compose.yaml`, `compose.build.yaml`, the removed `lavalink/application.yml`, the ignore
       files, `.env.example`, README and Renovate; update the old tests; remove the markers

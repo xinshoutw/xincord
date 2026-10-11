@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -178,6 +179,21 @@ def test_snapshot_pins_stay() -> None:
     assert len(snapshot) == 1
     assert snapshot[0]["matchPackageNames"] == ["dev.lavalink.youtube:youtube-plugin"]
     assert snapshot[0]["enabled"] is False
+
+
+@pytest.mark.xfail(strict=True, reason="Renovate updates the versions that no manager reads")
+def test_node_plugins_in_compose() -> None:
+    """Requirement: Renovate updates the versions that no manager reads."""
+    manager = custom(renovate(), "maven")
+    files = cast("list[str]", manager["managerFilePatterns"])
+    ignored = next(
+        rule
+        for rule in rules(renovate())
+        if rule.get("enabled") is False and "xincord" in rule.get("matchPackageNames", [])
+    )
+
+    assert any(pattern(item).search("compose.yaml") for item in files)
+    assert "ghcr.io/xinshoutw/xincord" in ignored["matchPackageNames"]
 
 
 def test_patch_updates_automerge() -> None:
