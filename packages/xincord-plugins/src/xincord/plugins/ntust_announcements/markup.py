@@ -1,8 +1,8 @@
-"""An HTML tree over the standard library's parser, read with v3's selectors and Ksoup's text().
+"""An HTML tree over the standard library's parser, with CSS-like selectors and a text reader.
 
-v3 parsed pages with Ksoup, a port of jsoup, an HTML5 parser. NTUST's pages are well formed, so
-this tree follows HTML only where pages may leave things out: void elements, raw text, the end
-tags that HTML lets pages omit in tables and lists, and the table bodies that HTML5 parsers add.
+NTUST's pages are well formed, so this tree follows HTML only where pages may leave things out: void
+elements, raw text, the end tags that HTML lets pages omit in tables and lists, and the table bodies
+that HTML5 parsers add.
 """
 
 import html
@@ -36,9 +36,9 @@ VOID = frozenset(
         "wbr",
     }
 )
-# Elements whose content html.parser hands over unparsed, which jsoup kept as data, not text.
+# Elements whose content html.parser hands over unparsed: data, not text.
 RAW_TEXT = frozenset({"script", "style", "xmp", "iframe", "noembed", "noframes"})
-# The elements that jsoup's text() separates from their neighbors with a space (Tag.isBlock).
+# The block elements, which the text separates from their neighbors with a space.
 BLOCKS = frozenset(
     {
         "address",
@@ -154,12 +154,12 @@ PARAGRAPH_SCOPE = frozenset({"button", "table", "td", "th", "caption", "template
 # nothing outside it, and a table's own end tags nothing outside the table.
 CELL_SCOPE = frozenset({"table", "td", "th", "caption", "template"})
 TABLE_SCOPE = frozenset({"table"})
-# jsoup's text(): the whitespace it collapses (with the no-break space) and the characters it drops.
+# The text: the whitespace it collapses (with the no-break space) and the characters it drops.
 WHITESPACE = frozenset(" \t\n\f\r\xa0")
 INVISIBLE = frozenset("\u200b\xad")
-# Java's String.trim(), which ends jsoup's text(): every character up to U+0020.
-JAVA_TRIM = "".join(chr(code) for code in range(0x21))
-# Java's Character.isWhitespace: Unicode spaces but the no-break ones, and ASCII controls.
+# What the text is trimmed of: every character up to U+0020.
+TEXT_TRIM = "".join(chr(code) for code in range(0x21))
+# What separates classes: Unicode spaces but the no-break ones, and ASCII controls.
 CLASS_SEPARATOR = re.compile(
     "["
     + "".join(
@@ -191,7 +191,7 @@ class Compound:
 
     tag: str
     ids: tuple[str, ...]
-    classes: frozenset[str]  # in lower case: jsoup compares classes without case
+    classes: frozenset[str]  # in lower case: classes compare without case
 
     def matches(self, element: Element) -> bool:
         """Whether ``element`` has the tag, the IDs and every class."""
@@ -239,21 +239,20 @@ class Element:
     parent: Element | None = None
 
     def attr(self, name: str) -> str:
-        """The attribute's value, or an empty text when it is missing, as jsoup's ``attr``."""
+        """The attribute's value, or an empty text when it is missing."""
         return self.attrs.get(name) or ""
 
     def classes(self) -> frozenset[str]:
-        """The element's classes, in lower case, split at Java's whitespace as jsoup splits them.
+        """The element's classes, in lower case, split at ``CLASS_SEPARATOR``.
 
-        Java's ``Character.isWhitespace`` leaves out the no-break spaces, which Python's
-        ``str.split`` takes.
+        It leaves out the no-break spaces, which Python's ``str.split`` takes.
         """
         return frozenset(part for part in CLASS_SEPARATOR.split(self.attr("class").lower()) if part)
 
     def select(self, selector: str) -> list[Element]:
         """The element and its descendants that match ``selector``, in document order.
 
-        As jsoup's ``select``: tags, ``#id`` and ``.class`` (without case), joined by descendant
+        Tags, ``#id`` and ``.class`` (without case), joined by descendant
         combinators, the element itself counting as a match and as an ancestor.
         """
         compounds = _compile(selector)
@@ -293,16 +292,16 @@ class Element:
         return not ancestors
 
     def text(self) -> str:
-        """The element's text as jsoup's ``text()`` gives it.
+        """The element's text.
 
         Runs of whitespace (the no-break space included) become one space, U+200B and U+00AD go,
         ``br`` and block elements separate their neighbors with a space, raw text (scripts,
-        styles) is left out, and the result is trimmed as Java's ``String.trim()``. Unlike jsoup,
-        ``pre`` gets no special treatment: titles hold none.
+        styles) is left out, and the result is trimmed of ``TEXT_TRIM``. ``pre`` gets no special
+        treatment: titles hold none.
         """
         accumulated: list[str] = []
         _accumulate(self, accumulated)
-        return "".join(accumulated).strip(JAVA_TRIM)
+        return "".join(accumulated).strip(TEXT_TRIM)
 
     def outer_html(self) -> str:
         """The element serialized as HTML: attributes in their order, comments left out."""
@@ -318,7 +317,7 @@ def _ends_with_space(accumulated: list[str]) -> bool:
 def _accumulate(root: Element, accumulated: list[str]) -> None:
     """Add the text of ``root``'s children to ``accumulated``, one character a piece.
 
-    jsoup's ``TextAccumulator``: ``head`` adds a space before a block or a ``br`` that follows
+    ``head`` adds a space before a block or a ``br`` that follows
     text, ``tail`` after a block that text or an inline element follows. The walk keeps its own
     stack, so that no nesting depth exhausts Python's recursion limit.
     """
@@ -359,7 +358,7 @@ def _push_children(
 
 
 def _append_collapsed(text: str, accumulated: list[str]) -> None:
-    """jsoup's ``appendNormalisedWhitespace``, which strips leading whitespace after a space."""
+    """Append ``text`` with its whitespace collapsed, and none leading after a space."""
     strip_leading = _ends_with_space(accumulated)
     last_was_white = False
     reached_non_white = False
@@ -419,7 +418,7 @@ class _Builder(HTMLParser):
 
     @override
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        # HTML ignores the slash of a non-void start tag, as jsoup does: <a href=x /> stays open.
+        # HTML ignores the slash of a non-void start tag: <a href=x /> stays open.
         self.handle_starttag(tag, attrs)
 
     @override

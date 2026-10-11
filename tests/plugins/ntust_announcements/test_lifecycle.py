@@ -161,7 +161,7 @@ async def test_fetches_at_a_time(scene: Scene) -> None:
 
     await until(lambda: len(scene.web.fetched) >= 5)
     await turns()
-    assert len(scene.web.fetched) == 5  # v3's five at a time
+    assert len(scene.web.fetched) == 5  # five at a time
     assert scene.web.under_way == 5
 
     scene.web.hold.set()

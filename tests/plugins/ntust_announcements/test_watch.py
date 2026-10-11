@@ -43,8 +43,8 @@ ARTICLES = [link for link in ENTRIES if is_article(link.url)]  # all but the Goo
 BOARD_PAGE = (PAGES / "student-dormitory.html").read_text(encoding="utf-8")
 ARTICLE_PAGE = (PAGES / "student-article.html").read_text(encoding="utf-8")
 LOGGER = "xincord.plugins.ntust_announcements"
-# v3's itemTypeName, which Moshi wrote when the list was not empty (CacheCollectionManager.kt:143).
-ITEM_TYPE = "tw.xinshou.discord.plugin.ntustmanager.announcement.AnnouncementLink"
+# A field that an older writer added, which reading ignores.
+ITEM_TYPE = "AnnouncementLink"
 
 
 def table(links: list[Link]) -> str:
@@ -132,7 +132,7 @@ async def test_first_pass(scene: Scene) -> None:
     """Requirement: New announcements are posted in board order."""
     await scene.watcher.check()
 
-    # v3's first run: every entry, in page order; the Google Docs entry as its title link.
+    # The first pass: every entry, in page order; the Google Docs entry as its title link.
     assert scene.sent == expected_posts(ENTRIES)
     assert scene.fetched == [BOARD_URL, *(link.url for link in ARTICLES)]
     assert scene.converted == [(article_html(ARTICLE_PAGE), link.url) for link in ARTICLES]
@@ -213,7 +213,7 @@ async def test_retried(scene: Scene) -> None:
     scene.sent.clear()
     await scene.watcher.check()
 
-    # v3 never retried: its list held them once the cycle ended.
+    # Failed entries are tried again at the next pass.
     assert scene.sent == expected_posts([failed_page, refused])
     assert await scene.stored() == tuple(ENTRIES)
 
@@ -230,7 +230,7 @@ async def test_links_that_leave_the_page(scene: Scene) -> None:
     scene.pages[BOARD_URL] = Page(BOARD_URL, BOARD_PAGE)  # the whole page again
     await scene.watcher.check()
 
-    # v3 dropped them from its list and posted them again.
+    # Links that left the page are kept, so nothing is posted again.
     assert scene.sent == []
     assert await scene.stored() == tuple(ENTRIES)
 
@@ -264,7 +264,7 @@ async def test_broken_document(
 
     await scene.watcher.check()
 
-    # v3 dropped broken items, and their links counted as new.
+    # A broken document posts nothing.
     assert scene.sent == []
     assert scene.converted == []
     assert await store.get(NAMESPACE, BOARD) == {"items": "broken"}
@@ -468,9 +468,9 @@ async def test_parsing_off_the_event_loop(scene: Scene, monkeypatch: pytest.Monk
     assert not any(threads)
 
 
-async def test_v3_document_in_a_pass(scene: Scene, store: Store) -> None:
+async def test_document_with_another_field_in_a_pass(scene: Scene, store: Store) -> None:
     """Requirement: Each board remembers what it posted."""
-    # v3's MongoDB value, as the planned v3 data import copies it.
+    # A document with an itemTypeName field.
     items: list[JSON] = [
         {"type": link.board, "url": link.url, "title": link.title} for link in ENTRIES[:3]
     ]

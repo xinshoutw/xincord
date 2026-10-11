@@ -1,7 +1,7 @@
-"""The Discord messages of an announcement: v3's header, split and title links.
+"""The Discord messages of an announcement: the header, the split and the title links.
 
-v3 measured Discord's limits with Kotlin's ``String.length``, in UTF-16 code units, where a
-character outside the BMP counts twice; so do these functions, which never cut such a character.
+Discord's limits are measured in UTF-16 code units, where a character outside the BMP counts twice;
+these functions never cut such a character.
 """
 
 import re
@@ -15,10 +15,10 @@ from .strings import trim
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-HEADER = chr(0xFF3F) * 15  # v3's 15 FULLWIDTH LOW LINEs before an announcement
+HEADER = chr(0xFF3F) * 15  # 15 FULLWIDTH LOW LINEs before an announcement
 MESSAGE_LIMIT = 2000  # Discord's limit for a message's content
-SINGLE_LIMIT = 1990 - len(HEADER)  # v3: content up to this length goes in one message
-PART_LIMIT = 1980  # v3's parts, after the header's line in the first message
+SINGLE_LIMIT = 1990 - len(HEADER)  # content up to this length goes in one message
+PART_LIMIT = 1980  # the parts, after the header's line in the first message
 ELLIPSIS = "\N{HORIZONTAL ELLIPSIS}"
 ESCAPED = frozenset("\\[]")  # what ends or breaks a Markdown link's text
 ENCODED = frozenset("()<>\\")  # what ends or breaks a Markdown link's URL, with whitespace
@@ -36,7 +36,7 @@ def _size(character: str) -> int:
 
 
 def units(text: str) -> int:
-    """The length of ``text`` in UTF-16 code units, as Kotlin's ``String.length`` counts it."""
+    """The length of ``text`` in UTF-16 code units."""
     return sum(_size(character) for character in text)
 
 
@@ -55,8 +55,8 @@ def split(content: str, limit: int) -> list[str]:
 
     Each part ends at the best break among those that fit (:func:`_cut`), else at the limit,
     before a character that would straddle it. The line breaks at a cut are left out, and so are
-    parts of only whitespace. Without headings, blank lines or list items, the parts are v3's
-    (``splitContentIntoSegments``): each ends before the last line break that fits.
+    parts of only whitespace. Without headings, blank lines or list items, each part ends
+    before the last line break that fits.
     """
     if units(content) <= limit:
         return [content]
@@ -114,9 +114,9 @@ def _cut(text: str, fitting: int) -> tuple[int, int]:
 
 
 def content_messages(content: str) -> list[str]:
-    """The messages that post the model's ``content``, as v3's ``createDiscordMessages``.
+    """The messages that post the model's ``content``.
 
-    The content is trimmed as Kotlin's ``trim()``; up to 1975 units it follows the header in one
+    The content is trimmed (:func:`strings.trim`); up to 1975 units it follows the header in one
     message, else it is split in parts of 1980 units, the header before the first.
     """
     full = trim(content)
@@ -129,9 +129,9 @@ def content_messages(content: str) -> list[str]:
 def link_message(title: str, url: str) -> str:
     """The message that posts an announcement as its title, linked to ``url``.
 
-    v3's ``HEADER + "\\n# [" + title + "](" + url.trim() + ")"``, with ``\\``, ``[`` and ``]``
-    escaped in the title and the characters that end a link percent-encoded in the URL, which v3
-    sent as they were; a title too long for Discord is cut with an ellipsis, the URL kept whole.
+    ``HEADER + "\\n# [" + title + "](" + url + ")"``, the URL trimmed, with ``\\``, ``[`` and
+    ``]`` escaped in the title and the characters that end a link percent-encoded in the URL; a
+    title too long for Discord is cut with an ellipsis, the URL kept whole.
     A URL that leaves no room for a title (no board has one) is posted bare, cut to the limit.
     """
     target = "".join(

@@ -1,19 +1,19 @@
-"""Kotlin's ``String.trim()``, which v3 applied to titles, links, contents and the model's text.
+"""The trim of titles, links, contents and the model's text.
 
-It removes what Kotlin's ``Char.isWhitespace()`` accepts: Python's ``str.isspace()`` without
-U+0085. The module imports nothing of the plugin, so that every module can use it.
+It removes whitespace: Python's ``str.isspace()`` without U+0085. The module imports nothing of the
+plugin, so that every module can use it.
 """
 
-NEXT_LINE = "\x85"  # Python's isspace() takes it; Kotlin's isWhitespace() does not
+NEXT_LINE = "\x85"  # Python's isspace() takes it; the trim leaves it
 
 
 def _whitespace(character: str) -> bool:
-    """Kotlin's ``Char.isWhitespace()``."""
+    """Whitespace for the trim."""
     return character.isspace() and character != NEXT_LINE
 
 
 def trim(text: str) -> str:
-    """``text`` without the leading and trailing characters that Kotlin's ``trim()`` removes."""
+    """``text`` without the leading and trailing whitespace characters (U+0085 aside)."""
     start, end = 0, len(text)
     while start < end and _whitespace(text[start]):
         start += 1

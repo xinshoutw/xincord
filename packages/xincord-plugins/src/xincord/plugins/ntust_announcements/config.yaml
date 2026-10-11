@@ -1,4 +1,4 @@
-# NtustAnnouncements (v3 NtustManager): list it under `plugins` in the core config.yaml to enable
+# NtustAnnouncements: list it under `plugins` in the core config.yaml to enable
 # it. Once the bot is ready, it reads the first page of each board below at once, then
 # `fetch-interval` seconds after each pass, and posts the board's entries that it has not posted
 # yet to the board's channel, in the page's order. A model (Gemini by default) turns each NTUST
@@ -96,8 +96,7 @@ review-prompt: |-
   待檢查的 Markdown：
   {{markdown}}
 
-# The boards. `name` keys the list of what the board posted (v3's names, so that v3's lists can be
-# imported); `url` is the board's first page; `layout` is how the page lists its entries
+# The boards. `name` keys the list of what the board posted; `url` is the board's first page; `layout` is how the page lists its entries
 # (student-affairs: titles in the table's first column; academic-affairs: in its second;
 # language-center: listed rows); `channel-id` is the channel that gets the board's posts (set each
 # one: the plugin does not load with 0); `title-prefix`, when set, keeps the titles that start

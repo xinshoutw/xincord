@@ -1,6 +1,6 @@
 """Reviewers' cross mark: a post's messages are remembered, then redone with a review.
 
-The owner's request of 2026-10-12; v3 had no such feature.
+The owner's request of 2026-10-12.
 """
 
 import asyncio

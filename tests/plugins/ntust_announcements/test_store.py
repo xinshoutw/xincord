@@ -1,4 +1,4 @@
-"""Each board's posted links in the store, as v3's MongoDB document."""
+"""Each board's posted links in the store, one document per board."""
 
 import json
 from typing import TYPE_CHECKING
@@ -20,8 +20,8 @@ if TYPE_CHECKING:
     from xincord.core.storage import JSON, Store
 
 BOARD = "STUDENT_DORMITORY"
-# v3's itemTypeName, which Moshi wrote when the list was not empty (CacheCollectionManager.kt:143).
-ITEM_TYPE = "tw.xinshou.discord.plugin.ntustmanager.announcement.AnnouncementLink"
+# A field that an older writer added, which reading ignores.
+ITEM_TYPE = "AnnouncementLink"
 
 
 def link(number: int, title: str = "") -> Link:
@@ -38,7 +38,7 @@ def test_document_shape() -> None:
     """Requirement: Each board remembers what it posted."""
     document = posted_document([link(1), link(2)])
 
-    # v3's TypedListWrapper value, Moshi's field order, without itemTypeName.
+    # The value, in this field order, without other fields.
     assert json.dumps(document) == json.dumps(
         {
             "items": [
@@ -50,7 +50,7 @@ def test_document_shape() -> None:
     assert posted_document([]) == {"items": []}
 
 
-def test_v3_document() -> None:
+def test_document_with_another_field() -> None:
     """Requirement: Each board remembers what it posted."""
     document: JSON = {
         "items": [

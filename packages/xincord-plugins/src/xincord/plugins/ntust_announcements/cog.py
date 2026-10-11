@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
 type OpenWeb = Callable[[Api], AbstractAsyncContextManager[Requests]]  # settings to a session
 
-FETCHES = 5  # NTUST pages fetched at a time, v3's maxConcurrentRequests
+FETCHES = 5  # NTUST pages fetched at a time
 CROSS_MARK = "\N{CROSS MARK}"  # a reviewer's reaction that redoes a post
 HOURGLASS = "\N{HOURGLASS WITH FLOWING SAND}"  # the bot's sign on the marked message during a redo
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class Postable(Protocol):
         ...
 
 
-NO_MENTIONS = discord.AllowedMentions.none()  # the model's text pings nobody (v3: JDA's default)
+NO_MENTIONS = discord.AllowedMentions.none()  # the model's text pings nobody
 
 
 class NtustAnnouncements(commands.Cog):
@@ -58,8 +58,7 @@ class NtustAnnouncements(commands.Cog):
     def __init__(self, bot: commands.Bot, config: Config, store: Store) -> None:
         """Keep the bot, the config and the store of the boards' posted lists.
 
-        A reload builds a new cog from the new config: v3's reload kept the keys, the prompt and
-        the interval that it had read first, and the model's settings were constants.
+        A reload builds a new cog from the new config.
         """
         self.bot = bot
         self.config = config
@@ -68,7 +67,7 @@ class NtustAnnouncements(commands.Cog):
         # The effects that tests replace: the waits, the clocks and the web.
         self.sleep: Sleep = asyncio.sleep
         self.clock: Callable[[], float] = time.monotonic
-        self.now: Callable[[], datetime] = datetime.now  # the host's local time, as v3's
+        self.now: Callable[[], datetime] = datetime.now  # the host's local time
         self.open_web: OpenWeb = open_web
         self.watchers: dict[str, Watcher] = {}  # by board name, once the boards run
         self.redoing: set[str] = set()  # the URLs being redone
@@ -79,8 +78,7 @@ class NtustAnnouncements(commands.Cog):
         """Start the boards' loops; they wait until the bot is ready.
 
         ``setup`` runs before the gateway connects, and ``--no-online`` never connects, so nothing
-        is fetched before READY. In a ready bot, as after a reload, the boards pass at once: v3
-        started its scheduler when it loaded, after JDA was ready, with no initial delay.
+        is fetched before READY. In a ready bot, as after a reload, the boards pass at once.
         """
         self.tasks = (asyncio.create_task(self._run(), name="NtustAnnouncements"),)
         if self.bot.is_ready():
@@ -90,8 +88,7 @@ class NtustAnnouncements(commands.Cog):
     async def cog_unload(self) -> None:
         """Cancel the loops and wait for them, so that their session closes.
 
-        A reload builds a new cog with the new config; v3's reload added a second scheduler to the
-        first (duplicate posts) or failed after a disable.
+        A reload builds a new cog with the new config, whose loops replace these.
         """
         tasks = (*self.tasks, *self.redos)
         for task in tasks:
@@ -172,9 +169,8 @@ class NtustAnnouncements(commands.Cog):
     def check(self) -> None:
         """Warn about each board whose channel the bot cannot see or that takes no messages.
 
-        v3 looked its guild up with ``!!`` when it started, which stopped the bot outside the
-        owner's guild, and each channel when it first posted; a wrong ID now shows at READY, and
-        when posting, as a warning. An unavailable guild (an outage) shows no channels either.
+        A wrong ID shows at READY, and when posting, as a warning. An unavailable guild (an outage)
+        shows no channels either.
         """
         for board in self.config.boards:
             channel: object = self.bot.get_channel(board.channel_id)
@@ -195,8 +191,7 @@ class NtustAnnouncements(commands.Cog):
         """Wait until the bot is ready, then run one loop per board over one session.
 
         Each board passes at once, then ``fetch-interval`` seconds after its own pass, so a board
-        whose announcement waits hours between conversion attempts holds up no other; v3 ran all
-        the boards in one cycle, five at a time, each holding its slot through the model's waits.
+        whose announcement waits hours between conversion attempts holds up no other.
         The model's settings are the config's; the log names the endpoint by its origin only.
         """
         await self.bot.wait_until_ready()

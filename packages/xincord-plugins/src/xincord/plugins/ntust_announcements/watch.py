@@ -60,7 +60,7 @@ class Watcher:
     delete: Delete | None = None  # deletes a redone post's old messages
     announcements: Announcements | None = None  # the posted messages, for a reviewer's redo
     # Failure episodes: the board's page, its articles' pages, its posts and its document. Each
-    # kind of failure is logged once per episode (v3 logged at every cycle).
+    # kind of failure is logged once per episode.
     pages: Failures = field(default_factory=Failures)
     articles: Failures = field(default_factory=Failures)
     posts: Failures = field(default_factory=Failures)
@@ -80,8 +80,8 @@ class Watcher:
     async def run(self, interval: float, sleep: Sleep) -> None:
         """Pass at once, then ``interval`` seconds after each pass, until cancelled.
 
-        v3 ran every board at a fixed rate from one scheduler; a board now waits for nothing but
-        its own pass, so a long retry of the model holds up no other board.
+        A board waits for nothing but its own pass, so a long retry of the model holds up no other
+        board.
         """
         while True:
             await self.check()
@@ -137,7 +137,7 @@ class Watcher:
             logger.exception("%s: the pass failed", self.name)
 
     async def _pass(self) -> None:
-        """v3's ``checkAnnouncementUpdates``, which remembers a link once it is posted."""
+        """Read the board and post its new entries, remembering a link once it is posted."""
         links = await self._links()
         if links is None:
             return
@@ -209,7 +209,7 @@ class Watcher:
         except DataError as error:
             logger.log(
                 logging.ERROR if self.document.fail(DataError) else logging.DEBUG,
-                "%s: its posted list is not v3's document, so the board posts nothing until "
+                "%s: its posted list is broken, so the board posts nothing until "
                 "the document is fixed or deleted: %s",
                 self.name,
                 error,
@@ -222,8 +222,8 @@ class Watcher:
     async def _guarded(self, link: Link) -> bool | None:
         """:meth:`_announce`, or None when it raised (logged with its traceback).
 
-        One broken announcement holds up none of the board's later ones, as v3's guard around each
-        did, and is tried again at the next pass.
+        One broken announcement holds up none of the board's later ones, and is tried
+        again at the next pass.
         """
         try:
             return await self._announce(link)
@@ -238,7 +238,7 @@ class Watcher:
             return None
 
     async def _announce(self, link: Link) -> bool:
-        """Post one announcement; whether it counts as posted (v3's ``contentParser``).
+        """Post one announcement; whether it counts as posted.
 
         Messages that the channel refused wait in ``ready`` for the next pass, so that a refusing
         channel (a wrong ID, a missing permission) costs no attempt of the model at each pass.
@@ -259,8 +259,7 @@ class Watcher:
 
         An NTUST article goes through the model, and with ``review`` its conversion through the
         model's second check; any other link, or an article whose content cannot be converted, is
-        its title link. An article page that fails is left for the next pass, which v3 never gave
-        it.
+        its title link. An article page that fails is left for the next pass.
         """
         if not is_article(link.url):
             return [link_message(link.title, link.url)]

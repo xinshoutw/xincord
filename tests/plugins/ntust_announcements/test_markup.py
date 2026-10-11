@@ -1,4 +1,4 @@
-"""The HTML tree that stands for Ksoup: v3's selectors, its text() and its outer HTML."""
+"""The HTML tree: its selectors, its text and its outer HTML."""
 
 import pytest
 
@@ -23,7 +23,7 @@ def test_compound_selectors() -> None:
         '<div id="Dyn_2_3" class="M23">e</div><div id="Dyn_2_2" class="M23">f</div>'
     )
 
-    # Classes compare without case, as jsoup's hasClass; the tag and the ID must match.
+    # Classes compare without case; the tag and the ID must match.
     assert texts(html, "div.row.listBS") == ["a", "c"]
     assert texts(html, ".row") == ["a", "b", "c", "d"]
     assert texts(html, "div#Dyn_2_3.M23") == ["e"]
@@ -50,7 +50,7 @@ def test_descendant_selectors() -> None:
         "/two",
         "/three",
     ]
-    # The element itself counts, as an ancestor and as a match, as in jsoup's select.
+    # The element itself counts, as an ancestor and as a match.
     assert [element.tag for element in row.select("div.listBS")] == ["div"]
     assert len(row.select("div.row div.mtitle a")) == 2
     assert document.select_first("table") is None
@@ -58,7 +58,7 @@ def test_descendant_selectors() -> None:
 
 def test_omitted_end_tags() -> None:
     """Requirement: Board pages list their announcements."""
-    # HTML lets pages omit these end tags; an HTML5 parser such as jsoup adds the tbody.
+    # HTML lets pages omit these end tags; the tree adds the tbody, as HTML5 parsers do.
     html = (
         '<table class="listTB table"><tr><td><a href="/a">A</a><td>2026-10-01'
         "<tr><td><a href=/b>B</a><td>2026-10-02</table>"
@@ -80,7 +80,7 @@ def test_omitted_end_tags() -> None:
 
 def test_cells_without_rows() -> None:
     """Requirement: Board pages list their announcements."""
-    # A cell straight in a table gets the row and the body that jsoup would add.
+    # A cell straight in a table gets the row and the body that HTML5 parsers add.
     document = parse("<table><td>alone</td></table>")
 
     assert [cell.text() for cell in document.select("table tbody tr td")] == ["alone"]
@@ -131,7 +131,7 @@ def test_attributes() -> None:
         pytest.param(
             f"<a>{IDEOGRAPHIC_SPACE}One{IDEOGRAPHIC_SPACE}</a>",
             f"{IDEOGRAPHIC_SPACE}One{IDEOGRAPHIC_SPACE}",
-            id="ideographic spaces stay for Kotlin's trim",
+            id="ideographic spaces stay",
         ),
     ],
 )
@@ -164,13 +164,13 @@ def test_end_tags_stay_in_their_cell() -> None:
     document = parse(html)
 
     assert texts(html, "td") == ["xy"]
-    assert texts(html, "div.outer") == ["xy z"]  # the table is a block, as in jsoup
+    assert texts(html, "div.outer") == ["xy z"]  # the table is a block
     assert len(document.select("div.outer table td span")) == 1
 
 
 def test_raw_text_is_no_text() -> None:
     """Requirement: Board pages list their announcements."""
-    # jsoup keeps scripts and styles as data, which text() leaves out.
+    # Scripts and styles are data, which the text leaves out.
     assert texts("<a>One<script>var x = 1;</script><style>p {}</style>two</a>", "a") == ["Onetwo"]
     assert texts("<script>var x = 1;</script>", "script") == [""]
 
@@ -195,7 +195,7 @@ def test_deep_nesting() -> None:
 
 def test_self_closing_tags() -> None:
     """Requirement: Board pages list their announcements."""
-    # HTML ignores the slash of a non-void start tag, as jsoup does: the link keeps its title.
+    # HTML ignores the slash of a non-void start tag: the link keeps its title.
     html = '<table class="listTB table"><tbody><tr><td><a href="/p/1.php" />Title</td>'
     html += "<td>2026-10-11</td></tr></tbody></table><br/><p>after</p>"
 
@@ -205,7 +205,7 @@ def test_self_closing_tags() -> None:
 
 def test_class_separators() -> None:
     """Requirement: Board pages list their announcements."""
-    # jsoup splits classes at Java's whitespace, which leaves out no-break spaces.
+    # Classes split at whitespace, no-break spaces left out.
     assert texts(f'<div class="row{NBSP}listBS">a</div>', "div.row.listBS") == []
     assert texts('<div class="row\tlistBS">b</div>', "div.row.listBS") == ["b"]
     assert texts(f'<div class="row{IDEOGRAPHIC_SPACE}listBS">c</div>', "div.row.listBS") == ["c"]

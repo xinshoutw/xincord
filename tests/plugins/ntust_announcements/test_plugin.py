@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as NtustAnnouncements."""
-    # No intents beyond discord.py's defaults: v3's info.yaml requested none.
+    # No intents beyond discord.py's defaults.
     assert discover(["NtustAnnouncements"]) == [
         PluginInfo("NtustAnnouncements", "xincord.plugins.ntust_announcements")
     ]
@@ -29,4 +29,4 @@ async def test_first_load_writes_the_config(store: Store, tmp_path: Path) -> Non
     bundled = files("xincord.plugins.ntust_announcements").joinpath("config.yaml")
     written = (directory / "config.yaml").read_text(encoding="utf-8")
     assert written == bundled.read_text(encoding="utf-8")
-    assert not (directory / "lang").exists()  # v3 had no lang files
+    assert not (directory / "lang").exists()  # no lang files

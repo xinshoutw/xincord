@@ -187,7 +187,7 @@ async def test_timeouts(server: Server, monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setattr(aiohttp.ClientSession, "post", recording)
 
     async with open_web(gemini(server)) as web_:
-        await web_.generate("key-one", "the prompt")  # v3's: 300 seconds, 30 to connect
+        await web_.generate("key-one", "the prompt")  # the defaults: 300 seconds, 30 to connect
     async with open_web(gemini(server, request_timeout=120, connect_timeout=10)) as web_:
         await web_.generate("key-one", "the prompt")
 
@@ -447,7 +447,7 @@ async def test_redirects(server: Server) -> None:
     async with open_web(Api()) as web_:
         page = await web_.page(f"{server.root}/moved")
 
-    # v3 followed no redirect and read nothing; the links resolve against where it led.
+    # The links resolve against where the redirect led.
     assert page == Page(f"{server.root}/board", BOARD)
 
 
@@ -466,7 +466,7 @@ async def test_page_encoding(server: Server) -> None:
     async with open_web(Api()) as web_:
         page = await web_.page(f"{server.root}/latin")
 
-    # Without a charset, UTF-8 with replacement characters, as Java's BodyHandlers.ofString.
+    # Without a charset, UTF-8 with replacement characters, for the replaced bytes.
     assert page.text == "caf\N{REPLACEMENT CHARACTER} \N{REPLACEMENT CHARACTER}"
 
 
@@ -475,7 +475,7 @@ def test_page_certificates() -> None:
     context = ntust_context()
 
     # Python 3.13 made the strict X.509 checks a default, and NTUST's certificate chain lacks a
-    # Subject Key Identifier, which they refuse (2026-10-11); Java's HttpClient took it.
+    # Subject Key Identifier, which they refuse (2026-10-11).
     assert ssl.create_default_context().verify_flags & ssl.VERIFY_X509_STRICT
     assert not context.verify_flags & ssl.VERIFY_X509_STRICT
     assert context.verify_mode == ssl.CERT_REQUIRED

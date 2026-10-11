@@ -1,6 +1,6 @@
-# NtustAnnouncements: the entries that v3's parsers (Ksoup's text(), trimmed) give for the
-# trimmed NTUST pages in this directory, in page order, as v3's stored items (type, url,
-# title); and v3's 18 boards (AnnouncementScheduler.kt:32-115) as the bundled config lists them.
+# NtustAnnouncements: the entries that the parsers give for the trimmed NTUST pages in this
+# directory, in page order, as stored items (type, url, title); and the 18 boards as the bundled
+# config lists them.
 entries:
   student-dormitory.html:
     - type: "STUDENT_DORMITORY"

@@ -1,4 +1,4 @@
-"""An article's conversion: v3's prompt, its keys' rate limit, its retries and their logs."""
+"""An article's conversion: the prompt, the keys' rate limit, the retries and their logs."""
 
 import logging
 from dataclasses import dataclass, field
@@ -18,7 +18,7 @@ from xincord.plugins.ntust_announcements.conversion import (
 )
 from xincord.plugins.ntust_announcements.pages import Link
 
-NOW = datetime(2026, 10, 11, 9, 5, 3)  # noqa: DTZ001 - the host's local time, as v3's
+NOW = datetime(2026, 10, 11, 9, 5, 3)  # noqa: DTZ001 - the host's local time
 URL = "https://student.ntust.edu.tw/p/406-1053-152183,r1436.php?Lang=zh-tw"
 LINK = Link("STUDENT_DORMITORY", URL, "Dorm notice")
 PROMPT = "{{page_title}}|{{page_url}}|{{base_url}}|{{now}}|{{html}}"
@@ -68,7 +68,7 @@ def converter(
     limits: Limits | None = None,
     urls: tuple[str, ...] = (),
 ) -> Converter:
-    """A converter with the fake time and answers, v3's limits unless others are given."""
+    """A converter with the fake time and answers, the default limits unless others are given."""
     time = answers.time
     return Converter(
         keys, PROMPT, answers, time.sleep, time.clock, lambda: NOW, limits or Limits(), urls
@@ -91,7 +91,7 @@ def test_tokens() -> None:
     assert prompt == (
         f"Dorm notice|{URL}|https://student.ntust.edu.tw|2026-10-11 09:05:03|<p>x</p>"
     )
-    # Each occurrence, as Kotlin's replace; no other text changes.
+    # Each occurrence; no other text changes.
     assert fill_prompt("{{html}} {{html}} {{other}}", LINK, "x", NOW) == "x x {{other}}"
 
 
@@ -101,7 +101,7 @@ def test_values_as_they_are() -> None:
 
     prompt = fill_prompt(PROMPT, link, "<p>{{page_url}}</p>", NOW)
 
-    # v3's chained replace calls expanded the tokens in the title and in the article.
+    # Tokens in the title and in the article stay as written.
     assert prompt.startswith("About {{html}} and {{now}}|")
     assert prompt.endswith("|<p>{{page_url}}</p>")
 
@@ -170,7 +170,7 @@ def test_a_key_listed_twice() -> None:
 
     taken = [ring.take(0.0) for _ in range(21)]
 
-    # One budget per key text, as v3's map by key: the two positions share ten attempts.
+    # One budget per key text: the two positions share ten attempts.
     assert taken == [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 2, 2, 2, 2, 2, None]
 
 
@@ -188,7 +188,7 @@ async def test_retries() -> None:
 async def test_success_after_failures() -> None:
     """Requirement: API keys stay within the rate limit and failed attempts are retried."""
     time = Time()
-    # A blank answer and an unexpected error each fail an attempt, as in v3.
+    # A blank answer and an unexpected error each fail an attempt.
     answers = Answers(time, [" \n ", RuntimeError("unexpected"), "Markdown"])
 
     assert await converter(answers).convert("<p>x</p>", LINK) == "Markdown"

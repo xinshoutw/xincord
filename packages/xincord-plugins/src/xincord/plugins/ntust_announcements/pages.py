@@ -13,21 +13,21 @@ if TYPE_CHECKING:
     from .config import Board
     from .markup import Element
 
-# The Language Center's title link in each row (AnnouncementParser.kt:117-121).
+# The Language Center's title link in each row.
 TITLE_LINK = "div.d-item.d-title.col-sm-12 div.mbox div.d-txt div.mtitle a"
-# v3's validateUrlType, a full match (UrlUtils.kt:56): what the model converts. v3's ".*" before the
-# host's ".ntust.edu.tw" took any host; the host's characters stop at "/", "?" and "#" now.
+# An NTUST article, a full match: what the model converts. The host's characters stop at "/", "?"
+# and "#".
 ARTICLE = re.compile(r"https://[^/?#]*\.ntust\.edu\.tw/p/[0-9\-,r]+\.php.*")
-# An article page's content: v3's container, else its fallback (AnnouncementParser.kt:227-229).
+# An article page's content: its container, else the fallback.
 CONTAINERS = ("div#Dyn_2_3.M23", "div.M23")
 SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
-# v3's minifier, in order; Java's \s is ASCII (HtmlMinifier.kt:24-37).
+# The minifier, in order; \s is ASCII.
 MINIFY = (
     (re.compile(r"<!--[\s\S]*?-->", re.ASCII), ""),
     (re.compile(r">\s+<", re.ASCII), "><"),
     (re.compile(r"^\s+", re.ASCII | re.MULTILINE), ""),
-    # v3's \s+$, which could start anywhere in a run of whitespace and backtrack through it (40,000
-    # spaces: 5 s); a run is matched from its start only, which removes the same text.
+    # Trailing whitespace, a run matched from its start only, so that it never backtracks through
+    # the run (40,000 spaces: 5 s).
     (re.compile(r"(?<!\s)\s+$", re.ASCII | re.MULTILINE), ""),
     (re.compile(r"\s{2,}", re.ASCII), " "),
     (re.compile(r"\n\s*\n", re.ASCII), "\n"),
@@ -36,9 +36,9 @@ MINIFY = (
 
 @dataclass(frozen=True)
 class Link:
-    """An entry of a board's page: v3's ``AnnouncementLink``, its stored item."""
+    """An entry of a board's page, as stored."""
 
-    board: str  # the board's name, v3's ``type``
+    board: str  # the board's name, the stored ``type``
     url: str  # the announcement's identity
     title: str
 
@@ -75,7 +75,7 @@ def _table_links(document: Element, column: int) -> list[Element | None]:
     anchors: list[Element | None] = []
     for row in table.select("tbody tr"):
         cells = row.select("td")
-        if len(cells) >= 2:  # noqa: PLR2004 - v3 skipped rows without a title and a date cell
+        if len(cells) >= 2:  # noqa: PLR2004 - rows without a title and a date cell are skipped
             anchors.append(cells[column].select_first("a"))
     return anchors
 
@@ -83,10 +83,9 @@ def _table_links(document: Element, column: int) -> list[Element | None]:
 def complete_url(href: str, page_url: str) -> str:
     """A link's URL, from its ``href`` on the page at ``page_url`` (the page after redirects).
 
-    v3's ``constructCompleteUrl`` kept an ``https://`` link and gave a ``/`` path the page's
-    host: both keep v3's exact strings, an announcement's identity. v3 also kept other links as
-    written, which mangled ``//host/path`` and left relative paths relative: they resolve against
-    the page now. Other schemes (``http:``, ``mailto:``) and blank links stay as written.
+    An ``https://`` link stays as written, and a ``/`` path gets the page's host: both keep their
+    exact strings, an announcement's identity. Other links resolve against the page. Other schemes
+    (``http:``, ``mailto:``) and blank links stay as written.
     """
     if href.startswith("https://") or not href.strip():
         return href
@@ -111,8 +110,7 @@ def is_article(url: str) -> bool:
 def article_html(html: str) -> str | None:
     """The minified HTML of an article page's content container, if it has one.
 
-    v3 sent jsoup's pretty-printed serialization of the container; this is the tree serialized,
-    which reads the same to the model.
+    The tree serialized, which reads to the model as the page does.
     """
     document = parse(html)
     for selector in CONTAINERS:
@@ -122,10 +120,10 @@ def article_html(html: str) -> str | None:
 
 
 def minify(html: str) -> str:
-    """``html`` without comments and the whitespace that does not show, as v3's minifier.
+    """``html`` without comments and the whitespace that does not show.
 
     Line breaks become ``\\n`` first, as an HTML parser makes them, so that the line-based steps
-    see the lines that Java's saw; a blank text is returned as it is, as in v3.
+    see every line; a blank text is returned as it is.
     """
     if not trim(html):
         return html

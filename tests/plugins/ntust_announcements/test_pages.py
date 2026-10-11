@@ -1,4 +1,4 @@
-"""What v3's parsers read from NTUST's pages: the boards' entries and the articles' content.
+"""What the parsers read from NTUST's pages: the boards' entries and the articles' content.
 
 The pages are trimmed copies of NTUST's, fetched on 2026-10-11; the expected entries are in
 golden.yaml.
@@ -177,7 +177,7 @@ def test_no_list() -> None:
 )
 def test_trim(text: str, trimmed: str) -> None:
     """Requirement: Board pages list their announcements."""
-    # Kotlin's trim() removes what Char.isWhitespace() accepts, which leaves U+0085 out.
+    # The trim removes whitespace, U+0085 aside.
     assert trim(text) == trimmed
 
 
@@ -186,7 +186,7 @@ def test_container() -> None:
     html = article_html(page("student-article.html"))
     assert html is not None
 
-    # The class attribute's two spaces collapse too, as v3's minifier did to the whole text.
+    # The class attribute's two spaces collapse too, as the minifier does to the whole text.
     assert html.startswith(
         '<div id="Dyn_2_3" class="M23 "><div class="module module-detail md_style1">'
         '<div class="module-inner"><section class="mb"><div class="mpgtitle"><h2 class="hdline">'
@@ -266,7 +266,7 @@ def test_minify(html: str, minified: str) -> None:
         pytest.param(
             "https://student.ntust.edu.tw/p/403-1053-1436-1.php?Lang=zh-tw",
             True,
-            id="list page, as in v3",
+            id="list page",
         ),
         pytest.param(
             "https://docs.google.com/spreadsheets/d/EXAMPLE/edit?usp=sharing", False, id="document"
@@ -293,7 +293,7 @@ def test_long_whitespace() -> None:
 
     minified = minify(html)
 
-    # v3's trailing-whitespace step backtracked through each run: seconds for 30,000 spaces.
+    # The trailing-whitespace step never backtracks through a run: no seconds for 30,000 spaces.
     assert time.perf_counter() - start < 1
     assert minified == "<p>a b</p><p>c\n</p>"
 
@@ -312,5 +312,5 @@ def test_long_whitespace() -> None:
 )
 def test_other_hosts(url: str) -> None:
     """Requirement: Article pages give their content as minified HTML."""
-    # v3's .* took any host before .ntust.edu.tw: such pages were fetched and sent to Gemini.
+    # Only NTUST's hosts count.
     assert not is_article(url)

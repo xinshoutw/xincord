@@ -20,11 +20,11 @@ if TYPE_CHECKING:
     from xincord.plugins.ntust_announcements.cog import NtustAnnouncements
 
 GOLDEN = golden("ntust_announcements")
-# v3's prompt, which the bundled file held until ntust-announcements-review.
-V3_PROMPT = (FIXTURES / "plugins" / "ntust_announcements" / "v3-prompt.txt").read_text(
+# An older prompt, which the bundled file held until ntust-announcements-review.
+OLDER_PROMPT = (FIXTURES / "plugins" / "ntust_announcements" / "older-prompt.txt").read_text(
     encoding="utf-8"
 )[:-1]
-EXAMPLE_KEY = "sk-thisisatestkey1234567890abcdef1234567890"  # v3's placeholder, refused as in v3
+EXAMPLE_KEY = "sk-thisisatestkey1234567890abcdef1234567890"  # the example key, refused
 BOARDS = """\
 boards:
   - name: STUDENT_DORMITORY
@@ -45,7 +45,7 @@ model: "gemini-2.5-flash"
 {BOARDS}"""
 
 
-# Every model setting at v3's value, written out.
+# Every model setting at its default, written out.
 EXPLICIT = """\
 api-format: gemini
 endpoint: "https://generativelanguage.googleapis.com/v1beta"
@@ -98,9 +98,9 @@ def bundled() -> dict[str, Any]:
     return data
 
 
-def v3_file() -> str:
-    """v3's config.yaml with an operator's keys, as `migrate_v3` moves it, and `boards` added."""
-    prompt = json.dumps(V3_PROMPT, ensure_ascii=False)
+def operator_file() -> str:
+    """An operator's config.yaml with `enabled`, two keys, the older prompt and `boards`."""
+    prompt = json.dumps(OLDER_PROMPT, ensure_ascii=False)
     return (
         "enabled: true\n\nfetch-interval: 3600\napi-keys:\n"
         '  - "first-key"\n  - "second-key"\n\n'
@@ -108,12 +108,14 @@ def v3_file() -> str:
     )
 
 
-async def test_v3_config_file(
+async def test_operator_config_file(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: The config names the boards, the API keys and the prompt."""
     with caplog.at_level(logging.WARNING):
-        bot = await load_plugin("NtustAnnouncements", tmp_path / "plugins", store, config=v3_file())
+        bot = await load_plugin(
+            "NtustAnnouncements", tmp_path / "plugins", store, config=operator_file()
+        )
 
     assert bot.loaded == ("NtustAnnouncements",)
     assert "unknown key enabled" in caplog.text
@@ -122,8 +124,8 @@ async def test_v3_config_file(
     config = cast("NtustAnnouncements", bot.get_cog("NtustAnnouncements")).config
     assert config.fetch_interval == 3600
     assert config.api_keys == ("first-key", "second-key")
-    assert config.prompt == V3_PROMPT
-    assert config.model == "gemini-2.5-flash"  # v3's model, the default
+    assert config.prompt == OLDER_PROMPT
+    assert config.model == "gemini-2.5-flash"  # the default model
     assert [(board.name, board.channel_id, board.title_prefix) for board in config.boards] == [
         ("STUDENT_DORMITORY", 101, ""),
         ("LANGUAGE_CENTER_RECRUITMENT", 102, ""),
@@ -137,7 +139,7 @@ async def test_bundled_config(
     bot = await load_plugin("NtustAnnouncements", tmp_path / "plugins", store)
 
     assert bot.loaded == ()
-    for number in (0, 1):  # v3's two example keys
+    for number in (0, 1):  # the two example keys
         assert (
             f"api-keys.{number}: Value error, replace the example key with your API key"
             in caplog.text
@@ -148,7 +150,7 @@ async def test_bundled_config(
         {key: value for key, value in board.items() if key != "channel-id"}
         for board in bundled()["boards"]
     ]
-    assert boards == GOLDEN["bundled_boards"]  # v3's 18 boards in v3's order
+    assert boards == GOLDEN["bundled_boards"]  # the 18 boards in order
     assert bundled()["fetch-interval"] == 3600
     assert bundled()["model"] == "gemini-2.5-flash"
 
@@ -162,7 +164,7 @@ async def test_bundled_config(
             id="interval below 60",
         ),
         pytest.param(
-            # v3's Long held no more.
+            # 64 bits hold no more.
             ("fetch-interval: 3600", "fetch-interval: 9223372036854775808"),
             "fetch-interval: Input should be less than or equal to 9223372036854775807",
             id="interval beyond a Long",
@@ -313,10 +315,12 @@ async def test_errors_name_the_invalid_items(
 
 async def test_default_model_settings(tmp_path: Path, store: Store) -> None:
     """Requirement: The model settings are config."""
-    bot = await load_plugin("NtustAnnouncements", tmp_path / "plugins", store, config=v3_file())
+    bot = await load_plugin(
+        "NtustAnnouncements", tmp_path / "plugins", store, config=operator_file()
+    )
     config = cast("NtustAnnouncements", bot.get_cog("NtustAnnouncements")).config
 
-    # v3's API, model, temperature, timeouts (300 and 30 seconds), rate limit and retries.
+    # The default API, model, temperature, timeouts (300 and 30 seconds), rate limit and retries.
     assert config.api == Api(
         ApiFormat.GEMINI,
         "https://generativelanguage.googleapis.com/v1beta",
@@ -582,7 +586,7 @@ def test_example_key(api_format: str) -> None:
     with pytest.raises(ConfigError) as raised:
         parse(text)
 
-    # v3's example key, whatever the format, and no product named.
+    # The example key, whatever the format, and no product named.
     assert str(raised.value) == (
         "config.yaml: api-keys.0: Value error, replace the example key with your API key"
     )

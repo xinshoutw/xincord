@@ -1,6 +1,6 @@
 """The model's API: each format's request and its answer's text.
 
-``gemini`` is v3's API, Gemini's ``generateContent``; ``openai`` is the chat completions API that
+``gemini`` is Gemini's ``generateContent``; ``openai`` is the chat completions API that
 OpenAI, OpenRouter, Ollama and Gemini itself offer. Both are plain REST calls over the plugin's
 aiohttp session (``web.Web.generate``), with ``config.yaml``'s model settings.
 """
@@ -12,16 +12,16 @@ from typing import cast
 from .strings import trim
 
 GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta"  # Gemini's REST API
-GEMINI_MODEL = "gemini-2.5-flash"  # v3's model
-TEMPERATURE = 0.1  # v3's generation config
-REQUEST_TIMEOUT = 300.0  # seconds that an attempt may take; v3's SDK set none
+GEMINI_MODEL = "gemini-2.5-flash"  # the default model
+TEMPERATURE = 0.1  # the default temperature
+REQUEST_TIMEOUT = 300.0  # seconds that an attempt may take
 CONNECT_TIMEOUT = 30.0  # seconds to connect
 
 
 class ApiFormat(StrEnum):
     """How an attempt asks the model and how its answer reads."""
 
-    GEMINI = "gemini"  # Gemini's generateContent, the key in x-goog-api-key (v3's API)
+    GEMINI = "gemini"  # Gemini's generateContent, the key in x-goog-api-key
     OPENAI = "openai"  # an OpenAI-compatible chat/completions, the key as a bearer token
 
 
@@ -36,7 +36,7 @@ class ApiError(Exception):
 
 @dataclass(frozen=True)
 class Api:
-    """How each attempt is made: ``config.yaml``'s model settings, v3's values by default."""
+    """How each attempt is made: ``config.yaml``'s model settings, with defaults."""
 
     format: ApiFormat = ApiFormat.GEMINI
     endpoint: str = GEMINI_ENDPOINT  # the API's base URL with its version, no final slash
@@ -96,7 +96,7 @@ def _items(value: object) -> list[object]:
 def answer_text(api_format: ApiFormat, answer: object) -> str:
     """The text of an answer in ``api_format``, trimmed.
 
-    ``gemini``: the first candidate's text parts, joined (v3's ``callOnce``). ``openai``: the first
+    ``gemini``: the first candidate's text parts, joined. ``openai``: the first
     choice's message content, when it is a string. An answer without them (a blocked prompt, a
     refusal, a tool call) gives an empty text, a failed attempt.
     """

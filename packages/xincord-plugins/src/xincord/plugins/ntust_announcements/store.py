@@ -1,9 +1,7 @@
-"""Each board's posted links, in the store as v3's document.
+"""Each board's posted links, in the store as one document per board.
 
-v3 kept them in MongoDB (database ``NtustManager``, collection ``current_announcement_lists``,
-``_id`` = the board's name), the value being Core's ``TypedListWrapper``: ``{"items": [{"type",
-"url", "title"}], "itemTypeName": ...}``. The store keeps that value under the board's name, so the
-planned v3 data import copies it unchanged. Each board has one writer, its own loop.
+Under the board's name, the value ``{"items": [{"type", "url", "title"}]}``. Each board has one
+writer, its own loop.
 """
 
 from dataclasses import dataclass
@@ -23,14 +21,13 @@ FIELDS = ("type", "url", "title")  # an item's fields, in Moshi's order
 
 
 class DataError(Exception):
-    """A board's document is not v3's shape; it is left as it is."""
+    """A board's document is of another shape; it is left as it is."""
 
 
 def parse_posted(document: JSON) -> tuple[Link, ...]:
     """The links of a board's document, in its order.
 
-    v3's ``itemTypeName`` is ignored. v3 dropped broken items one by one, after which their links
-    counted as new and were posted again; a broken document raises instead.
+    Other fields are ignored. A broken document raises, so that its links never count as new.
 
     Raises:
         DataError: The document is not an object whose ``items`` are objects with text fields
@@ -38,21 +35,21 @@ def parse_posted(document: JSON) -> tuple[Link, ...]:
     """
     items = document.get("items") if isinstance(document, dict) else None
     if not isinstance(items, list):
-        msg = "not v3's document: expected an object with a list of items"
+        msg = "not a posted list: expected an object with a list of items"
         raise DataError(msg)
     links: list[Link] = []
     for item in items:
         fields = cast("dict[str, JSON]", item) if isinstance(item, dict) else {}
         board, url, title = (fields.get(name) for name in FIELDS)
         if not (isinstance(board, str) and isinstance(url, str) and isinstance(title, str)):
-            msg = "not v3's document: an item lacks a text type, url or title"
+            msg = "not a posted list: an item lacks a text type, url or title"
             raise DataError(msg)
         links.append(Link(board, url, title))
     return tuple(links)
 
 
 def posted_document(links: Sequence[Link]) -> dict[str, JSON]:
-    """The document of a board's posted links, in v3's shape (Moshi left out a null type name)."""
+    """The document of a board's posted links."""
     items: list[JSON] = [
         {"type": link.board, "url": link.url, "title": link.title} for link in links
     ]
@@ -65,10 +62,10 @@ def remember(
     """The links a board keeps after a post: the page's posted links, then those that left it.
 
     ``posted`` holds the URLs posted so far, the stored ones included. The page's links among them
-    come first, in page order, once each and with the page's titles; then the stored links that
-    are no longer on the page, in their order (the most recent first), at most ``KEEP``. v3 kept
-    the page's links only, so a link that left the page and came back was posted again; a link
-    that failed is not kept, so the next pass posts it.
+    come first, in page order, once each and with the page's titles; then the stored links that are
+    no longer on the page, in their order (the most recent first), at most ``KEEP``, so that a link
+    that left the page and comes back is not posted again. A link that failed is not kept, so the
+    next pass posts it.
     """
     kept: dict[str, Link] = {}
     for link in page:
@@ -153,10 +150,10 @@ class Posted:
     store: Store
 
     async def load(self, board: str) -> tuple[Link, ...]:
-        """The links that ``board`` posted; none when it has no document, as v3's first run.
+        """The links that ``board`` posted; none when it has no document.
 
         Raises:
-            DataError: The board's document is not v3's shape.
+            DataError: The board's document is of another shape.
         """
         document = await self.store.get(NAMESPACE, board)
         return () if document is None else parse_posted(document)

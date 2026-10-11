@@ -1,4 +1,4 @@
-"""An article's conversion by the model: v3's prompt, its keys' rate limit and its retries."""
+"""An article's conversion by the model: the prompt, the keys' rate limit and the retries."""
 
 import logging
 import re
@@ -26,12 +26,12 @@ type Sleep = Callable[[float], Awaitable[object]]
 
 logger = logging.getLogger(__name__)
 
-MAX_ATTEMPTS = 10  # v3's maxRetries
-BACKOFF = (60, 300, 900, 1800)  # v3's waits after the first, second, third and later failures
-WINDOW = 60.0  # seconds in which a key takes at most PER_WINDOW attempts (v3's rateLimitWindowMs)
-PER_WINDOW = 10  # v3's maxRequestsPerMinute
+MAX_ATTEMPTS = 10
+BACKOFF = (60, 300, 900, 1800)  # the waits after the first, second, third and later failures
+WINDOW = 60.0  # seconds in which a key takes at most PER_WINDOW attempts
+PER_WINDOW = 10
 TOKEN = re.compile(r"\{\{(page_title|page_url|base_url|now|html|markdown)\}\}")
-HOST = re.compile(r"https://([^/]+)")  # v3's extractDomainFromBaseUrl, its first match
+HOST = re.compile(r"https://([^/]+)")  # the first match is the host
 DEFAULT_HOST = "ntust.edu.tw"
 HIDDEN = "..."  # what stands for a key in a logged text
 # An attempt that did not reach the API: aiohttp's errors and OSError, timeouts included.
@@ -44,10 +44,10 @@ def fill_prompt(template: str, link: Link, html: str, now: datetime, markdown: s
     """The prompt for ``link``'s article, its tokens replaced in one pass.
 
     ``{{page_title}}`` is the entry's title, ``{{page_url}}`` its URL, ``{{base_url}}`` ``https://``
-    and the URL's host (v3's first ``https://`` match, else ``ntust.edu.tw``), ``{{now}}`` the local
+    and the URL's host (the first ``https://`` match, else ``ntust.edu.tw``), ``{{now}}`` the local
     time as ``yyyy-MM-dd HH:mm:ss``, ``{{html}}`` the article's HTML and ``{{markdown}}`` the
-    conversion under review (none in a conversion). v3 chained Kotlin's ``replace`` calls, so
-    tokens in the title or the article were replaced too; values are inserted as they are now.
+    conversion under review (none in a conversion). Values are inserted as they
+    are: tokens in the title or the article stay.
     """
     host = match[1] if (match := HOST.search(link.url)) else DEFAULT_HOST
     values = {
@@ -63,7 +63,7 @@ def fill_prompt(template: str, link: Link, html: str, now: datetime, markdown: s
 
 @dataclass(frozen=True)
 class Limits:
-    """Each key's rate limit and the retries: ``config.yaml``'s settings, v3's by default."""
+    """Each key's rate limit and the retries: ``config.yaml``'s settings, with defaults."""
 
     rate_limit: int = PER_WINDOW  # attempts per key in a window
     rate_window: float = WINDOW  # the window's seconds
@@ -74,7 +74,7 @@ class Limits:
 def backoff(failed: int, waits: Sequence[float] = BACKOFF) -> float:
     """Seconds to wait after the ``failed``-th failed attempt: that wait, the last one repeating.
 
-    v3's waits are 60, 300, 900, then 1800 seconds.
+    The default waits are 60, 300, 900, then 1800 seconds.
     """
     return waits[min(failed, len(waits)) - 1]
 
@@ -85,12 +85,10 @@ def counted(count: int, noun: str) -> str:
 
 
 class KeyRing:
-    """v3's client-side rate limit: each key's attempts in a sliding window.
+    """A client-side rate limit: each key's attempts in a sliding window.
 
-    Keys are counted by their text, so a key listed twice has one budget, as v3's map by key. An
-    attempt leaves the window when it is ``window`` seconds old; v3 kept it a moment longer and
-    then slept a second. Finding a key and counting its attempt is one step, which v3's two locked
-    steps were not.
+    Keys are counted by their text, so a key listed twice has one budget. An attempt leaves the
+    window when it is ``window`` seconds old. Finding a key and counting its attempt is one step.
     """
 
     def __init__(
@@ -100,7 +98,7 @@ class KeyRing:
         self.keys = tuple(keys)
         self.limit = limit  # attempts per key in the window (``rate-limit``)
         self.window = window  # the window's seconds (``rate-window``)
-        self.next = 0  # where the next search starts: after the last key used (v3's apiKeyIndex)
+        self.next = 0  # where the next search starts: after the last key used
         self.attempts: dict[str, deque[float]] = {}  # each key's attempts in the window
 
     def _attempts(self, key: str, now: float) -> deque[float]:
@@ -163,7 +161,7 @@ class Task:
 
 @dataclass
 class Converter:
-    """Converts articles with the model, keys in turn, retrying failed attempts as v3 did."""
+    """Converts articles with the model, keys in turn, retrying failed attempts."""
 
     keys: tuple[str, ...]
     prompt: str  # the config's template
@@ -176,7 +174,7 @@ class Converter:
     urls: tuple[str, ...] = ()
     reject: tuple[str, ...] = ()  # answers that hold one of these fail (``reject-texts``)
     review_prompt: str = ""  # the template of the second check (``review-prompt``)
-    # Failed attempts of every board: each kind once per episode (v3 logged every attempt).
+    # Failed attempts of every board: each kind once per episode.
     failures: Failures = field(default_factory=Failures)
     ring: KeyRing = field(init=False)
 
@@ -197,10 +195,9 @@ class Converter:
     async def convert(self, html: str, link: Link) -> str | None:
         """The model's Markdown for the article, or None after ``max_attempts`` failed ones.
 
-        v3's ``processHtmlContentWithRetry``: when every key is at its limit, it waits until one
-        has room, which uses no attempt; after a failed attempt it waits the next of
-        ``retry_waits`` (v3's 60, 300, 900, then 1800 seconds). Cancellation (an unload) ends the
-        conversion at once.
+        When every key is at its limit, it waits until one has room, which uses no attempt; after a
+        failed attempt it waits the next of ``retry_waits`` (60, 300, 900, then 1800 seconds by
+        default). Cancellation (an unload) ends the conversion at once.
         """
         return await self._retried(Task("conversion", "converting", self.prompt), html, link)
 
@@ -259,7 +256,7 @@ class Converter:
         except NETWORK_ERRORS as error:
             self._failed(task, attempt, link, type(error), describe(error))
             return ""
-        except Exception as error:  # noqa: BLE001 - any error fails the attempt, as in v3
+        except Exception as error:  # noqa: BLE001 - any error fails the attempt
             # Unexpected: its traceback, redacted, since logger.exception prints texts as they are.
             self._failed(task, attempt, link, type(error), f"\n{format_traceback(error)}")
             return ""

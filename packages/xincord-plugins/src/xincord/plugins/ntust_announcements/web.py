@@ -1,7 +1,6 @@
 """The plugin's HTTP: NTUST's pages and the model's REST API, over one aiohttp session.
 
-v3 fetched pages with Java's ``HttpClient``, which follows no redirect, and called Gemini through
-the google-genai Java SDK, building a client per attempt that it never closed. One session serves
+One session serves
 the plugin from READY until it unloads; the APIs' documented REST calls need no SDK (``api.py``).
 """
 
@@ -23,7 +22,7 @@ if TYPE_CHECKING:
     from .api import Api
 
 OK = 200
-# v3's limits for pages: 30 seconds to connect and 30 for the request.
+# The limits for pages: 30 seconds to connect and 30 for the request.
 PAGE_TIMEOUT = aiohttp.ClientTimeout(total=30, connect=30)
 MAX_REDIRECTS = 10
 
@@ -57,7 +56,7 @@ def _json(text: str) -> object:
 def _timeout(api: Api) -> aiohttp.ClientTimeout:
     """The limits of an attempt: ``request-timeout`` in all, ``connect-timeout`` to connect.
 
-    v3's SDK set none; a long article can take the model a minute or more.
+    A long article can take the model a minute or more.
     """
     return aiohttp.ClientTimeout(total=api.request_timeout, connect=api.connect_timeout)
 
@@ -84,7 +83,7 @@ class Web:
     tls: ssl.SSLContext = field(default_factory=ntust_context)
 
     async def page(self, url: str) -> Page:
-        """GET a page, following up to ten redirects (v3 followed none).
+        """GET a page, following up to ten redirects.
 
         Raises:
             FetchError: The page answered with a status other than 200.
@@ -94,7 +93,7 @@ class Web:
         ) as response:
             if response.status != OK:
                 raise FetchError(response.status)
-            # The header's charset, else UTF-8, malformed bytes replaced, as Java's ofString().
+            # The header's charset, else UTF-8, malformed bytes replaced.
             return Page(str(response.url), await response.text(errors="replace"))
 
     async def generate(self, key: str, prompt: str) -> str:

@@ -1,6 +1,4 @@
-"""The plugin's ``config.yaml``: v3's keys, and the boards, channels and model settings that v3
-hard-coded.
-"""
+"""The plugin's ``config.yaml``: the interval, the keys, the prompt, the boards and the model."""
 
 import re
 from enum import StrEnum
@@ -36,11 +34,11 @@ from .conversion import BACKOFF, MAX_ATTEMPTS, PER_WINDOW, WINDOW, Limits
 if TYPE_CHECKING:
     from urllib.parse import SplitResult
 
-JAVA_LONG_MAX = 2**63 - 1  # v3's fetch-interval was a Long
-MIN_INTERVAL = 60  # v3's minimum, which it checked only while enabled
-# v3's placeholder key, which its bundled file held twice and which it refused while enabled.
+INTERVAL_MAX = 2**63 - 1  # a 64-bit integer
+MIN_INTERVAL = 60
+# The example key, which the bundled file holds twice and which the config refuses.
 EXAMPLE_KEY = "sk-thisisatestkey1234567890abcdef1234567890"
-# The tokens that v3's validateConfiguration required; {{page_title}} was optional.
+# The tokens that the prompt needs; {{page_title}} is optional.
 TOKENS = ("{{page_url}}", "{{base_url}}", "{{now}}", "{{html}}")
 REVIEW_TOKENS = ("{{html}}", "{{markdown}}")  # what the second check needs
 FENCE = "```"  # refused by default: the model wrapped its posts in code fences
@@ -61,7 +59,7 @@ HIDDEN = ConfigDict(hide_input_in_errors=True)
 
 
 class Layout(StrEnum):
-    """How a board's first page lists its entries: v3's three parsers."""
+    """How a board's first page lists its entries: three layouts."""
 
     STUDENT_AFFAIRS = "student-affairs"  # a table, the title link in each row's first cell
     ACADEMIC_AFFAIRS = "academic-affairs"  # a table, the title link in each row's second cell
@@ -145,7 +143,7 @@ def _some_waits(waits: tuple[float, ...]) -> tuple[float, ...]:
 
 
 def _prompt(prompt: str) -> str:
-    """Accept a prompt that holds the tokens v3 required."""
+    """Accept a prompt that holds the tokens it needs."""
     if missing := [token for token in TOKENS if token not in prompt]:
         msg = f"the prompt lacks {', '.join(missing)}"
         raise ValueError(msg)
@@ -173,26 +171,25 @@ def bundled_review_prompt() -> str:
 
 
 class Board(Model):
-    """One announcement board: what v3's AnnouncementType, URL map and channel enum held."""
+    """One announcement board: its name, page, layout, channel and title prefix."""
 
     model_config = HIDDEN
 
-    # The key of the board's posted list in the store (v3's enum names, so that v3's lists can be
-    # imported) and its name in the logs.
+    # The key of the board's posted list in the store and its name in the logs.
     name: Annotated[str, StringConstraints(pattern=r"\S")]
     url: Annotated[str, AfterValidator(_page_url)]  # the board's first page
     layout: Layout
     channel_id: Annotated[PositiveInt, Field(alias="channel-id")]  # where its posts go
-    # Only the titles that start with it are posted (v3's filter of STUDENT_MAIN_OFFICE).
+    # Only the titles that start with it are posted.
     title_prefix: Annotated[str, Field(alias="title-prefix")] = ""
 
 
 class Config(Model):
-    """``plugins/NtustAnnouncements/config.yaml``, with v3's kebab-case keys.
+    """``plugins/NtustAnnouncements/config.yaml``, with kebab-case keys.
 
-    v3's ``enabled`` key is gone: the core config's ``plugins`` list enables the plugin. The
-    bundled file holds v3's example keys and 0 for every channel, so the plugin waits for the
-    operator. The model settings that v3 hard-coded are keys with v3's values as defaults; fields
+    The core config's ``plugins`` list enables the plugin; an ``enabled`` key here only warns. The
+    bundled file holds example keys and 0 for every channel, so the plugin waits for the operator.
+    The model settings have defaults; fields
     that a later validator reads come first (``api_format`` before ``model``, ``request_timeout``
     before ``connect_timeout``), so that its error names its own key.
     """
@@ -201,14 +198,14 @@ class Config(Model):
 
     # Seconds between a board's passes.
     fetch_interval: Annotated[
-        int, Field(alias="fetch-interval", ge=MIN_INTERVAL, le=JAVA_LONG_MAX)
+        int, Field(alias="fetch-interval", ge=MIN_INTERVAL, le=INTERVAL_MAX)
     ] = 3600
     api_keys: Annotated[
         tuple[Annotated[str, AfterValidator(_key)], ...],
         Field(alias="api-keys"),
         AfterValidator(_some_keys),
     ]
-    prompt: Annotated[str, AfterValidator(_prompt)]  # required, as in v3
+    prompt: Annotated[str, AfterValidator(_prompt)]  # required
     # Answers that hold one of these fail and are asked again; none may be empty.
     reject_texts: Annotated[
         tuple[Annotated[str, StringConstraints(min_length=1)], ...], Field(alias="reject-texts")
@@ -218,10 +215,10 @@ class Config(Model):
     review_prompt: Annotated[
         str | None, Field(alias="review-prompt"), AfterValidator(_review_prompt)
     ] = None
-    # The model settings (``api.Api``, ``conversion.Limits``), v3's values by default.
+    # The model settings (``api.Api``, ``conversion.Limits``), with defaults.
     api_format: Annotated[ApiFormat, Field(alias="api-format")] = ApiFormat.GEMINI
     endpoint: Annotated[str, AfterValidator(_endpoint)] = GEMINI_ENDPOINT
-    model: str = GEMINI_MODEL  # v3's hard-coded model; checked against the format below
+    model: str = GEMINI_MODEL  # checked against the format below
     # Strict numbers: YAML reads yes, on and true as true, which a lax number takes as 1.
     temperature: Annotated[float, Field(ge=0, le=2, allow_inf_nan=False, strict=True)] | None = (
         TEMPERATURE

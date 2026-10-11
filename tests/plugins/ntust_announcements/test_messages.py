@@ -1,4 +1,4 @@
-"""The Discord messages of an announcement: v3's header, its split and its title links."""
+"""The Discord messages of an announcement: the header, the split and the title links."""
 
 import pytest
 
@@ -17,8 +17,8 @@ ELLIPSIS = chr(0x2026)
 URL = "https://student.ntust.edu.tw/p/406-1053-152183,r1436.php?Lang=zh-tw"
 
 
-def v3_split(content: str, max_len: int) -> list[str]:
-    """v3's splitContentIntoSegments as the inventory transcribes it, for BMP-only text."""
+def line_split(content: str, max_len: int) -> list[str]:
+    """A plain split before the last line break that fits, for BMP-only text."""
     if len(content) <= max_len:
         return [content]
     segments: list[str] = []
@@ -45,7 +45,7 @@ def test_one_message(length: int) -> None:
     """Requirement: Announcements become messages within Discord's limits."""
     content = "a" * length
 
-    # Up to 1975 units v3 sent one message; up to 1980 its split gave one part, the same message.
+    # Up to 1975 units go in one message, the header first.
     assert content_messages(f" \n\t{content}\n ") == [f"{HEADER}\n{content}"]
 
 
@@ -61,7 +61,7 @@ def test_one_message(length: int) -> None:
 )
 def test_split_at_a_line_break(content: str) -> None:
     """Requirement: Announcements become messages within Discord's limits."""
-    parts = v3_split(content, 1980)
+    parts = line_split(content, 1980)
 
     assert split(content, 1980) == parts
     assert content_messages(content) == [f"{HEADER}\n{parts[0]}", *parts[1:]]
@@ -72,8 +72,8 @@ def test_split_without_a_line_break() -> None:
     """Requirement: Announcements become messages within Discord's limits."""
     assert split("a" * 4000, 1980) == ["a" * 1980, "a" * 1980, "a" * 40]
     assert split("a" * 1981, 1980) == ["a" * 1980, "a"]
-    # A character outside the BMP that straddles the limit goes to the next part whole; Kotlin's
-    # substring cut its surrogate pair in two.
+    # A character outside the BMP that straddles the limit goes to the next part whole, its
+    # surrogate pair kept together.
     content = "a" * 1979 + EMOJI + "b" * 100
     assert split(content, 1980) == ["a" * 1979, EMOJI + "b" * 100]
     # Units, not characters: 1000 emoji are 2000 units.
@@ -83,7 +83,7 @@ def test_split_without_a_line_break() -> None:
 @pytest.mark.parametrize(
     ("title", "url", "message"),
     [
-        pytest.param("Notice", URL, f"{HEADER}\n# [Notice]({URL})", id="as in v3"),
+        pytest.param("Notice", URL, f"{HEADER}\n# [Notice]({URL})", id="plain"),
         pytest.param("Notice", f"  {URL}\n", f"{HEADER}\n# [Notice]({URL})", id="url trimmed"),
         pytest.param(
             "A [draft] notice \\ here",

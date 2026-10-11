@@ -23,22 +23,21 @@ the operator.
 - **THEN** `plugins/NtustAnnouncements/` holds the bundled `config.yaml` and no `lang/` directory
 
 ### Requirement: The config names the boards, the API keys and the prompt
-`config.yaml` SHALL keep v3's keys: `fetch-interval` (60 to 9223372036854775807 seconds, 3600 by
-default), `api-keys` (not empty, no blank key, not v3's example key) and `prompt` (holding
+`config.yaml` SHALL hold `fetch-interval` (60 to 9223372036854775807 seconds, 3600 by default),
+`api-keys` (not empty, no blank key, not the example key) and `prompt` (holding
 `{{page_url}}`, `{{base_url}}`, `{{now}}` and `{{html}}`); and add `boards` (unique names, http(s)
 URLs, a layout, a positive `channel-id`, an optional `title-prefix`) and the model settings.
 Errors SHALL never show a key.
 
-#### Scenario: v3 config file
-- **WHEN** `config.yaml` is v3's (`enabled`, `fetch-interval`, two keys and v3's prompt) with
-  `boards` added
-- **THEN** the plugin loads with v3's values and v3's model settings, and logs a warning that names
-  `enabled`
+#### Scenario: An operator's config file
+- **WHEN** `config.yaml` holds `enabled`, `fetch-interval`, two keys, an older prompt and `boards`
+- **THEN** the plugin loads with those values and the default model settings, and logs a warning
+  that names `enabled`
 
 #### Scenario: Bundled config
 - **WHEN** the plugin loads with the bundled `config.yaml`
 - **THEN** it does not load, the error names `api-keys` and each board's `channel-id`, and the
-  file lists v3's 18 boards with their URLs, layouts and the student main office's title prefix
+  file lists 18 boards with their URLs, layouts and the student main office's title prefix
 
 #### Scenario: Invalid values
 - **WHEN** `fetch-interval` is 59, a key is blank, the prompt lacks `{{html}}`, a layout is
@@ -46,7 +45,7 @@ Errors SHALL never show a key.
 - **THEN** the plugin does not load, and the error names the key
 
 #### Scenario: Example key
-- **WHEN** `api-keys` holds v3's example key, with either `api-format`
+- **WHEN** `api-keys` holds the example key, with either `api-format`
 - **THEN** the error names the key's position and asks for an API key without naming Gemini
 
 #### Scenario: Keys stay hidden
@@ -54,7 +53,7 @@ Errors SHALL never show a key.
 - **THEN** neither the error nor its chained validation error shows a key
 
 ### Requirement: Board pages list their announcements
-A board's first page SHALL give its entries as v3 parsed them: `student-affairs` takes the first
+A board's first page SHALL give its entries: `student-affairs` takes the first
 link of each `table.listTB.table` body row's first cell, `academic-affairs` of its second cell
 (rows with fewer than two cells skipped), `language-center` each `div.row.listBS` row's title link.
 Titles are the links' text with whitespace collapsed, links resolve against the page, and a
@@ -96,9 +95,9 @@ Titles are the links' text with whitespace collapsed, links resolve against the 
   `www.academic.ntust.edu.tw` does not send
 
 ### Requirement: Article pages give their content as minified HTML
-A link SHALL count as an NTUST article when it matches v3's pattern
+A link SHALL count as an NTUST article when it matches the pattern
 (`https://<host>.ntust.edu.tw/p/<digits, -, comma, r>.php...`). Its page SHALL give the outer HTML
-of its first `div#Dyn_2_3.M23`, else of its first `div.M23`, minified with v3's steps (comments
+of its first `div#Dyn_2_3.M23`, else of its first `div.M23`, minified (comments
 removed, ASCII whitespace collapsed); a page without either gives none.
 
 #### Scenario: Container
@@ -121,12 +120,12 @@ removed, ASCII whitespace collapsed); a page without either gives none.
 #### Scenario: Article links
 - **WHEN** links are an NTUST article, a Google Docs document, an NTUST file under `/var/file/`
   and an NTUST list page with a query
-- **THEN** only the article and the list page count as NTUST articles, as in v3
+- **THEN** only the article and the list page count as NTUST articles
 
 #### Scenario: Other hosts
 - **WHEN** a link's host is not under `ntust.edu.tw`, though its path, query or fragment holds
   `.ntust.edu.tw/p/<n>.php`
-- **THEN** it counts as no NTUST article (v3's pattern took it)
+- **THEN** it counts as no NTUST article
 
 ### Requirement: The prompt is filled in one pass
 The `prompt` and the `review-prompt` SHALL be filled in one pass: `{{page_title}}` with the link's
@@ -152,7 +151,7 @@ timeouts, and take the text of the first candidate's parts, trimmed. An answer t
 has no text or is blank SHALL be a failed attempt.
 
 #### Scenario: Request
-- **WHEN** an attempt runs with v3's settings against a local server standing for Gemini
+- **WHEN** an attempt runs with the default settings against a local server standing for Gemini
 - **THEN** the server receives a POST to `/v1beta/models/gemini-2.5-flash:generateContent` with
   the key in the header, the prompt as the only text part and temperature 0.1, and no key in the
   URL
@@ -187,7 +186,7 @@ failed ones, the last wait repeating, and give none after the last.
 - **THEN** the attempts use the first key, the second, then the first
 
 #### Scenario: Rate limit
-- **WHEN** the only key started 10 attempts in the last 60 seconds, with v3's settings
+- **WHEN** the only key started 10 attempts in the last 60 seconds, with the default settings
 - **THEN** the next attempt waits until the oldest of them is 60 seconds old
 
 #### Scenario: Configured rate limit
@@ -195,7 +194,7 @@ failed ones, the last wait repeating, and give none after the last.
 - **THEN** the next attempt waits until the oldest of them is 30 seconds old
 
 #### Scenario: Retries
-- **WHEN** every attempt fails, with v3's settings
+- **WHEN** every attempt fails, with the default settings
 - **THEN** the conversion makes 10 attempts, waiting 60, 300, 900, then 1800 seconds, and gives
   none
 
@@ -224,8 +223,7 @@ escaped, the title cut to fit.
 #### Scenario: Split at a line break
 - **WHEN** the content is longer and has plain line breaks only, no heading, blank line or list
   item
-- **THEN** each part ends before the last line break that fits in 1980 units, which no part keeps,
-  as v3 split it
+- **THEN** each part ends before the last line break that fits in 1980 units, which no part keeps
 
 #### Scenario: Split without a line break
 - **WHEN** 4000 units of content have no line break, or a character outside the BMP straddles a
@@ -269,18 +267,18 @@ to the board's channel by ID, without the cache, and SHALL ping nobody.
 - **THEN** the post allows no mentions
 
 ### Requirement: Each board remembers what it posted
-A board's posted links SHALL be stored in namespace `NtustAnnouncements` under its name as v3's
-document `{"items": [{"type", "url", "title"}]}` (v3's `itemTypeName` read and ignored), a link
+A board's posted links SHALL be stored in namespace `NtustAnnouncements` under its name as the
+document `{"items": [{"type", "url", "title"}]}` (other fields read and ignored), a link
 added once posted. Failed article pages and refused posts SHALL be retried at the next pass; a
 failed board page SHALL change nothing; links that left the page SHALL be kept, up to 100; a broken
 document SHALL stop its board and stay.
 
 #### Scenario: Stored once posted
 - **WHEN** an announcement is posted
-- **THEN** the board's document holds its item, in v3's shape, before the next one is converted
+- **THEN** the board's document holds its item before the next one is converted
 
-#### Scenario: v3 document
-- **WHEN** the store holds v3's document with `itemTypeName`
+#### Scenario: A document with another field
+- **WHEN** the store holds the document with an `itemTypeName` field
 - **THEN** its links count as posted
 
 #### Scenario: Retried
@@ -308,7 +306,7 @@ document SHALL stop its board and stay.
 - **THEN** the document keeps the page's links and the 100 that left last
 
 #### Scenario: Broken document
-- **WHEN** the board's document is not v3's shape
+- **WHEN** the board's document is of another shape
 - **THEN** the board posts nothing and the document stays as it was
 
 ### Requirement: Boards are checked from READY until the plugin unloads
@@ -382,7 +380,7 @@ whose channel the bot cannot see or that takes no messages.
 - **THEN** the boards' channels are checked at once
 
 ### Requirement: The model settings are config
-`config.yaml` SHALL hold the model settings, with v3's values by default: `api-format` (`gemini`
+`config.yaml` SHALL hold the model settings, with defaults: `api-format` (`gemini`
 or `openai`), `endpoint` (an http or https URL with a host and no user info, query or fragment),
 `model`, `temperature` (0 to 2, or null), `max-output-tokens`, `request-timeout`,
 `connect-timeout`, `rate-limit`, `rate-window`, `max-attempts` and `retry-waits`. An invalid value

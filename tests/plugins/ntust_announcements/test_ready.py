@@ -1,8 +1,4 @@
-"""The boards' channels, checked when the bot is ready.
-
-v3 looked its guild up with ``!!`` when it started, which stopped the bot outside the owner's guild,
-and each announcement channel when it first posted there.
-"""
+"""The boards' channels, checked when the bot is ready."""
 
 import logging
 from typing import TYPE_CHECKING, cast
