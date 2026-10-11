@@ -94,6 +94,12 @@
       "matchPackageNames": ["python"],
       "matchUpdateTypes": ["minor", "major"],
       "automerge": false
+    },
+    {
+      "description": "A youtube-source snapshot, pinned by its commit, stays until a release holds its fixes.",
+      "matchPackageNames": ["dev.lavalink.youtube:youtube-plugin"],
+      "matchCurrentValue": "/^[0-9a-f]{40}$/",
+      "enabled": false
     }
   ]
 }

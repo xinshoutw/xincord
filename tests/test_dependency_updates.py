@@ -5,7 +5,6 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
-import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -166,11 +165,10 @@ def test_lavalink_plugins_are_managed() -> None:
         "dev.lavalink.youtube:youtube-plugin",
         "com.github.topi314.lavasrc:lavasrc-plugin",
     }
-    assert all(re.fullmatch(r"\d+\.\d+\.\d+", version) for version in found.values())
+    assert all(re.fullmatch(r"\d+\.\d+\.\d+|[0-9a-f]{40}", version) for version in found.values())
     assert manager["registryUrlTemplate"] == LAVALINK_MAVEN
 
 
-@pytest.mark.xfail(strict=True, reason="Renovate updates the versions that no manager reads")
 def test_snapshot_pins_stay() -> None:
     """Requirement: Renovate updates the versions that no manager reads."""
     snapshot = [

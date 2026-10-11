@@ -44,7 +44,8 @@ The image runs `xincord` as a non-root user. `./bot` holds `config.yaml` and `pl
 for editing on the host; the database stays in the `xincord_data` volume. The `lavalink` service
 plays MusicPlayer's audio (`lavalink/application.yml`); its password is `LAVALINK_PASSWORD` in
 `.env`, and `lavalink.password` in `bot/plugins/MusicPlayer/config.yaml` is the same. Videos that
-YouTube plays only to a signed-in client need its OAuth on a spare Google account (`.env.example`).
+YouTube plays only to a signed-in client need its OAuth on a spare Google account; YouTube's
+signatures are solved by a remote yt-cipher server, the public one by default (`.env.example`).
 
 ## Development
 

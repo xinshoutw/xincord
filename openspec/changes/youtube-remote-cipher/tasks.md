@@ -1,7 +1,7 @@
 ## 1. Snapshot and cipher
 
 - [x] 1.1 xfail tests for "Remote cipher for the node" and Renovate's snapshot rule
-- [ ] 1.2 The snapshot pin, the remote cipher settings, compose, `.env.example`, README and
+- [x] 1.2 The snapshot pin, the remote cipher settings, compose, `.env.example`, README and
       Renovate's rule; update the pin tests; remove the markers
 
 ## 2. Close

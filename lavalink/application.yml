@@ -1,6 +1,6 @@
 # The Lavalink node that plays MusicPlayer's audio: compose.yaml's lavalink service reads this file.
 # Its password is LAVALINK_SERVER_PASSWORD, which compose sets from LAVALINK_PASSWORD in .env; the
-# Spotify and YouTube OAuth settings come from .env too. Lavalink downloads the plugins below when its container
+# Spotify and YouTube settings come from .env too. Lavalink downloads the plugins below when its container
 # starts. https://lavalink.dev/configuration/
 server:
   port: 2333
@@ -10,9 +10,11 @@ server:
 
 lavalink:
   plugins:
-    # YouTube: search, videos and playlists (lavaplayer's own YouTube source is deprecated).
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.2"
-      snapshot: false
+    # YouTube: search, videos and playlists (lavaplayer's own YouTube source is deprecated). A
+    # snapshot of master (2026-09-17), from Lavalink's snapshot repository: 1.18.2's TV client is
+    # refused by YouTube (youtube-source #226, fixed in #233). Back to a release that holds it.
+    - dependency: "dev.lavalink.youtube:youtube-plugin:2be8e542d3f6f178e048dca565892684c2e40177"
+      snapshot: true
     # Spotify links, played from YouTube; its source is off unless SPOTIFY_ENABLED is true.
     - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.8.3"
       snapshot: false
@@ -41,6 +43,11 @@ plugins:
     oauth: # a spare Google account, from .env (YOUTUBE_OAUTH_*); off by default
       enabled: ${YOUTUBE_OAUTH_ENABLED:false}
       refreshToken: "${YOUTUBE_OAUTH_REFRESH_TOKEN:}"
+    # youtube-source no longer solves YouTube's signatures well itself: a yt-cipher server does, by
+    # default its author's public one; set YOUTUBE_CIPHER_URL (and _PASSWORD) in .env for your own.
+    remoteCipher:
+      url: "${YOUTUBE_CIPHER_URL:https://cipher.kikkia.dev/}"
+      password: "${YOUTUBE_CIPHER_PASSWORD:}"
   lavasrc:
     providers: # how a Spotify song is found on YouTube
       - "ytsearch:\"%ISRC%\""

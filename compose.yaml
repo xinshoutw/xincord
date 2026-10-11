@@ -44,6 +44,9 @@ services:
       # YouTube's sign-in for videos that ask for one (see .env.example).
       YOUTUBE_OAUTH_ENABLED: ${YOUTUBE_OAUTH_ENABLED:-false}
       YOUTUBE_OAUTH_REFRESH_TOKEN: ${YOUTUBE_OAUTH_REFRESH_TOKEN:-}
+      # The server that solves YouTube's signatures (see .env.example).
+      YOUTUBE_CIPHER_URL: ${YOUTUBE_CIPHER_URL:-https://cipher.kikkia.dev/}
+      YOUTUBE_CIPHER_PASSWORD: ${YOUTUBE_CIPHER_PASSWORD:-}
     volumes:
       - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
     # Only the bot reaches it, over compose's network: no port is published on the host.

@@ -3,7 +3,6 @@
 import re
 from pathlib import Path
 
-import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -80,6 +79,7 @@ def test_time_zone_from_env() -> None:
 # Lavalink 4.2.0 or a later 4.x, exact: DAVE arrived in 4.2.0.
 LAVALINK_IMAGE = re.compile(r"ghcr\.io/lavalink-devs/lavalink:4\.(?:[2-9]|[1-9]\d+)\.\d+")
 EXACT = re.compile(r":\d+\.\d+\.\d+$")  # a Maven version that never moves
+SNAPSHOT = re.compile(r":[0-9a-f]{40}$")  # a snapshot's commit, which never moves either
 
 
 def test_build_context_leaves_out_the_secrets() -> None:
@@ -130,7 +130,12 @@ def test_node_config() -> None:
         "dev.lavalink.youtube:youtube-plugin",
         "com.github.topi314.lavasrc:lavasrc-plugin",
     ]
-    assert all(EXACT.search(dependency) for dependency in dependencies)
+    snapshots = [plugin["snapshot"] for plugin in config["lavalink"]["plugins"]]
+    # A release, or a snapshot pinned by its commit (youtube-source until a release has its fixes).
+    assert all(
+        (SNAPSHOT if snapshot else EXACT).search(dependency)
+        for dependency, snapshot in zip(dependencies, snapshots, strict=True)
+    )
     sources = config["lavalink"]["server"]["sources"]
     assert (sources["youtube"], sources["http"], sources["local"]) == (False, False, False)
     assert config["logging"]["request"]["enabled"] is False  # it would log every search
@@ -179,7 +184,6 @@ def test_youtube_oauth() -> None:
     assert "# YOUTUBE_OAUTH_REFRESH_TOKEN=" in example
 
 
-@pytest.mark.xfail(strict=True, reason="Remote cipher for the node")
 def test_remote_cipher() -> None:
     """Requirement: Remote cipher for the node."""
     compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
