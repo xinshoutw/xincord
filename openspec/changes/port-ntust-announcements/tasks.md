@@ -65,7 +65,7 @@
 - [x] 9.1 Gate passes, push, CI green (before the review)
 - [x] 9.2 Cross-review the change (other paths into a pass, repeated or concurrent passes, state
       left behind) and fix its findings xfail-first (9.3 to 9.19; design, "Cross-review")
-- [ ] 9.3 xfail test for a channel that refuses posts (found in the review: every pass converted
+- [x] 9.3 xfail test for a channel that refuses posts (found in the review: every pass converted
       the articles again)
 - [ ] 9.4 Keep an article's messages until they are posted; remove the marker
 - [ ] 9.5 xfail test for a message part of only whitespace (found in the review: the rest was lost)

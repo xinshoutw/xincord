@@ -378,3 +378,21 @@ async def test_unexpected_error(scene: Scene, caplog: pytest.LogCaptureFixture) 
     [record] = [record for record in caplog.records if record.levelno == logging.ERROR]
     assert record.getMessage() == f"NtustAnnouncements board {BOARD}: the pass failed"
     assert record.exc_info is not None
+
+
+@pytest.mark.xfail(strict=True, reason="Each board remembers what it posted")
+async def test_refused_posts(scene: Scene) -> None:
+    """Requirement: Each board remembers what it posted."""
+    scene.refusals = [forbidden()] * (3 * len(ENTRIES))  # a wrong channel or a missing permission
+    for _ in range(3):
+        await scene.watcher.check()
+
+    # Each article was fetched and converted once: Gemini's quota is not spent at every pass.
+    assert scene.converted == [(article_html(ARTICLE_PAGE), link.url) for link in ARTICLES]
+    assert scene.fetched.count(ARTICLES[0].url) == 1
+
+    scene.refusals.clear()
+    await scene.watcher.check()
+
+    assert scene.sent == expected_posts(ENTRIES)
+    assert len(scene.converted) == len(ARTICLES)

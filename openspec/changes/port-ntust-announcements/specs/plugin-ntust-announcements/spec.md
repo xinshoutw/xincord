@@ -245,6 +245,10 @@ document SHALL stop its board and stay.
 - **WHEN** an article's page answers 500, or the channel refuses the post
 - **THEN** nothing is stored for it and the next pass posts it
 
+#### Scenario: Refused posts
+- **WHEN** the channel refuses the posts at three passes, then takes them
+- **THEN** each article is fetched and converted once, and posted when the channel takes it
+
 #### Scenario: Links that leave the page
 - **WHEN** a pass sees the page without some posted links and a later pass sees them again
 - **THEN** they are not posted again
