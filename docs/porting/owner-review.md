@@ -14,30 +14,6 @@ with what the owner has not seen yet:
 When the owner answers an item, record the answer in `HANDOFF.md` section 6 and delete the item
 here; delete a section once it is empty.
 
-## Example (v3 _Example, `port-example`)
-
-### User-visible changes
-- `/example-command` replies with a third embed field, `Config value`, showing `example_key` from `plugins/Example/config.yaml` (zh-TW name in the plugin's `lang/zh-TW/message/example.yaml`).
-- A new `Count: 0` button under the reply counts presses (zh-TW label in `lang/zh-TW/message/counter.yaml`).
-- `option1` accepts at most 1024 characters; v3 gave no reply above that.
-- Option text is shown as typed (v3 expanded `%...%`), and the command answers in threads, voice channel chats and announcement channels (v3 gave no reply there).
-- `example_key` is optional (default `example_value`); a v3 config's `enabled` key now logs an unknown-key warning.
-### Manual checks
-- Smoke checklist in `openspec/changes/archive/2026-10-10-port-example/design.md` (needs a token and a test guild).
-
-## Calculator (v3 BasicCalculator, `port-basic-calculator`)
-
-### User-visible changes
-- `formula` takes at most 1018 characters; values over 50,000 digits and results over 1018 characters fail with `Too many digits` (v3: no reply).
-- New error messages, English in every locale like v3's: `Division by zero`, `Exponent must be an integer`, `Too many digits`, `Formula too long`.
-- `%...%` in a failing formula is shown as typed (v3 expanded it, and `%bc_question%` gave no reply).
-- When the bot cannot post in the channel, the answer replaces the ephemeral "thinking" response (v3: "thinking..." forever).
-- `%bc_answer_round%` is the part before the decimal point (v3: the whole answer); the shipped templates do not use it.
-- The en-US `formula` description says the multiplication sign can be omitted (v3: "bracket is ignorable"); existing `plugins/Calculator/lang/` files keep v3's text unless renewed with `--force-renew-lang-resources`.
-- No `plugins/Calculator/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list.
-### Manual checks
-- Smoke checklist in `openspec/changes/archive/2026-10-10-port-basic-calculator/design.md` (needs a token and a test guild).
-
 ## AutoRole (`port-auto-role`)
 
 ### User-visible changes
@@ -339,6 +315,23 @@ here; delete a section once it is empty.
 - Before switching provider, compare its limits with `rate-limit` and `rate-window`; Gemini's free tier also limits requests per day, which one window does not express.
 - Done: the wheel, `xincord --no-online` with the bundled file, example values, an invalid temperature and an endpoint with secrets, a probe of both formats and of aiohttp's own error texts through the installed plugin (archived design, "Checks"), and a cross-review whose findings are fixed or listed above (archived design, "Cross-review").
 
+## NtustAnnouncements review and split (`ntust-announcements-review`)
+
+### User-visible changes
+- New copy, zh-TW, in the bundled `config.yaml`: a shorter `prompt` (replacing v3's 140 lines, which asked for fenced code blocks) and the new `review-prompt`; English comments for `reject-texts`, `reviewers` and `review-prompt`. The test guild's `plugins/NtustAnnouncements/config.yaml` was rewritten from the new bundled file with your key, model and test board.
+- `reject-texts: ["```"]`: an answer that holds a code fence fails its attempt (`the answer holds ```` in the log) and the model is asked again after the next of `retry-waits` (60 s first).
+- `reviewers: [<user IDs>]`: a ❌ from one of them on a post converts the article again, has the model check it with `review-prompt` (`review attempt ...` lines), posts the result and deletes the old messages; log lines `user N marked <url>; converting it again` and `replaced the post of <url>`. When the article or the new post fails, the old post stays (`... was not posted again; its old post stays`).
+- Long posts are cut before a heading (or a line wholly in bold), at a blank line, before a list item, at a line break, in that order among the breaks past half of 1980 units; never right after a heading.
+### Choices made without the owner
+- Refused answers wait like failed ones (`retry-waits`): at temperature 0.1 an immediate retry tends to repeat the answer; alternative: retry at once.
+- Only redone posts are reviewed (as asked); a failed review posts the new conversion as it is, with a warning; alternative: no post until a review passes.
+- The new post comes first and the old messages go after it, so a failure or a restart during the model's retries never loses the post; the new one lands at the end of the channel.
+- Lines wholly in bold count as headings (the prompt's small headings); a break past half the limit wins over a better one in the first half, so a heading near the top makes no one-line message.
+- Each posted message is stored (namespace `NtustAnnouncements.posts`), never pruned: a few a day. Posts made before this change have no entry, so a ❌ on them does nothing.
+### Manual checks
+- In the test guild, add ❌ to a post in `#ntust` (you are in `reviewers`): within about a minute a reviewed post replaces it. A ❌ from your second account does nothing.
+- At cutover: the migrated `plugins/NtustAnnouncements/config.yaml` keeps v3's prompt; replace `prompt` with the bundled one and add `reject-texts`, `reviewers` and (optionally) `review-prompt`, or start from the bundled file as on the test guild.
+
 ## NtustCourseWatch (v3 NtustCourse, `port-ntust-course-watch`)
 
 ### User-visible changes
@@ -371,9 +364,7 @@ here; delete a section once it is empty.
 - After a new gateway session (READY again, not a resume), the bot leaves the voice channels that discord.py forgot; members run `/play` again. A node that answers nothing for 15 seconds makes the command answer `node-unavailable`.
 - Autocomplete suggestions answer within 2.5 seconds (or not at all) and leave other plugins' autocompletes alone.
 ### Manual checks
-- Smoke checklist in `openspec/changes/archive/2026-10-11-port-music-player/design.md`.
-- A real voice test with a token: DAVE through Lavalink 4.2.2 is untested here (no token or guild); listen to a song, a move between channels and a moderator's disconnection.
-- Upload v3's emoji images (`XsDiscordBotKt/Plugins/MusicPlayer/src/main/resources/images/`) as the application's emojis if the bot's application changed; otherwise check that the existing ones show.
+- Smoke checklist in `openspec/changes/archive/2026-10-11-port-music-player/design.md`: steps 2 to 6 passed on 2026-10-12 (DAVE works); left: a move between channels, a moderator's disconnection (7), leaving after 10 idle minutes (8), and the node stopped and started (10).
 - Done: the wheel, `xincord --no-online` (bundled, filled and v3 configs), the node healthy on this Mac with both plugins, the image with all eighteen plugins, the plugin's link from the image to the node (a YouTube search, the refused sources, a wrong password), a probe through discord.py's own objects, again after the cross-review's fixes (a moderator's disconnection and a second READY), and the node's logs without queries (archived design, "Checks" and "Cross-review").
 
 ## Dependency updates (`dependency-updates`)

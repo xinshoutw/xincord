@@ -75,3 +75,10 @@ to compare the Markdown with the HTML and answer the corrected Markdown only.
 On the owner's test guild with a working key: the first pass posts the board's first page without
 fences; `reviewers: [<owner>]` and a reload; ❌ on a post: a new post comes (the log shows the
 redo), and the old one goes; ❌ by another account does nothing.
+
+Result on 2026-10-12 (the owner's test guild, `gemini-3.8-flash`, the new bundled prompt): one
+announcement posted in 11 s as two messages without fences, the second starting at a numbered
+item; with the bot's own ID briefly among `reviewers`, its cross mark on the first message logged
+the redo, and 55 s later the reviewed post (two messages, the bold small heading turned into a
+`##` heading by the review) replaced both old messages, whose store entries were forgotten. The
+owner's own cross mark is part of the Discord checks.

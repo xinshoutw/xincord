@@ -22,7 +22,7 @@
 ## 4. Prompts and close
 
 - [x] 4.1 The new bundled `prompt` and `review-prompt` with their comments; porting guide rows
-- [ ] 4.2 Gate passes, push, CI green
-- [ ] 4.3 The manual check on the owner's test guild (design)
-- [ ] 4.4 Archive the change and run `openspec validate --all --strict`; update `HANDOFF.md` and
+- [x] 4.2 Gate passes, push, CI green
+- [x] 4.3 The manual check on the owner's test guild (design)
+- [x] 4.4 Archive the change and run `openspec validate --all --strict`; update `HANDOFF.md` and
       `docs/porting/owner-review.md` (the new copy)

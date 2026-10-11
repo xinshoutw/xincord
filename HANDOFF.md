@@ -564,7 +564,8 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 `chat-logger-split-storage`, `port-ticket`, `port-ticket-away-notice`,
 `port-ntust-announcements`, `port-ntust-course-watch`, `port-music-player`,
 `ntust-announcements-model-config`, `ticket-staff-controls`, `dependency-updates`, `release-pipeline`, `compose-run-fixes`, `reload-uploads-changes`,
-`timezone-from-env`, `chat-logger-keep-deleted`. Each one's `design.md` in
+`timezone-from-env`, `chat-logger-keep-deleted`, `ntust-announcements-review`. Each one's
+`design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
@@ -772,6 +773,17 @@ Answered on 2026-10-11 (evening), after the core's run under compose, from the r
   page (the migrated lists prevent it at cutover), BotInfo's source link as a third embed field,
   and every other choice in the queue. The queue keeps the user-visible changes and the manual
   checks until the Discord checks.
+
+Requested on 2026-10-12, with NtustAnnouncements running on the test guild (the owner's key and
+`gemini-3.8-flash`): refuse answers that hold a code fence and ask the model again; a ❌ from users
+listed in the config deletes a post and posts a new conversion that the model checks with a review
+prompt that Claude writes into `config.yaml`; a shorter prompt for current models; and long posts
+split at their structure (headings, blank lines, list items), not at any line break. Done in
+`ntust-announcements-review`; its copy and choices are in the review queue. Batch 1 of the Discord
+checks passed the same night: the bot's status and `/xincord reload`, Example, Calculator, BotInfo,
+CustomCommands' bundled command, Economy as administrator, and MusicPlayer's real voice with DAVE
+through Lavalink 4.2.2 (play, the panel with the application's emojis, suggestions, pause and
+resume, volume, stop).
 
 1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
    (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script
