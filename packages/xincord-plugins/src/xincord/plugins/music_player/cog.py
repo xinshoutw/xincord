@@ -5,6 +5,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:56-957
 """
 
+import random
 from typing import TYPE_CHECKING
 
 from discord.ext import commands
@@ -38,6 +39,7 @@ class MusicPlayer(Commands, commands.Cog):
         self.sessions: dict[int, Session] = {}
         self.link: Link | None = None
         self.emojis: Mapping[str, str] = FALLBACKS
+        self.random: random.Random = random.SystemRandom()  # /shuffle's order; tests seed it
 
     def joined(self, guild_id: int, player: Player) -> None:
         """The bot is connecting in the guild: its session plays on ``player``."""

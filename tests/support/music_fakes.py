@@ -29,7 +29,7 @@ def _texts(locale: str) -> dict[str, str]:
     return texts
 
 
-def text(key: str, locale: str = "en-US", **values: object) -> str:
+def text(key: str, locale: str = "en-US", /, **values: object) -> str:
     """The bundled text ``key`` in ``locale`` with its ``%music_player@<name>%`` values."""
     found = _texts(locale)[key]
     for name, value in values.items():

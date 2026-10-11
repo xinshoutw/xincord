@@ -25,8 +25,9 @@ from discord_fakes import (
     Sent,
     voice_state,
 )
-from music_fakes import FakeLink, FakePlayer, loaded
+from music_fakes import FakeLink, FakePlayer, loaded, song
 from plugin_fakes import Ready, load_plugin
+from xincord.plugins.music_player.history import Entry, Requester
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Iterator
@@ -148,13 +149,13 @@ class Scene:
         locale: discord.Locale = discord.Locale.american_english,
         user_id: int = 1,
     ) -> FakeInteraction:
-        """A command of a member in voice channel ``channel``, in ``locale``."""
+        """A command of a member in voice channel ``channel``, in ``locale``; its ``sent`` holds
+        its own responses only."""
         return FakeInteraction(
             data={},
             user=self.member(channel, user_id=user_id),
             guild=self.guild,
             locale=locale,
-            sent=self.sent,
             client=SimpleNamespace(user=BOT_USER),
         )
 
@@ -170,6 +171,13 @@ class Scene:
     def player(self) -> FakePlayer:
         """The guild's player on the node."""
         return self.link.players[self.guild.id]
+
+    async def playing(self, *numbers: int) -> FakePlayer:
+        """Connect the bot and add songs ``numbers`` as Alice; the first plays."""
+        player = await self.connect()
+        alice = Requester(1, "Alice", "alice", "https://cdn.example/alice.png")
+        await self.cog.session(self.guild.id).enqueue([Entry(song(n), alice) for n in numbers])
+        return player
 
 
 @pytest.fixture
