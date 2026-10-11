@@ -507,7 +507,6 @@ async def test_a_node_that_does_not_answer(monkeypatch: pytest.MonkeyPatch) -> N
             await link.close()
 
 
-@pytest.mark.xfail(strict=True, reason="Songs load and play through a Lavalink node")
 async def test_a_connection_while_a_lost_one_leaves(scene: Scene) -> None:
     """Requirement: Songs load and play through a Lavalink node."""
     lost = await scene.voice()

@@ -333,17 +333,19 @@ class LavalinkVoice(discord.VoiceProtocol):
             await self._release()
 
     async def _release(self) -> None:
-        """Forget the connection once: discord.py's record, the plugin's player, the node's.
+        """Forget the connection once: discord.py's record of it and, unless a newer connection
+        holds the guild, the plugin's player and the node's.
 
         The plugin hears of it before the node's answer, during which the bot may connect again.
         """
         if self.released:
             return
         self.released = True
-        if self.link.voices.get(self.guild_id) is self:
-            del self.link.voices[self.guild_id]
         if self in self.client.voice_clients:  # not after a new gateway session forgot it
             self.cleanup()
+        if self.link.voices.get(self.guild_id) is not self:  # the bot connected again meanwhile
+            return
+        del self.link.voices[self.guild_id]
         self.link.listener.left(self.guild_id)
         try:
             await self.link.client.player_manager.destroy(self.guild_id)
