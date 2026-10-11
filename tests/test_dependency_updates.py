@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -167,6 +168,18 @@ def test_lavalink_plugins_are_managed() -> None:
     }
     assert all(re.fullmatch(r"\d+\.\d+\.\d+", version) for version in found.values())
     assert manager["registryUrlTemplate"] == LAVALINK_MAVEN
+
+
+@pytest.mark.xfail(strict=True, reason="Renovate updates the versions that no manager reads")
+def test_snapshot_pins_stay() -> None:
+    """Requirement: Renovate updates the versions that no manager reads."""
+    snapshot = [
+        rule for rule in rules(renovate()) if rule.get("matchCurrentValue") == "/^[0-9a-f]{40}$/"
+    ]
+
+    assert len(snapshot) == 1
+    assert snapshot[0]["matchPackageNames"] == ["dev.lavalink.youtube:youtube-plugin"]
+    assert snapshot[0]["enabled"] is False
 
 
 def test_patch_updates_automerge() -> None:

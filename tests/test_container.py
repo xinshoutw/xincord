@@ -3,6 +3,7 @@
 import re
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -176,6 +177,24 @@ def test_youtube_oauth() -> None:
     }
     assert "# YOUTUBE_OAUTH_ENABLED=true" in example
     assert "# YOUTUBE_OAUTH_REFRESH_TOKEN=" in example
+
+
+@pytest.mark.xfail(strict=True, reason="Remote cipher for the node")
+def test_remote_cipher() -> None:
+    """Requirement: Remote cipher for the node."""
+    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
+    environment = compose["services"]["lavalink"]["environment"]
+    config = yaml.safe_load((ROOT / "lavalink" / "application.yml").read_text(encoding="utf-8"))
+    example = (ROOT / ".env.example").read_text(encoding="utf-8").splitlines()
+
+    assert config["plugins"]["youtube"]["remoteCipher"] == {
+        "url": "${YOUTUBE_CIPHER_URL:https://cipher.kikkia.dev/}",
+        "password": "${YOUTUBE_CIPHER_PASSWORD:}",
+    }
+    assert environment["YOUTUBE_CIPHER_URL"] == "${YOUTUBE_CIPHER_URL:-https://cipher.kikkia.dev/}"
+    assert environment["YOUTUBE_CIPHER_PASSWORD"] == "${YOUTUBE_CIPHER_PASSWORD:-}"
+    assert any(line.startswith("# YOUTUBE_CIPHER_URL=") for line in example)
+    assert "# YOUTUBE_CIPHER_PASSWORD=" in example
 
 
 def test_image_turns_off_cpr() -> None:
