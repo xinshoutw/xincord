@@ -563,7 +563,7 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 `rename-plugins`, `uptime-heartbeat-keep-pushing`, `custom-commands-from-config`,
 `chat-logger-split-storage`, `port-ticket`, `port-ticket-away-notice`,
 `port-ntust-announcements`, `port-ntust-course-watch`, `port-music-player`,
-`ntust-announcements-model-config`, `ticket-staff-controls`, `dependency-updates`, `release-pipeline`. Each one's `design.md` in
+`ntust-announcements-model-config`, `ticket-staff-controls`, `dependency-updates`, `release-pipeline`, `compose-run-fixes`. Each one's `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
@@ -575,8 +575,9 @@ DynamicVoiceChannel, VoiceLogger, ChatLogger, Giveaway, Ticket, TicketAwayNotice
 NtustAnnouncements, NtustCourseWatch and MusicPlayer (`port-music-player`, with the `lavalink`
 service in `compose.yaml`). The owner renamed nine plugins (`docs/porting/decisions.md`,
 Amendment 1); MusicPlayer kept its name. Next: the cutover of decision C2 (every in-scope plugin's
-scenarios pass), which needs the owner: a run with a real token under compose (section 6) and the
-manual smoke checklists of the archived changes, MusicPlayer's real voice test with DAVE first.
+scenarios pass), which needs the owner: the manual smoke checklists of the archived changes,
+MusicPlayer's real voice test with DAVE first (the core's run under compose passed on 2026-10-11,
+section 6).
 v3's data moves at the cutover, when the owner asks, by one-off scripts that Claude writes outside
 the repository (below).
 
@@ -652,8 +653,12 @@ the owner still adds LICENSE); OpenSpec stays on npx; the user-visible changes l
 accepted. For `core-startup` the owner chose: `--no-online` checks and exits; logs go to stderr
 only (no log file). For `core-reload`: English copy for `/xincord`, and a full reload unloads the
 plugins removed from the list. The `core-console`, `core-status-log` and `container` behavior was
-accepted as listed. Still open: a run with a real token under compose (step 3 of the manual check
-in `openspec/changes/archive/2026-10-10-container/design.md`).
+accepted as listed. Step 3 of the manual check in
+`openspec/changes/archive/2026-10-10-container/design.md` ran on 2026-10-11 with the owner's test
+application `xincord-test` in the owner's guild Hx: login, the database volume, the console,
+SIGHUP and stop passed, and `compose-run-fixes` fixed what the run showed (late reload summaries,
+the console's blank lines in `docker compose logs`, the CPR and voice warnings). Left for the
+owner: the bot's status and `/xincord reload` in Discord.
 
 From the plugin ports on, the owner asked for pushes without waiting for review: each port lists
 its user-visible changes, the choices made without the owner and the manual checks in
