@@ -142,9 +142,6 @@ async def test_request(server: Server) -> None:
     }
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Gemini turns an article into Markdown"
-)
 async def test_request_settings(server: Server) -> None:
     """Requirement: Gemini turns an article into Markdown."""
     api = Api(
@@ -166,9 +163,6 @@ async def test_request_settings(server: Server) -> None:
     }
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Gemini turns an article into Markdown"
-)
 async def test_request_without_settings(server: Server) -> None:
     """Requirement: Gemini turns an article into Markdown."""
     async with open_web(gemini(server, temperature=None, max_output_tokens=None)) as web_:
@@ -180,9 +174,6 @@ async def test_request_without_settings(server: Server) -> None:
     }
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Gemini turns an article into Markdown"
-)
 async def test_timeouts(server: Server, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Gemini turns an article into Markdown."""
     timeouts: list[object] = []
@@ -290,11 +281,6 @@ def test_answer_text(answer: object, text: str) -> None:
     assert answer_text(ApiFormat.GEMINI, answer) == text
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="An OpenAI-compatible API turns an article into Markdown",
-)
 async def test_openai_request(server: Server) -> None:
     """Requirement: An OpenAI-compatible API turns an article into Markdown."""
     server.api = (200, json.dumps(OPENAI_ANSWER))
@@ -314,11 +300,6 @@ async def test_openai_request(server: Server) -> None:
     }
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="An OpenAI-compatible API turns an article into Markdown",
-)
 async def test_openai_settings(server: Server) -> None:
     """Requirement: An OpenAI-compatible API turns an article into Markdown."""
     server.api = (200, json.dumps(OPENAI_ANSWER))
@@ -342,11 +323,6 @@ async def test_openai_settings(server: Server) -> None:
     }
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="An OpenAI-compatible API turns an article into Markdown",
-)
 async def test_openai_answer(server: Server) -> None:
     """Requirement: An OpenAI-compatible API turns an article into Markdown."""
     server.api = (200, json.dumps(OPENAI_ANSWER))
@@ -357,11 +333,6 @@ async def test_openai_answer(server: Server) -> None:
     assert text == "# Title\nBody"  # the first choice's content, trimmed
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="An OpenAI-compatible API turns an article into Markdown",
-)
 @pytest.mark.parametrize(
     ("answer", "error"),
     [
@@ -384,11 +355,6 @@ async def test_openai_refused_answers(server: Server, answer: tuple[int, str], e
     assert raised.value.status == answer[0]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="An OpenAI-compatible API turns an article into Markdown",
-)
 @pytest.mark.parametrize(
     "body",
     [
@@ -409,11 +375,6 @@ async def test_openai_answers_without_text(server: Server, body: str) -> None:
         assert await web_.generate("key-one", "the prompt") == ""
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="An OpenAI-compatible API turns an article into Markdown",
-)
 @pytest.mark.parametrize(
     ("answer", "text"),
     [

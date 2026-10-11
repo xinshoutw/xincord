@@ -52,29 +52,39 @@ class Api:
 
     @property
     def url(self) -> str:
-        """Where each attempt is posted."""
+        """Where each attempt is posted: the endpoint and the format's path."""
         if self.format is ApiFormat.OPENAI:
-            raise NotImplementedError
+            return f"{self.endpoint}/chat/completions"
         return f"{self.endpoint}/models/{self.model}:generateContent"
 
     def headers(self, key: str) -> dict[str, str]:
         """The header that carries ``key``: never the URL."""
         if self.format is ApiFormat.OPENAI:
-            raise NotImplementedError
+            return {"Authorization": f"Bearer {key}"}
         return {"x-goog-api-key": key}
 
     def body(self, prompt: str) -> dict[str, object]:
-        """The request's JSON body: the prompt and the generation settings."""
-        if (
-            self.format is ApiFormat.OPENAI
-            or self.temperature != TEMPERATURE
-            or self.max_output_tokens is not None
-        ):
-            raise NotImplementedError
-        return {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": TEMPERATURE},
-        }
+        """The request's JSON body: the prompt and the generation settings that are not None.
+
+        ``gemini``: the prompt as the only text part, the settings in ``generationConfig``, left
+        out when both are None. ``openai``: the prompt as the only user message, as it was
+        Gemini's only part; ``max_tokens``, which Ollama, OpenRouter and Gemini's compatible
+        endpoint take, rather than OpenAI's newer ``max_completion_tokens``.
+        """
+        if self.format is ApiFormat.OPENAI:
+            chat: dict[str, object] = {
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+            }
+            return chat | _settings(temperature=self.temperature, max_tokens=self.max_output_tokens)
+        contents: dict[str, object] = {"contents": [{"parts": [{"text": prompt}]}]}
+        config = _settings(temperature=self.temperature, maxOutputTokens=self.max_output_tokens)
+        return contents | {"generationConfig": config} if config else contents
+
+
+def _settings(**settings: float | None) -> dict[str, object]:
+    """The settings that are not None: the others are left to the API."""
+    return {name: value for name, value in settings.items() if value is not None}
 
 
 def _field(value: object, name: str) -> object:
@@ -90,11 +100,14 @@ def _items(value: object) -> list[object]:
 def answer_text(api_format: ApiFormat, answer: object) -> str:
     """The text of an answer in ``api_format``, trimmed.
 
-    ``gemini``: the first candidate's text parts, joined (v3's ``callOnce``). An answer without
-    them (a blocked prompt) gives an empty text, a failed attempt.
+    ``gemini``: the first candidate's text parts, joined (v3's ``callOnce``). ``openai``: the first
+    choice's message content, when it is a string. An answer without them (a blocked prompt, a
+    refusal, a tool call) gives an empty text, a failed attempt.
     """
     if api_format is ApiFormat.OPENAI:
-        raise NotImplementedError
+        choices = _items(_field(answer, "choices"))
+        content = _field(_field(choices[0], "message"), "content") if choices else None
+        return trim(content) if isinstance(content, str) else ""
     candidates = _items(_field(answer, "candidates"))
     if not candidates:
         return ""

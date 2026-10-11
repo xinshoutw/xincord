@@ -18,7 +18,7 @@ import aiohttp
 
 from xincord.plugins.ntust_tls import ntust_context
 
-from .api import CONNECT_TIMEOUT, REQUEST_TIMEOUT, ApiError, answer_text, error_message
+from .api import ApiError, answer_text, error_message
 
 if TYPE_CHECKING:
     import ssl
@@ -29,8 +29,6 @@ if TYPE_CHECKING:
 OK = 200
 # v3's limits for pages: 30 seconds to connect and 30 for the request.
 PAGE_TIMEOUT = aiohttp.ClientTimeout(total=30, connect=30)
-# v3's SDK set none for Gemini, which can take a minute or more for a long article.
-GEMINI_TIMEOUT = aiohttp.ClientTimeout(total=REQUEST_TIMEOUT, connect=CONNECT_TIMEOUT)
 MAX_REDIRECTS = 10
 
 
@@ -61,10 +59,11 @@ def _json(text: str) -> object:
 
 
 def _timeout(api: Api) -> aiohttp.ClientTimeout:
-    """The limits of an attempt."""
-    if (api.request_timeout, api.connect_timeout) != (REQUEST_TIMEOUT, CONNECT_TIMEOUT):
-        raise NotImplementedError
-    return GEMINI_TIMEOUT
+    """The limits of an attempt: ``request-timeout`` in all, ``connect-timeout`` to connect.
+
+    v3's SDK set none; a long article can take the model a minute or more.
+    """
+    return aiohttp.ClientTimeout(total=api.request_timeout, connect=api.connect_timeout)
 
 
 class Requests(Protocol):
