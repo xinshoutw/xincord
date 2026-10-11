@@ -88,7 +88,8 @@ Titles are the links' text with whitespace collapsed, links resolve against the 
 #### Scenario: NTUST's certificates
 - **WHEN** a page is fetched over HTTPS
 - **THEN** its certificate and host name are verified without Python's strict X.509 checks, which
-  NTUST's certificate chain fails
+  NTUST's certificate chains fail, and with TWCA's intermediate certificate, which
+  `www.academic.ntust.edu.tw` does not send
 
 ### Requirement: Article pages give their content as minified HTML
 A link SHALL count as an NTUST article when it matches v3's pattern

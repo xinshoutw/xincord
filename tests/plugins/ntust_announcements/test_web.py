@@ -248,3 +248,13 @@ async def test_pages_use_the_context() -> None:
     async with open_web(MODEL) as web_:
         assert not web_.tls.verify_flags & ssl.VERIFY_X509_STRICT
         assert web_.tls.check_hostname
+
+
+@pytest.mark.xfail(strict=True, reason="Board pages list their announcements")
+def test_missing_intermediate() -> None:
+    """Requirement: Board pages list their announcements."""
+    # www.academic.ntust.edu.tw sends its own certificate and the root, not TWCA's intermediate
+    # (2026-10-11), so OpenSSL cannot build its chain; the page context holds the intermediate.
+    subjects = [str(ca["subject"]) for ca in page_context().get_ca_certs()]
+
+    assert any("'TWCA Secure SSL Certification Authority'" in subject for subject in subjects)
