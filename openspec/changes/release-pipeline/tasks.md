@@ -6,8 +6,8 @@
 
 ## 2. Implementation
 
-- [ ] 2.1 `scripts/release_version.py`
-- [ ] 2.2 `.github/workflows/release.yml`
+- [x] 2.1 `scripts/release_version.py`
+- [x] 2.2 `.github/workflows/release.yml`
 
 ## 3. Docs and close
 

@@ -1,0 +1,111 @@
+name: release
+
+# A GPG-signed v* tag that the owner pushes releases xincord (decisions.md, Amendment 4).
+# A manual run is a dry run: every check and build, nothing pushed, released or published.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Check the tag's signature
+        if: github.ref_type == 'tag'
+        run: |
+          curl --fail --silent --show-error "https://github.com/${GITHUB_REPOSITORY_OWNER}.gpg" \
+            | gpg --batch --import
+          git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+          git verify-tag "${GITHUB_REF_NAME}"
+
+      - name: Check the versions
+        id: version
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = tag ]; then tag="${GITHUB_REF_NAME}"; else tag=""; fi
+          version="$(python3 scripts/release_version.py ${tag:+"${tag}"})"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+
+      - name: Build the distributions
+        run: uv build --all-packages --out-dir dist
+
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GHCR
+        if: github.ref_type == 'tag'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.ref_type == 'tag' }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/xincord:${{ steps.version.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/xincord:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Write the release notes
+        if: github.ref_type == 'tag'
+        run: |
+          previous="$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)"
+          git log --no-merges --format='- %s (%h)' "${previous:+${previous}..}${GITHUB_REF_NAME}" \
+            > notes.md
+
+      - name: Create the GitHub Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          prerelease=""
+          case "${VERSION}" in 0.*) prerelease="--prerelease" ;; esac
+          gh release create "${GITHUB_REF_NAME}" dist/* --verify-tag ${prerelease} \
+            --title "xincord ${VERSION}" --notes-file notes.md
+
+  pypi:
+    # PyPI from 1.0.0 only, once the repository is public; the owner protects the environment.
+    needs: release
+    if: github.ref_type == 'tag' && !startsWith(github.ref_name, 'v0.')
+    runs-on: ubuntu-24.04
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+
+      - name: Download the Release's files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" \
+            --pattern '*.whl' --pattern '*.tar.gz' --dir dist
+
+      - name: Publish with trusted publishing
+        run: uv publish --trusted-publishing always dist/*

@@ -41,7 +41,6 @@ def projects(root: Path, core: str, plugins: str) -> Path:
     return root
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Signed release tags")
 def test_matching_versions(tmp_path: Path) -> None:
     """Requirement: Signed release tags."""
     root = projects(tmp_path, "1.2.3", "1.2.3")
@@ -50,7 +49,6 @@ def test_matching_versions(tmp_path: Path) -> None:
     assert release_version(root, "v1.2.3") == "1.2.3"
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Signed release tags")
 def test_mismatched_versions(tmp_path: Path) -> None:
     """Requirement: Signed release tags."""
     differing = projects(tmp_path / "differing", "1.2.3", "1.2.4")
@@ -62,7 +60,6 @@ def test_mismatched_versions(tmp_path: Path) -> None:
         release_version(same, "v1.2.4")
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Signed release tags")
 def test_script_exit_codes(capsys: pytest.CaptureFixture[str]) -> None:
     """Requirement: Signed release tags."""
     assert main([]) == 0
@@ -72,7 +69,6 @@ def test_script_exit_codes(capsys: pytest.CaptureFixture[str]) -> None:
     assert "error:" in capsys.readouterr().err
 
 
-@pytest.mark.xfail(strict=True, raises=FileNotFoundError, reason="Signed release tags")
 def test_trigger_and_signature() -> None:
     """Requirement: Signed release tags."""
     raw = cast("dict[object, Any]", workflow())
@@ -88,14 +84,13 @@ def test_trigger_and_signature() -> None:
     assert "release_version.py" in step("release", "release_version.py")["run"]
 
 
-@pytest.mark.xfail(strict=True, raises=FileNotFoundError, reason="Release artifacts")
 def test_image() -> None:
     """Requirement: Release artifacts."""
     image = step("release", "docker/build-push-action")["with"]
 
     assert image["platforms"] == "linux/amd64,linux/arm64"
     assert image["push"] == "${{ github.ref_type == 'tag' }}"
-    assert image["tags"].split() == [
+    assert image["tags"].splitlines() == [
         "ghcr.io/${{ github.repository_owner }}/xincord:${{ steps.version.outputs.version }}",
         "ghcr.io/${{ github.repository_owner }}/xincord:latest",
     ]
@@ -103,7 +98,6 @@ def test_image() -> None:
     assert "uv build --all-packages" in step("release", "uv build")["run"]
 
 
-@pytest.mark.xfail(strict=True, raises=FileNotFoundError, reason="Release artifacts")
 def test_github_release() -> None:
     """Requirement: Release artifacts."""
     notes = step("release", "git log")
@@ -117,7 +111,6 @@ def test_github_release() -> None:
     assert notes["if"] == "github.ref_type == 'tag'"
 
 
-@pytest.mark.xfail(strict=True, raises=FileNotFoundError, reason="Dry runs")
 def test_dry_runs_push_nothing() -> None:
     """Requirement: Dry runs."""
     guarded = [
@@ -130,7 +123,6 @@ def test_dry_runs_push_nothing() -> None:
     assert "github.ref_type == 'tag'" in workflow()["jobs"]["pypi"]["if"]
 
 
-@pytest.mark.xfail(strict=True, raises=FileNotFoundError, reason="PyPI from 1.0.0")
 def test_pypi_waits_for_one_point_oh() -> None:
     """Requirement: PyPI from 1.0.0."""
     job = workflow()["jobs"]["pypi"]
@@ -143,7 +135,6 @@ def test_pypi_waits_for_one_point_oh() -> None:
     assert "uv publish --trusted-publishing always" in commands
 
 
-@pytest.mark.xfail(strict=True, raises=FileNotFoundError, reason="PyPI from 1.0.0")
 def test_actions_and_permissions() -> None:
     """Requirement: PyPI from 1.0.0."""
     config = workflow()
