@@ -18,13 +18,8 @@ from aiohttp.test_utils import RawTestServer
 
 from plugin_fakes import FIXTURES
 from xincord.plugins.ntust_announcements.gemini import GeminiError
-from xincord.plugins.ntust_announcements.web import (
-    FetchError,
-    Page,
-    answer_text,
-    open_web,
-    page_context,
-)
+from xincord.plugins.ntust_announcements.web import FetchError, Page, answer_text, open_web
+from xincord.plugins.ntust_tls import ntust_context
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -235,7 +230,7 @@ async def test_page_encoding(server: Server) -> None:
 
 def test_page_certificates() -> None:
     """Requirement: Board pages list their announcements."""
-    context = page_context()
+    context = ntust_context()
 
     # Python 3.13 made the strict X.509 checks a default, and NTUST's certificate chain lacks a
     # Subject Key Identifier, which they refuse (2026-10-11); Java's HttpClient took it.
@@ -256,14 +251,14 @@ def test_missing_intermediate() -> None:
     """Requirement: Board pages list their announcements."""
     # www.academic.ntust.edu.tw sends its own certificate and the root, not TWCA's intermediate
     # (2026-10-11), so OpenSSL cannot build its chain; the page context holds the intermediate.
-    subjects = [str(ca["subject"]) for ca in page_context().get_ca_certs()]
+    subjects = [str(ca["subject"]) for ca in ntust_context().get_ca_certs()]
 
     assert any("'TWCA Secure SSL Certification Authority'" in subject for subject in subjects)
 
 
 def test_bundled_intermediate() -> None:
     """Requirement: Board pages list their announcements."""
-    text = files("xincord.plugins.ntust_announcements").joinpath("twca-secure-ssl-ca.pem")
+    text = files("xincord.plugins.ntust_tls").joinpath("twca-secure-ssl-ca.pem")
     pem = text.read_text("ascii")
     block = pem[pem.index("-----BEGIN CERTIFICATE-----") :]
 
