@@ -39,9 +39,6 @@ def urls(links: tuple[Link, ...]) -> list[str]:
     return [entry.url for entry in links]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Each board remembers what it posted"
-)
 def test_document_shape() -> None:
     """Requirement: Each board remembers what it posted."""
     document = posted_document([link(1), link(2)])
@@ -58,9 +55,6 @@ def test_document_shape() -> None:
     assert posted_document([]) == {"items": []}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Each board remembers what it posted"
-)
 def test_v3_document() -> None:
     """Requirement: Each board remembers what it posted."""
     document: JSON = {
@@ -75,9 +69,6 @@ def test_v3_document() -> None:
     assert parse_posted({"items": []}) == ()
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Each board remembers what it posted"
-)
 @pytest.mark.parametrize(
     "document",
     [
@@ -96,9 +87,6 @@ def test_broken_documents(document: JSON) -> None:
         parse_posted(document)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Each board remembers what it posted"
-)
 def test_remember() -> None:
     """Requirement: Each board remembers what it posted."""
     stored = (link(3), link(2), link(1))
@@ -111,9 +99,6 @@ def test_remember() -> None:
     assert kept == (link(5), link(3, "Renamed"), link(2), link(1))
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Each board remembers what it posted"
-)
 def test_bounded() -> None:
     """Requirement: Each board remembers what it posted."""
     left = tuple(link(number) for number in range(1000, 850, -1))  # 150, the most recent first
@@ -124,9 +109,6 @@ def test_bounded() -> None:
     assert kept == (*page, *left[:KEEP])
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Each board remembers what it posted"
-)
 async def test_load_and_save(store: Store) -> None:
     """Requirement: Each board remembers what it posted."""
     posted = Posted(store)
@@ -138,9 +120,6 @@ async def test_load_and_save(store: Store) -> None:
     assert await store.get(NAMESPACE, BOARD) == posted_document([link(2), link(1)])
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Each board remembers what it posted"
-)
 async def test_broken_document_stays(store: Store) -> None:
     """Requirement: Each board remembers what it posted."""
     await store.put(NAMESPACE, BOARD, {"items": "broken"})
