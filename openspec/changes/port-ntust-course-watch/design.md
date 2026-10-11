@@ -282,6 +282,86 @@ operator's log lines (English).
 - The throttle and the course states live in memory: after a restart or a reload, the first check of
   a course with seats alerts again, as v3's first poll did.
 
+## Checks
+
+- Package: the `xincord-plugins` wheel holds `ntust_course_watch/` with `config.yaml` and
+  `lang/en-US/` and `lang/zh-TW/`, `ntust_tls/` with TWCA's certificate, and the
+  `NtustCourseWatch` entry point. `xincord --no-online` from a scratch venv with both wheels and
+  `plugins: [NtustCourseWatch]` exits 0 with the bundled config (writing `config.yaml` and the lang
+  files), 0 with v3's file (a warning names `enabled`) and 1 with an invalid semester (named).
+- Image: `docker compose build`, then `docker compose run --rm -T bot --no-online` with the
+  seventeen ported plugins enabled (example values for Economy, TicketAwayNotice and
+  NtustAnnouncements) exits 0 with every one loaded. In the image (OpenSSL 3.5.7), Python's default
+  context refuses `querycourse.ntust.edu.tw` (`Missing Subject Key Identifier`), and the plugin's
+  `open_api` read `CE162A001` of semester 1151 (25 of 60) through the shared context. `docker
+  compose down -v` and removing `bot/` cleaned up.
+- Probe (a scratch script with discord.py's own objects and its HTTP recorded): `/course-add` with
+  ` ce162a001 ` from a zh-TW client deferred ephemerally (type 5, flags 64) and edited `@original`
+  into the zh-TW reply; `CE-1` from an en-US client got `invalid-code`; `/course-list` listed the
+  code; the store held v3's document. After READY, the loop asked about the code with the bundled
+  semester, posted the available alert with `allowed_mentions` `{"users": [1], "parse": []}`, then
+  the full alert with `{"parse": []}`, each step about 1.5 seconds after the previous one; a 404 on a
+  post deleted the channel's registrations.
+- Live, on 2026-10-11, before writing the plugin: v3's whole-catalogue request for semester 1151
+  got no answer in 60 seconds, then a 500 after 120; a request for the code prefix `CE162A`
+  answered in under a second (the fixture's source).
+
+## Inventory audit
+
+Every section of `docs/porting/analysis/inventory/NtustCourse.md` maps to this change:
+
+- Overview (1): the plugin and its name are "The plugin installs as NtustCourseWatch"; the purpose
+  is the requirements; `info.yaml` (no intents, no dependencies, the unused `ntustcourse@` prefix)
+  is the package section.
+- Lifecycle (2): reading the config and `enabled` are the config requirement and the core's
+  `plugins` list; the MongoDB load is "Registrations are kept as v3's document"; `start()`,
+  `stop()`, unload and reload (the duplicate subscriber, bug 1) are "Registered courses are checked
+  in turn from READY"; `guildCommands()` is the commands requirement; the poll loop's semester,
+  1.5-second target and 100 ms minimum are the config and loop requirements; its missing guard is
+  "Failures are logged without flooding"; the in-memory state is the watcher's (Loop, Alerts).
+- Commands (3): names, options, descriptions and attributes are "Commands keep v3's names and answer
+  in the member's locale" (zh-TW added, a v3 difference); the ephemeral deferral and `editOriginal`
+  are that requirement's replies; the `isFromGuild` and `isMessage` checks are out of scope (dead:
+  guild commands only run in guilds, and every channel that hosts a command takes messages); the
+  three handlers are the register, unregister and list requirements, their bugs (2, 6, 7) "v3
+  behaved differently" entries. A broken registrations document makes a command raise, which
+  discord.py logs and which leaves the response thinking, as v3's exceptions did (Economy's choice).
+- Components (4): none.
+- Events (5): `processUpdates` is the alert requirements (v3's level alert, now throttled, bug 5,
+  and the edge full alert) and the course query requirement (`associateBy`'s last entry, v3's
+  `isFull` and limit); `processEvent`'s empty map, gate, texts, mentions, cast (bug 4) and
+  fire-and-forget sends are the loop, the config and the alert requirements.
+- Configuration (6): `enabled` warns (core); the semester, the gate and the cadence are config
+  (C1); the API URL, the connect timeout and the course-selection link stay constants (the link in
+  `text.yaml`, which operators can edit); the test server URL is dead code.
+- Localization (7): none in v3; the lang files hold v3's English and the zh-TW translations.
+- Persistence (8): the document, its shape and its write path are "Registrations are kept as v3's
+  document"; the broken load (bug 3) is a v3 difference; the migration notes are "Registrations and
+  the v3 data import"; code validation is "Members register courses in a channel".
+- External dependencies (9): the endpoint, the header, the body (now the site's, for one code), the
+  answer's fields and Moshi's leniencies are "Course seats come from NTUST's course query"; the
+  missing timeout and `println` (bug 9) are v3 differences; HTTP/2 is not kept (aiohttp speaks
+  HTTP/1.1, which NTUST answers).
+- Discord requirements (10): no intents; the permissions are in the smoke checklist; guild commands
+  in every guild; the API's rate is `interval` with its minimum and one code per request; Discord's
+  per-channel limit is the alert throttle.
+- Concurrency (11): commands and the loop share the store, whose changes run under the document's
+  lock and whose reads are whole documents; the subscribers' race is gone with the single loop;
+  cancellation ends a request at once, and `cog_unload` waits for the loop and the posts.
+- Bugs and quirks (12): the behaviors to preserve are scenarios (the commands and texts, the
+  ephemeral replies, the silent edge full alert, per-channel registrations, `isFull`); bugs 1 to 10
+  are "v3 behaved differently" entries (8 out of scope as dead code); bug 11 and the dead code are
+  out of scope.
+- Testability (13): each pure part is tested alone (`courses`, `store`, `alerts`, `texts` through
+  the commands), the HTTP against a local server, the steps with fakes and an injected clock, and
+  the loop through the loaded plugin with its sleep, clocks and channels replaced.
+- Assessment (14): a cog with three guild commands, the tree's deferral and
+  `edit_original_response`, an `asyncio` task with v3's pacing, aiohttp with a total timeout, a
+  guard per step, partial messageables with `AllowedMentions` for the members, a throttle per
+  channel and course, the store with v3's shape and the config keys are the decisions above; the
+  risks (NTUST's load, Discord's limits, restoring registrations, the semester rolling over) are
+  under Risks and in the bundled config's comments.
+
 ## Manual smoke checklist
 
 On a test guild, with a bot token and `plugins: [NtustCourseWatch]` in `config.yaml`; the bot needs
