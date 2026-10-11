@@ -73,3 +73,10 @@ at connect, with discord.py's error.
 2. `docker compose kill -s HUP bot` twice in a row: the first summary appears at once, the second
    reload logs that it waits, then its summary.
 3. `docker compose attach bot`: Tab after `re` completes `reload`; Ctrl-P Ctrl-Q detaches.
+
+Result on 2026-10-11 (OrbStack, the owner's test application): the log after `up -d --build` has
+no voice or CPR warning, no blank line and no cursor move up; two SIGHUPs in a row logged the
+first summary at once, then `Waiting for the running reload to finish` and the second summary;
+in the attached console, `re` and Tab completed `reload`, and a reload typed while another
+uploaded logged that it waited, then its summary 33 seconds later, when the rate limit allowed
+the upload.

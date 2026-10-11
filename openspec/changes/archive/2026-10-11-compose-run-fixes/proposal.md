@@ -35,8 +35,9 @@ None.
 ### Modified Capabilities
 
 - `core-runtime`: the reload summary comes before the upload and a waiting reload says so; the
-  console's completion style; no voice warnings at startup.
-- `deployment`: the image sets `PROMPT_TOOLKIT_NO_CPR=1`.
+  console's completion style (two requirements modified); no voice warnings at startup (one
+  requirement added).
+- `deployment`: the image sets `PROMPT_TOOLKIT_NO_CPR=1` (one requirement added).
 
 ## Impact
 

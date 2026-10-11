@@ -1,29 +1,14 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
-### Requirement: Startup loads the configured plugins
-On start the program SHALL load `config.yaml` from the working directory, writing the default when
-it is missing, open the store at `data/xincord.db` and discover the plugins listed under `plugins`.
-It SHALL log in with `--token`, or else the configured token. Before the gateway connects, the bot
-SHALL set the command translator and load the plugins. A config error, an empty token, a rejected
-token or missing privileged intents SHALL be logged and end the program with status 1. The bot
-SHALL NOT log discord.py's warnings that PyNaCl or davey is missing: voice plays through Lavalink.
-
-#### Scenario: Token precedence
-- **WHEN** the config sets a token and the program starts with and without `--token abc`
-- **THEN** it logs in with `abc`, and with the configured token without the option
-
-#### Scenario: Setup before connecting
-- **WHEN** the bot's setup runs with a listed plugin
-- **THEN** the plugin is loaded and the command translator is set
-
-#### Scenario: Startup failures
-- **WHEN** the config is invalid, no token is set, Discord rejects the token, or the privileged
-  intents are not enabled for the application
-- **THEN** the cause is logged, any opened store is closed and the exit status is 1
+### Requirement: No voice warnings at startup
+The bot SHALL NOT log discord.py's warnings that PyNaCl or davey is missing: voice plays through a
+Lavalink node, never through discord.py.
 
 #### Scenario: No voice warnings
 - **WHEN** a bot is created while discord.py would warn that PyNaCl and davey are missing
 - **THEN** no warning about voice support is logged
+
+## MODIFIED Requirements
 
 ### Requirement: Reloads upload the commands and never overlap
 After a reload the bot SHALL log the summary and then, if it is connected, upload the global and
