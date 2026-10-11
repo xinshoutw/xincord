@@ -89,6 +89,8 @@ After the cutover the owner took the recommendations of Claude's review of the p
    With the owner's approval Claude enabled secret scanning with push protection, private
    vulnerability reporting, CodeQL's default setup and a ruleset that keeps `main` from force
    pushes and deletion.
+10. **B16, backups.** `python -m xincord.core.backup` copies `data/` while the bot runs into
+    `backups/` beside `compose.yaml`; the host runs it daily and keeps the newest 7.
 
 ## F. Facts
 
