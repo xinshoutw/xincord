@@ -3,10 +3,10 @@
 What is left for the owner after the cutover of 2026-10-12: the plugins not enabled in production,
 the follow-ups there, what to watch, and the release settings. The user-visible changes, choices,
 manual checks and cutover steps listed here before were answered, verified, skipped or done, and the
-rest stands as implemented (`HANDOFF.md`, section 6); each archived change's `design.md` and
+rest stands as implemented; the git history, each archived change's `design.md` and
 `docs/porting-guide.md` keep them.
 
-When an item is done, record it in `HANDOFF.md` section 6 and delete it here; delete a section once
+When an item is done, delete it here (its commit or change records it); delete a section once
 it is empty.
 
 ## Not enabled in production

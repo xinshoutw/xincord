@@ -86,7 +86,7 @@ no version updates while its security updates still come. Their commit messages 
 Asia/Taipei, offer releases 7 days old with strict internal checks, leave security updates to
 Dependabot and title commits `build:`, or `ci:` for GitHub Actions, without a scope. It SHALL
 update `uv.lock`, the SHA-pinned actions, the Dockerfile's images, compose's Lavalink image and
-`.python-version`, not `requires-python`, the workspace's packages or compose's local image.
+`.python-version`, not `requires-python`, the workspace's packages or compose's xincord image.
 
 #### Scenario: Weekly updates after a cooldown
 - **WHEN** `.github/renovate.json` is read
@@ -110,7 +110,7 @@ update `uv.lock`, the SHA-pinned actions, the Dockerfile's images, compose's Lav
 ### Requirement: Renovate updates the versions that no manager reads
 `.github/renovate.json` SHALL update the OpenSpec CLI's version from npm in every file of the gate,
 the workflows and the docs that pins it, all of which SHALL pin the same version. It SHALL update
-the Lavalink plugins of `lavalink/application.yml` from Maven at
+the Lavalink plugins of the node's config in `compose.yaml` from Maven at
 `https://maven.lavalink.dev/releases`, the repository that the node downloads them from, and leave
 a plugin pinned to a snapshot's commit alone.
 
@@ -121,7 +121,7 @@ a plugin pinned to a snapshot's commit alone.
   and all pins name the same version
 
 #### Scenario: Lavalink plugins
-- **WHEN** the Maven regex manager's pattern is applied to `lavalink/application.yml`
+- **WHEN** the Maven regex manager's pattern is applied to `compose.yaml`
 - **THEN** it finds youtube-source and LavaSrc with their exact releases or snapshot commits,
   looked up at `https://maven.lavalink.dev/releases`, and a rule disables updates of a version that
   is a 40-character commit

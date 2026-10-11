@@ -107,7 +107,7 @@ and NtustCourseWatch were ported under their new names).
    the inventory: each behavior is a scenario with a test, or out of scope or a v3 difference in
    `design.md`, with the reason.
 9. **Close.** Gate, push, CI green; `openspec archive port-<kebab> --yes`,
-   `openspec validate --all --strict`; `HANDOFF.md` (sections 4, 5, 7) and the plugin's section in
+   `openspec validate --all --strict`; `docs/architecture.md`, `HANDOFF.md`, `docs/pitfalls.md` and the plugin's section in
    `docs/porting/owner-review.md`; commit, push, CI green.
 
 ## Conventions
