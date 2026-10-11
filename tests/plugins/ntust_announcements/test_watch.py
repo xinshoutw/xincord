@@ -10,8 +10,10 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/NtustManager.kt:185-237
 """
 
+import importlib
 import logging
 import sqlite3
+import threading
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -28,6 +30,8 @@ from xincord.plugins.ntust_announcements.watch import Watcher
 from xincord.plugins.ntust_announcements.web import FetchError, Page
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from xincord.core.storage import Store
 
 PAGES = FIXTURES / "plugins" / "ntust_announcements"
@@ -443,3 +447,27 @@ async def test_store_write_fails(scene: Scene, monkeypatch: pytest.MonkeyPatch) 
     await scene.watcher.check()  # the store works again
     assert await scene.stored() == tuple(ENTRIES)
     assert scene.sent == expected_posts(ENTRIES)
+
+
+@pytest.mark.xfail(strict=True, reason="Boards are checked from READY until the plugin unloads")
+async def test_parsing_off_the_event_loop(scene: Scene, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Requirement: Boards are checked from READY until the plugin unloads."""
+    # Parsing takes about 0.3 s per MB, more for deep pages: on the event loop, it would hold up
+    # every board and the bot.
+    module = importlib.import_module("xincord.plugins.ntust_announcements.watch")
+    threads: list[bool] = []
+
+    def recorded[**P, R](function: Callable[P, R]) -> Callable[P, R]:
+        def call(*args: P.args, **kwargs: P.kwargs) -> R:
+            threads.append(threading.current_thread() is threading.main_thread())
+            return function(*args, **kwargs)
+
+        return call
+
+    monkeypatch.setattr(module, "board_links", recorded(module.board_links))
+    monkeypatch.setattr(module, "article_html", recorded(module.article_html))
+
+    await scene.watcher.check()
+
+    assert len(threads) == 1 + len(ARTICLES)
+    assert not any(threads)

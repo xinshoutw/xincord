@@ -9,6 +9,8 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/util/UrlUtils.kt:53-74
 """
 
+import time
+
 import pytest
 
 from plugin_fakes import FIXTURES, golden
@@ -287,3 +289,16 @@ def test_minify(html: str, minified: str) -> None:
 def test_article_links(url: str, *, article: bool) -> None:
     """Requirement: Article pages give their content as minified HTML."""
     assert is_article(url) is article
+
+
+@pytest.mark.xfail(strict=True, reason="Article pages give their content as minified HTML")
+def test_long_whitespace() -> None:
+    """Requirement: Article pages give their content as minified HTML."""
+    html = "<p>a" + " " * 30000 + "b</p>\n" + "<p>c" + "\t" * 30000 + "\n</p>"
+    start = time.perf_counter()
+
+    minified = minify(html)
+
+    # v3's trailing-whitespace step backtracked through each run: seconds for 30,000 spaces.
+    assert time.perf_counter() - start < 1
+    assert minified == "<p>a b</p><p>c\n</p>"
