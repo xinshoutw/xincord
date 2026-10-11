@@ -9,7 +9,7 @@ import yaml
 
 ROOT = Path(__file__).parent.parent
 OPENSPEC_PIN = re.compile(r"@fission-ai/openspec@\d")
-SKIPPED = ("openspec/changes/archive/", "docs/porting/analysis/research/")
+SKIPPED = ("openspec/changes/archive/",)  # archived changes keep the version they ran with
 LAVALINK_MAVEN = "https://maven.lavalink.dev/releases"
 
 type Config = dict[str, Any]

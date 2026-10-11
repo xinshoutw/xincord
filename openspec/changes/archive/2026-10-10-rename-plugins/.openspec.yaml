@@ -1,4 +1,0 @@
-schema: spec-driven
-created: 2026-10-10
-# The five renamed capabilities lose their last requirement here: archive deletes their specs.
-retire_capabilities: true
