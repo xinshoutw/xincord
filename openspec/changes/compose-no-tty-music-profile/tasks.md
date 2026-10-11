@@ -1,0 +1,11 @@
+## 1. Compose
+
+- [ ] 1.1 xfail tests (no TTY, the `music` profile, the optional dependency, `.env.example`)
+- [ ] 1.2 `compose.yaml`, `.env.example`, README and MusicPlayer's config comment; update the old
+      tests; remove the markers
+
+## 2. Close
+
+- [ ] 2.1 Gate passes, push, CI green; production: `COMPOSE_PROFILES=music` in the main bot's
+      `.env`, the new `compose.yaml` for both bots, the shop bot's node stopped
+- [ ] 2.2 Archive the change and run `openspec validate --all --strict`; update `HANDOFF.md`
