@@ -53,6 +53,14 @@ def _key(key: str) -> str:
     return key
 
 
+def _some_keys(keys: tuple[str, ...]) -> tuple[str, ...]:
+    """Refuse an empty list once its keys are valid: pydantic's ``min_length`` counts valid ones."""
+    if not keys:
+        msg = "list at least one key"
+        raise ValueError(msg)
+    return keys
+
+
 def _page_url(url: str) -> str:
     """Accept an http or https URL with a host and no spaces, such as a board's first page."""
     try:
@@ -109,17 +117,26 @@ class Config(Model):
         int, Field(alias="fetch-interval", ge=MIN_INTERVAL, le=JAVA_LONG_MAX)
     ] = 3600
     api_keys: Annotated[
-        tuple[Annotated[str, AfterValidator(_key)], ...], Field(alias="api-keys", min_length=1)
+        tuple[Annotated[str, AfterValidator(_key)], ...],
+        Field(alias="api-keys"),
+        AfterValidator(_some_keys),
     ]
     prompt: Annotated[str, AfterValidator(_prompt)]  # required, as in v3
     # v3's hard-coded model; it goes into the request's path.
     model: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9._-]+$")] = "gemini-2.5-flash"
-    boards: Annotated[tuple[Board, ...], Field(min_length=1)]
+    boards: tuple[Board, ...]
 
     @field_validator("boards")
     @classmethod
     def _unique_names(cls, boards: tuple[Board, ...]) -> tuple[Board, ...]:
-        """Refuse two boards with one name: they would share a posted list."""
+        """Refuse no boards, and two boards with one name: they would share a posted list.
+
+        A check after the items', unlike pydantic's ``min_length``, which counts the items that
+        validated and would call 18 boards without channels an empty list.
+        """
+        if not boards:
+            msg = "list at least one board"
+            raise ValueError(msg)
         names: set[str] = set()
         for board in boards:
             if board.name in names:

@@ -224,9 +224,6 @@ async def test_keys_stay_hidden(
     assert "first-secret-key" not in caplog.text
 
 
-@pytest.mark.xfail(
-    strict=True, reason="The config names the boards, the Gemini keys and the prompt"
-)
 @pytest.mark.parametrize(
     ("change", "error"),
     [
@@ -257,9 +254,6 @@ async def test_empty_lists(
     assert error in caplog.text
 
 
-@pytest.mark.xfail(
-    strict=True, reason="The config names the boards, the Gemini keys and the prompt"
-)
 async def test_errors_name_the_invalid_items(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
