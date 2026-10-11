@@ -44,7 +44,7 @@ def test_the_xincord_command(monkeypatch: pytest.MonkeyPatch) -> None:
     levels: list[int] = []
     runs: list[Options] = []
 
-    def setup_logging(*, level: int) -> None:
+    def setup_logging(*, level: int, **_: object) -> None:
         levels.append(level)
 
     async def run(options: Options, *, console: bool = False) -> int:

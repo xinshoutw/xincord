@@ -3,7 +3,7 @@
 - [x] 1.1 xfail tests (no TTY, the `music` profile, the optional dependency, `.env.example`)
 - [x] 1.2 `compose.yaml`, `.env.example`, README and MusicPlayer's config comment; update the old
       tests; remove the markers
-- [ ] 1.3 Plain log lines off a terminal: xfail test, then the plain formatter in `main`
+- [x] 1.3 Plain log lines off a terminal: xfail test, then the plain formatter in `main`
 
 ## 2. Close
 

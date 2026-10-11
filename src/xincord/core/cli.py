@@ -43,6 +43,9 @@ PLUGINS = Path("plugins")
 DATA = Path("data")
 DATABASE = DATA / "xincord.db"
 STOP_SIGNALS = (signal.SIGINT, signal.SIGTERM)
+# discord.py colours its log lines inside any Docker container, with a terminal or without. Off a
+# terminal, as in a container's log, they stay plain, laid out as the coloured ones.
+PLAIN = logging.Formatter("%(asctime)s %(levelname)-8s %(name)s %(message)s", "%Y-%m-%d %H:%M:%S")
 
 
 @dataclass(frozen=True)
@@ -82,10 +85,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Run the bot with the command line ``argv`` and return the exit status."""
     options = parse_args(argv)
     console = not options.no_online and sys.stdin.isatty() and sys.stdout.isatty()
+    level = LEVELS[options.level]
+    colour = sys.stderr.isatty()  # before the patch, whose proxy stands in for the terminal
     # Set up logging inside the patch, so log lines go through prompt_toolkit's proxy and
     # print above the prompt.
     with patch_stdout(raw=True) if console else nullcontext():
-        discord.utils.setup_logging(level=LEVELS[options.level])
+        if colour:
+            discord.utils.setup_logging(level=level)
+        else:
+            discord.utils.setup_logging(level=level, formatter=PLAIN)
         return asyncio.run(run(options, console=console))
 
 

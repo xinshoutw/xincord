@@ -173,7 +173,7 @@ def test_terminal_detection(
         yield
         events.append("unpatch")
 
-    def setup_logging(*, level: int) -> None:
+    def setup_logging(*, level: int, **_: object) -> None:
         events.append(f"logging {level}")
 
     async def fake_run(_options: Options, *, console: bool = False) -> int:
@@ -193,18 +193,7 @@ def test_terminal_detection(
         assert events == ["logging 20", "run console=False"]
 
 
-@pytest.mark.parametrize(
-    "tty",
-    [
-        pytest.param(
-            False,
-            marks=pytest.mark.xfail(
-                strict=True, raises=KeyError, reason="Plain log lines off a terminal"
-            ),
-        ),
-        True,
-    ],
-)
+@pytest.mark.parametrize("tty", [False, True])
 def test_plain_log_lines_off_a_terminal(monkeypatch: pytest.MonkeyPatch, tty: bool) -> None:  # noqa: FBT001
     """Requirement: Plain log lines off a terminal.
 
