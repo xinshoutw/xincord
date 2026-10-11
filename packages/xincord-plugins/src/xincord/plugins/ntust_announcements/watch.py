@@ -6,10 +6,19 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/NtustManager.kt:185-237
 """
 
+import logging
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+import aiohttp
+import discord
+
 from xincord.plugins.failures import Failures
+
+from .messages import content_messages, link_message
+from .pages import article_html, board_links, is_article, trim
+from .store import DataError, remember
+from .web import FetchError
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -24,6 +33,19 @@ type Convert = Callable[[str, Link], Awaitable[str | None]]  # an article's HTML
 type Post = Callable[[int, str], Awaitable[object]]  # one message to a channel
 type Sleep = Callable[[float], Awaitable[object]]
 
+logger = logging.getLogger(__name__)
+
+# A page that did not arrive: aiohttp's errors and OSError, timeouts included.
+NETWORK_ERRORS = (aiohttp.ClientError, OSError)
+# A post that Discord refused or that did not reach it.
+POST_ERRORS = (discord.HTTPException, aiohttp.ClientError, OSError)
+EMPTY = "no entries"  # the kind of failure of a page that lists nothing
+
+
+def _describe(error: BaseException) -> str:
+    """The error's message, or its type when it has none (aiohttp's timeouts may have none)."""
+    return str(error) or type(error).__name__
+
 
 @dataclass
 class Watcher:
@@ -34,16 +56,190 @@ class Watcher:
     convert: Convert
     post: Post
     posted: Posted
-    # Failure episodes: the board's page, its articles' pages, its posts and its document.
+    # Failure episodes: the board's page, its articles' pages, its posts and its document. Each
+    # kind of failure is logged once per episode (v3 logged at every cycle).
     pages: Failures = field(default_factory=Failures)
     articles: Failures = field(default_factory=Failures)
     posts: Failures = field(default_factory=Failures)
     document: Failures = field(default_factory=Failures)
 
-    async def check(self) -> None:
-        """One pass: post the page's entries that the board has not posted yet, in page order."""
-        raise NotImplementedError
+    @property
+    def name(self) -> str:
+        """How the logs name the board."""
+        return f"NtustAnnouncements board {self.board.name}"
 
     async def run(self, interval: float, sleep: Sleep) -> None:
-        """Pass at once, then ``interval`` seconds after each pass, until cancelled."""
-        raise NotImplementedError
+        """Pass at once, then ``interval`` seconds after each pass, until cancelled.
+
+        v3 ran every board at a fixed rate from one scheduler; a board now waits for nothing but
+        its own pass, so a long Gemini retry holds up no other board.
+        """
+        while True:
+            await self.check()
+            await sleep(interval)
+
+    async def check(self) -> None:
+        """One pass: post the page's entries that the board has not posted yet, in page order.
+
+        Any unexpected error is logged with its traceback, and the next pass comes as usual;
+        cancellation (an unload) ends the pass at once.
+        """
+        try:
+            await self._pass()
+        except Exception:
+            logger.exception("%s: the pass failed", self.name)
+
+    async def _pass(self) -> None:
+        """v3's ``checkAnnouncementUpdates``, which remembers a link once it is posted."""
+        links = await self._links()
+        if links is None:
+            return
+        stored = await self._stored()
+        if stored is None:
+            return
+        posted = {link.url for link in stored}
+        new: dict[str, Link] = {}
+        for link in links:
+            if link.url not in posted:
+                new.setdefault(link.url, link)  # a link listed twice is posted once
+        if new:
+            logger.info("%s: %d new announcements", self.name, len(new))
+        kept = stored
+        for link in new.values():
+            if await self._announce(link):
+                posted.add(link.url)
+                kept = remember(stored, links, posted)
+                await self.posted.save(self.board.name, kept)
+        if (tidied := remember(stored, links, posted)) != kept:
+            await self.posted.save(self.board.name, tidied)  # new order, titles or links that left
+
+    async def _links(self) -> list[Link] | None:
+        """The page's entries with a title and a link, or None when the page failed (logged)."""
+        try:
+            page = await self.page(self.board.url)
+        except FetchError as error:
+            self._page_failed(error.status, logging.WARNING, f"answered with {error}")
+            return None
+        except NETWORK_ERRORS as error:
+            self._page_failed(type(error), logging.ERROR, f"failed: {_describe(error)}")
+            return None
+        links = board_links(page.text, self.board, page.url)
+        valid = [link for link in links if trim(link.title) and trim(link.url)]
+        if skipped := len(links) - len(valid):
+            logger.debug("%s: skipped %d entries without a title or a link", self.name, skipped)
+        if not valid:
+            self._page_failed(EMPTY, logging.WARNING, "lists no entries")
+            return None
+        if failed := self.pages.succeed():
+            logger.info("%s: its page works again after %d failed passes", self.name, failed)
+        return valid
+
+    def _page_failed(self, kind: object, level: int, detail: str) -> None:
+        logger.log(
+            level if self.pages.fail(kind) else logging.DEBUG,
+            "%s: its page %s %s",
+            self.name,
+            self.board.url,
+            detail,
+        )
+
+    async def _stored(self) -> tuple[Link, ...] | None:
+        """The links that the board posted, or None when its document is broken (logged)."""
+        try:
+            stored = await self.posted.load(self.board.name)
+        except DataError as error:
+            logger.log(
+                logging.ERROR if self.document.fail(DataError) else logging.DEBUG,
+                "%s: its posted list is not v3's document, so the board posts nothing until "
+                "the document is fixed or deleted: %s",
+                self.name,
+                error,
+            )
+            return None
+        if self.document.succeed():
+            logger.info("%s: its posted list reads again", self.name)
+        return stored
+
+    async def _announce(self, link: Link) -> bool:
+        """Post one announcement; whether it counts as posted (v3's ``contentParser``).
+
+        An NTUST article goes through Gemini; any other link, or an article whose content cannot
+        be converted, is posted as its title link. An article page that fails is left for the
+        next pass, which v3 never gave it.
+        """
+        if not is_article(link.url):
+            return await self._post(link, [link_message(link.title, link.url)])
+        try:
+            page = await self.page(link.url)
+        except FetchError as error:
+            self._article_failed(error.status, logging.WARNING, link, f"answered with {error}")
+            return False
+        except NETWORK_ERRORS as error:
+            self._article_failed(type(error), logging.ERROR, link, f"failed: {_describe(error)}")
+            return False
+        if failed := self.articles.succeed():
+            logger.info("%s: its articles load again after %d failures", self.name, failed)
+        html = article_html(page.text)
+        if html is None:
+            logger.warning(
+                "%s: %s has no content to convert; posting its title", self.name, link.url
+            )
+            return await self._post(link, [link_message(link.title, link.url)])
+        content = await self.convert(html, link)
+        if content is None:
+            logger.warning(
+                "%s: posting %s as its title, since Gemini could not convert it",
+                self.name,
+                link.url,
+            )
+            return await self._post(link, [link_message(link.title, link.url)])
+        return await self._post(link, content_messages(content))
+
+    def _article_failed(self, kind: object, level: int, link: Link, detail: str) -> None:
+        logger.log(
+            level if self.articles.fail(kind) else logging.DEBUG,
+            "%s: the article %s %s; it is tried again at the next pass",
+            self.name,
+            link.url,
+            detail,
+        )
+
+    async def _post(self, link: Link, messages: list[str]) -> bool:
+        """Send the messages in order; whether the announcement counts as posted.
+
+        A refused first message posted nothing, and the announcement waits for the next pass. A
+        refused later one leaves the start posted: posting it again would repeat it, so it counts
+        as posted, with an error.
+        """
+        channel = self.board.channel_id
+        for number, message in enumerate(messages, start=1):
+            try:
+                await self.post(channel, message)
+            except POST_ERRORS as error:
+                if number > 1:
+                    logger.error(  # noqa: TRY400 - Discord's answer, not a traceback, says why
+                        "%s: channel %d refused part %d of %d of %s, so the rest is not posted: %s",
+                        self.name,
+                        channel,
+                        number,
+                        len(messages),
+                        link.url,
+                        _describe(error),
+                    )
+                    return True
+                kind = error.status if isinstance(error, discord.HTTPException) else type(error)
+                logger.log(
+                    logging.WARNING if self.posts.fail(kind) else logging.DEBUG,
+                    "%s: channel %d refused %s: %s",
+                    self.name,
+                    channel,
+                    link.url,
+                    _describe(error),
+                )
+                return False
+        if failed := self.posts.succeed():
+            logger.info(
+                "%s: channel %d takes the posts again after %d refusals", self.name, channel, failed
+            )
+        logger.info("%s: posted %s", self.name, link.url)
+        return True

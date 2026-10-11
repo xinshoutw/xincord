@@ -42,7 +42,7 @@
 - [x] 6.2 Implement the documents, `remember` and their loading and saving; remove the markers
 - [x] 6.3 xfail tests for "New announcements are posted in board order" and "Problems are logged
       without flooding or showing the keys" against a stub `Watcher.check`
-- [ ] 6.4 Implement the passes, the announcements, the posts and their logs; remove the markers
+- [x] 6.4 Implement the passes, the announcements, the posts and their logs; remove the markers
 
 ## 7. Loops and ready check
 

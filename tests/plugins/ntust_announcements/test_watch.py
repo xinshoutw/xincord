@@ -127,9 +127,6 @@ def plugin_lines(caplog: pytest.LogCaptureFixture, level: int) -> list[str]:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="New announcements are posted in board order"
-)
 async def test_first_pass(scene: Scene) -> None:
     """Requirement: New announcements are posted in board order."""
     await scene.watcher.check()
@@ -141,9 +138,6 @@ async def test_first_pass(scene: Scene) -> None:
     assert await scene.stored() == tuple(ENTRIES)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="New announcements are posted in board order"
-)
 async def test_posted_links(scene: Scene) -> None:
     """Requirement: New announcements are posted in board order."""
     await scene.posted.save(BOARD, ENTRIES[:3])
@@ -154,9 +148,6 @@ async def test_posted_links(scene: Scene) -> None:
     assert await scene.stored() == tuple(ENTRIES)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="New announcements are posted in board order"
-)
 async def test_duplicates_and_blank_entries(scene: Scene) -> None:
     """Requirement: New announcements are posted in board order."""
     first, second = ARTICLES[:2]
@@ -169,9 +160,6 @@ async def test_duplicates_and_blank_entries(scene: Scene) -> None:
     assert await scene.stored() == (first, second)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="New announcements are posted in board order"
-)
 async def test_content_that_cannot_be_converted(
     scene: Scene, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -195,9 +183,6 @@ async def test_content_that_cannot_be_converted(
     assert not_converted.url in warnings[1]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Each board remembers what it posted"
-)
 async def test_stored_once_posted(scene: Scene, store: Store) -> None:
     """Requirement: Each board remembers what it posted."""
     await scene.watcher.check()
@@ -211,9 +196,6 @@ async def test_stored_once_posted(scene: Scene, store: Store) -> None:
     assert await store.get(NAMESPACE, BOARD) == posted_document(ENTRIES)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Each board remembers what it posted"
-)
 async def test_retried(scene: Scene) -> None:
     """Requirement: Each board remembers what it posted."""
     failed_page, refused = ARTICLES[1], ARTICLES[2]
@@ -235,9 +217,6 @@ async def test_retried(scene: Scene) -> None:
     assert await scene.stored() == tuple(ENTRIES)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Each board remembers what it posted"
-)
 async def test_links_that_leave_the_page(scene: Scene) -> None:
     """Requirement: Each board remembers what it posted."""
     await scene.watcher.check()
@@ -255,9 +234,6 @@ async def test_links_that_leave_the_page(scene: Scene) -> None:
     assert await scene.stored() == tuple(ENTRIES)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Each board remembers what it posted"
-)
 @pytest.mark.parametrize(
     "answer",
     [
@@ -279,9 +255,6 @@ async def test_failed_board_page(scene: Scene, store: Store, answer: Page | Exce
     assert await store.get(NAMESPACE, BOARD) == posted_document(ENTRIES[:1])
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Each board remembers what it posted"
-)
 async def test_broken_document(
     scene: Scene, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -298,9 +271,6 @@ async def test_broken_document(
     assert f"board {BOARD}" in error
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Each board remembers what it posted"
-)
 async def test_part_refused(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Each board remembers what it posted."""
     long = ARTICLES[0]
@@ -317,11 +287,6 @@ async def test_part_refused(scene: Scene, caplog: pytest.LogCaptureFixture) -> N
     assert long.url in error
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Problems are logged without flooding or showing the keys",
-)
 async def test_repeated_failure(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems are logged without flooding or showing the keys."""
     scene.pages[BOARD_URL] = FetchError(503)
@@ -336,11 +301,6 @@ async def test_repeated_failure(scene: Scene, caplog: pytest.LogCaptureFixture) 
     assert len([line for line in plugin_lines(caplog, logging.DEBUG) if "code 503" in line]) == 2
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Problems are logged without flooding or showing the keys",
-)
 async def test_recovery(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems are logged without flooding or showing the keys."""
     scene.pages[BOARD_URL] = FetchError(503)
@@ -358,11 +318,6 @@ async def test_recovery(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Problems are logged without flooding or showing the keys",
-)
 async def test_refused_posts_logged(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems are logged without flooding or showing the keys."""
     scene.refusals = [forbidden()] * (2 * len(ENTRIES))
@@ -376,3 +331,50 @@ async def test_refused_posts_logged(scene: Scene, caplog: pytest.LogCaptureFixtu
     assert "403 Forbidden" in warning
     assert scene.sent == []
     assert await scene.stored() == ()
+
+
+async def test_article_network_error(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Each board remembers what it posted."""
+    unreachable = ARTICLES[0]
+    scene.pages[unreachable.url] = aiohttp.ClientConnectionError("Connection reset")
+
+    with caplog.at_level(logging.INFO, logger=LOGGER):
+        await scene.watcher.check()
+        assert unreachable not in await scene.stored()
+        scene.pages[unreachable.url] = Page(unreachable.url, ARTICLE_PAGE)
+        scene.sent.clear()
+        await scene.watcher.check()
+
+    assert scene.sent == expected_posts([unreachable])
+    [error] = plugin_lines(caplog, logging.ERROR)
+    assert f"the article {unreachable.url} failed: Connection reset" in error
+    assert f"NtustAnnouncements board {BOARD}: its articles load again after 1 failures" in (
+        plugin_lines(caplog, logging.INFO)
+    )
+
+
+async def test_document_fixed(scene: Scene, store: Store, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Each board remembers what it posted."""
+    await store.put(NAMESPACE, BOARD, {"items": "broken"})
+    await scene.watcher.check()
+    await store.delete(NAMESPACE, BOARD)  # the operator deletes it
+
+    with caplog.at_level(logging.INFO, logger=LOGGER):
+        for _ in range(3):  # an episode ends after three successes in a row
+            await scene.watcher.check()
+
+    assert scene.sent == expected_posts(ENTRIES)
+    assert f"NtustAnnouncements board {BOARD}: its posted list reads again" in plugin_lines(
+        caplog, logging.INFO
+    )
+
+
+async def test_unexpected_error(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Problems are logged without flooding or showing the keys."""
+    scene.pages[BOARD_URL] = RuntimeError("unexpected")
+
+    await scene.watcher.check()  # logs and returns: the next pass comes as usual
+
+    [record] = [record for record in caplog.records if record.levelno == logging.ERROR]
+    assert record.getMessage() == f"NtustAnnouncements board {BOARD}: the pass failed"
+    assert record.exc_info is not None
