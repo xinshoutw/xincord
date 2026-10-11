@@ -13,7 +13,7 @@ import logging
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import discord
 import pytest
@@ -314,6 +314,46 @@ async def test_posts_work_again(scene: Scene, caplog: pytest.LogCaptureFixture) 
     assert len(scene.posts(5)) == 3
     [again] = [record for record in caplog.records if "takes the alerts again" in record.message]
     assert "after 1 refusals" in again.message
+
+
+@pytest.mark.xfail(strict=True, reason="Failures are logged without flooding")
+async def test_deleted_channel_with_two_posts(
+    scene: Scene, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: Failures are logged without flooding."""
+    assert scene.cog.tasks
+    members = [1_000_000_000_000_000_000 + number for number in range(120)]
+    for member in members:  # their mentions need two posts
+        await scene.cog.registrations.add("CE162A001", 5, member)
+    scene.api.answers["CE162A001"] = [SEATS]
+    scene.channel(5).error = not_found("Unknown Channel")
+    scene.ready.set()
+
+    with caplog.at_level(logging.INFO):
+        await scene.steps(1)
+
+    assert len([record for record in caplog.records if "is gone" in record.message]) == 1
+    assert await scene.cog.registrations.load() == {}
+    assert 5 not in scene.cog.posts  # the channel's failure record went with it
+
+
+@pytest.mark.xfail(strict=True, reason="Failures are logged without flooding")
+async def test_loop_ended_by_an_error(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Failures are logged without flooding."""
+    [task] = scene.cog.tasks
+
+    def missing() -> object:
+        msg = "twca-secure-ssl-ca.pem"
+        raise FileNotFoundError(msg)
+
+    scene.cog.open_api = cast("Any", missing)
+    scene.ready.set()
+    await asyncio.wait({task}, timeout=5)
+    await asyncio.sleep(0)  # the task's callbacks run
+
+    # Nothing awaits the loop until the plugin unloads: its end must reach the log.
+    [record] = [record for record in caplog.records if "the loop stopped" in record.message]
+    assert record.exc_info is not None
 
 
 async def test_unexpected_post_error(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:

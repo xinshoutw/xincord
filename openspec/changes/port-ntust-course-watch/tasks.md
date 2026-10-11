@@ -64,7 +64,7 @@
       codes (found in the review: a one-letter code asked for most of the catalogue)
 - [x] 9.4 Require nine to twenty letters and digits, read stored codes as `/course-add` reads them
       and leave out the others; remove the markers
-- [ ] 9.5 xfail tests for one failing code among several, repeated unexpected errors, a loop that
+- [x] 9.5 xfail tests for one failing code among several, repeated unexpected errors, a loop that
       an error ended and a deleted channel's two posts (found in the review: the log flooded, or
       stayed silent)
 - [ ] 9.6 Keep failure episodes per code and per kind of unexpected error, log the loop's end, drop

@@ -6,9 +6,10 @@ Kotlin:
 """
 
 import logging
+import sqlite3
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import aiohttp
 import pytest
@@ -23,6 +24,7 @@ from xincord.plugins.ntust_course_watch.web import QueryError
 if TYPE_CHECKING:
     from xincord.core.storage import Store
     from xincord.plugins.ntust_course_watch.cog import NtustCourseWatch
+    from xincord.plugins.ntust_course_watch.store import Registered, Registrations
 
 type Answer = Course | Exception | None
 
@@ -275,3 +277,68 @@ async def test_unexpected_error(
     [record] = [record for record in caplog.records if "the step failed" in record.getMessage()]
     assert record.exc_info is not None
     assert len(fakes.posts) == 1
+
+
+@pytest.mark.xfail(strict=True, reason="Failures are logged without flooding")
+@pytest.mark.parametrize(
+    "failing",
+    [
+        pytest.param(("CE162A002",), id="one failing: the others ended its episode every round"),
+        pytest.param(("CE162A002", "CE162A004"), id="two failing alike: one warning in all"),
+    ],
+)
+async def test_failing_codes_among_several(
+    cog: NtustCourseWatch,
+    fakes: Fakes,
+    caplog: pytest.LogCaptureFixture,
+    failing: tuple[str, ...],
+) -> None:
+    """Requirement: Failures are logged without flooding."""
+    for code in ("CE162A001", "CE162A002", "CE162A003", "CE162A004"):
+        await cog.registrations.add(code, 5, 1)
+        fakes.answers[code] = [QueryError(500)] if code in failing else [FULL]
+    watcher = fakes.watcher(cog)
+
+    with caplog.at_level(logging.INFO):
+        for _ in range(40):
+            await watcher.step()
+
+    # One episode per code: the other codes' answers between its failures end none of them.
+    warnings = lines(caplog, logging.WARNING, "code 500")
+    assert [code for code in failing for warning in warnings if code in warning] == list(failing)
+    assert len(warnings) == len(failing)
+    assert lines(caplog, logging.INFO, "works again") == []
+
+
+class LockedStore:
+    """Registrations whose database stays locked by another program."""
+
+    async def load(self) -> Registered:
+        """Fail as SQLite does when another connection holds the lock past the timeout."""
+        msg = "database is locked"
+        raise sqlite3.OperationalError(msg)
+
+
+@pytest.mark.xfail(strict=True, reason="Failures are logged without flooding")
+async def test_repeated_unexpected_errors(
+    cog: NtustCourseWatch, fakes: Fakes, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: Failures are logged without flooding."""
+    await cog.registrations.add("CE162A001", 5, 1)
+    fakes.answers["CE162A001"] = [FULL]
+    watcher = fakes.watcher(cog)
+    working = watcher.registrations
+    watcher.registrations = cast("Registrations", LockedStore())
+
+    with caplog.at_level(logging.DEBUG):
+        for _ in range(10):
+            await watcher.step()
+        watcher.registrations = working
+        for _ in range(3):
+            await watcher.step()
+
+    failed = [record for record in caplog.records if "the step failed" in record.getMessage()]
+    assert [record.levelno for record in failed] == [logging.ERROR] + [logging.DEBUG] * 9
+    assert failed[0].exc_info is not None  # the traceback, once per episode
+    [again] = lines(caplog, logging.INFO, "steps work again")
+    assert "10 failures" in again
