@@ -38,7 +38,8 @@ restarts unless stopped, allows 30 seconds to stop, rotates its logs and starts 
 `ghcr.io/lavalink-devs/lavalink:4.2.2` (Ubuntu, arm64, DAVE) with `lavalink/application.yml`
 mounted read-only, its password from `LAVALINK_PASSWORD` of an untracked `.env`, a healthcheck that
 sends the password, restart unless stopped, rotated logs and no published port. The node config
-SHALL pin its plugins and keep the HTTP, local and built-in YouTube sources off.
+SHALL pin its plugins, keep the HTTP, local and built-in YouTube sources off, and log no member's
+query.
 
 #### Scenario: Service definition
 - **WHEN** `compose.yaml` is read
@@ -51,6 +52,11 @@ SHALL pin its plugins and keep the HTTP, local and built-in YouTube sources off.
 - **THEN** youtube-source and LavaSrc have exact versions, the HTTP, local and built-in YouTube
   sources are off, request logging is off, and LavaSrc's Spotify source follows `SPOTIFY_ENABLED`,
   off by default
+
+#### Scenario: No queries in the node's logs
+- **WHEN** `lavalink/application.yml` is read
+- **THEN** request logging is off and the load handler, whose INFO lines name each identifier, logs
+  warnings only
 
 #### Scenario: Secrets stay untracked
 - **WHEN** `.gitignore`, `.dockerignore` and `.env.example` are read

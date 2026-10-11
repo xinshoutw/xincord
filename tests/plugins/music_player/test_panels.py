@@ -5,8 +5,11 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:150-233
 """
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, cast
+
+import pytest
 
 from discord_fakes import FakeInteraction, embed_dict, not_found
 from music_fakes import Clock, text
@@ -15,8 +18,6 @@ from xincord.plugins.music_player.panels import Panel, Panels
 from xincord.plugins.music_player.replies import Screen
 
 if TYPE_CHECKING:
-    import pytest
-
     from conftest import Scene
 
 DELETED: tuple[str, dict[str, object]] = ("delete_original_response", {})
@@ -256,3 +257,36 @@ async def test_a_refused_refresh(scene: Scene) -> None:
     await until(lambda: scene.cog.panels.panels == {})
 
     assert scene.clock.under_way() == 0
+
+
+@pytest.mark.xfail(strict=True, reason="Panels refresh themselves and expire")
+async def test_two_panels_at_once() -> None:
+    """Requirement: Panels refresh themselves and expire."""
+    clock = Clock()
+    panels = scene_panels(clock, [])
+    old, first, second = response(43), response(44), response(45)
+    await panels.open(1, 10, 43, NOW, old.as_interaction())
+    old.delete_gate = asyncio.Event()  # Discord is slow to delete the member's old panel
+    opening = asyncio.create_task(panels.open(1, 10, 44, NOW, first.as_interaction()))
+    await until(lambda: deleted(old))
+
+    await panels.open(1, 10, 45, NOW, second.as_interaction())  # the member's next command
+    old.delete_gate.set()
+    await opening
+
+    assert panels.panels[1].message_id == 45
+    assert deleted(first)
+    await panels.close()
+    assert clock.under_way() == 0
+
+
+@pytest.mark.xfail(strict=True, reason="Panels refresh themselves and expire")
+async def test_a_panel_after_the_unload() -> None:
+    """Requirement: Panels refresh themselves and expire."""
+    clock = Clock()
+    panels = scene_panels(clock, [])
+    await panels.close()
+
+    await panels.open(1, 10, 43, NOW, response(43).as_interaction())  # a command that outlived it
+
+    assert panels.panels == {}

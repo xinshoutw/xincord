@@ -138,6 +138,11 @@ class Link(Protocol):
         """The voice protocol that ``channel.connect(cls=link.voice)`` connects with."""
         ...
 
+    async def leave_lost(self) -> None:
+        """Leave voice where discord.py lost the connection: a new gateway session (READY again)
+        forgets its voice clients without telling them."""
+        ...
+
     async def close(self) -> None:
         """Close the connection to the node."""
         ...

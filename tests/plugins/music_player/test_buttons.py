@@ -228,3 +228,20 @@ async def test_detailed_button_errors(
     pressed = await press(scene, "skip")
 
     assert said(pressed, key, **values)
+
+
+@pytest.mark.xfail(strict=True, reason="Panel buttons control the guild's player")
+async def test_two_quick_presses(scene: Scene) -> None:
+    """Requirement: Panel buttons control the guild's player."""
+    player = await scene.playing(1)
+    player.hold = asyncio.Event()  # the node is slow to pause
+    presses = [scene.press("pause-resume", PANEL) for _ in range(2)]
+    tasks = [asyncio.create_task(handle(scene, pressed)) for pressed in presses]
+    await until(lambda: ("pause", True) in player.calls)
+
+    player.hold.set()
+    await asyncio.gather(*tasks)
+
+    pauses = [call for call in player.calls if call[0] == "pause"]
+    assert pauses == [("pause", True), ("pause", False)]  # paused, then resumed
+    assert scene.cog.sessions[10].paused is False

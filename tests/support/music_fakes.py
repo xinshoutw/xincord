@@ -58,11 +58,13 @@ def loaded(kind: LoadKind, *tracks: Track, error: str | None = None) -> Loaded:
 
 @dataclass
 class FakePlayer:
-    """One guild's player on the node: records each call; ``play`` raises ``error`` if set."""
+    """One guild's player on the node: records each call; ``play`` raises ``error`` if set, and
+    ``set_pause`` waits for ``hold`` if set, once recorded."""
 
     calls: list[Call] = field(default_factory=list[Call])
     position: int = 0
     error: Exception | None = None
+    hold: asyncio.Event | None = None
 
     async def play(self, track: Track, *, number: int, volume: int) -> None:
         """Record the song's title, its start number and the volume."""
@@ -71,8 +73,10 @@ class FakePlayer:
         self.calls.append(("play", (track.title, number, volume)))
 
     async def set_pause(self, paused: bool) -> None:  # noqa: FBT001 - as the Protocol's
-        """Record the pause."""
+        """Record the pause, then wait for ``hold`` if set: the node is slow to answer."""
         self.calls.append(("pause", paused))
+        if self.hold is not None:
+            await self.hold.wait()
 
     async def set_volume(self, volume: int) -> None:
         """Record the volume."""
@@ -120,6 +124,12 @@ class FakeLink:
         """The voice protocol for ``channel``."""
         del client
         return FakeVoice(self, channel)
+
+    async def leave_lost(self) -> None:
+        """Leave voice where the guild no longer has the connection as its voice client."""
+        for voice in list(self.voices.values()):
+            if voice.channel.guild.voice_client is not voice:
+                await voice.disconnect(force=True)
 
     async def close(self) -> None:
         """Leave voice in every guild, as the plugin's link does, then record the close."""

@@ -5,6 +5,8 @@ Kotlin (v3 played through lavaplayer in the JVM; the node replaces it):
     XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:365-471
 """
 
+import asyncio
+import importlib
 import logging
 import socket
 from dataclasses import dataclass, field
@@ -411,3 +413,97 @@ async def test_close_when_a_leave_is_refused(
     assert sorted(scene.recorder.left) == [GUILD, 11]
     assert scene.link.voices == {}
     assert "the gateway is closed" in caplog.text
+
+
+@pytest.mark.xfail(strict=True, reason="Songs load and play through a Lavalink node")
+async def test_a_new_connection_while_the_node_deletes(scene: Scene) -> None:
+    """Requirement: Songs load and play through a Lavalink node."""
+    node = scene.node
+    first = await scene.voice()
+    state = {"guild_id": str(GUILD), "user_id": str(BOT_ID), "session_id": "voice-1"}
+    await first.on_voice_state_update(cast("Any", {**state, "channel_id": "20"}))
+    node.hold = asyncio.Event()  # the node is slow to delete the player
+    leaving = asyncio.create_task(
+        first.on_voice_state_update(cast("Any", {**state, "channel_id": None}))
+    )
+    await node.until(lambda: node.deleted == [str(GUILD)])
+
+    second = await scene.voice()  # a member's /play connects again meanwhile
+    heard = list(scene.recorder.left)
+    node.hold.set()
+    await leaving
+
+    assert heard == [GUILD]  # the plugin heard of the leave before the new connection came
+    assert scene.recorder.left == [GUILD]
+    assert scene.link.voices == {GUILD: second}
+    assert scene.client.voice_clients == [second]
+
+
+@pytest.mark.xfail(strict=True, reason="Songs load and play through a Lavalink node")
+async def test_a_late_leave_of_the_previous_connection(scene: Scene) -> None:
+    """Requirement: Songs load and play through a Lavalink node."""
+    state = {"guild_id": str(GUILD), "user_id": str(BOT_ID)}
+    first = await scene.voice()
+    await first.on_voice_state_update(
+        cast("Any", {**state, "session_id": "voice-1", "channel_id": "20"})
+    )
+    await first.disconnect(force=True)  # /disconnect
+    second = await scene.voice()  # another member's /play, before Discord answered the leave
+
+    # discord.py hands Discord's answer to the leave to the guild's protocol: the new one.
+    await second.on_voice_state_update(
+        cast("Any", {**state, "session_id": "voice-1", "channel_id": None})
+    )
+    await second.on_voice_state_update(
+        cast("Any", {**state, "session_id": "voice-2", "channel_id": "20"})
+    )
+
+    assert scene.recorder.left == [GUILD]  # the first connection's, once
+    assert scene.link.voices == {GUILD: second}
+    assert scene.client.voice_clients == [second]
+    assert scene.node.deleted == [str(GUILD)]
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="Songs load and play through a Lavalink node",
+)
+async def test_connections_that_a_new_session_dropped(scene: Scene) -> None:
+    """Requirement: Songs load and play through a Lavalink node."""
+    dropped = await scene.voice()
+    channel = cast("Channel", dropped.channel)
+    kept = scene.link.voice(scene.client, cast("discord.abc.Connectable", Channel(30, Guild(11))))
+    scene.client._connection._add_voice_client(11, kept)  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
+    await kept.connect(timeout=60, reconnect=True)
+    # READY again: discord.py forgot the connection; guild 11's came after it.
+    scene.client._connection._remove_voice_client(GUILD)  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
+
+    await scene.link.leave_lost()
+
+    assert channel.guild.states[-1] == (None, False, False)  # the bot leaves the channel
+    assert scene.node.deleted == [str(GUILD)]
+    assert scene.recorder.left == [GUILD]
+    assert scene.link.voices == {11: kept}
+    assert scene.client.voice_clients == [kept]
+
+
+@pytest.mark.xfail(strict=True, reason="Songs load and play through a Lavalink node")
+async def test_a_node_that_does_not_answer(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Requirement: Songs load and play through a Lavalink node."""
+    module = importlib.import_module("xincord.plugins.music_player.node")
+    monkeypatch.setattr(module, "REQUEST_TIMEOUT", 0.2)  # seconds; 15 in the plugin
+    hold = asyncio.Event()
+    node = FakeNode(hold=hold)  # the node takes the request and never answers
+    async with running_node(node) as port:
+        link = open_link(
+            BOT_ID, Node(host="127.0.0.1", port=port, password=PASSWORD), Listener(Recorder())
+        )
+        try:
+            await until(lambda: link.available)
+            with pytest.raises(NodeUnavailableError):
+                await link.load("ytsearch:never gonna")
+            assert link.available  # the WebSocket stays
+        finally:
+            hold.set()
+            await link.close()

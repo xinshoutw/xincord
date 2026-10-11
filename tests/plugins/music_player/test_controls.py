@@ -13,7 +13,7 @@ import pytest
 
 from discord_fakes import embed_dict
 from music_fakes import FakePlayer, song, text
-from plugin_fakes import golden
+from plugin_fakes import golden, until
 from xincord.plugins.music_player.history import Entry, Requester
 
 if TYPE_CHECKING:
@@ -209,3 +209,19 @@ async def test_stop_without_a_voice_connection(scene: Scene) -> None:
     assert player.calls[-1] == ("stop", None)
     assert scene.link.disconnects == []
     assert reply(stop) == DELETED
+
+
+@pytest.mark.xfail(strict=True, reason="Members control playback with v3's replies")
+async def test_pause_while_the_bot_leaves(scene: Scene) -> None:
+    """Requirement: Members control playback with v3's replies."""
+    player = await scene.playing(1)
+    player.hold = asyncio.Event()  # the node is slow to pause
+    paused = scene.who(VOICE)
+    pausing = asyncio.create_task(scene.cog.pause_song(paused.as_interaction()))
+    await until(lambda: ("pause", True) in player.calls)
+
+    scene.cog.sessions[10].detach()  # the bot left voice meanwhile
+    player.hold.set()
+    await pausing
+
+    assert told(paused, "nothing-playing")

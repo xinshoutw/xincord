@@ -163,7 +163,8 @@ fields, 4000 characters in all) with a last line counting the songs left out.
 The plugin SHALL connect to the configured node with lavalink.py from READY, load identifiers
 there (a song, a playlist, a search, nothing, or the node's error), play one song at a time on each
 guild's player with the guild's volume, pause, resume, change the volume and stop it, and forward
-the bot's voice updates to the node with the voice channel's ID, also after the bot moved.
+the bot's voice updates to the node with the voice channel's ID, also after the bot moved. A
+request that the node does not answer within 15 seconds SHALL fail as unavailable.
 
 #### Scenario: Load results
 - **WHEN** the node answers a song, a playlist, a search, nothing and an error
@@ -187,6 +188,20 @@ the bot's voice updates to the node with the voice channel's ID, also after the 
   closes
 - **THEN** the connection is released all the same, and the other guilds still leave before the
   client closes
+
+#### Scenario: A leave answered late or deleted slowly
+- **WHEN** Discord answers a leave after the bot began connecting again, or the node is slow to
+  delete the left guild's player while the bot connects again
+- **THEN** the new connection keeps its player, and the plugin hears of the leave once, before the
+  new connection
+
+#### Scenario: Connections that a new gateway session dropped
+- **WHEN** READY came again and discord.py no longer holds a guild's connection
+- **THEN** the link leaves that guild's voice and releases its player, and the other guilds stay
+
+#### Scenario: A node that does not answer
+- **WHEN** the node takes a load and answers nothing for 15 seconds
+- **THEN** the load fails as unavailable and the node's connection stays
 
 ### Requirement: Commands keep v3's names, options and localizations
 The plugin SHALL register v3's eleven guild commands for every member, with v3's English
@@ -241,7 +256,7 @@ meanwhile get their reply.
 - **THEN** the song joins that session and the bot does not move
 
 #### Scenario: The bot left during the load
-- **WHEN** the bot leaves voice while the query loads
+- **WHEN** the bot leaves voice while the query loads, or while its songs wait for the player
 - **THEN** the reply is `not-connected` and nothing is added
 
 #### Scenario: Refusals
@@ -265,8 +280,9 @@ skip that many songs and show the `skip` panel, end the list when it skips past 
   `already-playing`
 
 #### Scenario: Songs gone during a command
-- **WHEN** `/pause` and `/resume` wait for the player while the bot leaves voice
-- **THEN** both replies are `nothing-playing`
+- **WHEN** `/pause` and `/resume` wait for the player, or the node answers a pause, while the bot
+  leaves voice
+- **THEN** the replies are `nothing-playing`
 
 #### Scenario: Stop
 - **WHEN** `/stop` runs while a paused song plays, then while nothing plays
@@ -353,6 +369,12 @@ or an unload SHALL end the refreshes.
 - **WHEN** a queue panel refreshes after a skip
 - **THEN** it shows the new song and the shorter queue
 
+#### Scenario: Panels at once and after the unload
+- **WHEN** a member's command opens a panel while their previous one is still being deleted, or a
+  command opens one after the unload
+- **THEN** the newest panel is the member's only refreshing one, and one opened after the unload is
+  not tracked
+
 ### Requirement: Panel buttons control the guild's player
 Presses of v3's IDs (`musicplayer@a:<action>`) and new IDs SHALL be acknowledged at once and act on
 the guild's player: a member outside voice gets `button-join-voice` in the panel; `previous`,
@@ -379,6 +401,10 @@ panel, or shows `not-connected`. Other actions get no response.
 - **THEN** the panel says `nothing-playing`, `no-more-songs`, `previous-no-song`, `previous-idle`
   and `not-connected`
 
+#### Scenario: Two quick presses
+- **WHEN** `pause-resume` is pressed twice while the node answers the first press
+- **THEN** the song pauses, then resumes
+
 #### Scenario: Songs gone during a press
 - **WHEN** `pause-resume` and `previous` wait for the player while the bot leaves voice
 - **THEN** the panels say `nothing-playing` and `previous-no-song`, and no error is logged
@@ -394,7 +420,8 @@ panel, or shows `not-connected`. Other actions get no response.
 ### Requirement: The bot leaves when idle, disconnected or removed
 The bot SHALL leave voice once nothing played for `player.auto_leave_timeout` milliseconds (never
 when 0), unless a song starts first. When Discord disconnects the bot, the guild's history SHALL be
-cleared and its panels deleted; when the bot leaves a guild, its state SHALL be forgotten.
+cleared and its panels deleted; when the bot leaves a guild, its state SHALL be forgotten. At READY
+the bot SHALL leave the voice connections that a new gateway session made discord.py forget.
 
 #### Scenario: Idle timeout
 - **WHEN** the last song ends and 600000 ms pass, or a song starts before
@@ -411,6 +438,11 @@ cleared and its panels deleted; when the bot leaves a guild, its state SHALL be 
 #### Scenario: Guild removed
 - **WHEN** the bot leaves the guild
 - **THEN** the guild's player, history, volume and panels are forgotten
+
+#### Scenario: A new gateway session
+- **WHEN** READY comes again after discord.py forgot the bot's voice connections, also while an
+  idle leave is due
+- **THEN** the bot leaves them as after a disconnection, and the idle leave ends without an error
 
 ### Requirement: The node and the emojis load from READY, and unloading leaves voice
 Nothing SHALL connect before READY. At READY the plugin SHALL connect to the node and read the

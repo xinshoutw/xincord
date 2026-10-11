@@ -57,6 +57,7 @@ class FakeNode:
     loads: list[str] = field(default_factory=list[str])
     sockets: list[web.WebSocketResponse] = field(default_factory=list[web.WebSocketResponse])
     closed: int = 0  # the sockets that the clients closed
+    hold: asyncio.Event | None = None  # when set, loads and deletions wait for it once recorded
     _changed: asyncio.Condition = field(default_factory=asyncio.Condition)
 
     def app(self) -> web.Application:
@@ -89,6 +90,10 @@ class FakeNode:
         async with self._changed:
             self._changed.notify_all()
 
+    async def _held(self) -> None:
+        if self.hold is not None:
+            await self.hold.wait()
+
     def _authorized(self, request: web.Request) -> bool:
         return request.headers.get("Authorization") == self.password
 
@@ -113,6 +118,7 @@ class FakeNode:
         identifier = request.query["identifier"]
         self.loads.append(identifier)
         await self._changes()
+        await self._held()
         return web.json_response(self.answers.get(identifier, {"loadType": "empty", "data": {}}))
 
     async def _update(self, request: web.Request) -> web.StreamResponse:
@@ -139,6 +145,7 @@ class FakeNode:
             return web.Response(status=401)
         self.deleted.append(request.match_info["guild"])
         await self._changes()
+        await self._held()
         return web.Response(status=204)
 
 

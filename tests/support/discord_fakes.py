@@ -138,6 +138,8 @@ class FakeInteraction:
     refuse_edit: Exception | None = None
     # What delete_original_response raises once it recorded the deletion (a dismissed message).
     delete_error: Exception | None = None
+    # What a recorded deletion waits for, when set: Discord is slow to answer.
+    delete_gate: asyncio.Event | None = None
 
     @property
     def guild_id(self) -> int | None:
@@ -168,8 +170,11 @@ class FakeInteraction:
         return self.original
 
     async def delete_original_response(self) -> None:
-        """Record the deletion of the deferred response, then raise ``delete_error`` if set."""
+        """Record the deletion of the deferred response, wait for ``delete_gate`` if set, then
+        raise ``delete_error`` if set."""
         self.sent.append(("delete_original_response", {}))
+        if self.delete_gate is not None:
+            await self.delete_gate.wait()
         if self.delete_error is not None:
             raise self.delete_error
 

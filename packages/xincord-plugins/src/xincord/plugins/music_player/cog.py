@@ -161,6 +161,11 @@ class MusicPlayer(Commands, Buttons, commands.Cog):
         _failed(task)
 
     @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        """READY again: discord.py's new gateway session forgot the bot's voice connections."""
+        raise NotImplementedError
+
+    @commands.Cog.listener()
     async def on_guild_remove(self, guild: discord.Guild) -> None:
         """The bot left a guild: leave its voice and forget its player, songs, volume and panels.
 

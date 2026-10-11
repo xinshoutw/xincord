@@ -260,3 +260,37 @@ async def test_guild_removed_without_voice(scene: Scene) -> None:
     assert 10 not in scene.cog.sessions
     assert DELETED in command.sent
     assert scene.link.disconnects == []
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="The bot leaves when idle, disconnected or removed",
+)
+async def test_a_new_gateway_session(scene: Scene) -> None:
+    """Requirement: The bot leaves when idle, disconnected or removed."""
+    await scene.playing(1)
+    scene.guild.voice_client = None  # READY again: discord.py forgot its voice clients
+
+    await scene.cog.on_ready()
+
+    assert scene.link.disconnects == [10]
+    assert scene.cog.sessions[10].player is None
+    assert scene.cog.sessions[10].history.entries == []
+
+
+@pytest.mark.xfail(strict=True, reason="The bot leaves when idle, disconnected or removed")
+async def test_an_idle_leave_after_a_new_gateway_session(
+    scene: Scene, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: The bot leaves when idle, disconnected or removed."""
+    await scene.playing(1)
+    await scene.cog.session(10).ended(1, EndReason.FINISHED)
+    await started()
+    scene.guild.voice_client = None  # READY again, before the plugin's READY handler ran
+
+    await scene.clock.advance(600)
+    await until(lambda: 10 not in scene.cog.idle)
+
+    assert "failed" not in caplog.text  # READY's handler leaves; the idle leave ends quietly
+    assert scene.link.disconnects == []

@@ -3,6 +3,7 @@
 import re
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -139,3 +140,12 @@ def test_secrets_stay_untracked() -> None:
 
     assert "/.env" in gitignore
     assert values == {"LAVALINK_PASSWORD": "change-me"}  # an example, never a real password
+
+
+@pytest.mark.xfail(strict=True, reason="Lavalink service")
+def test_node_logs_no_queries() -> None:
+    """Requirement: Lavalink service."""
+    config = yaml.safe_load((ROOT / "lavalink" / "application.yml").read_text(encoding="utf-8"))
+
+    # Lavalink 4.2.2's load handler names each identifier at INFO (checked with the image).
+    assert config["logging"]["level"]["lavalink.server.player.AudioLoaderRestHandler"] == "WARN"

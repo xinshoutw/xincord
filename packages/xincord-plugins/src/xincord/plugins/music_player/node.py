@@ -204,6 +204,11 @@ class NodeLink:
         """The voice protocol that ``channel.connect(cls=link.voice)`` connects with."""
         return LavalinkVoice(client, channel, self)
 
+    async def leave_lost(self) -> None:
+        """Leave voice where discord.py lost the connection: a new gateway session (READY again)
+        forgets its voice clients without telling them."""
+        raise NotImplementedError
+
     async def close(self) -> None:
         """Leave voice in every guild, then close the node's connection and the client's
         session; again does nothing."""

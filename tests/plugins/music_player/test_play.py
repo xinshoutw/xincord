@@ -160,3 +160,22 @@ async def test_the_bot_left_during_the_load(scene: Scene) -> None:
     assert interaction.sent == [("edit_original_response", {"content": text("not-connected")})]
     assert scene.cog.sessions[10].history.entries == []
     assert scene.cog.panels.panels == {}
+
+
+@pytest.mark.xfail(strict=True, reason="Play queues songs and starts them")
+async def test_the_bot_left_while_the_songs_waited(scene: Scene) -> None:
+    """Requirement: Play queues songs and starts them."""
+    scene.answer("ytsearch:never gonna", LoadKind.SEARCH, song(1))
+    await scene.connect()
+    session = scene.cog.sessions[10]
+    interaction = scene.who(VOICE)
+    async with session.lock:  # the player is busy, as with another member's /skip
+        playing = asyncio.create_task(
+            scene.cog.play_song(interaction.as_interaction(), "never gonna")
+        )
+        await until(lambda: scene.link.loads == ["ytsearch:never gonna"])
+        session.detach()  # the bot left voice while the songs waited for the player
+    await playing
+
+    assert interaction.sent == [("edit_original_response", {"content": text("not-connected")})]
+    assert session.history.entries == []
