@@ -245,8 +245,8 @@ lists; crossposting; later board pages; commands; the v3 data import itself; the
 ### Logs
 
 - `Failures` (UptimeHeartbeat's failure episodes) moves into the shared package
-  `xincord.plugins.failures`, unchanged. Each board has one for its page, one for its articles and
-  one for its posts; the plugin has one for Gemini. A kind of failure (a status code, an error
+  `xincord.plugins.failures`, unchanged. Each board has one for its page, one for its articles,
+  one for its posts and one for its stored document; the plugin has one for Gemini. A kind of failure (a status code, an error
   type, `no entries`) is logged at its level when it is new in the episode, the rest at debug
   level, and the step logs one info line once it has worked three times in a row.
 - Lines start with `NtustAnnouncements board <name>`; a key is named by its position in
@@ -274,7 +274,15 @@ lists; crossposting; later board pages; commands; the v3 data import itself; the
   parsers give for them and v3's bundled boards. No CJK text is typed in Python.
 - Nothing touches the network or sleeps in real time: `test_web.py` runs aiohttp against a local
   server; the other tests pass fakes for the pages, Gemini and the channels, a recording `sleep`
-  and a fake clock.
+  and a fake clock. An autouse fixture (`offline`) makes aiohttp refuse every host but this
+  machine's, after a test that loaded the plugin into a ready bot once reached NTUST: a dotted
+  `monkeypatch` target had resolved a stale module object, so tests patch the module that
+  `sys.modules` holds.
+- The loops' scene (`tests/plugins/ntust_announcements/conftest.py`) loads the plugin offline and
+  replaces the cog's `open_web` (`FakeWeb`: the trimmed pages, a student article for every
+  article, a fake Gemini that can hold a prompt forever, page fetches that can wait together),
+  `sleep` (`Clock`: each wait lasts until the test wakes the waits so far) and
+  `bot.get_partial_messageable` (a `FakeChannel` per channel).
 
 ## v3 behaved differently
 
@@ -368,6 +376,84 @@ ellipsis, and the operator's log lines (English).
   title links.
 - `gemini-2.5-flash` may be retired by Google (its previews were shut down in 2026); `model`
   switches it without a code change.
+
+## Checks
+
+- Package: the `xincord-plugins` wheel holds `ntust_announcements/config.yaml`, its modules,
+  `xincord/plugins/failures/` and the `NtustAnnouncements` entry point; `xincord --no-online` from
+  a scratch venv with both wheels and `plugins: [NtustAnnouncements]` exits 1 with the bundled
+  config (both `api-keys` and the 18 `boards.<n>.channel-id` named, nothing else, no key text) and
+  0 once the bundled file's keys and channels are replaced with example values.
+- Image: `docker compose build`, then `docker compose run --rm -T bot --no-online` with the sixteen
+  ported plugins enabled (example values for Economy, TicketAwayNotice and NtustAnnouncements)
+  exits 0 with every one loaded. In the image (OpenSSL 3.5.7), Python's default TLS context refuses
+  `lc.ntust.edu.tw` and the plugin's page context reads it. `docker compose down -v` and removing
+  `bot/` cleaned up.
+- Probe (a scratch script with discord.py's own objects and its HTTP recorded): after READY, the
+  two boards' ten announcements went out as `POST /channels/{id}/messages` with the header,
+  Gemini's Markdown and `allowed_mentions` `{"parse": []}` although it held `@everyone` and a role
+  mention; each board then waited 3600 seconds; the store held v3's document with the dormitory's
+  six items; the ready check warned about a board whose channel was a category; `bot.close()`
+  ended the loops.
+- Live, once: the plugin's web and parser read the dormitory board's live page (20 entries) on
+  the host (Python 3.14.8, OpenSSL 3.5.9).
+- Found while checking and fixed in this change: NTUST's certificates and Python's strict X.509
+  checks (`page_context`), and pydantic's `min_length`, which counted only the valid items and so
+  also called the bundled config's 18 boards an empty list.
+
+## Inventory audit
+
+Every section of `docs/porting/analysis/inventory/NtustManager.md` maps to this change:
+
+- Overview (1): the plugin and its name are "The plugin installs as NtustAnnouncements"; the 18
+  boards, channels and guild are the config requirement and the bundled file (golden data).
+- Lifecycle (2): reading the config and `enabled` are the config requirement and the core's
+  `plugins` list; the guild lookup is the ready check; the MongoDB load is the store requirement;
+  `validateConfiguration` is config validation; the first cycle at once, the scheduler, unload and
+  reload are "Boards are checked from READY until the plugin unloads" (bugs 4 to 7 are "v3 behaved
+  differently" entries); the cycle algorithm (`checkAllAnnouncements`, `checkAnnouncementUpdates`
+  steps 1 to 6, the first run, `boardParser`, `parseAnnouncementList`, `contentParser`) is
+  "Board pages list their announcements", "Article pages give their content as minified HTML",
+  "New announcements are posted in board order" and "Each board remembers what it posted".
+- Commands (3) and components (4): none; the helpers without callers (`triggerManualCheck`,
+  `clearCache`, `getAllCurrentAnnouncementLists`) are out of scope as dead code.
+- Events (5): none; `on_ready` runs the ready check only.
+- Configuration (6): the keys and their checks are the config requirement; the prompt's tokens
+  are "The prompt is filled in one pass"; the default prompt is in the bundled file; of the
+  hard-coded values, the guild and channels (the guild by its channels), the board URLs, the
+  filter and the model became config, and the temperature, the rate limit, the retries, the
+  concurrency, the timeouts and the split sizes stay v3's constants (review queue).
+- Localization and templates (7): the header, the split in UTF-16 code units and the title links
+  are "Announcements become messages within Discord's limits"; the unescaped title is bug 13.
+- Persistence (8): the collections and the document envelope are "Storage and the v3 data import"
+  and the store requirement (v3's document read with or without `itemTypeName`); the legacy
+  converter is `parse_posted`; `announcement_data` is not kept; the migration concerns (import or
+  first-pass posting, the URL as identity) are under Risks and in the data import's description.
+- External dependencies (9): Ksoup is `markup.py`; the google-genai SDK is Gemini's REST call; the
+  endpoints are the bundled boards; the URL helpers are `complete_url`, `is_article` and
+  `fill_prompt`'s base URL (`extractParagraphId` served the dropped archive and log lines only);
+  the Gemini service is the two Gemini requirements.
+- Discord requirements (10): no intents beyond the defaults; the permissions are in the smoke
+  checklist; announcement channels became any channel that takes messages, with the ready check;
+  no crossposting, as in v3; mentions are off; the backlog's posts are under Risks.
+- Concurrency (11): the executor and coroutines are one task with a task group; the semaphore is
+  the fetch limit, held while fetching only (bug 9); each board's list has one writer; the
+  limiter's check and record are one step; store writes are awaited; unloading cancels and waits.
+- Bugs and quirks (12): the behaviors to preserve are scenarios (1 "Start at READY", 2 "Posted
+  links", 3 "First pass", 4 "Title prefix", 5 "First pass" and "Content that cannot be
+  converted", 6 the message scenarios); 7, the fetch date, served the dropped archive; bugs 1 to
+  14 are "v3 behaved differently" entries and bug 15 is settled (the 412 page has the table); the
+  dead code is out of scope; the time zone stays the host's (Risks, review queue).
+- Testability (13): each pure part is tested alone (`markup`, `pages`, `messages`, `gemini`,
+  `store`), the HTTP layer against a local server, the passes with fakes and the loops through
+  the loaded plugin, with the clock and the sleeps injected.
+- Assessment (14): a cog without commands, `asyncio` tasks instead of `tasks.loop`, the semaphore,
+  aiohttp instead of httpx, the standard library's parser instead of selectolax or BeautifulSoup,
+  Gemini's REST API instead of an SDK, the store instead of MongoDB, partial messageables and
+  `AllowedMentions.none()` are the decisions above.
+- Appendix: every scenario seed is a scenario: first run, failed or empty boards, a new NTUST
+  article, an external link, the split at 1981 units, entries that leave the page (kept now,
+  bug 3), Gemini's retries and rate limit, and the config errors.
 
 ## Manual smoke checklist
 
