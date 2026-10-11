@@ -1,6 +1,7 @@
 """Releases: a signed `v*` tag builds the distributions and the image and creates the Release."""
 
 import re
+import tomllib
 from pathlib import Path
 from typing import Any, cast
 
@@ -153,6 +154,17 @@ def test_pypi_job_per_package() -> None:
     assert "--pattern 'xincord-*'" in download(core)
     assert "--pattern 'xincord_plugins-*'" in download(plugins)
     assert "uv publish --trusted-publishing always" in plugins["steps"][-1]["run"]
+
+
+@pytest.mark.xfail(strict=True, reason="The distributions carry the license")
+def test_distributions_carry_the_license() -> None:
+    """Requirement: The distributions carry the license."""
+    plugins = ROOT / "packages" / "xincord-plugins"
+    for project in (ROOT, plugins):
+        config = tomllib.loads((project / "pyproject.toml").read_text(encoding="utf-8"))
+        assert config["project"]["license-files"] == ["LICENSE"]
+
+    assert (plugins / "LICENSE").read_bytes() == (ROOT / "LICENSE").read_bytes()
 
 
 def test_actions_and_permissions() -> None:
