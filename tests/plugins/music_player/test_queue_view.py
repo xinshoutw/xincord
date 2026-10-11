@@ -38,9 +38,6 @@ def units(text: str) -> int:
     return len(text.encode("utf-16-le")) // 2
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The queue view fits Discord's limits"
-)
 def test_short_queue() -> None:
     """Requirement: The queue view fits Discord's limits."""
     entries = [entry(1), entry(2, length=STREAM_LENGTH), entry(3, length=61_000)]
@@ -62,9 +59,6 @@ def test_short_queue() -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The queue view fits Discord's limits"
-)
 def test_ten_lines_per_field() -> None:
     """Requirement: The queue view fits Discord's limits."""
     embed = display.queue_embed([entry(n) for n in range(1, 26)], live_length="-", more=MORE)
@@ -74,12 +68,19 @@ def test_ten_lines_per_field() -> None:
     assert lines[1][0].startswith("11. **Song 11**")  # the numbers go on across fields
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The queue view fits Discord's limits"
+@pytest.mark.parametrize(
+    ("title", "shown"),
+    [
+        # Titles past 200 UTF-16 code units are cut, never inside a surrogate pair.
+        pytest.param("T" * 300, "T" * 199 + "\N{HORIZONTAL ELLIPSIS}", id="long titles"),
+        pytest.param(
+            "T" * 199 + chr(0x1F3B5), "T" * 199 + "\N{HORIZONTAL ELLIPSIS}", id="surrogate pair"
+        ),
+        pytest.param("Tune", "Tune", id="short titles"),
+    ],
 )
-def test_long_queue() -> None:
+def test_long_queue(title: str, shown: str) -> None:
     """Requirement: The queue view fits Discord's limits."""
-    title = "T" * 300 + chr(0x1F3B5)  # a long title ending in a character outside the BMP
     entries = [entry(n, title) for n in range(1, 501)]
 
     embed = display.queue_embed(entries, live_length="-", more=MORE)
@@ -90,6 +91,6 @@ def test_long_queue() -> None:
     assert sum(units(field.name or "") + units(field.value or "") for field in embed.fields) <= (
         BUDGET
     )
-    shown = sum(value.count("\n") + 1 for value in values[:-1])
-    assert values[-1] == f"and {500 - shown} more"
-    assert values[0].startswith("1. **TTT")
+    lines = [line for value in values[:-1] for line in value.split("\n")]
+    assert values[-1] == f"and {500 - len(lines)} more"
+    assert lines[0] == f"1. **{shown}** | Band 1 `[03:34]`"

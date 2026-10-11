@@ -16,7 +16,7 @@
 
 - [x] 3.1 xfail tests for "Queries become Lavalink identifiers as in v3", "Panels show v3's track
       layout" and "The queue view fits Discord's limits" against stubs in `display.py`
-- [ ] 3.2 Implement the identifier rule, the times, the bar, the thumbnails, the panel values and
+- [x] 3.2 Implement the identifier rule, the times, the bar, the thumbnails, the panel values and
       the queue embed; remove the markers
 - [ ] 3.3 xfail tests for "The history keeps v3's order of play" against stubs in `history.py`
 - [ ] 3.4 Implement the history; remove the markers

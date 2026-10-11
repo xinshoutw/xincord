@@ -82,9 +82,6 @@ def bar(white: int, *, end: bool = False) -> str:
         ("scsearch:foo", "ytsearch:scsearch:foo"),
     ],
 )
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Queries become Lavalink identifiers as in v3"
-)
 def test_searches_and_links(query: str, expected: str) -> None:
     """Requirement: Queries become Lavalink identifiers as in v3."""
     # The vectors of the inventory, section 13.1.
@@ -103,13 +100,11 @@ def test_searches_and_links(query: str, expected: str) -> None:
         (-1, "00:00"),
     ],
 )
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Panels show v3's track layout")
 def test_times(milliseconds: int, text: str) -> None:
     """Requirement: Panels show v3's track layout."""
     assert display.format_time(milliseconds) == text
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Panels show v3's track layout")
 def test_lengths() -> None:
     """Requirement: Panels show v3's track layout."""
     stream = Track("QAAB", "Radio", "Station", None, "radio", STREAM_LENGTH, stream=True)
@@ -128,7 +123,6 @@ def test_lengths() -> None:
         pytest.param(-5, 0, False, id="negative"),
     ],
 )
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Panels show v3's track layout")
 def test_progress_bar(position: int, white: int, *, end: bool) -> None:
     """Requirement: Panels show v3's track layout."""
     expected = (
@@ -140,7 +134,6 @@ def test_progress_bar(position: int, white: int, *, end: bool) -> None:
     assert display.progress_bar(position, SONG, playing=True, look=LOOK) == (expected)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Panels show v3's track layout")
 def test_streams_and_paused_songs() -> None:
     """Requirement: Panels show v3's track layout."""
     stream = Track("QAAB", "Radio", "Station", None, "radio", STREAM_LENGTH, stream=True)
@@ -163,14 +156,12 @@ def test_streams_and_paused_songs() -> None:
         ("https://soundcloud.com/a/b", None),
     ],
 )
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Panels show v3's track layout")
 def test_youtube_ids(url: str, video: str | None) -> None:
     """Requirement: Panels show v3's track layout."""
     # The vectors of the inventory, section 13.5.
     assert display.youtube_id(url) == video
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Panels show v3's track layout")
 def test_thumbnails() -> None:
     """Requirement: Panels show v3's track layout."""
     artwork = Track(
@@ -194,7 +185,6 @@ def test_thumbnails() -> None:
     assert display.thumbnail(other) == "https://i.meee.com.tw/GHexAW6.png"  # v3's default
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Panels show v3's track layout")
 def test_track_values() -> None:
     """Requirement: Panels show v3's track layout."""
     entry = Entry(SONG, ALICE)
@@ -236,7 +226,6 @@ def test_track_values() -> None:
 
 
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Panels show v3's track layout")
 async def test_golden_panels(locale: str) -> None:
     """Requirement: Panels show v3's track layout."""
     lang = Lang.load(
