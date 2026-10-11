@@ -1,6 +1,6 @@
 ## 1. Jobs
 
-- [ ] 1.1 xfail tests for "PyPI from 1.0.0" (a job and an environment per package, the plugins
+- [x] 1.1 xfail tests for "PyPI from 1.0.0" (a job and an environment per package, the plugins
       after the core, the writers)
 - [ ] 1.2 The `pypi-plugins` job and the per-package downloads; README; remove the markers
 

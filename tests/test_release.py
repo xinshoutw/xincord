@@ -135,6 +135,24 @@ def test_pypi_waits_for_one_point_oh() -> None:
     assert "uv publish --trusted-publishing always" in commands
 
 
+@pytest.mark.xfail(strict=True, reason="PyPI from 1.0.0")
+def test_pypi_job_per_package() -> None:
+    """Requirement: PyPI from 1.0.0."""
+    jobs = workflow()["jobs"]
+    core, plugins = jobs["pypi"], jobs["pypi-plugins"]
+
+    def download(job: Config) -> str:
+        return next(item["run"] for item in job["steps"] if "gh release" in item.get("run", ""))
+
+    assert (core["environment"], plugins["environment"]) == ("pypi", "pypi-plugins")
+    assert plugins["needs"] == "pypi"
+    assert plugins["if"] == core["if"]
+    assert plugins["permissions"] == core["permissions"]
+    assert "--pattern 'xincord-*'" in download(core)
+    assert "--pattern 'xincord_plugins-*'" in download(plugins)
+    assert "uv publish --trusted-publishing always" in plugins["steps"][-1]["run"]
+
+
 def test_actions_and_permissions() -> None:
     """Requirement: PyPI from 1.0.0."""
     config = workflow()
