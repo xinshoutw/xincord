@@ -11,9 +11,12 @@ Kotlin:
 
 import json
 import re
+import unicodedata
 from dataclasses import dataclass
 from typing import cast
 
+# NTUST's codes are letters and digits (CE162A001, 3N1154701); 20 leave room for longer ones.
+CODE = re.compile(r"[0-9A-Z]{1,20}")
 # Kotlin's toIntOrNull(): an optional sign and decimal digits of any script, within an Int.
 INT = re.compile(r"[+-]?\d+")
 INT_MIN, INT_MAX = -(2**31), 2**31 - 1
@@ -21,8 +24,14 @@ LANGUAGE = "zh"  # course names in Chinese, as v3 asked
 
 
 def course_code(text: str) -> str | None:
-    """A course code as members type it, read as NTUST writes it; None when it cannot be one."""
-    raise NotImplementedError
+    """A course code as members type it, read as NTUST writes it; None when it cannot be one.
+
+    NFKC turns full-width letters and digits (an input method's) into ASCII; surrounding
+    whitespace goes and letters are upper case. v3 stored the code as typed, so ``ce162a001`` never
+    matched NTUST's ``CE162A001``.
+    """
+    code = unicodedata.normalize("NFKC", text).strip().upper()
+    return code if CODE.fullmatch(code) else None
 
 
 class AnswerError(Exception):

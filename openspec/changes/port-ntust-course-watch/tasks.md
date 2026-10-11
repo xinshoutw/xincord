@@ -30,7 +30,7 @@
 - [x] 5.1 xfail tests for "Members register courses in a channel", "Members unregister their own
       courses", "Members list their courses in the channel" and "Commands keep v3's names and
       answer in the member's locale"
-- [ ] 5.2 Build the three commands and their replies; remove the markers
+- [x] 5.2 Build the three commands and their replies; remove the markers
 
 ## 6. Alerts
 

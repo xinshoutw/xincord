@@ -55,7 +55,6 @@ def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
     return entries
 
 
-@pytest.mark.xfail(strict=True, reason="Commands keep v3's names and answer in the member's locale")
 async def test_command_payload(bot: Bot) -> None:
     """Requirement: Commands keep v3's names and answer in the member's locale."""
     global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
@@ -67,7 +66,6 @@ async def test_command_payload(bot: Bot) -> None:
     assert not {entry["name"] for entry in global_payload} & set(NAMES)  # guild commands
 
 
-@pytest.mark.xfail(strict=True, reason="Commands keep v3's names and answer in the member's locale")
 @pytest.mark.parametrize("name", NAMES)
 async def test_command_binding(bot: Bot, cog: NtustCourseWatch, name: str) -> None:
     """Requirement: Commands keep v3's names and answer in the member's locale."""
@@ -78,9 +76,6 @@ async def test_command_binding(bot: Bot, cog: NtustCourseWatch, name: str) -> No
     assert command.extras.get("defer", True)  # the tree's ephemeral deferral, as v3's core
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members register courses in a channel"
-)
 async def test_register(cog: NtustCourseWatch, store: Store) -> None:
     """Requirement: Members register courses in a channel."""
     fake = interaction()
@@ -92,9 +87,6 @@ async def test_register(cog: NtustCourseWatch, store: Store) -> None:
     assert replies(fake) == [ENGLISH["registered"]]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members register courses in a channel"
-)
 async def test_register_twice(cog: NtustCourseWatch) -> None:
     """Requirement: Members register courses in a channel."""
     first, second = interaction(), interaction()
@@ -106,9 +98,6 @@ async def test_register_twice(cog: NtustCourseWatch) -> None:
     assert replies(second) == [ENGLISH["registered"]]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members register courses in a channel"
-)
 @pytest.mark.parametrize(
     "typed",
     [
@@ -128,9 +117,6 @@ async def test_typed_loosely(cog: NtustCourseWatch, typed: str) -> None:
     assert replies(fake) == [ENGLISH["registered"]]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members register courses in a channel"
-)
 @pytest.mark.parametrize(
     "typed",
     [
@@ -152,9 +138,6 @@ async def test_invalid_code(cog: NtustCourseWatch, store: Store, typed: str) -> 
     assert replies(fake) == [ENGLISH["invalid-code"]]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members register courses in a channel"
-)
 async def test_twenty_characters(cog: NtustCourseWatch) -> None:
     """Requirement: Members register courses in a channel."""
     fake = interaction()
@@ -164,9 +147,6 @@ async def test_twenty_characters(cog: NtustCourseWatch) -> None:
     assert await cog.registrations.load() == {"A1" * 10: {5: (1,)}}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members unregister their own courses"
-)
 async def test_unregister(cog: NtustCourseWatch) -> None:
     """Requirement: Members unregister their own courses."""
     await cog.registrations.add("CE162A001", 5, 1)
@@ -181,9 +161,6 @@ async def test_unregister(cog: NtustCourseWatch) -> None:
     assert replies(fake) == [ENGLISH["unregistered"]]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members unregister their own courses"
-)
 async def test_not_registered(cog: NtustCourseWatch, store: Store) -> None:
     """Requirement: Members unregister their own courses."""
     await cog.registrations.add("CE162A001", 5, 2)
@@ -195,9 +172,6 @@ async def test_not_registered(cog: NtustCourseWatch, store: Store) -> None:
     assert replies(fake) == [ENGLISH["unregistered"]]  # as v3, which always said so
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members unregister their own courses"
-)
 async def test_last_registration(cog: NtustCourseWatch, store: Store) -> None:
     """Requirement: Members unregister their own courses."""
     await cog.registrations.add("CE162A001", 5, 1)
@@ -207,9 +181,6 @@ async def test_last_registration(cog: NtustCourseWatch, store: Store) -> None:
     assert await store.get(NAMESPACE, KEY) is None
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members unregister their own courses"
-)
 async def test_unregister_invalid_code(cog: NtustCourseWatch, store: Store) -> None:
     """Requirement: Members unregister their own courses."""
     await cog.registrations.add("CE162A001", 5, 1)
@@ -221,9 +192,6 @@ async def test_unregister_invalid_code(cog: NtustCourseWatch, store: Store) -> N
     assert replies(fake) == [ENGLISH["invalid-code"]]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members list their courses in the channel"
-)
 async def test_list(cog: NtustCourseWatch) -> None:
     """Requirement: Members list their courses in the channel."""
     await cog.registrations.add("CE162A002", 5, 1)
@@ -237,9 +205,6 @@ async def test_list(cog: NtustCourseWatch) -> None:
     assert replies(fake) == [ENGLISH["list"]]  # this channel's, sorted
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members list their courses in the channel"
-)
 async def test_similar_ids(cog: NtustCourseWatch) -> None:
     """Requirement: Members list their courses in the channel."""
     await cog.registrations.add("CE162A001", 5, 1)
@@ -252,9 +217,6 @@ async def test_similar_ids(cog: NtustCourseWatch) -> None:
     assert replies(fake) == [ENGLISH["list"]]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members list their courses in the channel"
-)
 async def test_nothing_registered(cog: NtustCourseWatch) -> None:
     """Requirement: Members list their courses in the channel."""
     await cog.registrations.add("CE162A001", 6, 1)
@@ -265,9 +227,6 @@ async def test_nothing_registered(cog: NtustCourseWatch) -> None:
     assert replies(fake) == [ENGLISH["list-empty"]]  # v3's text with nothing after it
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members list their courses in the channel"
-)
 async def test_long_list(cog: NtustCourseWatch) -> None:
     """Requirement: Members list their courses in the channel."""
     codes = [f"CE162A{number:014d}" for number in range(100)]  # 20 characters each
@@ -283,9 +242,6 @@ async def test_long_list(cog: NtustCourseWatch) -> None:
     assert reply.endswith(", ...")
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Registrations are kept as v3's document"
-)
 async def test_v3_document_listed_once(cog: NtustCourseWatch, store: Store) -> None:
     """Requirement: Registrations are kept as v3's document."""
     await store.put(NAMESPACE, KEY, {"CE162A001": {"5": ["1", "1"]}, "CE162A002": {"5": ["1"]}})
@@ -296,11 +252,6 @@ async def test_v3_document_listed_once(cog: NtustCourseWatch, store: Store) -> N
     assert replies(fake) == [ENGLISH["list"]]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Commands keep v3's names and answer in the member's locale",
-)
 @pytest.mark.parametrize(
     ("locale", "language"),
     [

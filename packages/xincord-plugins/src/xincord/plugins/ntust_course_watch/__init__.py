@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 import discord
 
-from .cog import NtustCourseWatch
+from .cog import COMMANDS, NtustCourseWatch
 from .config import Config
 
 if TYPE_CHECKING:
@@ -25,8 +25,12 @@ DEFAULT_LOCALE = "en-US"
 
 
 async def setup(bot: Bot) -> None:
-    """Load the config and the lang files, then add the cog."""
+    """Load the config and the lang files, then add the cog and its commands."""
     context = bot.plugin_context(__name__)
     config = context.config(Config)
     lang = context.lang(DEFAULT_LOCALE)
-    await bot.add_cog(NtustCourseWatch(bot, config, context.store, lang))
+    cog = NtustCourseWatch(bot, config, context.store, lang)
+    await bot.add_cog(cog)
+    # Guild commands, as in v3. discord.py removes them when the plugin unloads.
+    for name in COMMANDS:
+        bot.tree.add_command(cog.command(name))
