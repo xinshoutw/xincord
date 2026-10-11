@@ -17,6 +17,7 @@ from xincord.plugins.ntust_announcements.conversion import (
     MAX_ATTEMPTS,
     Converter,
     KeyRing,
+    Limits,
     backoff,
     fill_prompt,
 )
@@ -27,6 +28,9 @@ URL = "https://student.ntust.edu.tw/p/406-1053-152183,r1436.php?Lang=zh-tw"
 LINK = Link("STUDENT_DORMITORY", URL, "Dorm notice")
 PROMPT = "{{page_title}}|{{page_url}}|{{base_url}}|{{now}}|{{html}}"
 LOGGER = "xincord.plugins.ntust_announcements"
+# An endpoint whose user info and path are secrets, as a proxy's can be.
+ENDPOINT = "https://user:pass-secret@proxy.example.com/secret-token/v1"
+REQUEST_URL = f"{ENDPOINT}/chat/completions"
 
 
 @dataclass
@@ -63,10 +67,17 @@ class Answers:
         return [key for key, _, _ in self.calls]
 
 
-def converter(answers: Answers, keys: tuple[str, ...] = ("key-one", "key-two")) -> Converter:
-    """A converter with the fake time and answers."""
+def converter(
+    answers: Answers,
+    keys: tuple[str, ...] = ("key-one", "key-two"),
+    limits: Limits | None = None,
+    urls: tuple[str, ...] = (),
+) -> Converter:
+    """A converter with the fake time and answers, v3's limits unless others are given."""
     time = answers.time
-    return Converter(keys, PROMPT, answers, time.sleep, time.clock, lambda: NOW)
+    return Converter(
+        keys, PROMPT, answers, time.sleep, time.clock, lambda: NOW, limits or Limits(), urls
+    )
 
 
 def plugin_lines(caplog: pytest.LogCaptureFixture, level: int) -> list[str]:
@@ -250,3 +261,189 @@ async def test_conversion_given_up(caplog: pytest.LogCaptureFixture) -> None:
         f"NtustAnnouncements: Gemini failed {MAX_ATTEMPTS} attempts at {URL}"
     ]
     assert len(plugin_lines(caplog, logging.WARNING)) == 1  # gave no text
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="API keys stay within the rate limit and failed attempts are retried",
+)
+def test_configured_window() -> None:
+    """Requirement: API keys stay within the rate limit and failed attempts are retried."""
+    ring = KeyRing(["key-one"], limit=2, window=30.0)
+    assert [ring.take(0.0), ring.take(1.0)] == [0, 0]
+
+    assert ring.take(29.5) is None  # two attempts in the last 30 seconds
+    assert ring.wait(29.5) == pytest.approx(0.5)
+    assert ring.take(30.0) == 0  # the first attempt left the window
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="API keys stay within the rate limit and failed attempts are retried",
+)
+async def test_configured_rate_limit(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: API keys stay within the rate limit and failed attempts are retried."""
+    time = Time()
+    answers = Answers(time)
+    conversions = converter(
+        answers, ("key-one",), Limits(rate_limit=2, rate_window=30), (ENDPOINT,)
+    )
+    for _ in range(2):
+        await conversions.convert("<p>x</p>", LINK)
+        time.now += 1
+
+    with caplog.at_level(logging.DEBUG, logger=LOGGER):
+        assert await conversions.convert("<p>x</p>", LINK) == "Markdown"
+
+    # The third attempt waited until the first was 30 seconds old; the wait used no attempt.
+    assert time.sleeps == [28]
+    assert [at for _, at, _ in answers.calls] == [0, 1, 30]
+    assert plugin_lines(caplog, logging.DEBUG)[0] == (
+        "NtustAnnouncements: every key is at its rate limit; waiting 28.0 s"
+    )
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="API keys stay within the rate limit and failed attempts are retried",
+)
+@pytest.mark.parametrize(
+    ("waits", "sleeps"),
+    [
+        pytest.param((5, 7, 9), [5, 7], id="a wait per failure"),
+        pytest.param((5,), [5, 5], id="the last wait repeating"),
+    ],
+)
+async def test_configured_retries(
+    waits: tuple[float, ...], sleeps: list[float], caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: API keys stay within the rate limit and failed attempts are retried."""
+    time = Time()
+    answers = Answers(time, [ApiError(500, "Internal error")] * 3)
+    limits = Limits(max_attempts=3, retry_waits=waits)
+
+    conversions = converter(answers, limits=limits, urls=(ENDPOINT,))
+
+    with caplog.at_level(logging.DEBUG, logger=LOGGER):
+        assert await conversions.convert("<p>x</p>", LINK) is None
+
+    assert len(answers.calls) == 3
+    assert time.sleeps == sleeps
+    assert plugin_lines(caplog, logging.WARNING) == [
+        (
+            f"NtustAnnouncements: conversion attempt 1 of 3 at {URL} failed with key 1: "
+            "code 500: Internal error"
+        )
+    ]
+    assert plugin_lines(caplog, logging.ERROR) == [
+        f"NtustAnnouncements: gave up converting {URL} after 3 attempts"
+    ]
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="API keys stay within the rate limit and failed attempts are retried",
+)
+def test_configured_backoff() -> None:
+    """Requirement: API keys stay within the rate limit and failed attempts are retried."""
+    assert [backoff(failed, (5, 7)) for failed in range(1, 5)] == [5, 7, 7, 7]
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="Problems are logged without flooding or showing the keys",
+)
+async def test_endpoint_hidden(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Problems are logged without flooding or showing the keys."""
+    answers = Answers(
+        Time(),
+        [
+            # aiohttp's connect timeout names the whole URL.
+            aiohttp.ConnectionTimeoutError(f"Connection timeout to host {REQUEST_URL}"),
+            ApiError(404, "No route for POST /secret-token/v1/chat/completions"),
+            RuntimeError(f"boom at {REQUEST_URL}"),
+            "Markdown",
+        ],
+    )
+    conversions = converter(answers, urls=(ENDPOINT, REQUEST_URL))
+
+    with caplog.at_level(logging.DEBUG, logger=LOGGER):
+        assert await conversions.convert("<p>x</p>", LINK) == "Markdown"
+
+    assert "secret" not in caplog.text
+    warnings = plugin_lines(caplog, logging.WARNING)
+    assert len(warnings) == 3
+    assert warnings[0].endswith(
+        "failed with key 1: Connection timeout to host https://proxy.example.com"
+    )
+    assert warnings[1].endswith("failed with key 2: code 404: No route for POST ...")
+    assert warnings[2].endswith("RuntimeError: boom at https://proxy.example.com")
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="Problems are logged without flooding or showing the keys",
+)
+async def test_no_product_named(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Problems are logged without flooding or showing the keys."""
+    endpoint = "https://api.openai.com/v1"
+    answers = Answers(Time(), [ApiError(500, "Internal error"), " "])
+    conversions = converter(
+        answers, limits=Limits(max_attempts=2), urls=(endpoint, f"{endpoint}/chat/completions")
+    )
+
+    with caplog.at_level(logging.DEBUG, logger=LOGGER):
+        assert await conversions.convert("<p>x</p>", LINK) is None  # two failed attempts
+        for _ in range(3):  # three conversions that work end the episode
+            assert await conversions.convert("<p>x</p>", LINK) == "Markdown"
+
+    assert plugin_lines(caplog, logging.WARNING) == [
+        (
+            f"NtustAnnouncements: conversion attempt 1 of 2 at {URL} failed with key 1: "
+            "code 500: Internal error"
+        ),
+        (
+            f"NtustAnnouncements: conversion attempt 2 of 2 at {URL} failed with key 2: "
+            "the model gave no text"
+        ),
+    ]
+    assert plugin_lines(caplog, logging.ERROR) == [
+        f"NtustAnnouncements: gave up converting {URL} after 2 attempts"
+    ]
+    assert plugin_lines(caplog, logging.INFO) == [
+        "NtustAnnouncements: conversions work again after 2 failed attempts"
+    ]
+    assert plugin_lines(caplog, logging.DEBUG)[-1] == (
+        f"NtustAnnouncements: converted {URL} on attempt 1 with key 1"
+    )
+    for record in caplog.records:
+        assert "gemini" not in f"{record.name} {record.getMessage()}".lower()
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="Problems are logged without flooding or showing the keys",
+)
+async def test_counts_of_one(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Problems are logged without flooding or showing the keys."""
+    answers = Answers(Time(), [" "])
+    conversions = converter(answers, limits=Limits(max_attempts=1), urls=(ENDPOINT,))
+
+    with caplog.at_level(logging.DEBUG, logger=LOGGER):
+        assert await conversions.convert("<p>x</p>", LINK) is None
+        for _ in range(3):
+            assert await conversions.convert("<p>x</p>", LINK) == "Markdown"
+
+    assert plugin_lines(caplog, logging.ERROR) == [
+        f"NtustAnnouncements: gave up converting {URL} after 1 attempt"
+    ]
+    assert plugin_lines(caplog, logging.INFO) == [
+        "NtustAnnouncements: conversions work again after 1 failed attempt"
+    ]

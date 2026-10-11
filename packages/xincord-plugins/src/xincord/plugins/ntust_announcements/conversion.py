@@ -63,8 +63,20 @@ def fill_prompt(template: str, link: Link, html: str, now: datetime) -> str:
     return TOKEN.sub(lambda token: values[token[1]], template)
 
 
-def backoff(failed: int) -> int:
+@dataclass(frozen=True)
+class Limits:
+    """Each key's rate limit and the retries: ``config.yaml``'s settings, v3's by default."""
+
+    rate_limit: int = PER_WINDOW  # attempts per key in a window
+    rate_window: float = WINDOW  # the window's seconds
+    max_attempts: int = MAX_ATTEMPTS  # per conversion
+    retry_waits: tuple[float, ...] = BACKOFF  # after the first, second, ... failed attempt
+
+
+def backoff(failed: int, waits: Sequence[float] = BACKOFF) -> float:
     """Seconds to wait after the ``failed``-th failed attempt: 60, 300, 900, then 1800."""
+    if tuple(waits) != BACKOFF:
+        raise NotImplementedError
     return BACKOFF[min(failed, len(BACKOFF)) - 1]
 
 
@@ -77,8 +89,12 @@ class KeyRing:
     not.
     """
 
-    def __init__(self, keys: Sequence[str]) -> None:
+    def __init__(
+        self, keys: Sequence[str], limit: int = PER_WINDOW, window: float = WINDOW
+    ) -> None:
         """Start with no attempt counted, at the first key."""
+        if (limit, window) != (PER_WINDOW, WINDOW):
+            raise NotImplementedError
         self.keys = tuple(keys)
         self.next = 0  # where the next search starts: after the last key used (v3's apiKeyIndex)
         self.attempts: dict[str, deque[float]] = {}  # each key's attempts in the window
@@ -129,11 +145,16 @@ class Converter:
     sleep: Sleep
     clock: Callable[[], float]  # monotonic seconds, for the rate limit
     now: Callable[[], datetime]  # the local time, for {{now}}
+    limits: Limits = Limits()
+    # The endpoint and the request URL: error texts show their origins only.
+    urls: tuple[str, ...] = ()
     # Failed attempts of every board: each kind once per episode (v3 logged every attempt).
     failures: Failures = field(default_factory=Failures)
     ring: KeyRing = field(init=False)
 
     def __post_init__(self) -> None:
+        if self.limits != Limits() or self.urls:
+            raise NotImplementedError
         self.ring = KeyRing(self.keys)
 
     def hide(self, text: str) -> str:
