@@ -11,7 +11,7 @@
 ## 2. Labels
 
 - [x] 2.1 xfail tests for "Texts follow the reader" (the owner's labels in both `text.yaml` files)
-- [ ] 2.2 Change the labels and the golden data, and point the row tests at the owner's labels;
+- [x] 2.2 Change the labels and the golden data, and point the row tests at the owner's labels;
       remove the markers
 
 ## 3. Checks and docs

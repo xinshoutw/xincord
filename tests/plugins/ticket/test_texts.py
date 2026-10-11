@@ -44,10 +44,9 @@ async def test_replies_in_the_users_locale(bot: Bot, locale: str, expected: str)
 
 async def test_public_texts_in_the_default_locale(bot: Bot) -> None:
     """Requirement: Texts follow the reader."""
-    assert ticket(bot).public.get("control.lock") == GOLDEN["texts"]["zh-TW"]["lock"]
+    assert ticket(bot).public.get("control.lock") == GOLDEN["labels"]["zh-TW"]["lock"]
 
 
-@pytest.mark.xfail(strict=True, reason="Texts follow the reader")
 @pytest.mark.parametrize("locale", ["zh-TW", "en-US"])
 async def test_control_row_labels(bot: Bot, locale: str) -> None:
     """Requirement: Texts follow the reader."""

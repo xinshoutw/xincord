@@ -91,7 +91,7 @@ async def test_ticket(scene: Scene) -> None:
     assert opener[0] == "channel.send"
     fields = opener[1]
     assert fields["content"] == "<@&3> <@&4> \n\nhelp me"
-    zh = GOLDEN["texts"]["zh-TW"]
+    zh = GOLDEN["labels"]["zh-TW"]
     assert button_rows(fields["view"]) == [
         [
             (zh["lock"], controls("lock"), 2),
@@ -117,7 +117,7 @@ async def test_public_texts_in_the_default_locale(scene: Scene) -> None:
 
     [fields] = sends(ticket.category.sent)
     labels = [label for label, _, _ in button_rows(fields["view"])[0]]
-    zh = GOLDEN["texts"]["zh-TW"]
+    zh = GOLDEN["labels"]["zh-TW"]
     assert labels == [zh["lock"], zh["save"], zh["delete"]]
 
 

@@ -5,13 +5,8 @@
 texts:
   en-US:
     not-found: "Error (the ticket settings were not found; they may have been deleted)"
-    lock: "Close"
   zh-TW:
     not-found: "錯誤 (找不到 Ticket 設定資料，可能已被刪除)"
-    lock: "關閉"
-    unlock: "開啟"
-    save: "儲存對話"
-    delete: "刪除"
     # reply.go-to-channel with the channel `%tt@thread%`, inserted as written.
     go-to-placeholder: "請到此頻道 %tt@thread% 並等待人員回覆繼續!"
     # New: v3's lock and unlock failed without an answer.
@@ -319,6 +314,7 @@ ids:
 
 # The texts that v3 wrote in Ticket.kt (zh-TW) and StepManager.kt (English), by text.yaml key;
 # %tt@...% stands where v3 put a value. v3's "Cannot found the message by id" is fixed in en-US.
+# The control row's labels are the owner's since ticket-staff-controls (labels, above).
 v3-texts:
   zh-TW:
     error.not-found: "錯誤 (找不到 Ticket 設定資料，可能已被刪除)"
@@ -334,10 +330,6 @@ v3-texts:
     reply.saving: "存檔中..."
     reply.saved: "存檔完成，已建立 Thread：%tt@thread%"
     error.save-failed: "存檔失敗：%tt@error%"
-    control.unlock: "開啟"
-    control.lock: "關閉"
-    control.save: "儲存對話"
-    control.delete: "刪除"
     archive.start: "【Thread 開始】\n作者: %tt@owner%\n名稱: %tt@name%\n開始時間: %tt@time%"
     archive.end: "【Thread 結束】\n作者: %tt@owner%\n名稱: %tt@name%\n最後一則訊息時間: %tt@time%"
     archive.error: "【Thread 攤平失敗】\n作者: %tt@owner%\n名稱: %tt@name%\n錯誤: %tt@error%"

@@ -11,11 +11,12 @@ defaults:
   button-text: "Contact Us"
   button-emoji: "✉"
 
-# The labels of a ticket channel's control row (Ticket.kt:784-821), in the default locale.
+# The labels of a ticket channel's control row, in the default locale: the owner's since
+# 2026-10-11 (v3's were in its code, Ticket.kt:783-821).
 control:
-  lock: "Close"
-  unlock: "Open"
-  save: "Save Conversation"
+  lock: "Click to lock"
+  unlock: "Click to unlock"
+  save: "Save conversation"
   delete: "Delete"
 
 # Replies to the user who acted.

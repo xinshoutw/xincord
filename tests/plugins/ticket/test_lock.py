@@ -89,7 +89,7 @@ async def test_lock_and_unlock(scene: Scene) -> None:
 
     # View Channel is denied, then allowed; the overwrite's other permissions stay.
     assert overwrites(scene) == [(MEMBER, SEND, VIEW), (MEMBER, VIEW | SEND, 0)]
-    zh = GOLDEN["texts"]["zh-TW"]
+    zh = GOLDEN["labels"]["zh-TW"]  # the owner's labels, in the default locale
     row = shown_row(locked)
     assert button_rows(row) == [
         [
