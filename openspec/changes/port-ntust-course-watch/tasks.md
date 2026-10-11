@@ -34,7 +34,7 @@
 
 ## 6. Alerts
 
-- [ ] 6.1 xfail tests for "Channels hear about courses with seats" and "Channels hear once when a
+- [x] 6.1 xfail tests for "Channels hear about courses with seats" and "Channels hear once when a
       course fills" against stubs in `alerts.py` and `watch.py`
 - [ ] 6.2 Implement the throttle, the texts, the split and the step's alerts; remove the markers
 
