@@ -4,13 +4,19 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/api/CourseApi.kt:51-92
 """
 
+import json
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import aiohttp
 
+from xincord.plugins.ntust_tls import ntust_context
+
+from .courses import AnswerError, read_course, request_text
+
 if TYPE_CHECKING:
+    import ssl
     from collections.abc import AsyncGenerator
 
     from .courses import Course
@@ -18,6 +24,8 @@ if TYPE_CHECKING:
 API = "https://querycourse.ntust.edu.tw/QueryCourse/api//courses"  # v3's URL, with its //
 # v3's 5 seconds to connect; v3 set no limit for the answer, so a stalled one stopped its loop.
 TIMEOUT = aiohttp.ClientTimeout(total=30, connect=5)
+HEADERS = {"content-type": "application/json; charset=utf-8"}  # v3's header
+OK = 200
 
 
 class QueryError(Exception):
@@ -35,10 +43,36 @@ class Api:
 
     session: aiohttp.ClientSession
     url: str = API
+    # NTUST's chains fail Python's strict X.509 checks (xincord.plugins.ntust_tls).
+    tls: ssl.SSLContext = field(default_factory=ntust_context)
+    timeout: aiohttp.ClientTimeout = TIMEOUT
 
     async def course(self, semester: str, code: str) -> Course | None:
-        """Ask about ``code`` in ``semester``; None when the answer lists no such course."""
-        raise NotImplementedError
+        """Ask about ``code`` in ``semester``; None when the answer lists no such course.
+
+        No redirect is followed, as Java's ``HttpClient`` followed none.
+
+        Raises:
+            QueryError: The course query answered with a status other than 200.
+            AnswerError: The answer is not JSON, or not what :func:`read_course` reads.
+        """
+        async with self.session.post(
+            self.url,
+            data=request_text(semester, code).encode(),
+            headers=HEADERS,
+            ssl=self.tls,
+            timeout=self.timeout,
+            allow_redirects=False,
+        ) as response:
+            if response.status != OK:
+                raise QueryError(response.status)
+            text = await response.text(errors="replace")
+        try:
+            answer: object = json.loads(text)
+        except ValueError as error:
+            msg = "the answer is not JSON"
+            raise AnswerError(msg) from error
+        return read_course(answer, code)
 
 
 @asynccontextmanager

@@ -37,9 +37,6 @@ def with_entry(code: str, **fields: object) -> list[dict[str, Any]]:
     return entries
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Course seats come from NTUST's course query"
-)
 def test_request_body() -> None:
     """Requirement: Course seats come from NTUST's course query."""
     # The course query site's body (2026-10-11): one code, OnleyNTUST as the API spells it; v3
@@ -47,9 +44,6 @@ def test_request_body() -> None:
     assert request_text("1151", "CE162A001") == GOLDEN["request"]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Course seats come from NTUST's course query"
-)
 @pytest.mark.parametrize("code", ["CE162A001", "CE162A011", "CE162A012"])
 def test_answer(code: str) -> None:
     """Requirement: Course seats come from NTUST's course query."""
@@ -62,9 +56,6 @@ def test_answer(code: str) -> None:
     assert course.full is expected["full"]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Course seats come from NTUST's course query"
-)
 def test_last_entry_wins() -> None:
     """Requirement: Course seats come from NTUST's course query."""
     # The course query lists a course once per room and time; v3's associateBy kept the last.
@@ -75,9 +66,6 @@ def test_last_entry_wins() -> None:
     assert course.full
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Course seats come from NTUST's course query"
-)
 @pytest.mark.parametrize(
     ("limit", "expected"),
     [
@@ -102,9 +90,6 @@ def test_limits(limit: object, expected: int) -> None:
     assert course.full is (course.chosen >= expected)  # 25 chosen: full only below 26
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Course seats come from NTUST's course query"
-)
 @pytest.mark.parametrize(
     ("text", "number"),
     [
@@ -124,9 +109,6 @@ def test_to_int_or_none(text: str, number: int | None) -> None:
     assert to_int_or_none(text) == number
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Course seats come from NTUST's course query"
-)
 @pytest.mark.parametrize(
     "entries",
     [
@@ -140,9 +122,6 @@ def test_course_missing(entries: list[object]) -> None:
     assert read_course(entries, "CE162A099") is None
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Course seats come from NTUST's course query"
-)
 def test_other_entries_are_not_read() -> None:
     """Requirement: Course seats come from NTUST's course query."""
     # v3's Moshi failed the whole answer for one malformed course; only the checked one is read.
@@ -154,9 +133,6 @@ def test_other_entries_are_not_read() -> None:
     assert course.chosen == 25
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Course seats come from NTUST's course query"
-)
 @pytest.mark.parametrize(
     ("value", "message"),
     [

@@ -7,7 +7,7 @@ Kotlin:
 import json
 import ssl
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING
 
 import aiohttp
 import pytest
@@ -78,9 +78,6 @@ async def server() -> AsyncGenerator[Server]:
         yield running
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Course seats come from NTUST's course query"
-)
 async def test_request(server: Server) -> None:
     """Requirement: Course seats come from NTUST's course query."""
     async with open_api(server.url) as api:
@@ -92,9 +89,6 @@ async def test_request(server: Server) -> None:
     assert received.body == GOLDEN["request"]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Course seats come from NTUST's course query"
-)
 async def test_answer(server: Server) -> None:
     """Requirement: Course seats come from NTUST's course query."""
     expected = GOLDEN["courses"]["CE162A001"]
@@ -105,18 +99,12 @@ async def test_answer(server: Server) -> None:
     assert course == Course("CE162A001", expected["name"], expected["chosen"], expected["limit"])
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Course seats come from NTUST's course query"
-)
 async def test_course_missing(server: Server) -> None:
     """Requirement: Course seats come from NTUST's course query."""
     async with open_api(server.url) as api:
         assert await api.course("1151", "CE162A099") is None
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Course seats come from NTUST's course query"
-)
 @pytest.mark.parametrize(
     "answer",
     [
@@ -138,9 +126,6 @@ async def test_refused_statuses(server: Server, answer: tuple[int, str]) -> None
     assert [received.path for received in server.received] == [PATH]  # no redirect followed
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Course seats come from NTUST's course query"
-)
 @pytest.mark.parametrize(
     ("text", "message"),
     [
@@ -157,7 +142,6 @@ async def test_refused_answers(server: Server, text: str, message: str) -> None:
             await api.course("1151", "CE162A001")
 
 
-@pytest.mark.xfail(strict=True, reason="Course seats come from NTUST's course query")
 async def test_defaults() -> None:
     """Requirement: Course seats come from NTUST's course query."""
     assert API == "https://querycourse.ntust.edu.tw/QueryCourse/api//courses"  # v3's URL
@@ -165,18 +149,17 @@ async def test_defaults() -> None:
     assert (TIMEOUT.connect, TIMEOUT.total) == (5, 30)
     async with open_api() as api:
         assert api.url == API
-        assert cast("Any", api).timeout == TIMEOUT  # Api.timeout is not there yet
+        assert api.timeout == TIMEOUT
         assert isinstance(api.session, aiohttp.ClientSession)
 
 
-@pytest.mark.xfail(strict=True, reason="Course seats come from NTUST's course query")
 async def test_ntust_certificates() -> None:
     """Requirement: Course seats come from NTUST's course query."""
     # querycourse.ntust.edu.tw's chain lacks a Subject Key Identifier, which Python 3.13's strict
     # X.509 checks refuse (2026-10-11): the context shared with NtustAnnouncements verifies the
     # certificate and the host name without them, with TWCA's intermediate.
     async with open_api() as api:
-        tls: ssl.SSLContext = cast("Any", api).tls  # Api.tls is not there yet
+        tls = api.tls
         assert not tls.verify_flags & ssl.VERIFY_X509_STRICT
         assert tls.verify_mode == ssl.CERT_REQUIRED
         assert tls.check_hostname

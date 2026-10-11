@@ -17,8 +17,8 @@
 
 - [x] 3.1 xfail tests for "Course seats come from NTUST's course query" against stubs in
       `courses.py` and `web.py`, with a local server standing for NTUST
-- [ ] 3.2 Implement the codes, the request body, the answer, v3's limits and the request; remove
-      the markers
+- [x] 3.2 Implement the request body, the answer, v3's limits and the request; remove the
+      markers
 
 ## 4. Registrations
 
