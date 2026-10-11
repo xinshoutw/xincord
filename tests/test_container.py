@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -277,3 +278,13 @@ def test_image_checked_in_ci() -> None:
     assert any(run.rstrip().endswith("--no-online") for run in runs)
     uses = re.findall(r"uses: (\S+(?: # \S+)?)", text)
     assert all(PINNED.fullmatch(item) for item in uses), uses
+
+
+@pytest.mark.xfail(strict=True, raises=KeyError, reason="Token from .env")
+def test_token_from_env() -> None:
+    """Requirement: Token from .env."""
+    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
+    example = (ROOT / ".env.example").read_text(encoding="utf-8")
+
+    assert compose["services"]["bot"]["environment"]["XINCORD_TOKEN"] == "${XINCORD_TOKEN:-}"
+    assert re.search(r"^# XINCORD_TOKEN=$", example, re.MULTILINE)

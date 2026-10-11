@@ -40,6 +40,20 @@ def test_rejected_options(argv: list[str], capsys: pytest.CaptureFixture[str]) -
     assert "usage: xincord" in capsys.readouterr().err
 
 
+@pytest.mark.xfail(strict=True, reason="Command line options")
+@pytest.mark.parametrize("argv", [["--token", "abc"], ["-t", "abc"]])
+def test_token_option_is_gone(argv: list[str], capsys: pytest.CaptureFixture[str]) -> None:
+    """Requirement: Command line options, scenario Rejected options.
+
+    A token on the command line shows in the host's process lists: XINCORD_TOKEN replaces it.
+    """
+    with pytest.raises(SystemExit) as stopped:
+        parse_args(argv)
+
+    assert stopped.value.code == 2
+    assert "usage: xincord" in capsys.readouterr().err
+
+
 def test_the_xincord_command(monkeypatch: pytest.MonkeyPatch) -> None:
     levels: list[int] = []
     runs: list[Options] = []

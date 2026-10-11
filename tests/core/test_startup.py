@@ -77,6 +77,39 @@ async def test_token_precedence(
     assert Path("data/xincord.db").is_file()
 
 
+@pytest.mark.usefixtures("installed")
+@pytest.mark.parametrize(
+    ("environment", "used"),
+    [
+        pytest.param(
+            "abc",
+            "abc",
+            marks=pytest.mark.xfail(strict=True, reason="Startup loads the configured plugins"),
+        ),
+        ("", "from-config"),
+        (None, "from-config"),
+    ],
+)
+async def test_token_from_the_environment(
+    monkeypatch: pytest.MonkeyPatch, environment: str | None, used: str
+) -> None:
+    """Requirement: Startup loads the configured plugins, scenario Token precedence."""
+    write_config("token: from-config\n")
+    tokens: list[str] = []
+
+    async def start(_self: Bot, token: str) -> None:
+        tokens.append(token)
+
+    monkeypatch.setattr(Bot, "start", start)
+    if environment is None:
+        monkeypatch.delenv("XINCORD_TOKEN", raising=False)
+    else:
+        monkeypatch.setenv("XINCORD_TOKEN", environment)
+
+    assert await run(Options()) == 0
+    assert tokens == [used]
+
+
 async def test_setup_before_connecting(
     fake_plugins: FakePlugins, store: Store, tmp_path: Path
 ) -> None:
