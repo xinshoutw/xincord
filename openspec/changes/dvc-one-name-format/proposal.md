@@ -9,8 +9,8 @@ On 2026-10-12 the owner, who had forgotten what it was for, asked to remove it.
 - `bind` takes `channel` and `format-name-1` only; `format-name-2` leaves the command and both
   bundled `register.yaml` files. **User-visible**: administrators no longer fill a second format.
 - A binding has one format. v3's `formatName2` is ignored when read, whatever its value (before, a
-  value other than text made the guild's bindings unreadable), and left out when the guild's
-  bindings are written; v3 reads entries without it as an empty text.
+  value other than text made the guild's bindings unreadable), and new entries leave it out; the
+  guild's other entries stay as stored. v3 reads entries without it as an empty text.
 - Operators' exported `register.yaml` files that still hold `format-name-2` keep loading; the keys
   are unused.
 

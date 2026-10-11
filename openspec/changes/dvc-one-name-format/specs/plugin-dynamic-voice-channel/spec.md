@@ -79,15 +79,15 @@ descriptions and en-US and zh-TW localizations, visible to administrators by def
 
 ### Requirement: v3's second format is ignored
 A binding SHALL have one name format. v3's `formatName2`, which v3 required, stored and never used,
-SHALL be ignored when an entry is read, whatever its value, and left out when the guild's bindings
-are written. An operator's `register.yaml` that still holds `format-name-2` SHALL load, its keys
-unused.
+SHALL be ignored when an entry is read, whatever its value, and left out of the entries that `bind`
+writes, the guild's other entries staying as stored. An operator's `register.yaml` that still holds
+`format-name-2` SHALL load, its keys unused.
 
 #### Scenario: v3's entry
 - **WHEN** a stored entry holds `"formatName2": "B"`, another `"formatName2": 2`, and then another
   lobby of the guild is bound
-- **THEN** both entries read with their `formatName1`, and the written document holds no
-  `formatName2`
+- **THEN** both entries read with their `formatName1` and stay as stored, and the new entry holds
+  no `formatName2`
 
 #### Scenario: v3's lang files
 - **WHEN** the plugin loads with en-US and zh-TW `register.yaml` files that hold `format-name-2`

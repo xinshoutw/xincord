@@ -234,3 +234,26 @@ async def test_unreadable_rooms(store: Store, document: JSON) -> None:
     with pytest.raises(DataError, match="guild 10"):
         await untrack(store, 10, 30)
     assert await store.get(ROOMS, "10") == document
+
+
+@pytest.mark.xfail(strict=True, reason="v3's second format is ignored")
+async def test_second_format_ignored(store: Store) -> None:
+    """Requirement: v3's second format is ignored."""
+    stored: list[JSON] = [
+        {"categoryId": 20, "defaultName": "Lobby", "formatName1": "A", "formatName2": "B"},
+        {"categoryId": 21, "defaultName": "Lobby", "formatName1": "C", "formatName2": 2},
+    ]
+    await store.put(NAMESPACE, "10", stored)
+
+    found = await read_bindings(store, 10)
+    await bind(store, 10, Binding(22, "Lobby", "D"))
+
+    assert [(binding.category_id, binding.format_name_1) for binding in found] == [
+        (20, "A"),
+        (21, "C"),
+    ]
+    # The new entry has no formatName2; the guild's other entries stay as they were stored.
+    assert await store.get(NAMESPACE, "10") == [
+        *stored,
+        {"categoryId": 22, "defaultName": "Lobby", "formatName1": "D"},
+    ]

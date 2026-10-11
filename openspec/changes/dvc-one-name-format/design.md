@@ -14,12 +14,13 @@ second format.
 
 ## Decisions
 
-### Ignore `formatName2`, write entries without it
+### Ignore `formatName2`, write new entries without it
 
 Reading takes `categoryId`, `defaultName` and `formatName1` and ignores every other field, as Moshi
-ignored unknown ones; writing a guild's bindings leaves `formatName2` out. v3's data class defaults
-a missing `formatName2` to an empty text, so the documents stay readable by v3. Alternative: keep
-writing `"formatName2": ""` (v3's shape to the letter, for a field that nothing reads).
+ignored unknown ones; `bind` writes its new entry without `formatName2` and keeps the guild's other
+entries as stored, as it always did. v3's data class defaults a missing `formatName2` to an empty
+text, so the documents stay readable by v3. Alternative: keep writing `"formatName2": ""` (v3's
+shape to the letter, for a field that nothing reads).
 
 ### Exported lang files
 

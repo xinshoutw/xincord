@@ -10,6 +10,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/logger/InteractionLogger.kt:25-30
 """
 
+import shutil
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast
 
@@ -18,14 +19,16 @@ import pytest
 from discord import app_commands
 
 from discord_fakes import FakeGuild, FakeInteraction, FakeMember
-from plugin_fakes import golden
+from plugin_fakes import FIXTURES, golden, load_plugin
 from xincord.plugins.dynamic_voice_channel.cog import VoiceChannelOption
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
+    from pathlib import Path
 
     from xincord.core.bot import Bot
     from xincord.core.command_tree import CommandTree
+    from xincord.core.storage import Store
     from xincord.plugins.dynamic_voice_channel.cog import DynamicVoiceChannel
 
     # discord.py calls a cog command's function with the cog, its binding, and the options.
@@ -101,3 +104,34 @@ async def test_voice_channels_only() -> None:
     assert await option.transform(interaction, LOBBY) is LOBBY
     assert option.type is discord.AppCommandOptionType.channel
     assert option.channel_types == [discord.ChannelType.voice]  # JDA's cast took voice only
+
+
+def bind_options(payload: list[dict[str, Any]]) -> list[str]:
+    """The names of the options of ``bind`` in a guild command payload."""
+    group = next(entry for entry in payload if entry["name"] == NAME)
+    bind = next(option for option in group["options"] if option["name"] == "bind")
+    return [option["name"] for option in bind["options"]]
+
+
+@pytest.mark.xfail(strict=True, reason="v3's second format is ignored")
+async def test_bind_has_one_format(bot: Bot) -> None:
+    """Requirement: v3's second format is ignored."""
+    _, guild_payload = await cast("CommandTree", bot.tree).payloads()
+
+    assert bind_options(guild_payload) == ["channel", "format-name-1"]
+
+
+@pytest.mark.xfail(strict=True, reason="v3's second format is ignored")
+async def test_v3_lang_files(store: Store, tmp_path: Path) -> None:
+    """Requirement: v3's second format is ignored."""
+    lang = tmp_path / "plugins" / "DynamicVoiceChannel" / "lang"
+    for locale in ("en-US", "zh-TW"):
+        (lang / locale).mkdir(parents=True)
+        fixture = FIXTURES / "plugins" / "dynamic_voice_channel" / f"v3-register-{locale}.yaml"
+        shutil.copy(fixture, lang / locale / "register.yaml")
+
+    bot = await load_plugin("DynamicVoiceChannel", tmp_path / "plugins", store)
+    _, guild_payload = await cast("CommandTree", bot.tree).payloads()
+
+    assert "format-name-2" in (lang / "zh-TW" / "register.yaml").read_text(encoding="utf-8")
+    assert bind_options(guild_payload) == ["channel", "format-name-1"]
