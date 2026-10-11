@@ -293,6 +293,89 @@ loads and player updates) through the real lavalink.py; compose and the node's c
 - [Panels edit every 5 seconds per member] -> v3's rate; webhook edits of an interaction are not
   channel rate limits, and each panel ends after 60 seconds without a press.
 
+## Checks
+
+- Package: the `xincord-plugins` wheel holds `music_player/` with `config.yaml`, `lang/en-US/` and
+  `lang/zh-TW/` (`register.yaml`, `text.yaml` and the seven templates) and the `MusicPlayer` entry
+  point, and requires `lavalink>=5.11.1`. `xincord --no-online` from a scratch venv with both
+  wheels and `plugins: [MusicPlayer]` exits 1 with the bundled config (the error names
+  `lavalink.password`; `config.yaml` is written), 0 once a password is set (the lang files are
+  written), and 0 with v3's file plus a `lavalink` section (14 warnings: `enabled` and v3's
+  unused keys).
+- Compose, on this Mac (OrbStack, arm64): the `lavalink` service turned healthy in about 14
+  seconds, loaded youtube-plugin 1.18.2 and lavasrc-plugin 4.8.3, listed SoundCloud, Bandcamp,
+  Twitch, Vimeo, Niconico and YouTube as sources (no HTTP, local or Spotify), wrote no log files
+  and exposed 2333 without publishing it. The bot's image (lavalink.py built from its sdist)
+  loaded all eighteen plugins with `--no-online`. From the image, the plugin's `open_link`
+  reached `lavalink:2333`: a `ytsearch:` load answered 20 songs, a Spotify link, an `http://` link
+  and a file path loaded nothing, and a wrong password made lavalink.py log "Authentication
+  failed" and the load raise `NodeUnavailableError`. `docker compose down -v`, `bot/` and `.env`
+  removed.
+- Probe (a scratch script with discord.py's own objects, its REST and webhook calls recorded,
+  the tests' local node): at READY the plugin read `GET /applications/99/emojis`, used the one
+  found and connected the link; the `query` autocomplete answered (type 8) with two songs;
+  `/play` deferred ephemerally (type 5, flags 64), sent the voice state for the member's channel
+  (not deafened or muted), played the search's first song at volume 40 and edited `@original`
+  into the zh-TW panel; Discord's voice state and voice server updates reached the node with the
+  session, the channel, the endpoint and the token; the pause button with the new ID and with
+  v3's ID answered with deferred updates (type 6), paused and resumed on the node and edited the
+  panel; closing the bot left voice, destroyed the node's player and deleted the panel.
+
+## Inventory audit
+
+Every section of `docs/porting/analysis/inventory/MusicPlayer.md` maps to this change:
+
+- Overview (1): the plugin, its entry point and `info.yaml` are "The plugin installs as
+  MusicPlayer" (AudioAPI folds in, B12; `GUILD_VOICE_STATES` is the intent; JDA's voice cache
+  flags are discord.py's voice states; the derived `musicplayer@` prefix is `IDS`'s legacy
+  prefix); the images are out of scope (the operator uploads them, as for v3).
+- Lifecycle (2): loading, `enabled` and kaml's strict mode are the config requirement and the
+  core's `plugins` list (unknown keys warn); `validate()` and the `require` checks guarded keys
+  that are no fields now; reload and unload are "The node and the emojis load from READY, and
+  unloading leaves voice" (bug B23; a reload stops the music, a v3 difference); the sources are
+  the node's `application.yml`; the emoji fetch is READY's (bug B18); the background jobs are
+  `Panels` (B4, B5) and the idle leave (B10); the state is the sessions (forgotten with their
+  guild, B16), the history (240), the search cache (100 inputs, cleared by a reload, as v3), the
+  panels (one per member) and the core's placeholder values (B11).
+- Commands (3): names, options, limits, localizations and permissions are "Commands keep v3's
+  names, options and localizations"; the ephemeral deferral and `editOriginal`/`deleteOriginal`
+  are the replies of every command requirement; `/join` and `/disconnect`, `/play` and the eight
+  others are their requirements, each v3 text a scenario or a v3 difference; the null guild or
+  member checks are out of scope (guild commands always have both); exceptions are "Errors are
+  reported as v3 did"; the autocomplete is its requirement (B7, B26).
+- Components (4): the IDs are `IDS` and the golden IDs; the five buttons, the voice check and the
+  actions are "Panel buttons control the guild's player" (B3, B22); panel tracking is "Panels
+  refresh themselves and expire" (B4, B5, B6, B24).
+- Events (5): the slash, button and autocomplete events are the above; `onTrackEnd` and the
+  stuck and exception events are "Playback follows the node's events" (B9); `onTrackStart` was a
+  no-op; voice changes, left guilds and lavaplayer's cleanup are "The bot leaves when idle,
+  disconnected or removed" and `EndReason.CLEANUP`.
+- Configuration (6): the kept, new and dropped keys are in "Config"; the ~35 unused keys warn;
+  `engines.spotify` moves to `.env` (a user-visible change).
+- Localization and templates (7): the two locales, the register files and the templates are the
+  bundled files (the four emoji IDs as placeholders); zh-TW stays the templates' fallback; the
+  rendering rules are the core's (links only from `http`, the colour substituted, an empty field
+  name sent as U+200E as JDA did); the placeholders are `display.track_values` and the golden
+  panels; the hard-coded strings are `text.yaml`.
+- Persistence (8): none, as v3; the volume and the loop mode live in memory per guild (P9).
+- External dependencies (9): lavaplayer, youtube-source and LavaSrc run in the node (pinned in
+  `lavalink/application.yml`), lavalink.py in the plugin; the HTTP and local sources are off
+  (B15); Spotify's credentials are `.env`'s; Discord's emoji request is READY's.
+- Discord requirements (10): the voice states intent; Connect is checked as v3 and JDA did, Speak
+  and the emojis are in the smoke checklist; a panel edits every 5 seconds as v3; the
+  autocomplete's searches are cached as v3's.
+- Concurrency (11): one event loop; each session's changes run under its lock in arrival order;
+  stale end events are dropped by their start number; the panels are tasks per member.
+- Bugs and quirks (12): B1 to B27 are "v3 behaved differently" entries (B12, B11 by the core;
+  B14, B15 by the node; B19 and B20 by the error replies and the queue's limits; B21 by the bar);
+  P1 to P10 are scenarios; the dead code is out of scope; the hard-coded values are constants
+  (thresholds, limits, colours, the default thumbnail) or config (the emoji names, the timeout).
+- Testability (13): each pure part is tested alone (`display`, `history`), the session with a
+  fake player, the adapter against a local node through the real lavalink.py, the commands,
+  buttons, panels and lifecycle through the loaded plugin with a fake link and a clock.
+- Assessment (14) and the voice stack appendix: option A (Lavalink 4.2 with DAVE) is B14; DAVE,
+  YouTube's drift, the emojis and the node's availability are in "Risks" and the smoke checklist.
+
 ## Manual smoke checklist
 
 On a test guild, with a bot token, `plugins: [MusicPlayer]` and `docker compose up -d --build`

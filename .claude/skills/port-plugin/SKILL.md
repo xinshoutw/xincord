@@ -82,6 +82,15 @@ and NtustCourseWatch were ported under their new names).
    (ChatLogger's message files). A plugin that fetches a site checks it from the image once with
    the same kind of probe, one request, since TLS depends on the image's OpenSSL
    (NtustAnnouncements' `page_context` against NTUST's certificates).
+   A plugin with a service of its own in compose (MusicPlayer's `lavalink`) starts it with
+   `docker compose up -d <service>` until `docker compose ps` says healthy (a `.env` with the
+   required variables first: `${VAR:?}` fails every compose command without it), runs the image's
+   `--no-online` check, and reaches the service from the image through the plugin's own client
+   (`docker compose run --rm -T -v <probe>:/probe.py:ro --entrypoint python bot /probe.py`);
+   `docker compose down -v`, then remove `bot/` and `.env`. Voice through discord.py's own code:
+   patch `discord.Guild.change_voice_state` (a gateway op) and feed
+   `state.parse_voice_state_update` / `parse_voice_server_update` with the bot's user ID, which
+   discord.py hands to the guild's `VoiceProtocol` (MusicPlayer's probe).
    For voice and channel work, give `_add_guild_from_data` the category and voice channels
    (`parent_id`), feed `state.parse_voice_state_update(...)` with a `member` payload, and answer the
    recorded `POST /guilds/{id}/channels` with the body plus an `id` so that `clone()` returns a
@@ -502,6 +511,24 @@ async def setup(bot: Bot) -> None:
   one takes the same custom ID, which Discord refuses. A reply that repeats a string option cuts
   it: options take 6000 characters, replies 2000.
 
+### Voice and audio
+
+- A plugin that plays audio (MusicPlayer, decisions B14 and B16) uses a Lavalink 4.2+ node in
+  compose (DAVE, which Discord requires for voice) through lavalink.py, behind Protocols of its
+  own (`audio.Link`, `audio.Player`, `audio.Listener`): `node.py` alone imports lavalink.py; the
+  cog, the per-guild `Session`s and the tests only see the Protocols. The link is made at READY
+  with the bot's user ID (`open_link`, a cog attribute that tests replace) and closed by
+  `cog_unload` after it left voice in every guild.
+- Voice goes through a `discord.VoiceProtocol` subclass (`LavalinkVoice`) that
+  `channel.connect(cls=link.voice)` creates: `connect` creates the node's player and sends the
+  voice state, the voice updates go to the node (a move drops lavalink.py's cached session so that
+  the new `channelId` goes too), and a state without a channel releases everything once and tells
+  the plugin (`Listener.left`). discord.py needs neither PyNaCl nor davey for it.
+- The plugin keeps what plays next (v3's history) and starts one song at a time; each start has a
+  number that the node's end events carry back, so an end that crossed a skip is stale. Each
+  session changes under its own `asyncio.Lock`, in the order the commands, presses and events came.
+- Self-refreshing ephemeral panels (`panels.Panels`): see "Components".
+
 ### Templates and placeholders
 
 - `Templates.load(lang)` in `setup`, so a broken template disables the plugin at load. Render with
@@ -580,6 +607,13 @@ async def setup(bot: Bot) -> None:
   included, so that a stale message repairs itself, and tells the user with
   `followup.send(..., ephemeral=True)`; v3 edited through the REST API and replied. A burst on a
   large document otherwise runs past Discord's three seconds.
+- An ephemeral panel that refreshes itself (MusicPlayer's player panel) is tracked once the
+  command's edit succeeded (its message's ID from `edit_original_response`): a task per member
+  edits it every few seconds through its latest interaction and deletes it a fixed time after
+  that interaction; a press calls `panels.touch(message_id, interaction)`, which restarts the time
+  and renews the 15-minute token. The refreshes end at the expiry, a refused edit, the member's
+  next panel, the guild's player stopping and the unload. The core never upgrades the v3 IDs of
+  an ephemeral message; the handler acts on them all the same.
 - A builder keeps a changed draft only once Discord took the edit that shows it:
   `response.edit_message` marks the response done only after Discord answered, so on
   `discord.HTTPException` the interaction is still open and `response.send_message(...,
@@ -742,6 +776,15 @@ async def setup(bot: Bot) -> None:
   test wakes it, then moves both clocks on by the wait) and `bot.get_partial_messageable`;
   `scene.steps(n)` waits for `n` steps and the posts under way, and fails at once when the loop
   ended with an error, so a stub's exception surfaces without a timeout.
+- MusicPlayer's `scene` (`tests/plugins/music_player/conftest.py`) loads the plugin with a
+  `FakeLink` (`tests/support/music_fakes.py`: load answers, a `FakePlayer` per connected guild that
+  records its calls, `FakeVoice`s whose `gone()` stands for Discord's disconnection), a guild with
+  voice channels (one without Connect, a full one, a stage), members in voice, `who()` commands
+  with panel messages of their own, `press()` button presses, and a `Clock` (`advance` moves the
+  time and ends the waits under way, `asleep(n)` waits for n waits, `under_way()` counts them)
+  for the panels and the idle leave. The adapter's tests run lavalink.py against
+  `tests/support/lavalink_fakes.py`, a local Lavalink v4 node (ready op, events, loads, player
+  updates and deletions, the password checked).
 - A loop with a first delay and a period runs on `Ticks` (Giveaway's `test_auto_draw.py`): each
   sleep is recorded, waits for the test, and moves the injected clock. A press that must be caught
   in the middle (a double confirmation) uses a fake whose `send` waits on a gate; wait with

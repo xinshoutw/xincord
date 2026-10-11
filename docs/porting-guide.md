@@ -105,6 +105,12 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `MessageCreateBuilder().mentionUsers(ids)` with the mentions in the content | `AllowedMentions(everyone=False, users=[Object(id), ...], roles=False, replied_user=False)`; mentions that exceed 2000 UTF-16 code units or 100 users go on in further posts (NtustCourseWatch's `available_posts`) | B19 |
 | `LocalDateTime.now()` compared with a hard-coded local time | an aware time in config (pydantic's `AwareDatetime`, the offset required: the container's local time is UTC) compared with `datetime.now(UTC)` (NtustCourseWatch's `start`) | |
 | One embedded MongoDB document for the whole plugin (`{"_id": "user_record_map", "value": ...}`) | the value in the store under the plugin's name and the `_id`, changed under one lock with `get` and `put` (NtustCourseWatch's `Registrations`) | B8, B11 |
+| lavaplayer, youtube-source, LavaSrc, JDA's `AudioManager` and JDAVE in the JVM (MusicPlayer) | a Lavalink 4.2 node in compose (`lavalink` service, plugins pinned in `lavalink/application.yml`), driven by lavalink.py behind the plugin's `Link` and `Player` Protocols; a `discord.VoiceProtocol` subclass (`LavalinkVoice`) hands the bot's voice updates to the node, which does DAVE | B12, B14, B16 |
+| `guild.audioManager.openAudioConnection(channel)` / `closeAudioConnection()` | `channel.connect(cls=link.voice, self_deaf=False, self_mute=False)`, or `guild.change_voice_state(channel=...)` to move; `guild.voice_client.disconnect(force=True)` | B14 |
+| lavaplayer's `AudioLoadResultHandler` (`trackLoaded`, `playlistLoaded`, `noMatches`, `loadFailed`) | Lavalink's load types as `Loaded(kind)`: `track`, `playlist`, `search`, `empty`, `error` with its message | B14 |
+| `AudioEventAdapter.onTrackEnd(player, track, endReason)` with `endReason.mayStartNext` | the player's `handle_event` reporting ends and stuck songs with the start number that `play` stored in the song, so that an event about a replaced song is stale (MusicPlayer's `NodePlayer` and `Session`) | B14 |
+| An ephemeral reply edited every 5 seconds through its `InteractionHook` by `scheduleAtFixedRate` | one task per panel that edits it with `edit_original_response` through its latest interaction (the command's, then each press's, which renews the token) and deletes it 60 seconds after that interaction (MusicPlayer's `Panels`) | |
+| `jdaBot.retrieveApplicationEmojis().complete()` at first use | `bot.fetch_application_emojis()` at READY, the emojis by name, Unicode ones for the missing (MusicPlayer's `emojis.resolve`) | |
 | Ktor Web-Dashboard | not ported | B13 |
 
 ## Intents kept from the v4 attempt (A3)
@@ -384,6 +390,17 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - A plugin whose v3 texts were all English (NtustCourseWatch) ships them in `lang/en-US/` as its
   default locale and translates them in `lang/zh-TW/`: replies follow the member's locale, public
   posts use the default locale, as v3's English ones; command names stay v3's in every locale.
+- A plugin that plays audio (MusicPlayer) talks to a Lavalink node in compose through narrow
+  Protocols of its own (`audio.Link`, `audio.Player`, `audio.Listener`): the cog and the per-guild
+  sessions only see them, `node.py` implements them with lavalink.py, the cog's tests give fakes
+  (`tests/support/music_fakes.py`) and the adapter's tests a local fake node
+  (`tests/support/lavalink_fakes.py`). The plugin keeps what plays next (v3's history) and starts
+  one song at a time on the node; the link is created at READY and closed, after leaving voice
+  in every guild, by `cog_unload`.
+- Ephemeral panels that refresh themselves (MusicPlayer) are tasks per member that edit the
+  panel through its latest interaction, stop at their expiry, a refused edit, the member's next
+  panel, the guild's player stopping or the unload, and log the error that ends one (nothing
+  awaits them). A press acknowledges at once (`response.defer()`), then edits the panel.
 
 ## Pitfalls
 
@@ -799,6 +816,29 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   time without its offset as a naive one, which a container would take as UTC: require the offset
   (pydantic's `AwareDatetime`). YAML 1.1 also reads `0115` as the octal 77, which
   `coerce_numbers_to_str` turns into `"77"`: quote such values in bundled files.
+- **lavalink.py 5.11.1.** `DefaultPlayer.handle_event` starts the next song of its own queue at
+  each end that may start one, and stops the player with an empty queue: a plugin that keeps its
+  own queue overrides it. `player.current` stays set after a song ended; `TrackEndEvent.track` is
+  that `current`, so an end event names the song that the last `TrackStartEvent` set. Event hooks
+  run as unawaited tasks, while the player's `handle_event` runs in the WebSocket message's task,
+  in order. A refused password (401) stops its reconnects for good. It sends the voice state's
+  `channelId` (Lavalink 4.2's DAVE) only when the voice session changes, which a move does not:
+  drop the cached `sessionId` first (MusicPlayer's `LavalinkVoice`). Its client creates an
+  aiohttp connector with `enable_cleanup_closed`, which aiohttp 3.14 deprecates on Python 3.14
+  (pytest ignores that warning). It ships an sdist only (uv builds it) and no `py.typed`: import
+  it with `# pyright: ignore[reportMissingTypeStubs]`.
+- **The Lavalink image.** The Ubuntu variant (`ghcr.io/lavalink-devs/lavalink:4.2.2`, glibc 2.35)
+  is the one for DAVE; the Alpine one has musl. It has `curl`, runs as uid 322 and downloads its
+  plugins at each container creation (a named volume at `/opt/Lavalink/plugins` would be
+  root-owned). `/version` needs the password (401 without). Lavalink's request logging, on in its
+  example config, logs every search with its query.
+- **Compose's required variables.** `${VAR:?message}` makes every `docker compose` command fail
+  while `VAR` is unset, `run` and `build` included: the image check needs `LAVALINK_PASSWORD` in
+  `.env` or in the environment. A healthcheck command with `: ` inside a block list item must be
+  quoted, or YAML reads a mapping.
+- **discord.py's voice warnings.** `Client.__init__` warns that PyNaCl and davey are missing and
+  "voice will NOT be supported": that is its own `VoiceClient`; a `VoiceProtocol` that hands the
+  voice to Lavalink needs neither.
 - **Codes typed through an input method.** Full-width letters and digits (`ＣＥ１６２`) are what a
   Chinese input method types; `unicodedata.normalize("NFKC", text)` turns them into ASCII before a
   code is checked (NtustCourseWatch's `course_code`).
@@ -810,7 +850,7 @@ allow-all mentions, naming the member of an event after the guild's newest audit
 keeping message content forever, rendering a builder through an expired interaction token,
 drawing a giveaway twice, pinging what a user typed into a ticket, losing an error thrown in a
 callback (Ticket's archive hung), a guild filter that never applied, a delayed message that
-nothing could cancel or check again (TicketAddons), announcements skipped for good after one failure, posted again after they left a page, or doubled by a second scheduler after a reload (NtustManager), and alerts posted at every poll beyond Discord's rate limit, a loop that one exception ended for good, and registrations lost at every restart (NtustCourse).
+nothing could cancel or check again (TicketAddons), announcements skipped for good after one failure, posted again after they left a page, or doubled by a second scheduler after a reload (NtustManager), alerts posted at every poll beyond Discord's rate limit, a loop that one exception ended for good, and registrations lost at every restart (NtustCourse), and songs queued forever after the end of the list, refusals that never reached the member, refresh tasks that ran forever, an autocomplete that answered every command, and a failing song looped forever (MusicPlayer).
 
 ## Differences from v3
 
@@ -1049,3 +1089,8 @@ Every deliberate difference, added by the change that introduces it.
 | NtustCourseWatch | a course with seats was posted at every poll (about every 1.5 seconds), beyond Discord's rate limit; mentions over 2000 characters and any other exception stopped the loop until a reload; a reload doubled every alert | at most once per `alert-interval` (60 seconds) per channel and course, a full alert once after an available one, long mentions split, every step and post guarded, a reload replaces the loop | port-ntust-course-watch |
 | NtustCourseWatch | the semester (`1142`) and the go-live time were hard-coded; the whole catalogue was asked for every 1.5 seconds, before the go-live time and with nobody registered, without a timeout | `semester`, `start` (with its offset), `interval` (1.5, at least 1) and `alert-interval` in config with v3's values; one registered code per request, in turn, from `start` while anything is registered, 30-second timeout, since NTUST no longer answers the whole catalogue | port-ntust-course-watch |
 | NtustCourseWatch | English replies and descriptions for everyone; failures printed to stdout; a deleted channel's registrations kept forever; a `]` in a course's name broke the alert's link | zh-TW translations (the alerts stay English); English log lines once per kind and episode; a 404 forgets the channel; names escaped | port-ntust-course-watch |
+| MusicPlayer | lavaplayer in the JVM with JDA's audio and JDAVE; YouTube, SoundCloud, Spotify (opt-in in `config.yaml`), Bandcamp, Vimeo, Twitch, Yandex, Beam, Getyarn, Niconico, any `http(s)` URL and local files | a Lavalink 4.2 node in compose (DAVE) with youtube-source and LavaSrc; SoundCloud, Bandcamp, Twitch, Vimeo and Niconico; Spotify through `.env`; the HTTP and local sources off | port-music-player |
+| MusicPlayer | a song added while the player was idle with a history was queued forever (B1); the pause survived `/stop`, `/disconnect` and the previous button (B2, B22); the history dropped songs past 240 silently (B8); a failing song looped forever in single-song loop, a stuck one played silence (B9) | a song added after the end plays; every song starts unpaused; played songs leave first and the rest is refused (`queue-full`, `queue-truncated`); failed and stuck songs move on | port-music-player |
+| MusicPlayer | button refusals were edits of an unacknowledged press ("This interaction failed", B3); presses never extended a panel, its refresh task ran forever and the queue panel never refreshed (B4, B5, B6) | each press acknowledged at once and answered in the panel; a press restarts the 60 seconds; refreshes end with the panel; the queue panel refreshes | port-music-player |
+| MusicPlayer | its autocomplete answered every command with no choices and waited 10 seconds (B7, B26); `/skip` past the last song re-showed it (B17); `player.auto_leave_timeout` did nothing (B10); unloading left everything running (B23) | autocomplete routed per option within 2.5 seconds; `/skip` past the last song ends the list; the bot leaves after the timeout idle; unloading leaves voice | port-music-player |
+| MusicPlayer | four button emojis were the author's application IDs; a missing emoji or a failed emoji request broke every panel (B18); texts were zh-TW for every member; v3's ~35 unused config keys loaded silently | the button emojis come from four new `emojis` names, Unicode ones stand for missing emojis; en-US members get English texts; unused keys and `engines` warn | port-music-player |
