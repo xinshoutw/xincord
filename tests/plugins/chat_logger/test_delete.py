@@ -162,3 +162,37 @@ async def test_deleted_at_once(scene: Scene) -> None:
     [post] = scene.posts(5)
     assert values(post)[4] == "@everyone"
     assert await scene.rows() == []
+
+
+@pytest.mark.xfail(strict=True, reason="Deleted texts can be kept")
+@pytest.mark.parametrize("config", ["keep_deleted: true\n"])
+async def test_kept(scene: Scene) -> None:
+    """Requirement: Deleted texts can be kept."""
+    await scene.listen(5, [30])
+    for message_id in (100, 101, 102, 103):
+        await scene.send(message_id, 30, f"text {message_id}")
+    member_answers(scene, 2)
+
+    await scene.delete(100, 30)
+    await scene.delete_all([101, 102, 103], 30)
+
+    assert [values(post)[-1] for post in scene.posts(5)] == [
+        "text 100",
+        "text 101",
+        "text 102",
+        "text 103",
+    ]
+    assert [row[0] for row in await scene.rows()] == [100, 101, 102, 103]
+
+
+@pytest.mark.parametrize("config", ["log_all: true\n"])
+async def test_removed_by_default(scene: Scene) -> None:
+    """Requirement: Deleted texts can be kept."""
+    await scene.listen(5, [30])
+    await scene.send(100, 30, "hello")
+    member_answers(scene)
+
+    await scene.delete(100, 30)
+
+    assert len(scene.posts(5)) == 1
+    assert await scene.rows() == []

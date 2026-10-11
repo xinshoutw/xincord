@@ -129,3 +129,12 @@ async def test_invalid_log_all(load: Loader, caplog: pytest.LogCaptureFixture) -
 
     assert bot.loaded == ()
     assert "log_all: Input should be a valid boolean" in caplog.text
+
+
+@pytest.mark.xfail(strict=True, reason="Deleted texts can be kept")
+async def test_invalid_keep_deleted(load: Loader, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Deleted texts can be kept."""
+    bot = await load("keep_deleted: maybe\n")
+
+    assert bot.loaded == ()
+    assert "keep_deleted: Input should be a valid boolean" in caplog.text
