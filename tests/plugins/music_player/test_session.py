@@ -37,9 +37,6 @@ def session_with(player: FakePlayer, changes: list[bool] | None = None) -> Sessi
     return session
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Playback follows the node's events"
-)
 async def test_sequential_and_loop() -> None:
     """Requirement: Playback follows the node's events."""
     player = FakePlayer()
@@ -53,9 +50,6 @@ async def test_sequential_and_loop() -> None:
     assert player.played() == [("Song 1", 1, VOLUME), ("Song 2", 2, VOLUME), ("Song 2", 3, VOLUME)]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Playback follows the node's events"
-)
 async def test_end_of_the_list() -> None:
     """Requirement: Playback follows the node's events."""
     player = FakePlayer()
@@ -71,9 +65,6 @@ async def test_end_of_the_list() -> None:
 
 
 @pytest.mark.parametrize("loop", [LoopMode.SEQUENTIAL, LoopMode.SINGLE])
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Playback follows the node's events"
-)
 async def test_failed_and_stuck_songs(loop: LoopMode, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Playback follows the node's events."""
     player = FakePlayer()
@@ -94,9 +85,6 @@ async def test_failed_and_stuck_songs(loop: LoopMode, caplog: pytest.LogCaptureF
         assert title in caplog.text
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Playback follows the node's events"
-)
 async def test_stale_events() -> None:
     """Requirement: Playback follows the node's events."""
     player = FakePlayer()
@@ -113,9 +101,6 @@ async def test_stale_events() -> None:
     assert session.history.current == song(2)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Playback follows the node's events"
-)
 async def test_cleanup() -> None:
     """Requirement: Playback follows the node's events."""
     player = FakePlayer()
@@ -129,9 +114,6 @@ async def test_cleanup() -> None:
     assert player.played()[-1] == ("Song 3", 2, VOLUME)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members control playback with v3's replies"
-)
 async def test_pause_resume_and_stop() -> None:
     """Requirement: Members control playback with v3's replies."""
     player = FakePlayer()
@@ -153,9 +135,6 @@ async def test_pause_resume_and_stop() -> None:
     assert (session.playing, session.paused, session.history.entries) == (False, False, [])
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members control playback with v3's replies"
-)
 async def test_skip_unpauses() -> None:
     """Requirement: Members control playback with v3's replies."""
     player = FakePlayer()
@@ -174,9 +153,6 @@ async def test_skip_unpauses() -> None:
     assert session.playing is False
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panel buttons control the guild's player"
-)
 async def test_previous_and_loop() -> None:
     """Requirement: Panel buttons control the guild's player."""
     player = FakePlayer()
@@ -197,11 +173,6 @@ async def test_previous_and_loop() -> None:
     assert [session.toggle_loop(), session.toggle_loop()] == [LoopMode.SINGLE, LoopMode.SEQUENTIAL]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Volume, queue, shuffle and now playing keep v3's replies",
-)
 async def test_volume_and_shuffle() -> None:
     """Requirement: Volume, queue, shuffle and now playing keep v3's replies."""
     player = FakePlayer()
@@ -217,11 +188,6 @@ async def test_volume_and_shuffle() -> None:
     assert session.shuffle(random.Random(3)) == 0  # noqa: S311 - an order, no secret
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The bot leaves when idle, disconnected or removed",
-)
 async def test_detach() -> None:
     """Requirement: The bot leaves when idle, disconnected or removed."""
     player = FakePlayer()
@@ -239,3 +205,61 @@ async def test_detach() -> None:
     assert session.position() == 0
     assert changes[-1] is False
     assert player.played() == [("Song 1", 1, VOLUME)]
+
+
+async def test_songs_wait_while_one_plays() -> None:
+    """Requirement: Playback follows the node's events."""
+    player = FakePlayer()
+    session = session_with(player)
+    await session.enqueue([song(1)])
+
+    added = await session.enqueue([song(2)])
+    await session.ended(1, EndReason.FINISHED)
+
+    assert added.start is None
+    assert player.played() == [("Song 1", 1, VOLUME), ("Song 2", 2, VOLUME)]
+
+
+async def test_controls_while_nothing_plays() -> None:
+    """Requirement: Members control playback with v3's replies."""
+    session = Session(10, VOLUME, lambda _session: None)
+
+    assert await session.skip() is None
+    assert await session.skip_many(1) is None
+    await session.stop()  # no player: nothing to stop
+    assert session.playing is False
+
+
+async def test_volume_without_a_player() -> None:
+    """Requirement: Volume, queue, shuffle and now playing keep v3's replies."""
+    session = Session(10, VOLUME, lambda _session: None)
+
+    assert await session.set_volume(70) == VOLUME
+    player = FakePlayer()
+    session.attach(player)
+    await session.enqueue([song(1)])
+
+    assert player.calls == [("play", ("Song 1", 1, 70))]
+
+
+async def test_songs_added_while_disconnected() -> None:
+    """Requirement: The bot leaves when idle, disconnected or removed."""
+    session = Session(10, VOLUME, lambda _session: None)
+
+    added = await session.enqueue([song(1)])
+
+    assert added.start == song(1)  # it would start, but no player is there
+    assert session.playing is False
+    assert session.history.entries == [song(1)]
+
+
+async def test_a_refused_start() -> None:
+    """Requirement: Errors are reported as v3 did."""
+    player = FakePlayer(error=RuntimeError("the node refused"))
+    session = session_with(player)
+
+    with pytest.raises(RuntimeError, match="the node refused"):
+        await session.enqueue([song(1)])
+
+    assert session.playing is False  # nothing plays, and the song stays for a later start
+    assert session.history.entries == [song(1)]

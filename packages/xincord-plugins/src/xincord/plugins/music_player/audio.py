@@ -55,6 +55,11 @@ class EndReason(StrEnum):
     REPLACED = "replaced"
     CLEANUP = "cleanup"
 
+    @property
+    def may_start_next(self) -> bool:
+        """Whether the next song may start: after a finished or a failed song only."""
+        return self in {EndReason.FINISHED, EndReason.LOAD_FAILED}
+
 
 class NodeUnavailableError(Exception):
     """No Lavalink node is connected."""

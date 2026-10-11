@@ -25,7 +25,7 @@
 
 - [x] 4.1 xfail tests for "Playback follows the node's events" against stubs in `session.py`, with
       a fake player
-- [ ] 4.2 Implement the session; remove the markers
+- [x] 4.2 Implement the session; remove the markers
 
 ## 5. Node
 

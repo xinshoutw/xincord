@@ -9,13 +9,14 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING
 
+from .audio import EndReason
 from .history import History, LoopMode
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from random import Random
 
-    from .audio import EndReason, Player
+    from .audio import Player
     from .history import Added, Entry
 
 logger = logging.getLogger(__name__)
@@ -49,60 +50,172 @@ class Session:
 
     def position(self) -> int:
         """The playing song's position in milliseconds, 0 when nothing plays."""
-        raise NotImplementedError
+        return self.player.position if self.player is not None and self.playing else 0
 
     def attach(self, player: Player) -> None:
         """The bot connected: songs play on ``player``."""
-        raise NotImplementedError
+        self.player = player
+        self.changed(self)
 
     def detach(self) -> None:
-        """The bot left voice: forget the songs, as v3's ``/disconnect``."""
-        raise NotImplementedError
+        """The bot left voice: forget the songs, as v3's ``/disconnect``.
+
+        The volume and the loop mode stay, as v3 kept them per guild; the node's later events about
+        the songs are stale.
+        """
+        self.player = None
+        self.history.stop()
+        self.paused = False
+        self.number += 1
+        self.changed(self)
 
     async def enqueue(self, entries: Sequence[Entry]) -> Added:
         """Add songs; the first starts when nothing plays."""
-        raise NotImplementedError
+        async with self.lock:
+            added = self.history.add(entries)
+            if added.start is not None:
+                await self._start(added.start)
+            return added
 
     async def pause(self) -> bool:
         """Pause the playing song; False when nothing plays or it is paused."""
-        raise NotImplementedError
+        async with self.lock:
+            if self.player is None or not self.playing or self.paused:
+                return False
+            await self.player.set_pause(True)
+            self.paused = True
+            return True
 
     async def resume(self) -> bool:
         """Resume the paused song; False when nothing plays or it is not paused."""
-        raise NotImplementedError
+        async with self.lock:
+            if self.player is None or not self.playing or not self.paused:
+                return False
+            await self.player.set_pause(False)
+            self.paused = False
+            return True
 
     async def stop(self) -> None:
         """Forget every song and stop the player, unpaused (v3 kept the pause)."""
-        raise NotImplementedError
+        async with self.lock:
+            self.history.stop()
+            await self._halt()
 
     async def skip(self) -> Entry | None:
         """Play the next song, or None at the last one."""
-        raise NotImplementedError
+        async with self.lock:
+            if not self.playing or (entry := self.history.skip()) is None:
+                return None
+            await self._start(entry)
+            return entry
 
     async def skip_many(self, count: int) -> Entry | None:
         """Skip ``count`` songs: the song reached, or None when the list ended."""
-        raise NotImplementedError
+        async with self.lock:
+            if not self.playing:
+                return None
+            if (entry := self.history.skip_many(count)) is None:
+                await self._halt()
+                return None
+            await self._start(entry)
+            return entry
 
     async def previous(self) -> Entry:
-        """v3's previous button: restart the song, or play the previous one before 5000 ms."""
-        raise NotImplementedError
+        """v3's previous button: restart the song, or play the previous one before 5000 ms.
+
+        The caller checks that a song plays.
+        """
+        async with self.lock:
+            entry = self.history.previous(self.position())
+            await self._start(entry)
+            return entry
 
     def toggle_loop(self) -> LoopMode:
         """Toggle sequential and single-song loop, as v3's loop button."""
-        raise NotImplementedError
+        single = self.loop is LoopMode.SEQUENTIAL
+        self.loop = LoopMode.SINGLE if single else LoopMode.SEQUENTIAL
+        return self.loop
 
     def shuffle(self, rng: Random) -> int:
         """Shuffle the upcoming songs; return how many, 0 when fewer than two."""
-        raise NotImplementedError
+        return self.history.shuffle(rng)
 
     async def set_volume(self, volume: int) -> int:
         """Set the guild's volume, on the player too when connected; return the previous one."""
-        raise NotImplementedError
+        async with self.lock:
+            before, self.volume = self.volume, volume
+            if self.player is not None:
+                await self.player.set_volume(volume)
+            return before
 
     async def ended(self, number: int, reason: EndReason) -> None:
-        """The node ended the song started as ``number``."""
-        raise NotImplementedError
+        """The node ended the song started as ``number``.
+
+        A finished song is followed as the loop mode says; a failed one by the next song, never
+        restarted (v3 looped it forever); a song the node dropped leaves the player idle. Other
+        reasons, and events about other songs, change nothing.
+        """
+        async with self.lock:
+            if number != self.number or not self.playing:
+                return
+            if reason is EndReason.CLEANUP:
+                self.history.idle()
+                self.paused = False
+                self.changed(self)
+                return
+            if reason.may_start_next:
+                failed = reason is EndReason.LOAD_FAILED
+                if failed:
+                    self._warn("failed to load")
+                await self._follow(self.history.ended(self.loop, failed=failed))
 
     async def stuck(self, number: int) -> None:
-        """The node reported the song started as ``number`` stuck."""
-        raise NotImplementedError
+        """The node reported the song started as ``number`` stuck: the next song plays.
+
+        v3 left a stuck song playing silence until a member skipped it.
+        """
+        async with self.lock:
+            if number != self.number or not self.playing:
+                return
+            self._warn("got stuck")
+            await self._follow(self.history.ended(self.loop, failed=True))
+
+    async def _follow(self, entry: Entry | None) -> None:
+        """Start ``entry``, or stop the player when the history went idle."""
+        if entry is None:
+            await self._halt()
+        else:
+            await self._start(entry)
+
+    async def _start(self, entry: Entry) -> None:
+        """Play ``entry`` as a new number, unpaused at the guild's volume.
+
+        When the bot is not connected, or the node refuses, the history goes idle.
+        """
+        self.number += 1
+        self.paused = False
+        try:
+            if self.player is None:
+                self.history.idle()
+                return
+            await self.player.play(entry.track, number=self.number, volume=self.volume)
+        except BaseException:
+            self.history.idle()
+            raise
+        finally:
+            self.changed(self)
+
+    async def _halt(self) -> None:
+        """Stop the player's song, if any, as a new number; nothing plays."""
+        self.number += 1
+        self.paused = False
+        try:
+            if self.player is not None:
+                await self.player.stop()
+        finally:
+            self.changed(self)
+
+    def _warn(self, what: str) -> None:
+        entry = self.history.current
+        title = entry.track.title if entry is not None else "?"
+        logger.warning("MusicPlayer: guild %d: %r %s and was skipped", self.guild_id, title, what)
