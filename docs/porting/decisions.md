@@ -75,6 +75,21 @@ The owner decided how releases and dependency updates work, and dropped the data
    v3 data and writes one-off migration scripts outside the repository. `migrate_v3`, the config
    conversion of B6, stays.
 
+## Amendments (2026-10-12)
+
+After the cutover the owner took the recommendations of Claude's review of the project:
+
+7. **B15, console and CLI.** Under compose the bot runs without a TTY: the console stays off and
+   the log holds plain lines; the console remains for a terminal. `--token` is removed: the token
+   comes from `XINCORD_TOKEN` (compose passes it from `.env`) or `config.yaml`.
+8. **B14 and B16, the Lavalink node.** It runs in the compose profile `music`
+   (`COMPOSE_PROFILES` in `.env`); a bot without MusicPlayer runs no node.
+9. **A1 and A8, the repository.** CI builds the image; `xincord-plugins` requires its own
+   release of `xincord`; `docs/plugin-api.md` names the plugin API, under semver from 1.0.0.
+   With the owner's approval Claude enabled secret scanning with push protection, private
+   vulnerability reporting, CodeQL's default setup and a ruleset that keeps `main` from force
+   pushes and deletion.
+
 ## F. Facts
 
 - **F1 Production version** [fact]: unknown. Owner: no data migration is needed now; the data
@@ -170,12 +185,14 @@ The owner decided how releases and dependency updates work, and dropped the data
 - **B13 Web-Dashboard** [rec, confirmed]: not ported. Use `/xincord reload`, the console and config
   files instead.
 - **B14 Music** [rec]: Lavalink 4.2+ node + lavalink.py. Owner asked whether docker compose is the
-  right way to run it all: yes (see B16).
+  right way to run it all: yes (see B16). The node runs in the compose profile `music`
+  (Amendment 8, 2026-10-12).
 - **B15 Console and CLI** [owner]: signals (SIGTERM/SIGINT graceful stop, SIGHUP reload) +
   owner-only `/xincord reload [plugin]` + a prompt_toolkit interactive console. CLI via argparse:
   `--token`, `--level`, `--no-online`, `--force-renew-lang-resources`; drop the version check and
   `--ignore-update`. Under compose the console needs `stdin_open: true` and `tty: true`
-  (`docker compose attach`).
+  (`docker compose attach`). Amended on 2026-10-12: no TTY under compose, no `--token`
+  (Amendment 7).
 - **B16 Versioning and deployment** [owner]: one semver (0.x until cutover, 1.0.0 at cutover);
   Docker image (arm64 at least) + docker compose (bot, later Lavalink) on the macOS host.
   Keep the SQLite file in a named volume, not a host bind mount. Releases and GHCR images:
