@@ -11,6 +11,8 @@ Lavalink node, a JVM, although only MusicPlayer uses it: the shop's bot runs one
 - The `bot` service has no TTY and no open stdin: the console stays off under compose (it runs
   only when stdin and stdout are terminals) and the log holds log lines only. `docker compose
   attach bot` goes from the README and the comments.
+- Log lines are coloured only when stderr is a terminal: discord.py colours them inside any
+  Docker container, terminal or not, so the container's log held escape sequences still.
 - The `lavalink` service belongs to the compose profile `music`: it runs when `.env` sets
   `COMPOSE_PROFILES=music`. The bot depends on it only when it runs (`required: false`).
   **Breaking for deployments with MusicPlayer**: add `COMPOSE_PROFILES=music` to `.env`.
@@ -26,9 +28,11 @@ None.
 
 - `deployment`: the compose service (no TTY, the optional node) and the Lavalink service (the
   `music` profile).
+- `core-runtime`: plain log lines off a terminal.
 
 ## Impact
 
 `compose.yaml`, `.env.example`, README, MusicPlayer's bundled `config.yaml` (a comment),
-`tests/test_container.py`. Deployments with MusicPlayer add `COMPOSE_PROFILES=music` to `.env`;
+`xincord.core.cli`, `tests/test_container.py`, `tests/core/test_cli.py`,
+`tests/core/test_console.py`. The plain log lines reach production with the next release. Deployments with MusicPlayer add `COMPOSE_PROFILES=music` to `.env`;
 the others stop their node once.

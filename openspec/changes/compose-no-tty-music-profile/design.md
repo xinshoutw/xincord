@@ -7,9 +7,18 @@ The console reads `reload [plugin]` and the stop words. Under compose they have 
 `docker compose stop`. With `tty: true` the console runs in the container and prompt_toolkit's
 redraws (`ESC[?2004h`, `console > `) land in the json-file log around each line, which makes the
 log hard to read and to ship. Without a TTY, `main` leaves the console off (it already requires a
-terminal on stdin and stdout) and discord.py's log handler writes plain lines. The console still
+terminal on stdin and stdout). The console still
 runs where xincord starts in a terminal (`uv run xincord`). `PROMPT_TOOLKIT_NO_CPR=1` stays in the
 image for a terminal that someone gives it.
+
+### Plain log lines off a terminal
+
+Production showed that the prompt was only half of it: `discord.utils.setup_logging` picks its
+colour formatter when `stream_supports_colour` says so, and that is true inside any Docker
+container (`is_docker()`), with a terminal or without. `main` now passes a plain formatter when
+stderr is no terminal, with the colour formatter's layout (time, level padded to 8, logger,
+message) so that a line reads the same in both. It checks stderr before `patch_stdout`, whose
+proxy stands in for the terminal while the console runs.
 
 ### The node in a profile
 
