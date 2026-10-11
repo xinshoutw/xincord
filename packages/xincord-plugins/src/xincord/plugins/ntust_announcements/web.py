@@ -12,7 +12,7 @@ Kotlin:
 import json
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Protocol, cast
 
 import aiohttp
 
@@ -80,6 +80,18 @@ def answer_text(answer: object) -> str:
     parts = _items(_field(_field(candidates[0], "content"), "parts"))
     texts = [text for part in parts if isinstance(text := _field(part, "text"), str)]
     return trim("".join(texts))
+
+
+class Requests(Protocol):
+    """What the plugin asks of the web: :class:`Web`, or a fake in tests."""
+
+    async def page(self, url: str) -> Page:
+        """GET a page."""
+        ...
+
+    async def generate(self, key: str, prompt: str) -> str:
+        """One Gemini attempt."""
+        ...
 
 
 @dataclass(frozen=True)

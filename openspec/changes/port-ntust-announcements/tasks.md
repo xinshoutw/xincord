@@ -46,7 +46,7 @@
 
 ## 7. Loops and ready check
 
-- [ ] 7.1 xfail tests for "Boards are checked from READY until the plugin unloads"
+- [x] 7.1 xfail tests for "Boards are checked from READY until the plugin unloads"
 - [ ] 7.2 Run one loop per board from READY in the cog, with the fetch limit, and end them at
       unload; remove the markers
 - [ ] 7.3 xfail tests for "Channels are checked when the bot is ready" against a stub `check`
