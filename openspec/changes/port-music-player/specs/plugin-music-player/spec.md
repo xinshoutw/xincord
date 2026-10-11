@@ -375,6 +375,10 @@ panel, or shows `not-connected`. Other actions get no response.
 - **THEN** the panel says `nothing-playing`, `no-more-songs`, `previous-no-song`, `previous-idle`
   and `not-connected`
 
+#### Scenario: Songs gone during a press
+- **WHEN** `pause-resume` and `previous` wait for the player while the bot leaves voice
+- **THEN** the panels say `nothing-playing` and `previous-no-song`, and no error is logged
+
 #### Scenario: Disconnect
 - **WHEN** `disconnect` is pressed while connected
 - **THEN** the history is cleared, the bot leaves and the panel is deleted

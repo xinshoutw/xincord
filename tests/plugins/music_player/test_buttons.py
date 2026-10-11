@@ -6,13 +6,14 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:783-956
 """
 
+import asyncio
 from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 
 from discord_fakes import embed_dict
 from music_fakes import text
-from plugin_fakes import golden
+from plugin_fakes import golden, until
 from xincord.plugins.music_player.audio import NodeUnavailableError
 from xincord.plugins.music_player.emojis import FALLBACKS
 from xincord.plugins.music_player.ids import IDS
@@ -39,9 +40,14 @@ messages:
 async def press(scene: Scene, action: str, **options: Any) -> FakeInteraction:  # noqa: ANN401
     """Press ``action`` on a panel through the cog's handler, as the core routes it."""
     interaction = scene.press(action, PANEL, **options)
+    await handle(scene, interaction)
+    return interaction
+
+
+async def handle(scene: Scene, interaction: FakeInteraction) -> None:
+    """Route the press ``interaction`` to the cog's handler, as the core does."""
     custom_id = str(interaction.data["custom_id"])
     await scene.cog.handle(interaction.as_interaction(), IDS.parse(custom_id))
-    return interaction
 
 
 def panel(interaction: FakeInteraction) -> dict[str, Any]:
@@ -128,6 +134,23 @@ async def test_nothing_to_do(scene: Scene) -> None:
     assert said(nothing, "nothing-playing")
     assert said(last, "no-more-songs")
     assert said(idle, "previous-idle")
+
+
+@pytest.mark.xfail(strict=True, reason="Panel buttons control the guild's player")
+async def test_presses_while_the_songs_go(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Panel buttons control the guild's player."""
+    await scene.playing(1, 2)
+    session = scene.cog.sessions[10]
+    presses = [scene.press(action, PANEL) for action in ("pause-resume", "previous")]
+    async with session.lock:  # the player is busy, as with another member's /stop
+        tasks = [asyncio.create_task(handle(scene, pressed)) for pressed in presses]
+        await until(lambda: all(pressed.sent == [DEFERRED] for pressed in presses))
+        session.detach()  # the bot left voice meanwhile
+    await asyncio.gather(*tasks)
+
+    assert said(presses[0], "nothing-playing")
+    assert said(presses[1], "previous-no-song")
+    assert "failed" not in caplog.text
 
 
 async def test_disconnect(scene: Scene) -> None:
