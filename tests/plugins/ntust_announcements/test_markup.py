@@ -176,6 +176,7 @@ def test_raw_text_is_no_text() -> None:
     """Requirement: Board pages list their announcements."""
     # jsoup keeps scripts and styles as data, which text() leaves out.
     assert texts("<a>One<script>var x = 1;</script><style>p {}</style>two</a>", "a") == ["Onetwo"]
+    assert texts("<script>var x = 1;</script>", "script") == [""]
 
 
 @pytest.mark.parametrize("selector", ["a > b", "a, b", "*", "", "a[href]"])
@@ -185,7 +186,6 @@ def test_unsupported_selectors(selector: str) -> None:
         parse("<a>x</a>").select(selector)
 
 
-@pytest.mark.xfail(strict=True, reason="Board pages list their announcements")
 def test_deep_nesting() -> None:
     """Requirement: Board pages list their announcements."""
     # Unclosed elements nest; a page 3000 levels deep must not exhaust Python's recursion limit.

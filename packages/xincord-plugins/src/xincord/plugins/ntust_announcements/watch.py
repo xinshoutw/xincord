@@ -62,6 +62,7 @@ class Watcher:
     articles: Failures = field(default_factory=Failures)
     posts: Failures = field(default_factory=Failures)
     document: Failures = field(default_factory=Failures)
+    errors: Failures = field(default_factory=Failures)  # announcements that raised unexpectedly
     # The messages of announcements that the channel refused, by URL, until they are posted or
     # leave the page.
     ready: dict[str, list[str]] = field(default_factory=dict[str, list[str]])
@@ -108,11 +109,16 @@ class Watcher:
         if new:
             logger.info("%s: %d new announcements", self.name, len(new))
         kept = stored
+        clean = True  # no announcement raised in this pass
         for link in new.values():
-            if await self._announce(link):
+            announced = await self._guarded(link)
+            clean = clean and announced is not None
+            if announced:
                 posted.add(link.url)
                 kept = remember(stored, links, posted)
                 await self.posted.save(self.board.name, kept)
+        if clean and (failed := self.errors.succeed()):
+            logger.info("%s: its announcements work again after %d failures", self.name, failed)
         if (tidied := remember(stored, links, posted)) != kept:
             await self.posted.save(self.board.name, tidied)  # new order, titles or links that left
         on_page = {link.url for link in links}
@@ -164,6 +170,24 @@ class Watcher:
         if self.document.succeed():
             logger.info("%s: its posted list reads again", self.name)
         return stored
+
+    async def _guarded(self, link: Link) -> bool | None:
+        """:meth:`_announce`, or None when it raised (logged with its traceback).
+
+        One broken announcement holds up none of the board's later ones, as v3's guard around each
+        did, and is tried again at the next pass.
+        """
+        try:
+            return await self._announce(link)
+        except Exception as error:
+            logger.log(
+                logging.ERROR if self.errors.fail(type(error)) else logging.DEBUG,
+                "%s: announcing %s failed; it is tried again at the next pass",
+                self.name,
+                link.url,
+                exc_info=error,
+            )
+            return None
 
     async def _announce(self, link: Link) -> bool:
         """Post one announcement; whether it counts as posted (v3's ``contentParser``).

@@ -397,7 +397,6 @@ async def test_refused_posts(scene: Scene) -> None:
     assert len(scene.converted) == len(ARTICLES)
 
 
-@pytest.mark.xfail(strict=True, reason="Problems are logged without flooding or showing the keys")
 async def test_announcement_that_raises(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems are logged without flooding or showing the keys."""
     failing = ARTICLES[0]
@@ -413,3 +412,14 @@ async def test_announcement_that_raises(scene: Scene, caplog: pytest.LogCaptureF
     [error] = [record for record in caplog.records if record.levelno == logging.ERROR]
     assert failing.url in error.getMessage()
     assert error.exc_info is not None
+
+    scene.pages[failing.url] = Page(failing.url, ARTICLE_PAGE)
+    with caplog.at_level(logging.INFO, logger=LOGGER):
+        for _ in range(3):
+            await scene.watcher.check()
+
+    assert scene.sent[-1] == expected_posts([failing])[-1]
+    assert (
+        f"NtustAnnouncements board {BOARD}: its announcements work again after 2 failures"
+        in plugin_lines(caplog, logging.INFO)
+    )

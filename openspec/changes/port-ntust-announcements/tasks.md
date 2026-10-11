@@ -72,7 +72,7 @@
 - [x] 9.6 Drop blank parts; remove the marker
 - [x] 9.7 xfail tests for an announcement that raises and for deeply nested pages (found in the
       review: the board's later entries waited forever)
-- [ ] 9.8 Guard each announcement and walk the tree without recursion; remove the markers
+- [x] 9.8 Guard each announcement and walk the tree without recursion; remove the markers
 - [ ] 9.9 xfail test for a store write that fails after a post (found in the review: posted again)
 - [ ] 9.10 Keep the posted links in memory too; remove the marker
 - [ ] 9.11 xfail test for a YAML syntax error on a key's line (found in the review: the key was

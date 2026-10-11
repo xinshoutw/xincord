@@ -291,7 +291,7 @@ class Element:
     def outer_html(self) -> str:
         """The element serialized as HTML: attributes in their order, comments left out."""
         out: list[str] = []
-        _serialize(self, out, raw=False)
+        _serialize(self, out)
         return "".join(out)
 
 
@@ -299,30 +299,47 @@ def _ends_with_space(accumulated: list[str]) -> bool:
     return bool(accumulated) and accumulated[-1] == " "
 
 
-def _accumulate(element: Element, accumulated: list[str]) -> None:
-    """Add the text of ``element``'s children to ``accumulated``, one character a piece.
+def _accumulate(root: Element, accumulated: list[str]) -> None:
+    """Add the text of ``root``'s children to ``accumulated``, one character a piece.
 
     jsoup's ``TextAccumulator``: ``head`` adds a space before a block or a ``br`` that follows
-    text, ``tail`` after a block that text or an inline element follows.
+    text, ``tail`` after a block that text or an inline element follows. The walk keeps its own
+    stack, so that no nesting depth exhausts Python's recursion limit.
     """
-    if element.tag in RAW_TEXT:
+    if root.tag in RAW_TEXT:
         return
-    for index, child in enumerate(element.children):
-        if isinstance(child, str):
-            _append_collapsed(child, accumulated)
-            continue
-        separates = child.tag in BLOCKS or child.tag == "br"
-        if accumulated and separates and not _ends_with_space(accumulated):
-            accumulated.append(" ")
-        _accumulate(child, accumulated)
-        following = element.children[index + 1 : index + 2]
-        if (
-            child.tag in BLOCKS
-            and following
-            and (isinstance(following[0], str) or following[0].tag not in BLOCKS)
-            and not _ends_with_space(accumulated)
-        ):
-            accumulated.append(" ")
+    # (node, its next sibling, whether its children are done)
+    pending: list[tuple[Element | str, Element | str | None, bool]] = []
+    _push_children(root, pending)
+    while pending:
+        node, following, done = pending.pop()
+        if isinstance(node, str):
+            _append_collapsed(node, accumulated)
+        elif done:
+            if (
+                node.tag in BLOCKS
+                and following is not None
+                and (isinstance(following, str) or following.tag not in BLOCKS)
+                and not _ends_with_space(accumulated)
+            ):
+                accumulated.append(" ")
+        else:
+            separates = node.tag in BLOCKS or node.tag == "br"
+            if accumulated and separates and not _ends_with_space(accumulated):
+                accumulated.append(" ")
+            pending.append((node, following, True))
+            if node.tag not in RAW_TEXT:
+                _push_children(node, pending)
+
+
+def _push_children(
+    element: Element, pending: list[tuple[Element | str, Element | str | None, bool]]
+) -> None:
+    """Push ``element``'s children, the first on top, each with its next sibling."""
+    children = element.children
+    for index in reversed(range(len(children))):
+        following = children[index + 1] if index + 1 < len(children) else None
+        pending.append((children[index], following, False))
 
 
 def _append_collapsed(text: str, accumulated: list[str]) -> None:
@@ -342,20 +359,24 @@ def _append_collapsed(text: str, accumulated: list[str]) -> None:
             reached_non_white = True
 
 
-def _serialize(node: Element | str, out: list[str], *, raw: bool) -> None:
-    if isinstance(node, str):
-        out.append(node if raw else html.escape(node, quote=False))
-        return
-    attributes = "".join(
-        f" {name}" if value is None else f' {name}="{html.escape(value)}"'
-        for name, value in node.attrs.items()
-    )
-    out.append(f"<{node.tag}{attributes}>")
-    if node.tag in VOID:
-        return
-    for child in node.children:
-        _serialize(child, out, raw=node.tag in RAW_TEXT)
-    out.append(f"</{node.tag}>")
+def _serialize(root: Element, out: list[str]) -> None:
+    """Write ``root`` as HTML into ``out``, with a stack of its own instead of recursion."""
+    # (a node, or an end tag to write as it is; whether a text is raw)
+    pending: list[tuple[Element | str, bool]] = [(root, False)]
+    while pending:
+        node, raw = pending.pop()
+        if isinstance(node, str):
+            out.append(node if raw else html.escape(node, quote=False))
+            continue
+        attributes = "".join(
+            f" {name}" if value is None else f' {name}="{html.escape(value)}"'
+            for name, value in node.attrs.items()
+        )
+        out.append(f"<{node.tag}{attributes}>")
+        if node.tag in VOID:
+            continue
+        pending.append((f"</{node.tag}>", True))
+        pending.extend((child, node.tag in RAW_TEXT) for child in reversed(node.children))
 
 
 class _Builder(HTMLParser):
