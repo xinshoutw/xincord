@@ -1,82 +1,35 @@
 # Owner review queue
 
-What is left for the owner after the review walk-through (2026-10-12): the cutover's steps, what to
-watch once the bot runs in production, and the release settings. The user-visible changes, choices
-and manual checks listed here before were answered, verified or skipped, and the rest stands as
-implemented (`HANDOFF.md`, section 6); each archived change's `design.md` and
+What is left for the owner after the cutover of 2026-10-12: the plugins not enabled in production,
+the follow-ups there, what to watch, and the release settings. The user-visible changes, choices,
+manual checks and cutover steps listed here before were answered, verified, skipped or done, and the
+rest stands as implemented (`HANDOFF.md`, section 6); each archived change's `design.md` and
 `docs/porting-guide.md` keep them.
 
 When an item is done, record it in `HANDOFF.md` section 6 and delete it here; delete a section once
 it is empty.
 
-## Cutover
+## Not enabled in production
 
-- Turn on the privileged intents of the enabled plugins for the production application in the
-  developer portal (Bot, Privileged Gateway Intents): Server Members, Presence (TicketAwayNotice)
-  and Message Content (ChatLogger, and Ticket's archive of other members' messages). v3 requested
-  the same ones for ChatLogger and TicketAddons; without them, Discord refuses the connection
-  (4014).
-- The production host's `.env`: `LAVALINK_PASSWORD` (the same as `lavalink.password` in
-  `plugins/MusicPlayer/config.yaml`), `TZ=Asia/Taipei` (Giveaway's typed end times, Ticket's
-  archive times and NtustAnnouncements' `{{now}}`; UTC when unset) and Spotify's keys if wanted.
-- Run `migrate_v3` on a copy of the stopped v3 directory: it moves the renamed plugins'
-  directories, so restoring `config.v3.yaml` alone no longer brings v3 back (its report lists the
-  moves), and a running v3 would recreate the old directories. It counts a plugin as enabled only
-  with `enabled: true` (v3 3.3.0 and later): check the `plugins` list afterwards.
-- After `migrate_v3`, delete `plugins/Feedback/lang/*/register.yaml` (v3's, with the `feedbacker`
-  key) so that the bundled files with `/feedback` are exported, and set the guild's permission
-  overrides of `/feedbacker` again on `/feedback`, which gets a new command ID.
-- The bot's permissions (Administrator covers them): Manage Channels and Manage Roles where tickets
-  open and in DynamicVoiceChannel's categories; View Audit Log for VoiceLogger's status changes;
-  Send Messages in Threads, Create Public Threads and Manage Webhooks in Ticket's archive channel;
-  Read Message History in tickets, in ChatLogger's logged channels and where v3's posts are (the
-  core upgrades their IDs); View Channel, Send Messages and Embed Links wherever it posts.
-- Then a smoke test in production: press a v3 Ticket panel (the ticket opens and the IDs are
-  rewritten); in a v3 ticket and in the new one, lock, unlock, save and delete as staff (deleting
-  from a v3 row logs the core's failed upgrade once, since the message is gone); join a
-  DynamicVoiceChannel lobby once (the new lobby on top, the room right below it); read the log for
-  warnings.
+Production runs AutoRole, Calculator, BotInfo, ChatLogger, DynamicVoiceChannel, Economy,
+UptimeHeartbeat, MusicPlayer, NtustAnnouncements, Ticket and VoiceLogger; the shop's second bot
+runs Economy, UptimeHeartbeat and TicketAwayNotice. Before enabling another plugin there:
 
-## Plugins at cutover
+- Feedback: delete `plugins/Feedback/lang/*/register.yaml` (v3's, with the `feedbacker` key) so
+  that the bundled `/feedback` files are exported, and add `form_failure` and `form_submit_failure`
+  to its `config.yaml` for zh-TW texts.
+- TicketAwayNotice on the main bot: check that `guild_id` is the shop's guild.
+- NtustCourseWatch: set `semester` and `start`; v3's registrations are in the cutover's Mongo export
+  (`NtustCourse.generated_cache.json`) if they are wanted.
 
-### Feedback
-- Add `form_failure` and `form_submit_failure` to the existing `plugins/Feedback/config.yaml` for
-  zh-TW texts, and press one star of a v3 form if any remains.
+## Production follow-ups
 
-### Economy
-- Keep the existing `plugins/Economy/config.yaml` (it lists the administrators); its `enabled` and
-  Google Sheets keys can be deleted to silence the warnings.
-
-### DynamicVoiceChannel
-- Delete v3's leftover rooms by hand (only v3's MongoDB knows them).
-
-### Ticket
-- Migrate v3's panels (the one-off migration) before anyone uses `/add-ticket` on a v3 panel (until
-  then a new button takes index 0, the v3 button's, and both open the new entry) and before staff
-  need the control rows of v3's ticket channels (until then lock and unlock answer the not-found
-  text).
-
-### TicketAwayNotice
-- After `migrate_v3` moved `plugins/TicketAddons/`, check that `guild_id` is the shop's guild: the
-  guild filter now applies, so a wrong value stops the notices (the READY check names it).
-
-### NtustAnnouncements
-- Migrate v3's stored lists (a one-off script) before enabling the plugin, or its first pass posts
-  every board's first page.
-- In the migrated `plugins/NtustAnnouncements/config.yaml`: add `boards` with the 18 channel IDs,
-  replace `prompt` with the bundled one, add `reject-texts`, `reviewers` and (optionally)
-  `review-prompt`, and set a current `model` (the default `gemini-2.5-flash` is v3's); or start
-  from the bundled file, as on the test guild.
-
-### NtustCourseWatch
-- Optionally restore the registrations of v3's MongoDB document (archived design, "Registrations
-  and the v3 data import"); v3 lost them at each restart.
-- Before each course selection, set `semester` and `start`; during the first one, check in the log
-  that NTUST answers the per-code requests under load.
-
-### MusicPlayer
-- The production application needs v3's emojis, by v3's names; a missing one shows as a Unicode
-  emoji.
+- MusicPlayer: some official music videos ask for a login (next change: YouTube OAuth on a spare
+  account); check the panel's emojis on the production application (v3's names).
+- NtustAnnouncements: v3's first Gemini key is invalid; delete it from `api-keys`.
+- After a few days: delete the migration's copies on the production host (`CUTOVER.md`,
+  "Afterwards") and the rehearsal volumes `xincord-rehearsal-data` and
+  `xincord-shirotsuki-rehearsal`.
 
 ## After cutover
 

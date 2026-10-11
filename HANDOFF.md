@@ -620,7 +620,8 @@ queue (`docs/porting/owner-review.md`), now a list of the cutover's steps, what 
 and the release settings. Steps (2) and (3) are done but for the owner's part (section 6): the
 `pypi` environment, the first release `v0.1.0` (a GitHub prerelease and a public GHCR image, no
 PyPI), the repository public; PyPI's first release is 1.0.0 after the cutover, once the owner added
-the trusted publishers and LICENSE. Next: step (4), the cutover.
+the trusted publishers and LICENSE. Step (4) is done: both bots on the production host run xincord
+`v0.2.0` (section 6). Next: YouTube OAuth for MusicPlayer's node, then PyPI's 1.0.0.
 
 The test environment (2026-10-12): the owner's Mac runs compose in `~/IdeaProjects/xincord` with
 the owner's test application `xincord-test` (1558847245061849158) in the guild `xincord-test`
@@ -881,6 +882,24 @@ buttons), Economy's legacy wallets (322) under one guild and 18 board lists (221
 store, reads each back through the plugin's own reader, and merges v3's 59 ChatLogger files
 (121,370 messages, none older than 5 years) into one message file; v3's one leftover room is
 reported for deletion by hand. The whole run took 6 seconds, and the 11 plugins loaded offline.
+
+Cutover on 2026-10-12 (night), with the owner, at `v0.2.0` (released on the owner's approval; the
+production host builds its clone at the tag): v3 stopped at 03:02 after the Mongo export; the
+migration matched the rehearsal; the owner reset the production token and put it in with the
+runbook's script, which Claude never saw; xincord was ready at 03:11:36 in 60 guilds, without a
+warning. v3 had not read its five ACADEMIC_* boards since 2026-05-04, so the first pass posted
+their missed announcements: Claude paused NtustAnnouncements after 4 posts and, on the owner's
+choice, marked those boards' current first pages as posted (8 announcements) before resuming it at
+03:19. The owner's smoke test passed: Ticket, DynamicVoiceChannel, Economy's `/balance`, ChatLogger
+and VoiceLogger; v3's leftover room was gone already. MusicPlayer plays (`never gonna give you up`)
+but not some official music videos ("This video requires login" from the default clients): the
+owner chose YouTube OAuth on a spare account (next change). v3's first Gemini key is invalid.
+
+Then, on the owner's request, the second bot on the host, `shirotsuki` (XsDiscordBotKt xs-v2.0,
+whose configs have v3's shape as `config.yml`), moved to its own xincord at `v0.2.0`
+(`~/selfhost/Discord/xincord-shirotsuki`, its own volume and Lavalink): Economy (433 legacy wallets,
+under the shop's guild, one of its two), UptimeHeartbeat and TicketAwayNotice with the shop's
+notice text; its token was kept. Down 11 seconds at 03:30; ready in both guilds without a warning.
 
 1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
    (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script
