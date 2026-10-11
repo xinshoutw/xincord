@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, cast
 
 import discord
+import lavalink  # pyright: ignore[reportMissingTypeStubs]
 import pytest
 
 from lavalink_fakes import PASSWORD, FakeNode, running_node, track
@@ -142,9 +143,6 @@ def free_port() -> int:
         return probe.getsockname()[1]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Songs load and play through a Lavalink node"
-)
 async def test_load_results(scene: Scene) -> None:
     """Requirement: Songs load and play through a Lavalink node."""
     playlist = {"info": {"name": "Mix", "selectedTrack": -1}, "pluginInfo": {}}
@@ -194,9 +192,6 @@ async def test_load_results(scene: Scene) -> None:
     assert (broken.kind, broken.error) == (LoadKind.ERROR, "This video is unavailable")
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Songs load and play through a Lavalink node"
-)
 async def test_no_node() -> None:
     """Requirement: Songs load and play through a Lavalink node."""
     link = open_link(
@@ -216,9 +211,6 @@ async def test_no_node() -> None:
         await client.close()
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Songs load and play through a Lavalink node"
-)
 async def test_player_updates(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Songs load and play through a Lavalink node."""
     node = scene.node
@@ -254,9 +246,6 @@ async def test_player_updates(scene: Scene, caplog: pytest.LogCaptureFixture) ->
     assert "4006" in caplog.text
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Songs load and play through a Lavalink node"
-)
 async def test_voice_updates(scene: Scene) -> None:
     """Requirement: Songs load and play through a Lavalink node."""
     node = scene.node
@@ -267,7 +256,10 @@ async def test_voice_updates(scene: Scene) -> None:
     await voice.on_voice_server_update(
         cast("Any", {"guild_id": str(GUILD), "token": "t", "endpoint": "voice.example"})
     )
+    moved = Channel(21, Guild(GUILD))
+    scene.client.get_channel = lambda channel_id: moved if channel_id == 21 else None  # pyright: ignore[reportAttributeAccessIssue]
     await voice.on_voice_state_update(cast("Any", {**state, "channel_id": "21"}))
+    assert voice.channel is moved
     await voice.on_voice_state_update(cast("Any", {**state, "channel_id": None}))
     await node.until(lambda: node.deleted == [str(GUILD)])
 
@@ -280,9 +272,6 @@ async def test_voice_updates(scene: Scene) -> None:
     assert len(scene.recorder.joined) == 1
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Songs load and play through a Lavalink node"
-)
 async def test_disconnect_and_close(scene: Scene) -> None:
     """Requirement: Songs load and play through a Lavalink node."""
     node = scene.node
@@ -300,3 +289,62 @@ async def test_disconnect_and_close(scene: Scene) -> None:
     assert node.deleted == [str(GUILD)]
     assert scene.recorder.left == [GUILD]  # once
     assert scene.link.available is False
+
+
+async def test_songs_that_the_plugin_did_not_start(scene: Scene) -> None:
+    """Requirement: Songs load and play through a Lavalink node."""
+    node = scene.node
+    voice = await scene.voice()
+    await voice.on_voice_state_update(
+        cast(
+            "Any", {"guild_id": str(GUILD), "user_id": "99", "session_id": "v", "channel_id": "20"}
+        )
+    )
+    player = scene.player()
+    lavalink_player = cast("Any", player).player
+
+    await node.event("TrackEndEvent", GUILD, track=track(1), reason="finished")  # nothing played
+    await lavalink_player.play(lavalink.AudioTrack(track(9), 0))  # not through the plugin
+    await node.event("TrackStartEvent", GUILD, track=track(9))
+    await node.event("TrackStuckEvent", GUILD, track=track(9), thresholdMs=10000)
+    await node.event("TrackEndEvent", GUILD, track=track(9), reason="finished")
+    await node.send(
+        {
+            "op": "playerUpdate",
+            "guildId": str(GUILD),
+            "state": {"time": 0, "position": 5000, "connected": True, "ping": 0},
+        }
+    )
+    await until(lambda: player.position >= 5000)
+
+    assert (scene.recorder.ended, scene.recorder.stuck) == ([], [])
+
+
+async def test_a_node_that_went_away() -> None:
+    """Requirement: Songs load and play through a Lavalink node."""
+    node = FakeNode()
+    recorder = Recorder()
+    client = discord.Client(intents=discord.Intents.none())
+    async with running_node(node) as port:
+        link = open_link(
+            BOT_ID, Node(host="127.0.0.1", port=port, password=PASSWORD), Listener(recorder)
+        )
+        await until(lambda: link.available)
+        voice = link.voice(client, cast("discord.abc.Connectable", Channel(20, Guild(GUILD))))
+        await voice.on_voice_state_update(  # before the player exists: lavalink.py ignores it
+            cast("Any", {"guild_id": str(GUILD), "user_id": "99", "channel_id": "20"})
+        )
+        await voice.connect(timeout=60, reconnect=True)
+    player = recorder.joined[-1][1]
+    try:
+        for call in (
+            player.play(SONG, number=1, volume=40),
+            player.set_pause(True),
+            player.set_volume(70),
+            player.stop(),
+        ):
+            with pytest.raises(NodeUnavailableError):
+                await call
+    finally:
+        await link.close()
+        await client.close()

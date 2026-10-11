@@ -1,94 +1,316 @@
 """The Lavalink node through lavalink.py: loads, the guilds' players, events and voice.
 
-lavalink.py 5.11.1 sends the voice state's ``channelId`` that Lavalink 4.2 needs for DAVE.
+lavalink.py 5.11.1 sends the voice state's ``channelId`` that Lavalink 4.2 needs for DAVE. Its
+``DefaultPlayer`` starts the next song of its own queue when one ends; the plugin's sessions
+decide that instead, so the player class here reports the events and starts nothing.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:84-138
     XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/util/MusicPlayerUtils.kt:72-82
 """
 
-from typing import TYPE_CHECKING
+import logging
+from typing import TYPE_CHECKING, Any, ClassVar, cast, override
 
+import aiohttp
 import discord
+import lavalink  # pyright: ignore[reportMissingTypeStubs]
+
+from xincord.plugins.redaction import redact
+
+from .audio import EndReason, Loaded, LoadKind, NodeUnavailableError, Track
 
 if TYPE_CHECKING:
-    from .audio import Listener, Loaded, Track
+    from discord.types.voice import GuildVoiceState, VoiceServerUpdate
+
+    from .audio import Listener
     from .config import Node
+
+logger = logging.getLogger(__name__)
+
+REGION = "default"  # lavalink.py's node regions; the plugin has one node
+NAME = "lavalink"  # the node's name in lavalink.py's logs
+# What lavalink.py raises when the node does not answer: no node, a refused password, a failed or
+# timed-out request.
+UNAVAILABLE = (
+    lavalink.ClientError,
+    lavalink.AuthenticationError,
+    aiohttp.ClientError,
+    OSError,
+    TimeoutError,
+)
+
+
+class NodePlayer(lavalink.DefaultPlayer):
+    """lavalink.py's player without its queue: it reports the node's events to the plugin.
+
+    ``listener`` is a class attribute: lavalink.py creates players from the class, so each link
+    makes its own subclass (``open_link``).
+    """
+
+    listener: ClassVar[Listener]
+
+    @override
+    async def handle_event(self, event: lavalink.Event) -> None:
+        """Report ends and stuck songs with their start numbers; log failures and closed voice.
+
+        lavalink.py calls it in the order of the node's messages; a song that the plugin did not
+        start has no number and is left out.
+        """
+        guild = self.guild_id
+        if isinstance(event, lavalink.TrackEndEvent):
+            if (number := _number(event.track)) is not None:
+                await self.listener.ended(guild, number, EndReason(event.reason.value))
+        elif isinstance(event, lavalink.TrackStuckEvent):
+            if (number := _number(event.track)) is not None:
+                await self.listener.stuck(guild, number)
+        elif isinstance(event, lavalink.TrackExceptionEvent):
+            logger.warning(
+                "MusicPlayer: guild %d: the node failed to play %r: %s",
+                guild,
+                event.track.title,
+                redact(str(event.message)),
+            )
+        elif isinstance(event, lavalink.WebSocketClosedEvent):
+            logger.warning(
+                "MusicPlayer: guild %d: Discord closed the node's voice connection: %d %s",
+                guild,
+                event.code,
+                event.reason,
+            )
+
+
+def _number(track: lavalink.AudioTrack | None) -> int | None:
+    """The start number that ``GuildPlayer.play`` gave the song, if the plugin started it."""
+    extra = cast("dict[str, object]", track.extra) if track is not None else {}
+    number = extra.get("number")
+    return number if isinstance(number, int) else None
 
 
 class GuildPlayer:
     """One guild's lavalink.py player as the plugin's ``Player``."""
 
+    def __init__(self, player: lavalink.DefaultPlayer) -> None:
+        """Wrap ``player``."""
+        self.player = player
+
     @property
     def position(self) -> int:
-        """The playing song's position, as lavalink.py estimates it."""
-        raise NotImplementedError
+        """The playing song's position, as lavalink.py estimates it from the node's updates."""
+        return int(self.player.position)
 
     async def play(self, track: Track, *, number: int, volume: int) -> None:
-        """Play ``track`` from its start, unpaused, at ``volume``; its events carry ``number``."""
-        raise NotImplementedError
+        """Play ``track`` from its start, unpaused, at ``volume``; its events carry ``number``.
+
+        Raises:
+            NodeUnavailableError: The node does not answer.
+        """
+        song = lavalink.AudioTrack(_raw(track), 0, number=number)
+        try:
+            await self.player.play(song, volume=volume, pause=False)  # pyright: ignore[reportUnknownMemberType]
+        except UNAVAILABLE as error:
+            raise NodeUnavailableError from error
 
     async def set_pause(self, paused: bool) -> None:  # noqa: FBT001 - as the Protocol's
         """Pause or resume the song."""
-        raise NotImplementedError
+        try:
+            await self.player.set_pause(paused)
+        except UNAVAILABLE as error:
+            raise NodeUnavailableError from error
 
     async def set_volume(self, volume: int) -> None:
         """Change the volume."""
-        raise NotImplementedError
+        try:
+            await self.player.set_volume(volume)
+        except UNAVAILABLE as error:
+            raise NodeUnavailableError from error
 
     async def stop(self) -> None:
         """Stop the song."""
-        raise NotImplementedError
+        try:
+            await self.player.stop()
+        except UNAVAILABLE as error:
+            raise NodeUnavailableError from error
+
+
+def _raw(track: Track) -> dict[str, Any]:
+    """``track`` as the node's track object, which lavalink.py plays from its encoded string."""
+    return {
+        "encoded": track.encoded,
+        "info": {
+            "identifier": track.identifier,
+            "isSeekable": track.seekable,
+            "author": track.author,
+            "length": track.length,
+            "isStream": track.stream,
+            "position": 0,
+            "title": track.title,
+            "uri": track.uri,
+            "artworkUrl": track.artwork_url,
+            "isrc": None,
+            "sourceName": track.source,
+        },
+        "pluginInfo": {},
+        "userData": {},
+    }
+
+
+def _track(song: lavalink.AudioTrack) -> Track:
+    """The node's song as the plugin's ``Track``."""
+    return Track(
+        encoded=str(song.track),
+        title=str(song.title),
+        author=str(song.author),
+        uri=cast("str | None", song.uri),
+        identifier=str(song.identifier),
+        length=int(song.duration),
+        seekable=bool(song.is_seekable),
+        stream=bool(song.is_stream),
+        artwork_url=song.artwork_url,
+        source=str(song.source_name),
+    )
 
 
 class NodeLink:
     """The plugin's lavalink.py client with its one node."""
 
+    def __init__(self, client: lavalink.Client[NodePlayer], listener: Listener) -> None:
+        """Keep the client and the plugin's listener."""
+        self.client = client
+        self.listener = listener
+        self.closed = False
+
     @property
     def available(self) -> bool:
         """Whether the node's WebSocket is connected."""
-        raise NotImplementedError
+        return not self.closed and any(node.available for node in self.client.node_manager.nodes)
 
     async def load(self, identifier: str) -> Loaded:
-        """Load ``identifier`` on the node."""
-        raise NotImplementedError
+        """Load ``identifier`` on the node.
+
+        Raises:
+            NodeUnavailableError: The node does not answer.
+        """
+        try:
+            result = await self.client.get_tracks(identifier)
+        except UNAVAILABLE as error:
+            raise NodeUnavailableError from error
+        error = result.error.message if result.error is not None else None
+        tracks = tuple(_track(song) for song in result.tracks)
+        return Loaded(LoadKind(result.load_type.value), tracks, error)
 
     def voice(self, client: discord.Client, channel: discord.abc.Connectable) -> LavalinkVoice:
         """The voice protocol that ``channel.connect(cls=link.voice)`` connects with."""
-        raise NotImplementedError
+        return LavalinkVoice(client, channel, self)
 
     async def close(self) -> None:
-        """Close the node's connection and the client's session."""
-        raise NotImplementedError
+        """Close the node's connection and the client's session; again does nothing."""
+        if self.closed:
+            return
+        self.closed = True
+        await self.client.close()
 
 
 class LavalinkVoice(discord.VoiceProtocol):
     """The bot's voice connection in a guild, which the node makes from its voice updates."""
 
+    def __init__(
+        self, client: discord.Client, channel: discord.abc.Connectable, link: NodeLink
+    ) -> None:
+        """A protocol for ``channel``'s guild."""
+        super().__init__(client, channel)
+        self.link = link
+        self.guild_id: int = cast("discord.VoiceChannel", channel).guild.id
+        self.released = False
+
+    @override
     async def connect(
         self,
         *,
-        timeout: float,  # noqa: ASYNC109 - discord.py's signature
+        timeout: float,
         reconnect: bool,
         self_deaf: bool = False,
         self_mute: bool = False,
     ) -> None:
-        """Create the guild's player and ask Discord to connect the bot."""
-        raise NotImplementedError
+        """Create the guild's player, hand it to the plugin and ask Discord to connect the bot.
 
-    async def on_voice_state_update(self, data: object, /) -> None:
-        """Forward the bot's voice state to the node."""
-        raise NotImplementedError
+        The bot is neither deafened nor muted, as in v3; Discord's voice updates follow.
 
-    async def on_voice_server_update(self, data: object, /) -> None:
+        Raises:
+            NodeUnavailableError: No node is connected; discord.py then forgets the protocol.
+        """
+        del timeout, reconnect
+        try:
+            player = self.link.client.player_manager.create(self.guild_id)
+        except lavalink.ClientError as error:
+            self.cleanup()
+            raise NodeUnavailableError from error
+        self.link.listener.joined(self.guild_id, GuildPlayer(player))
+        guild = cast("discord.VoiceChannel", self.channel).guild
+        await guild.change_voice_state(
+            channel=cast("discord.VoiceChannel", self.channel),
+            self_deaf=self_deaf,
+            self_mute=self_mute,
+        )
+
+    @override
+    async def on_voice_state_update(self, data: GuildVoiceState, /) -> None:
+        """Forward the bot's voice state to the node; without a channel, the bot left.
+
+        lavalink.py sends the channel to the node only with a new voice session, and a move keeps
+        the session: its cached session is dropped first, so that the node hears the new channel,
+        which DAVE needs.
+        """
+        channel_id = cast("str | int | None", data["channel_id"])  # None: the bot left
+        if channel_id is None:
+            await self._release()
+            return
+        player = self.link.client.player_manager.get(self.guild_id)
+        if player is not None:
+            state = cast("dict[str, str]", player._voice_state)  # noqa: SLF001  # pyright: ignore[reportPrivateUsage, reportUnknownMemberType]
+            if state.get("channelId", str(channel_id)) != str(channel_id):
+                state.pop("sessionId", None)
+        if (moved := self.client.get_channel(int(channel_id))) is not None:
+            self.channel = cast("discord.abc.Connectable", moved)
+        await self.link.client.voice_update_handler(
+            cast("Any", {"t": "VOICE_STATE_UPDATE", "d": data})
+        )
+
+    @override
+    async def on_voice_server_update(self, data: VoiceServerUpdate, /) -> None:
         """Forward the voice server to the node."""
-        raise NotImplementedError
+        await self.link.client.voice_update_handler(
+            cast("Any", {"t": "VOICE_SERVER_UPDATE", "d": data})
+        )
 
+    @override
     async def disconnect(self, *, force: bool) -> None:
         """Leave voice and destroy the guild's player."""
-        raise NotImplementedError
+        del force
+        guild = cast("discord.VoiceChannel", self.channel).guild
+        await guild.change_voice_state(channel=None)
+        await self._release()
+
+    async def _release(self) -> None:
+        """Forget the connection once: discord.py's record, the node's player, the plugin's."""
+        if self.released:
+            return
+        self.released = True
+        self.cleanup()
+        try:
+            await self.link.client.player_manager.destroy(self.guild_id)
+        except (*UNAVAILABLE, lavalink.RequestError):
+            logger.debug("MusicPlayer: the node could not destroy guild %d's player", self.guild_id)
+        self.link.listener.left(self.guild_id)
 
 
 def open_link(user_id: int, node: Node, listener: Listener) -> NodeLink:
-    """Create the lavalink.py client for ``node``; call it in the event loop, after READY."""
-    raise NotImplementedError
+    """Create the lavalink.py client for ``node``; call it in the event loop, after READY.
+
+    lavalink.py connects to the node in the background and reconnects with a backoff, except
+    after a refused password, which it logs.
+    """
+    player = type("NodePlayer", (NodePlayer,), {"listener": listener})
+    client: lavalink.Client[NodePlayer] = lavalink.Client(user_id, player=player)
+    client.add_node(node.host, node.port, node.password, REGION, NAME)
+    return NodeLink(client, listener)

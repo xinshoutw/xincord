@@ -94,6 +94,9 @@ filterwarnings = [
     # discord.py 2.7.1 checks listeners and hooks with asyncio.iscoroutinefunction, which Python
     # 3.14 deprecates; outside tests, Python ignores DeprecationWarnings from library modules.
     "ignore:'asyncio.iscoroutinefunction' is deprecated:DeprecationWarning:discord\\.",
+    # lavalink.py 5.11.1 creates its aiohttp connector with enable_cleanup_closed, which aiohttp
+    # ignores on Python 3.14 with this warning (raised in aiohttp.connector).
+    "ignore:enable_cleanup_closed ignored:DeprecationWarning:aiohttp\\.connector",
 ]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
