@@ -133,3 +133,13 @@ request without pushing it, and run in it the import of every installed plugin a
 - **WHEN** `.github/workflows/ci.yml` is read
 - **THEN** a job builds the Dockerfile for linux/amd64 without pushing, loads the image and runs in
   it the plugins' import and `xincord --no-online`, and every action it uses is pinned to a commit
+
+### Requirement: Token from .env
+The `bot` service SHALL take `XINCORD_TOKEN` from `.env`, empty when unset, so that the bot token can
+stay out of `config.yaml` and off the command line. `.env.example` SHALL show `XINCORD_TOKEN` as a
+commented line.
+
+#### Scenario: Compose and the example
+- **WHEN** `compose.yaml` and `.env.example` are read
+- **THEN** the `bot` service's environment sets `XINCORD_TOKEN` to `${XINCORD_TOKEN:-}`, and
+  `.env.example` holds a commented `XINCORD_TOKEN=` line

@@ -87,7 +87,7 @@ repository root (gitignored), with the owner's test application and guild `xinco
 1. The owner's review items of 2026-10-12, in progress: compose without a TTY and the node in
    the `music` profile (done, deployed), the image built in CI (done), the plugins pinned to
    their core with the plugin API in `docs/plugin-api.md` (done), the token from
-   `XINCORD_TOKEN`, an online backup. Code changes reach production with
+   `XINCORD_TOKEN` (done), an online backup. Code changes reach production with
    the next release (the owner approves it), the plain log lines included.
 2. PyPI's first release, 1.0.0, when the owner says so.
 3. Issues: #3 (youtube-source back to a release that holds its TV client fix), #2 (CustomCommands'
