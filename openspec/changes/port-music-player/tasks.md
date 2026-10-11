@@ -49,7 +49,7 @@
 
 - [x] 7.1 xfail tests for "Panels refresh themselves and expire"
 - [x] 7.2 Implement the panels; remove the markers
-- [ ] 7.3 xfail tests for "Panel buttons control the guild's player"
+- [x] 7.3 xfail tests for "Panel buttons control the guild's player"
 - [ ] 7.4 Implement the buttons and their route; remove the markers
 
 ## 8. Voice lifecycle

@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 import discord
 from discord.ext import commands
 
+from .buttons import Buttons
 from .commands import SEARCH_DEADLINE, Commands
 from .emojis import FALLBACKS
 from .panels import Panels
@@ -35,7 +36,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class MusicPlayer(Commands, commands.Cog):
+class MusicPlayer(Commands, Buttons, commands.Cog):
     """The plugin's state and handlers; ``setup`` adds them."""
 
     def __init__(self, bot: commands.Bot, config: Config, lang: Lang, templates: Templates) -> None:
