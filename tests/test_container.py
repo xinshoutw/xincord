@@ -3,7 +3,6 @@
 import re
 from pathlib import Path
 
-import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -72,7 +71,6 @@ LAVALINK_IMAGE = "ghcr.io/lavalink-devs/lavalink:4.2.2"
 EXACT = re.compile(r":\d+\.\d+\.\d+$")  # a Maven version that never moves
 
 
-@pytest.mark.xfail(strict=True, reason="Container image")
 def test_build_context_leaves_out_the_secrets() -> None:
     """Requirement: Container image."""
     lines = (ROOT / ".dockerignore").read_text(encoding="utf-8").splitlines()
@@ -81,7 +79,6 @@ def test_build_context_leaves_out_the_secrets() -> None:
     assert {".env", "lavalink"} <= ignored
 
 
-@pytest.mark.xfail(strict=True, reason="Compose service")
 def test_bot_starts_after_the_node() -> None:
     """Requirement: Compose service."""
     compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
@@ -92,7 +89,6 @@ def test_bot_starts_after_the_node() -> None:
     }
 
 
-@pytest.mark.xfail(strict=True, reason="Lavalink service")
 def test_lavalink_service() -> None:
     """Requirement: Lavalink service."""
     compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
@@ -114,7 +110,6 @@ def test_lavalink_service() -> None:
     assert "ports" not in lavalink  # only the bot reaches it, over compose's network
 
 
-@pytest.mark.xfail(strict=True, reason="Lavalink service")
 def test_node_config() -> None:
     """Requirement: Lavalink service."""
     config = yaml.safe_load((ROOT / "lavalink" / "application.yml").read_text(encoding="utf-8"))
@@ -132,7 +127,6 @@ def test_node_config() -> None:
     assert config["plugins"]["youtube"]["enabled"] is True
 
 
-@pytest.mark.xfail(strict=True, reason="Lavalink service")
 def test_secrets_stay_untracked() -> None:
     """Requirement: Lavalink service."""
     gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()

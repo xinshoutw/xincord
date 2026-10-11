@@ -1,4 +1,4 @@
-# docker compose up -d --build     start; config.yaml and plugins/ are in ./bot
+# docker compose up -d --build     start; config.yaml and plugins/ are in ./bot, secrets in .env
 # docker compose attach bot        open the console (Ctrl-P Ctrl-Q detaches)
 # docker compose kill -s HUP bot   reload the config and the plugins
 # docker compose stop              stop
@@ -15,6 +15,43 @@ services:
     volumes:
       - ./bot:/bot
       - data:/bot/data  # the database and the plugins' data files stay in a named volume
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Started, not healthy: the other plugins run while MusicPlayer's node starts or fails.
+    depends_on:
+      lavalink:
+        condition: service_started
+
+  # The Lavalink node that plays MusicPlayer's audio (decision B14): Lavalink 4.2 with DAVE, the
+  # end-to-end encryption that Discord requires for voice, and the plugins of
+  # lavalink/application.yml. The Ubuntu image: the Alpine one lacks the glibc that DAVE needs.
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4.2.2
+    restart: unless-stopped
+    environment:
+      # Set in .env (see .env.example); MusicPlayer's lavalink.password is the same.
+      LAVALINK_SERVER_PASSWORD: ${LAVALINK_PASSWORD:?Set LAVALINK_PASSWORD in .env (see .env.example)}
+      SPOTIFY_ENABLED: ${SPOTIFY_ENABLED:-false}
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+      SPOTIFY_COUNTRY_CODE: ${SPOTIFY_COUNTRY_CODE:-TW}
+    volumes:
+      - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
+    # Only the bot reaches it, over compose's network: no port is published on the host.
+    expose:
+      - "2333"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'curl -fsS -o /dev/null -H "Authorization: $${LAVALINK_SERVER_PASSWORD}" http://127.0.0.1:2333/version'
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 2s
     logging:
       driver: json-file
       options:

@@ -16,3 +16,6 @@ bot
 config.yaml
 plugins
 data
+# Secrets for compose, and the Lavalink node's config, which the bot's image does not need.
+.env
+lavalink

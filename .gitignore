@@ -15,3 +15,5 @@ htmlcov/
 /plugins/
 /data/
 /bot/
+# Secrets for compose (.env.example lists them).
+/.env

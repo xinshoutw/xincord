@@ -32,6 +32,7 @@ and the plugins without disconnecting. In a terminal, the `console > ` prompt ac
 ## Docker
 
 ```sh
+cp .env.example .env             # once: set LAVALINK_PASSWORD (and Spotify, if wanted)
 docker compose up -d --build     # start; the bot writes bot/config.yaml on the first start
 docker compose attach bot        # the console (Ctrl-P Ctrl-Q detaches)
 docker compose kill -s HUP bot   # reload the config and the plugins
@@ -40,7 +41,9 @@ docker compose stop              # stop
 ```
 
 The image runs `xincord` as a non-root user. `./bot` holds `config.yaml` and `plugins/<Name>/`
-for editing on the host; the database stays in the `xincord_data` volume.
+for editing on the host; the database stays in the `xincord_data` volume. The `lavalink` service
+plays MusicPlayer's audio (`lavalink/application.yml`); its password is `LAVALINK_PASSWORD` in
+`.env`, and `lavalink.password` in `bot/plugins/MusicPlayer/config.yaml` is the same.
 
 ## Development
 

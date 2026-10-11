@@ -1,0 +1,54 @@
+# The Lavalink node that plays MusicPlayer's audio: compose.yaml's lavalink service reads this file.
+# Its password is LAVALINK_SERVER_PASSWORD, which compose sets from LAVALINK_PASSWORD in .env; the
+# Spotify settings come from .env too. Lavalink downloads the plugins below when its container
+# starts. https://lavalink.dev/configuration/
+server:
+  port: 2333
+  address: 0.0.0.0
+  http2:
+    enabled: false
+
+lavalink:
+  plugins:
+    # YouTube: search, videos and playlists (lavaplayer's own YouTube source is deprecated).
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.2"
+      snapshot: false
+    # Spotify links, played from YouTube; its source is off unless SPOTIFY_ENABLED is true.
+    - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.8.3"
+      snapshot: false
+  server:
+    sources:
+      youtube: false # deprecated: the youtube plugin replaces it
+      bandcamp: true
+      soundcloud: true
+      twitch: true
+      vimeo: true
+      nico: true
+      http: false # any URL: members could make the node fetch addresses on the host's network
+      local: false # the node's own files
+    youtubeSearchEnabled: true
+    soundcloudSearchEnabled: true
+
+plugins:
+  youtube:
+    enabled: true
+    allowSearch: true # ytsearch:, which MusicPlayer sends for anything that is no link
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: true
+  lavasrc:
+    providers: # how a Spotify song is found on YouTube
+      - "ytsearch:\"%ISRC%\""
+      - "ytsearch:%QUERY%"
+    sources:
+      spotify: ${SPOTIFY_ENABLED:false}
+    spotify:
+      clientId: "${SPOTIFY_CLIENT_ID:}"
+      clientSecret: "${SPOTIFY_CLIENT_SECRET:}"
+      countryCode: "${SPOTIFY_COUNTRY_CODE:TW}"
+
+logging:
+  request:
+    enabled: false # it would log every member's search
+  level:
+    root: INFO
+    lavalink: INFO
