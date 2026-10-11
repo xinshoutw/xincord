@@ -151,7 +151,7 @@ def test_node_logs_no_queries() -> None:
 
 
 def test_image_turns_off_cpr() -> None:
-    """Requirement: Container image."""
+    """Requirement: No cursor position requests."""
     steps = instructions()
     stages = [index for index, (keyword, _) in enumerate(steps) if keyword == "FROM"]
     runtime = steps[stages[-1] :]

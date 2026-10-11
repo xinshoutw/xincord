@@ -232,7 +232,7 @@ async def test_default_allowed_mentions(store: Store, tmp_path: Path) -> None:
 async def test_no_voice_warnings(
     store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Requirement: Startup loads the configured plugins."""
+    """Requirement: No voice warnings at startup."""
     monkeypatch.setattr(discord.VoiceClient, "warn_nacl", True)
     monkeypatch.setattr(discord.VoiceClient, "warn_dave", True)
 
