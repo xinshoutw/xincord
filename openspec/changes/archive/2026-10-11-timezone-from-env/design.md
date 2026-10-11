@@ -31,3 +31,7 @@ chooses a zone.
 
 With `TZ=Asia/Taipei` in `.env`: `docker compose up -d` recreates the bot, and
 `docker compose exec bot date` and Python's local time show `+08:00`.
+
+Result on 2026-10-11: with `TZ=Asia/Taipei` added to the owner's `.env`, `docker compose up -d bot`
+recreated the bot; in it `TZ` is `Asia/Taipei`, `date` shows CST and Python's local time `+08:00`,
+and the log's timestamps follow (they are local times).

@@ -563,8 +563,8 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 `rename-plugins`, `uptime-heartbeat-keep-pushing`, `custom-commands-from-config`,
 `chat-logger-split-storage`, `port-ticket`, `port-ticket-away-notice`,
 `port-ntust-announcements`, `port-ntust-course-watch`, `port-music-player`,
-`ntust-announcements-model-config`, `ticket-staff-controls`, `dependency-updates`, `release-pipeline`, `compose-run-fixes`, `reload-uploads-changes`. Each
-one's `design.md` in
+`ntust-announcements-model-config`, `ticket-staff-controls`, `dependency-updates`, `release-pipeline`, `compose-run-fixes`, `reload-uploads-changes`,
+`timezone-from-env`. Each one's `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
@@ -750,7 +750,8 @@ Answered on 2026-10-11 (evening), after the core's run under compose, from the r
   `reload-uploads-changes`: a reload that changes no command answers within seconds.
 - **Time zone:** compose passes `TZ` from `.env` to the bot, UTC when unset, and the owner's `.env`
   sets `Asia/Taipei`; this covers Giveaway's typed end times, Ticket's archive times and
-  NtustAnnouncements' `{{now}}`. Follow-up change.
+  NtustAnnouncements' `{{now}}`. Done in `timezone-from-env`; the owner's `.env` on the Mac has
+  `TZ=Asia/Taipei`.
 - **Ticket:** channel names keep v3's username, so TicketAwayNotice's default prefixes do not match
   them.
 - **ChatLogger:** `log_all: true` stays the default. A deleted message's text is still removed once
@@ -784,13 +785,12 @@ Answered on 2026-10-11 (evening), after the core's run under compose, from the r
    from the bot's image; a real voice test (DAVE) needs a token (review queue, "MusicPlayer").
    **VoiceLogger status events** were built in port-voice-logger (the core relays the gateway
    event; the audit log is read raw); what needs a real guild is in `docs/porting/owner-review.md`.
-5. **Giveaway's time zone:** before cutover, set `timeZone: "Asia/Taipei"` in
-   `plugins/Giveaway/config.yaml` (or `TZ` in `compose.yaml`): the container's zone is UTC, so typed
-   end times would be read 8 hours off. Whether v3's running giveaways come along is up to the
-   one-off migration at cutover.
-6. **Ticket** (review queue, "Ticket"): whether ticket channels should take a `ticket-` prefix so
-   that TicketAwayNotice's default prefixes match them; the Message Content intent for the archive;
-   `TZ` for the archive's times; the one-off migration of v3's panels at cutover before anyone uses
+5. **Giveaway's time zone:** typed end times follow `TZ` in `.env` (`timezone-from-env`; the
+   owner's Mac has `Asia/Taipei`); the production host's `.env` needs it too (or `timeZone` in
+   `plugins/Giveaway/config.yaml`), or they are read 8 hours off in UTC. Whether v3's running
+   giveaways come along is up to the one-off migration at cutover.
+6. **Ticket** (review queue, "Ticket"): channel names keep v3's username (answered on 2026-10-11);
+   the Message Content intent for the archive; `TZ` in `.env` for the archive's times; the one-off migration of v3's panels at cutover before anyone uses
    `/add-ticket` on v3 panels (until then a new button takes index 0, the v3 button's, and both
    open the new entry) and before staff need the control rows of v3's ticket channels (until then,
    since `ticket-staff-controls`, their lock and unlock answer the not-found text, as save and
@@ -804,7 +804,7 @@ Answered on 2026-10-11 (evening), after the core's run under compose, from the r
    `current_announcement_lists` from v3's MongoDB (a one-off script; archived design "Storage and
    the v3 data import") before enabling the plugin, or its first pass posts every board's first
    page; add `boards` with the 18 channel IDs to the migrated
-   `plugins/NtustAnnouncements/config.yaml`; `{{now}}` is UTC in the container unless `TZ` is set.
+   `plugins/NtustAnnouncements/config.yaml`; `{{now}}` follows `TZ` in `.env` (UTC when unset).
    The model settings (review queue, "NtustAnnouncements model settings") keep v3's values unless
    the file sets them.
 9. **NtustCourseWatch** (review queue, "NtustCourseWatch"): before each course selection, set

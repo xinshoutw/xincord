@@ -239,7 +239,7 @@ here; delete a section once it is empty.
 - End times after 9999 (`+12026-01-05 10:00`) and `9999-12-31 24:00` get the format error.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-giveaway/design.md` (needs a token, a test guild and a second account).
-- Before cutover, set `timeZone: "Asia/Taipei"` in `plugins/Giveaway/config.yaml` (or `TZ` in `compose.yaml`): the container's zone is UTC, so typed end times would be read 8 hours off.
+- Before cutover, set `TZ=Asia/Taipei` in the production host's `.env` (`timezone-from-env`; or `timeZone` in `plugins/Giveaway/config.yaml`): without it the container's zone is UTC, so typed end times would be read 8 hours off.
 - The bot needs View Channel, Send Messages (in threads too) and Embed Links in giveaway channels; Read Message History only for the core's upgrade of v3 posts.
 - Unverified without Discord: that a type-7 response to a modal submission updates the ephemeral builder, and how a burst of joins looks (a response may show a count one behind until the next press).
 - Packaging was checked: the wheel's files, `xincord --no-online` from the built wheels, and the compose image (`docker compose run --rm -T bot --no-online` with `Giveaway` enabled), whose Python resolves `Asia/Taipei`.
@@ -282,7 +282,7 @@ here; delete a section once it is empty.
 - Smoke checklist in `openspec/changes/archive/2026-10-11-port-ticket/design.md`.
 - The archive copies other members' messages only with the Message Content intent enabled in the developer portal (as in v3; the plugin does not request it, so the bot connects without it).
 - The bot needs Manage Channels and Manage Roles where tickets open, and View Channel, Send Messages, Send Messages in Threads, Create Public Threads and Manage Webhooks in the archive channel; Read Message History in the ticket.
-- Before cutover, set `TZ` in `compose.yaml` (for example `Asia/Taipei`) so that the archive's times match v3's host.
+- Before cutover, set `TZ` in the production host's `.env` (for example `Asia/Taipei`, `timezone-from-env`) so that the archive's times match v3's host.
 - After the one-off migration of v3's panels at cutover, press a v3 panel and a v3 control row: they work and their IDs are rewritten. Deleting a ticket from a v3 control row logs the core's failed upgrade once, since the message is gone.
 - Migrate v3's panels (the one-off migration at cutover) before anyone uses `/add-ticket` on a v3 panel (see the choice above).
 - Unverified without Discord: Discord's exact webhook username rules, and how a long archive behaves near Discord's rate limits.
