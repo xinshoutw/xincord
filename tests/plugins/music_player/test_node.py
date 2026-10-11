@@ -374,7 +374,6 @@ async def test_close_leaves_voice(scene: Scene) -> None:
     assert scene.recorder.left == [11, GUILD]
 
 
-@pytest.mark.xfail(strict=True, reason="Songs load and play through a Lavalink node")
 async def test_a_refused_connection(scene: Scene) -> None:
     """Requirement: Songs load and play through a Lavalink node."""
     guild = Guild(GUILD, refuse=True)  # the gateway refuses the voice state
@@ -390,7 +389,6 @@ async def test_a_refused_connection(scene: Scene) -> None:
     assert scene.recorder.left == [GUILD]  # the plugin forgets the player it got
 
 
-@pytest.mark.xfail(strict=True, reason="Songs load and play through a Lavalink node")
 async def test_close_when_a_leave_is_refused(
     scene: Scene, caplog: pytest.LogCaptureFixture
 ) -> None:

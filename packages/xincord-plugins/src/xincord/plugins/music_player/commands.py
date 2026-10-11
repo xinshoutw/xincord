@@ -211,6 +211,9 @@ class Commands(Replies):
             await self.tell(interaction, "empty-playlist")
             return
         session = self.session(guild_of(interaction).id)
+        if session.player is None:  # the bot left voice during the load
+            await self.tell(interaction, "not-connected")
+            return
         added = await session.enqueue(entries)
         if not added.added:
             await self.tell(interaction, "queue-full")

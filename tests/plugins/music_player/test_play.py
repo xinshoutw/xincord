@@ -144,7 +144,6 @@ async def test_full_history(scene: Scene) -> None:
     assert full.sent[-1] == ("edit_original_response", {"content": text("queue-full")})
 
 
-@pytest.mark.xfail(strict=True, reason="Play queues songs and starts them")
 async def test_the_bot_left_during_the_load(scene: Scene) -> None:
     """Requirement: Play queues songs and starts them."""
     scene.answer("ytsearch:never gonna", LoadKind.SEARCH, song(1))

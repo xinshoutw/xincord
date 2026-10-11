@@ -210,9 +210,18 @@ class NodeLink:
         if self.closed:
             return
         self.closed = True
-        for voice in list(self.voices.values()):
-            await voice.disconnect(force=True)
-        await self.client.close()
+        try:
+            for voice in list(self.voices.values()):
+                try:
+                    await voice.disconnect(force=True)
+                except Exception as error:  # noqa: BLE001 - logged, and the other guilds still leave
+                    logger.warning(
+                        "MusicPlayer: could not leave voice in guild %d: %s",
+                        voice.guild_id,
+                        redact(str(error)),
+                    )
+        finally:
+            await self.client.close()
 
 
 class LavalinkVoice(discord.VoiceProtocol):
@@ -242,6 +251,7 @@ class LavalinkVoice(discord.VoiceProtocol):
 
         Raises:
             NodeUnavailableError: No node is connected; discord.py then forgets the protocol.
+            Exception: The gateway refused the voice state; the connection is released.
         """
         del timeout, reconnect
         try:
@@ -252,11 +262,15 @@ class LavalinkVoice(discord.VoiceProtocol):
         self.link.voices[self.guild_id] = self
         self.link.listener.joined(self.guild_id, GuildPlayer(player))
         guild = cast("discord.VoiceChannel", self.channel).guild
-        await guild.change_voice_state(
-            channel=cast("discord.VoiceChannel", self.channel),
-            self_deaf=self_deaf,
-            self_mute=self_mute,
-        )
+        try:
+            await guild.change_voice_state(
+                channel=cast("discord.VoiceChannel", self.channel),
+                self_deaf=self_deaf,
+                self_mute=self_mute,
+            )
+        except BaseException:  # the gateway refused: nothing connects
+            await self._release()
+            raise
 
     @override
     async def on_voice_state_update(self, data: GuildVoiceState, /) -> None:
