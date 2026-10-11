@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, cast
 import pytest
 
 from discord_fakes import embed_dict
-from music_fakes import song, text
+from music_fakes import FakePlayer, song, text
 from plugin_fakes import golden
 from xincord.plugins.music_player.history import Entry, Requester
 
@@ -47,9 +47,6 @@ def seeded(seed: int) -> random.Random:
     return random.Random(seed)  # noqa: S311 - an order, no secret
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members control playback with v3's replies"
-)
 async def test_pause_and_resume(scene: Scene) -> None:
     """Requirement: Members control playback with v3's replies."""
     player = await scene.playing(1)
@@ -71,9 +68,6 @@ async def test_pause_and_resume(scene: Scene) -> None:
 
 
 @pytest.mark.parametrize("handler", ["pause_song", "resume_song", "now_playing"])
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members control playback with v3's replies"
-)
 async def test_nothing_playing(scene: Scene, handler: str) -> None:
     """Requirement: Members control playback with v3's replies."""
     interaction = scene.who(VOICE)
@@ -83,9 +77,6 @@ async def test_nothing_playing(scene: Scene, handler: str) -> None:
     assert told(interaction, "nothing-playing")
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members control playback with v3's replies"
-)
 async def test_stop(scene: Scene) -> None:
     """Requirement: Members control playback with v3's replies."""
     player = await scene.playing(1, 2)
@@ -103,9 +94,6 @@ async def test_stop(scene: Scene) -> None:
     assert told(again, "nothing-playing")
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members control playback with v3's replies"
-)
 async def test_skip(scene: Scene) -> None:
     """Requirement: Members control playback with v3's replies."""
     player = await scene.playing(1, 2, 3, 4)
@@ -124,11 +112,6 @@ async def test_skip(scene: Scene) -> None:
     assert player.calls[-1] == ("stop", None)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Volume, queue, shuffle and now playing keep v3's replies",
-)
 async def test_volume(scene: Scene) -> None:
     """Requirement: Volume, queue, shuffle and now playing keep v3's replies."""
     before, after = scene.who(None), scene.who(None)
@@ -145,11 +128,6 @@ async def test_volume(scene: Scene) -> None:
     assert embeds(after)[0]["title"].endswith(f" 70 {chr(0x279E)} 30")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Volume, queue, shuffle and now playing keep v3's replies",
-)
 async def test_queue(scene: Scene) -> None:
     """Requirement: Volume, queue, shuffle and now playing keep v3's replies."""
     await scene.playing(1, 2, 3)
@@ -169,11 +147,6 @@ async def test_queue(scene: Scene) -> None:
     assert told(empty, "empty-playlist")  # v3's reply: a song plays and none waits
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Volume, queue, shuffle and now playing keep v3's replies",
-)
 async def test_shuffle(scene: Scene) -> None:
     """Requirement: Volume, queue, shuffle and now playing keep v3's replies."""
     scene.cog.random = seeded(5)
@@ -194,11 +167,6 @@ async def test_shuffle(scene: Scene) -> None:
     assert [entry.track.title for entry in upcoming] == expected
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Volume, queue, shuffle and now playing keep v3's replies",
-)
 async def test_now_playing(scene: Scene) -> None:
     """Requirement: Volume, queue, shuffle and now playing keep v3's replies."""
     await scene.playing(1, 2)
@@ -208,3 +176,17 @@ async def test_now_playing(scene: Scene) -> None:
 
     track = embeds(shown)[0]
     assert (track["title"], track["footer"]["text"]) == ("Song 1", GOLDEN["footer"]["en-US"])
+
+
+async def test_stop_without_a_voice_connection(scene: Scene) -> None:
+    """Requirement: Members control playback with v3's replies."""
+    player = FakePlayer()  # a session whose connection Discord dropped as /stop came in
+    scene.cog.session(10).attach(player)
+    await scene.cog.session(10).enqueue([Entry(song(1), ALICE)])
+    stop = scene.who(VOICE)
+
+    await scene.cog.stop_music(stop.as_interaction())
+
+    assert player.calls[-1] == ("stop", None)
+    assert scene.link.disconnects == []
+    assert reply(stop) == DELETED

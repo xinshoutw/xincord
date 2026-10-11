@@ -18,7 +18,10 @@ from .history import Entry
 from .replies import Replies, Screen, requester
 
 if TYPE_CHECKING:
+    from random import Random
+
     from .audio import Link, Loaded, Track
+    from .session import Session
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +68,8 @@ OPTIONS = {
 
 class Commands(Replies):
     """The commands' handlers, a base of the cog, which sets the attributes."""
+
+    random: Random  # /shuffle's order
 
     def command(self, name: str) -> app_commands.Command[Any, ..., None]:
         """Build v3's command ``name``, localized from ``register.yaml``, for every member.
@@ -224,41 +229,94 @@ class Commands(Replies):
         link = self.loader()
         await channel.connect(cls=link.voice, self_deaf=False, self_mute=False)
 
+    def playing(self, interaction: discord.Interaction) -> Session | None:
+        """The guild's session when a song plays (or is paused), else None."""
+        session = self.sessions.get(_guild(interaction).id)
+        return session if session is not None and session.playing else None
+
     async def pause_song(self, interaction: discord.Interaction) -> None:
-        """``/pause``."""
-        raise NotImplementedError
+        """``/pause``: pause the song and show the ``pause`` panel; any member, as in v3."""
+        if (session := self.playing(interaction)) is None:
+            await self.tell(interaction, "nothing-playing")
+        elif not await session.pause():
+            await self.tell(interaction, "already-paused")
+        else:
+            await self.show(interaction, Screen("pause"), session)
 
     async def resume_song(self, interaction: discord.Interaction) -> None:
-        """``/resume``."""
-        raise NotImplementedError
+        """``/resume``: resume the song and show the ``resume`` panel."""
+        if (session := self.playing(interaction)) is None:
+            await self.tell(interaction, "nothing-playing")
+        elif not await session.resume():
+            await self.tell(interaction, "already-playing")
+        else:
+            await self.show(interaction, Screen("resume"), session)
 
     async def stop_music(self, interaction: discord.Interaction) -> None:
-        """``/stop``."""
-        raise NotImplementedError
+        """``/stop``: forget the songs, unpaused, leave voice (P2) and delete the reply."""
+        if (session := self.playing(interaction)) is None:
+            await self.tell(interaction, "nothing-playing")
+            return
+        await session.stop()
+        if (voice := _guild(interaction).voice_client) is not None:
+            await voice.disconnect(force=True)
+        await interaction.delete_original_response()
 
     async def skip_songs(
         self, interaction: discord.Interaction, count: app_commands.Range[int, 1, 50] = 1
     ) -> None:
-        """``/skip``."""
-        raise NotImplementedError
+        """``/skip``: skip ``count`` songs and show the ``skip`` panel.
+
+        v3's maximum is the upcoming songs and the playing one: skipping that many ends the list
+        (v3 re-showed the last song and never said ``skipped-to-end``).
+        """
+        if (session := self.playing(interaction)) is None:
+            await self.tell(interaction, "nothing-playing")
+            return
+        most = len(session.history.upcoming) + 1
+        if count > most:
+            await self.tell(interaction, "skip-too-many", count=most)
+        elif (entry := await session.skip_many(count)) is None:
+            await self.tell(interaction, "skipped-to-end")
+        else:
+            await self.show(interaction, Screen("skip"), session, entry=entry)
 
     async def change_volume(
         self, interaction: discord.Interaction, level: app_commands.Range[int, 0, 100]
     ) -> None:
-        """``/volume``."""
-        raise NotImplementedError
+        """``/volume``: set the guild's volume and show the ``volume`` panel with both levels.
+
+        The level stays until the plugin unloads, as v3's per-guild player kept it.
+        """
+        session = self.session(_guild(interaction).id)
+        before = await session.set_volume(level)
+        await self.show(interaction, Screen("volume", (before, level)), session)
 
     async def show_queue(self, interaction: discord.Interaction) -> None:
-        """``/queue``."""
-        raise NotImplementedError
+        """``/queue``: the ``queue`` panel, or ``empty-playlist`` without upcoming songs."""
+        session = self.playing(interaction)
+        if session is None or not session.history.upcoming:
+            await self.tell(interaction, "empty-playlist")
+            return
+        await self.show(interaction, Screen("queue"), session)
 
     async def shuffle_queue(self, interaction: discord.Interaction) -> None:
-        """``/shuffle``."""
-        raise NotImplementedError
+        """``/shuffle``: shuffle the upcoming songs, for a member in voice; no panel, as v3."""
+        if _voice_channel(interaction) is None:
+            await self.tell(interaction, "shuffle-join-voice")
+            return
+        session = self.sessions.get(_guild(interaction).id)
+        if session is None or not (count := session.shuffle(self.random)):
+            await self.tell(interaction, "shuffle-too-few")
+            return
+        await self.tell(interaction, "shuffled", count=count)
 
     async def now_playing(self, interaction: discord.Interaction) -> None:
-        """``/now-playing``."""
-        raise NotImplementedError
+        """``/now-playing``: the ``now-playing`` panel of the song."""
+        if (session := self.playing(interaction)) is None:
+            await self.tell(interaction, "nothing-playing")
+            return
+        await self.show(interaction, Screen("now-playing"), session)
 
     async def song_choices(
         self, interaction: discord.Interaction, current: str
