@@ -14,7 +14,7 @@
 
 ## 3. Pure logic
 
-- [ ] 3.1 xfail tests for "Queries become Lavalink identifiers as in v3", "Panels show v3's track
+- [x] 3.1 xfail tests for "Queries become Lavalink identifiers as in v3", "Panels show v3's track
       layout" and "The queue view fits Discord's limits" against stubs in `display.py`
 - [ ] 3.2 Implement the identifier rule, the times, the bar, the thumbnails, the panel values and
       the queue embed; remove the markers
