@@ -65,7 +65,8 @@ import); the Web Dashboard's reload path (B13).
 
 ### Modified Capabilities
 
-None.
+- `core-config`: a YAML syntax error gives its line and column without quoting the file's text,
+  which can hold a plugin's API key or token (found in the cross-review).
 
 ## Impact
 
@@ -73,6 +74,7 @@ New package `packages/xincord-plugins/src/xincord/plugins/ntust_announcements/` 
 in `packages/xincord-plugins/pyproject.toml`; `Failures` moves from UptimeHeartbeat's `logs.py` into
 the new shared package `xincord.plugins.failures` (no behavior change); tests under
 `tests/plugins/ntust_announcements/` with trimmed copies of NTUST's pages and golden data in
-`tests/fixtures/plugins/ntust_announcements/`. No core change and no new dependency: HTML is
+`tests/fixtures/plugins/ntust_announcements/`. One core change, in `xincord.core.config`'s YAML
+errors (above), and no new dependency: HTML is
 parsed with the standard library and Gemini is called over its REST API with aiohttp. Enabling the
 plugin sends the boards' articles to Google's Gemini API with the operator's keys.

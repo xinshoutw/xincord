@@ -1,6 +1,7 @@
 """Config loading: validation, defaults and unknown keys."""
 
 import logging
+import traceback
 from typing import TYPE_CHECKING
 
 import pytest
@@ -118,3 +119,17 @@ def test_unreadable_path_is_reported(tmp_path: Path) -> None:
 
     with pytest.raises(ConfigError, match=str(path)):
         load_config(path, Sample, DEFAULT)
+
+
+@pytest.mark.xfail(strict=True, reason="Config files are validated against a typed schema")
+def test_yaml_errors_quote_no_text(tmp_path: Path) -> None:
+    """Requirement: Config files are validated against a typed schema."""
+    # PyYAML's errors quote the faulty line, where a plugin's key or token can be.
+    path = write(tmp_path, 'flag: true\nitems:\n  - "secret-api-key" extra"\n')
+
+    with pytest.raises(ConfigError) as error:
+        load_config(path, Sample, DEFAULT)
+
+    logged = "".join(traceback.format_exception(error.value))
+    assert "secret-api-key" not in logged
+    assert "line 3, column" in str(error.value)
