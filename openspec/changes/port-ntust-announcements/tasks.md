@@ -34,7 +34,7 @@
 - [x] 5.2 Implement `fill_prompt`, `KeyRing`, `backoff` and `Gemini.convert`; remove the markers
 - [x] 5.3 xfail tests for "Gemini turns an article into Markdown" against stubs in `web.py`, with a
       local server standing for NTUST and Gemini
-- [ ] 5.4 Implement `open_web`, the page fetch and the Gemini request; remove the markers
+- [x] 5.4 Implement `open_web`, the page fetch and the Gemini request; remove the markers
 
 ## 6. Passes and storage
 

@@ -87,9 +87,6 @@ async def server() -> AsyncGenerator[Server]:
         yield running
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Gemini turns an article into Markdown"
-)
 async def test_request(server: Server) -> None:
     """Requirement: Gemini turns an article into Markdown."""
     async with open_web(MODEL, api=server.root) as web_:
@@ -105,9 +102,6 @@ async def test_request(server: Server) -> None:
     }
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Gemini turns an article into Markdown"
-)
 async def test_answer(server: Server) -> None:
     """Requirement: Gemini turns an article into Markdown."""
     async with open_web(MODEL, api=server.root) as web_:
@@ -116,9 +110,6 @@ async def test_answer(server: Server) -> None:
     assert text == "# Title\nBody"  # the first candidate's parts, joined and trimmed
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Gemini turns an article into Markdown"
-)
 @pytest.mark.parametrize(
     ("answer", "error"),
     [
@@ -154,9 +145,6 @@ async def test_refused_answers(server: Server, answer: tuple[int, str], error: s
     assert raised.value.status == answer[0]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Gemini turns an article into Markdown"
-)
 @pytest.mark.parametrize(
     "body",
     [
@@ -175,9 +163,6 @@ async def test_answers_without_text(server: Server, body: str) -> None:
         assert await web_.generate("key-one", "the prompt") == ""
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Gemini turns an article into Markdown"
-)
 @pytest.mark.parametrize(
     ("answer", "text"),
     [
@@ -202,9 +187,6 @@ def test_answer_text(answer: object, text: str) -> None:
     assert answer_text(answer) == text
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 async def test_page(server: Server) -> None:
     """Requirement: Board pages list their announcements."""
     async with open_web(MODEL) as web_:
@@ -214,9 +196,6 @@ async def test_page(server: Server) -> None:
     assert server.received[0].method == "GET"
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 async def test_redirects(server: Server) -> None:
     """Requirement: Board pages list their announcements."""
     async with open_web(MODEL) as web_:
@@ -226,9 +205,6 @@ async def test_redirects(server: Server) -> None:
     assert page == Page(f"{server.root}/board", BOARD)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 async def test_page_status(server: Server) -> None:
     """Requirement: Board pages list their announcements."""
     async with open_web(MODEL) as web_:
@@ -239,9 +215,6 @@ async def test_page_status(server: Server) -> None:
     assert str(raised.value) == "code 404"
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 async def test_page_encoding(server: Server) -> None:
     """Requirement: Board pages list their announcements."""
     async with open_web(MODEL) as web_:
