@@ -59,7 +59,6 @@ def said(interaction: FakeInteraction, key: str, **values: object) -> bool:
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="Panel buttons control the guild's player")
 async def test_v3_and_new_ids(scene: Scene) -> None:
     """Requirement: Panel buttons control the guild's player."""
     player = await scene.playing(1, 2, 3)
@@ -74,9 +73,6 @@ async def test_v3_and_new_ids(scene: Scene) -> None:
     assert player.played()[-2:] == [("Song 2", 2, 40), ("Song 3", 3, 40)]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panel buttons control the guild's player"
-)
 async def test_member_outside_voice(scene: Scene) -> None:
     """Requirement: Panel buttons control the guild's player."""
     player = await scene.playing(1, 2)
@@ -87,9 +83,6 @@ async def test_member_outside_voice(scene: Scene) -> None:
     assert player.played() == [("Song 1", 1, 40)]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panel buttons control the guild's player"
-)
 async def test_previous_pause_and_loop(scene: Scene) -> None:
     """Requirement: Panel buttons control the guild's player."""
     player = await scene.playing(1, 2)
@@ -120,9 +113,6 @@ async def test_previous_pause_and_loop(scene: Scene) -> None:
     assert loop_emoji == [FALLBACKS["media_repeat_once"], FALLBACKS["media_ordered"]]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panel buttons control the guild's player"
-)
 async def test_nothing_to_do(scene: Scene) -> None:
     """Requirement: Panel buttons control the guild's player."""
     no_song = await press(scene, "previous")
@@ -140,9 +130,6 @@ async def test_nothing_to_do(scene: Scene) -> None:
     assert said(idle, "previous-idle")
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panel buttons control the guild's player"
-)
 async def test_disconnect(scene: Scene) -> None:
     """Requirement: Panel buttons control the guild's player."""
     await scene.playing(1, 2)
@@ -159,9 +146,6 @@ async def test_disconnect(scene: Scene) -> None:
     assert scene.cog.panels.panels == {}
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panel buttons control the guild's player"
-)
 async def test_loop_without_a_song(scene: Scene) -> None:
     """Requirement: Panel buttons control the guild's player."""
     pressed = await press(scene, "loop")
@@ -170,9 +154,6 @@ async def test_loop_without_a_song(scene: Scene) -> None:
     assert scene.cog.session(10).loop.value == "single"  # v3 changed the mode anyway
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panel buttons control the guild's player"
-)
 async def test_unknown_action(scene: Scene) -> None:
     """Requirement: Panel buttons control the guild's player."""
     pressed = await press(scene, "shuffle")
@@ -180,9 +161,6 @@ async def test_unknown_action(scene: Scene) -> None:
     assert pressed.sent == []
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Panel buttons control the guild's player"
-)
 async def test_a_press_extends_the_panel(scene: Scene) -> None:
     """Requirement: Panel buttons control the guild's player."""
     await scene.playing(1, 2)
@@ -199,7 +177,6 @@ async def test_a_press_extends_the_panel(scene: Scene) -> None:
 
 
 @pytest.mark.parametrize("config", [HIDDEN])
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Errors are reported as v3 did")
 async def test_hidden_details(scene: Scene) -> None:
     """Requirement: Errors are reported as v3 did."""
     player = await scene.playing(1, 2)
@@ -210,14 +187,22 @@ async def test_hidden_details(scene: Scene) -> None:
     assert said(pressed, "button-error-hidden")
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Errors are reported as v3 did")
-async def test_detailed_button_errors(scene: Scene) -> None:
+@pytest.mark.parametrize(
+    ("error", "key", "values"),
+    [
+        pytest.param(
+            RuntimeError("the node said no"), "button-error", {"error": "the node said no"}
+        ),
+        pytest.param(NodeUnavailableError(), "node-unavailable", {}, id="absent node"),
+    ],
+)
+async def test_detailed_button_errors(
+    scene: Scene, error: Exception, key: str, values: dict[str, str]
+) -> None:
     """Requirement: Errors are reported as v3 did."""
     player = await scene.playing(1, 2, 3)
-    player.error = RuntimeError("the node said no")
-    failed = await press(scene, "skip")
-    player.error = NodeUnavailableError()
-    absent = await press(scene, "skip")
+    player.error = error
 
-    assert said(failed, "button-error", error="the node said no")
-    assert said(absent, "node-unavailable")
+    pressed = await press(scene, "skip")
+
+    assert said(pressed, key, **values)

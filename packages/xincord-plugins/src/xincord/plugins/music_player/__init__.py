@@ -17,6 +17,7 @@ from xincord.core.templates import Templates
 from .cog import MusicPlayer
 from .commands import COMMANDS
 from .config import Config
+from .ids import IDS
 
 if TYPE_CHECKING:
     from xincord.core.bot import Bot
@@ -42,3 +43,5 @@ async def setup(bot: Bot) -> None:
     # Guild commands in v3's order. discord.py removes them when the plugin unloads.
     for name in COMMANDS:
         bot.tree.add_command(cog.command(name))
+    # The panels' buttons, v3's IDs too, reach cog.handle; the core drops the route on unload.
+    bot.route(__name__, IDS, cog.handle)

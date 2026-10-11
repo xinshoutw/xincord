@@ -8,7 +8,7 @@ Kotlin:
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any, NamedTuple, cast
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import discord
 from discord import app_commands
@@ -18,7 +18,7 @@ from xincord.plugins.redaction import redact
 from .audio import LoadKind, NodeUnavailableError
 from .display import SEARCH, cut, identifier
 from .history import Entry
-from .replies import Replies, Screen, requester
+from .replies import Replies, Screen, guild_of, requester, voice_channel
 from .texts import format_traceback
 
 if TYPE_CHECKING:
@@ -117,14 +117,14 @@ class Commands(Replies):
         As v3: a voice channel (no stage); the bot needs Connect, and Move Members for a full
         channel, as JDA checked; no confirmation.
         """
-        channel = _voice_channel(interaction)
+        channel = voice_channel(interaction)
         if channel is None:
             await self.tell(interaction, "join-voice-first")
             return
         if channel.type is not discord.ChannelType.voice:
             await self.tell(interaction, "voice-channel-not-found")
             return
-        guild = _guild(interaction)
+        guild = guild_of(interaction)
         voice = guild.voice_client
         here = voice is not None and getattr(voice.channel, "id", None) == channel.id
         if not here and not _can_join(channel, guild):
@@ -145,7 +145,7 @@ class Commands(Replies):
 
         Any member may, as in v3.
         """
-        voice = _guild(interaction).voice_client
+        voice = guild_of(interaction).voice_client
         if voice is None:
             await self.tell(interaction, "not-connected")
             return
@@ -162,14 +162,14 @@ class Commands(Replies):
         v3's checks in v3's order; the bot connects to the member's channel when it is in none
         and stays in another one (P4). A search adds its first song, a playlist every song.
         """
-        channel = _voice_channel(interaction)
+        channel = voice_channel(interaction)
         if channel is None:
             await self.tell(interaction, "play-join-voice-first")
             return
         if channel.type is not discord.ChannelType.voice:
             await self.tell(interaction, "voice-channel-not-found")
             return
-        guild = _guild(interaction)
+        guild = guild_of(interaction)
         if guild.voice_client is None:
             if not channel.permissions_for(guild.me).connect:
                 await self.tell(interaction, "no-connect-permission")
@@ -210,7 +210,7 @@ class Commands(Replies):
         if not entries:
             await self.tell(interaction, "empty-playlist")
             return
-        session = self.session(_guild(interaction).id)
+        session = self.session(guild_of(interaction).id)
         added = await session.enqueue(entries)
         if not added.added:
             await self.tell(interaction, "queue-full")
@@ -244,7 +244,7 @@ class Commands(Replies):
 
     def playing(self, interaction: discord.Interaction) -> Session | None:
         """The guild's session when a song plays (or is paused), else None."""
-        session = self.sessions.get(_guild(interaction).id)
+        session = self.sessions.get(guild_of(interaction).id)
         return session if session is not None and session.playing else None
 
     async def pause_song(self, interaction: discord.Interaction) -> None:
@@ -271,7 +271,7 @@ class Commands(Replies):
             await self.tell(interaction, "nothing-playing")
             return
         await session.stop()
-        if (voice := _guild(interaction).voice_client) is not None:
+        if (voice := guild_of(interaction).voice_client) is not None:
             await voice.disconnect(force=True)
         await interaction.delete_original_response()
 
@@ -301,7 +301,7 @@ class Commands(Replies):
 
         The level stays until the plugin unloads, as v3's per-guild player kept it.
         """
-        session = self.session(_guild(interaction).id)
+        session = self.session(guild_of(interaction).id)
         before = await session.set_volume(level)
         await self.show(interaction, Screen("volume", (before, level)), session)
 
@@ -315,10 +315,10 @@ class Commands(Replies):
 
     async def shuffle_queue(self, interaction: discord.Interaction) -> None:
         """``/shuffle``: shuffle the upcoming songs, for a member in voice; no panel, as v3."""
-        if _voice_channel(interaction) is None:
+        if voice_channel(interaction) is None:
             await self.tell(interaction, "shuffle-join-voice")
             return
-        session = self.sessions.get(_guild(interaction).id)
+        session = self.sessions.get(guild_of(interaction).id)
         if session is None or not (count := session.shuffle(self.random)):
             await self.tell(interaction, "shuffle-too-few")
             return
@@ -387,21 +387,10 @@ class Commands(Replies):
     ) -> list[app_commands.Choice[int]]:
         """``level``'s suggestion: the guild's volume, as v3's ``current-volume``."""
         del current
-        session = self.sessions.get(_guild(interaction).id)
+        session = self.sessions.get(guild_of(interaction).id)
         volume = self.config.player.default_volume if session is None else session.volume
         name = self.text("current-volume", interaction.locale.value, volume=volume)
         return [app_commands.Choice(name=name, value=volume)]
-
-
-def _guild(interaction: discord.Interaction) -> discord.Guild:
-    """The command's guild: guild commands run in guilds only."""
-    return cast("discord.Guild", interaction.guild)
-
-
-def _voice_channel(interaction: discord.Interaction) -> discord.VoiceChannel | None:
-    """The member's voice channel, a stage included; None outside voice."""
-    voice = cast("discord.VoiceState | None", getattr(interaction.user, "voice", None))
-    return None if voice is None else cast("discord.VoiceChannel | None", voice.channel)
 
 
 def _can_join(channel: discord.VoiceChannel, guild: discord.Guild) -> bool:

@@ -6,7 +6,7 @@ Kotlin:
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import discord
 
@@ -175,3 +175,14 @@ class Replies:
 def requester(member: discord.Member | discord.User) -> Requester:
     """The member who adds a song, as v3 kept them: ID, display name, username and avatar."""
     return Requester(member.id, member.display_name, member.name, member.display_avatar.url)
+
+
+def guild_of(interaction: discord.Interaction) -> discord.Guild:
+    """The interaction's guild: the plugin's commands and panels are in guilds only."""
+    return cast("discord.Guild", interaction.guild)
+
+
+def voice_channel(interaction: discord.Interaction) -> discord.VoiceChannel | None:
+    """The member's voice channel, a stage included; None outside voice."""
+    voice = cast("discord.VoiceState | None", getattr(interaction.user, "voice", None))
+    return None if voice is None else cast("discord.VoiceChannel | None", voice.channel)
