@@ -30,3 +30,9 @@ applies a change. Alternative: `delete_deleted_texts: true`, a negative name for
 With `keep_deleted: true` in the test guild's `plugins/ChatLogger/config.yaml` and a reload:
 delete a message in a logged channel; the listen channel gets the deletion, and the message is
 still in `data/ChatLogger/messages-*.db`. With the key back to false, the next deletion removes it.
+
+Result on 2026-10-11 (the owner's test guild, compose, a real token): a webhook message in a text
+channel was stored in `data/ChatLogger/messages-20261011T155115Z.db` in the `data` volume; deleted
+through the webhook with `keep_deleted: true`, it was still stored; with the key set back to false
+and a reload, the next webhook message was stored and then removed by its deletion. The listen
+channel's embeds are part of the owner's Discord checks (no listen channel was set).

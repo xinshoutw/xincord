@@ -92,26 +92,6 @@ here; delete a section once it is empty.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-welcome-bye-guild/design.md` (needs a token, a test guild and a second account).
 
-## UptimeHeartbeat (v3 IntervalPusher, `port-interval-pusher`, `uptime-heartbeat-keep-pushing`)
-
-### User-visible changes
-- The plugin shows nothing in Discord: the changes are in `plugins/UptimeHeartbeat/config.yaml` and the log.
-- The bundled `config.yaml` lists no listeners and shows an example on `status.example.com` in a comment (v3 shipped one listener on `status.xinshou.tw` with a placeholder token, disabled); a v3 file loads unchanged and warns `unknown key enabled`.
-- An `interval` below 1 (v3: a busy loop) or a `url` that is not an http or https URL with a host (v3: an error at every push) disables the plugin at load, with the key named.
-- `%ping%` is measured only for URLs that contain it (v3 asked Discord at every push).
-- Stopping or reloading the plugin no longer logs a spurious error.
-- `uptime-heartbeat-keep-pushing`: a listener keeps pushing at its interval after every failure, a 404 (unknown or paused push token) included, until the plugin unloads; `UptimeHeartbeat listener N stopped: ...` is gone.
-- `uptime-heartbeat-keep-pushing`: log lines number the listener and show its URL only as its origin (scheme, host, port if given), never the user info, path or query, and URLs in error texts and tracebacks are cut the same way: `UptimeHeartbeat listener 2: pushing to https://status.example.com failed with code 404 (the status monitor refused the push)`, `... failed: Connection timeout to host https://status.example.com`, at debug level `UptimeHeartbeat listener 1 pushed to https://status.example.com (code 200)`.
-- `uptime-heartbeat-keep-pushing`: each kind of failure (status code, error type) is logged at its level (404 and 521 warnings, the others errors) once per failure episode, the rest only at debug level; the episode ends once pushing has worked three times in a row, with one info line: `UptimeHeartbeat listener 1: pushing to https://status.example.com works again after 37 failed pushes`. The REST ping's failures likewise, ending with `UptimeHeartbeat listener 1 measures the REST ping again`.
-- `uptime-heartbeat-keep-pushing`: a config error for an invalid `url` no longer quotes the URL (pydantic's input is hidden, and a URL whose host or port cannot be read gets `not a URL: its host or port cannot be read`).
-- `uptime-heartbeat-keep-pushing`: a failed ping of any kind leaves `-1` in the URL and the push goes on, as in v3 (the port skipped the push after an unexpected error).
-- `uptime-heartbeat-keep-pushing`: an unexpected error's traceback is part of its error line, redacted, instead of a separate exception record.
-- `uptime-heartbeat-keep-pushing`: the bundled `config.yaml` comment describes this instead of the 404 stop; an existing `plugins/UptimeHeartbeat/config.yaml` keeps its old comment.
-### Manual checks
-- Smoke checklist in `openspec/changes/archive/2026-10-10-port-interval-pusher/design.md` (needs a token and an Uptime Kuma push monitor or another endpoint that shows its requests); its steps 4 and 5 are replaced by the next one's.
-- Smoke checklist in `openspec/changes/archive/2026-10-10-uptime-heartbeat-keep-pushing/design.md`: a wrong token or a paused monitor logs one warning and keeps pushing, a resumed monitor logs `works again` at the third push in a row that works, an unanswered address times out with the origin only, and `docker compose logs bot | grep <token>` finds nothing.
-- After a discord.py upgrade, check that pushes carry a real ping and not `-1`: the ping uses discord.py's undocumented `HTTPClient.request` and `Route`.
-
 ## Feedback (v3 Feedbacker, `port-feedbacker`)
 
 ### User-visible changes
@@ -202,6 +182,7 @@ here; delete a section once it is empty.
 - As in VoiceLogger: the menu answers in every channel, and logs reach listen channels of every kind; a deleted listen channel is forgotten and a refusing one no longer stops the others; a first selection keeps the allow mode; "Delete" deletes only that channel's settings; long lists end with `...`; settings of a guild the bot leaves are deleted at once.
 - The bundled `config.yaml` explains both keys and the Message Content intent (English comments).
 `chat-logger-split-storage`: messages are kept 5 years by default: the bundled `config.yaml` says `retention_days: 1826` (was 30), as the owner decided on 2026-10-10.
+`chat-logger-keep-deleted` (the owner's request of 2026-10-11): new config key `keep_deleted`, false by default; with it true, a deleted message stays stored after its deletion is logged, until `retention_days` removes it, as v3 kept it. The bundled `config.yaml` explains it in a new comment; existing operator files run with the default until the key is added.
 `chat-logger-split-storage`: new config key `max_file_size_mb` (256 by default, 1 to 65536, with a comment): once the newest message file reaches that size, a new file starts.
 `chat-logger-split-storage`: the message log moved from `data/xincord.db` to `data/ChatLogger/messages-<UTC second>.db` in the `data` volume: no file before the first stored message, a new file at the size limit, and a file whose messages all expired is deleted whole. Backups must copy `data/ChatLogger/` too, best with the bot stopped.
 `chat-logger-split-storage`: with `log_all: true`, the messages of a guild the bot left now stay up to 5 years (the retention; see the choice on left guilds below).
@@ -213,7 +194,6 @@ here; delete a section once it is empty.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-chat-logger/design.md` (needs a token, a test guild and a second account); its steps 1 and 13, which look for `ChatLogger_messages` in `data/xincord.db`, are replaced by the checklist below.
 - Smoke checklist in `openspec/changes/archive/2026-10-11-chat-logger-split-storage/design.md`: a split at `max_file_size_mb: 1`, edits and deletions on both sides of it, a restart, the expiry of a whole file (needs a token, a test guild and a day).
-- `chat-logger-split-storage`: the image was checked with a probe that wrote message files into the named volume as uid 1000 (`design.md`, "Checks"); a run under compose with a token is still open.
 - Turn the Message Content intent on for the bot in the Discord developer portal (Bot, Privileged Gateway Intents) before enabling ChatLogger: without it, Discord refuses the bot's connection.
 - The bot needs View Channel and Read Message History in the logged channels, and View Channel, Send Messages and Embed Links in the listen channels.
 - Unverified without a real guild: whether Discord sends `MESSAGE_UPDATE` for pins and link previews and which previews it types `rich` (members' are never logged either way; a bot's rich preview would log an edit), and how long a large purge takes to post.

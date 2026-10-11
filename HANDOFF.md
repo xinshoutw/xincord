@@ -564,7 +564,7 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 `chat-logger-split-storage`, `port-ticket`, `port-ticket-away-notice`,
 `port-ntust-announcements`, `port-ntust-course-watch`, `port-music-player`,
 `ntust-announcements-model-config`, `ticket-staff-controls`, `dependency-updates`, `release-pipeline`, `compose-run-fixes`, `reload-uploads-changes`,
-`timezone-from-env`. Each one's `design.md` in
+`timezone-from-env`, `chat-logger-keep-deleted`. Each one's `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
@@ -756,10 +756,16 @@ Answered on 2026-10-11 (evening), after the core's run under compose, from the r
   them.
 - **ChatLogger:** `log_all: true` stays the default. A deleted message's text is still removed once
   its deletion is handled, and a new config key lets operators keep it until the retention
-  (default: removed). Follow-up change.
+  (default: removed). Done in `chat-logger-keep-deleted` (`keep_deleted: false`).
 - **CustomCommands:** the features left out (command options, cooldowns, buttons that run actions,
   global commands, and the rest of the design's "Left out") wait for a real need, tracked in issue
   #2.
+- **Verified on the test guild by Claude (2026-10-11):** UptimeHeartbeat's whole smoke checklist
+  (pushes with a real ping to a local endpoint, one warning per failure episode and `works again`
+  at the third push in a row, a timeout and every log line with the origin only, an invalid
+  `interval` refused on reload while the old listener pushes on, a quiet stop, nothing pushed under
+  `--no-online`); ChatLogger's message files in the `data` volume under compose with a real token,
+  and `keep_deleted` both ways. Their review items were deleted.
 - **Accepted as implemented:** ChatLogger's one embed per stored message in a bulk deletion,
   Economy's reads that create no wallet and its `no-permission` for another member's `/balance`,
   UptimeHeartbeat's failure episodes, NtustAnnouncements' first pass that posts a board's first
@@ -896,6 +902,10 @@ setup-uv v10.2.0, setup-node v7.1.0.
   in the payload; `await bot.tree._call(interaction)` runs a command's whole path.
 
 **discord.py 2.7.1 facts**
+- After a discord.py upgrade, check the internals that plugins call: UptimeHeartbeat's REST ping
+  (`HTTPClient.request` and `Route`: pushes must carry a real ping, not `-1`), DynamicVoiceChannel's
+  position PATCHes (`Route`), VoiceLogger's relay (`ConnectionState.parsers`) and its audit log
+  request, and ChatLogger's relayed `MESSAGE_CREATE`.
 - A request that empties a rate-limit bucket returns only after the bucket resets
   (`Ratelimit.__aexit__` sleeps in `_refresh`), although Discord applied it at once; command
   uploads (about two bulk overwrites a minute per route) wait so, silently below DEBUG.
