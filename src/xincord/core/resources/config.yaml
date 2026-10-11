@@ -1,6 +1,7 @@
 # xincord core configuration. Plugin settings live in plugins/<Name>/config.yaml.
 
-# The bot token from the Discord developer portal. The --token option overrides it.
+# The bot token from the Discord developer portal. The environment variable XINCORD_TOKEN
+# overrides it (compose takes it from .env), so this file can hold no secret.
 token: ""
 
 # Plugins to load, by name, in this order. Each keeps its files in plugins/<Name>/.

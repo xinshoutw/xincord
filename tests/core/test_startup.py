@@ -59,33 +59,10 @@ async def setup(bot):
 
 
 @pytest.mark.usefixtures("installed")
-@pytest.mark.parametrize(("option", "used"), [("abc", "abc"), (None, "from-config")])
-async def test_token_precedence(
-    monkeypatch: pytest.MonkeyPatch, option: str | None, used: str
-) -> None:
-    """Requirement: Startup loads the configured plugins."""
-    write_config("token: from-config\n")
-    tokens: list[str] = []
-
-    async def start(_self: Bot, token: str) -> None:
-        tokens.append(token)
-
-    monkeypatch.setattr(Bot, "start", start)
-
-    assert await run(Options(token=option)) == 0
-    assert tokens == [used]
-    assert Path("data/xincord.db").is_file()
-
-
-@pytest.mark.usefixtures("installed")
 @pytest.mark.parametrize(
     ("environment", "used"),
     [
-        pytest.param(
-            "abc",
-            "abc",
-            marks=pytest.mark.xfail(strict=True, reason="Startup loads the configured plugins"),
-        ),
+        ("abc", "abc"),
         ("", "from-config"),
         (None, "from-config"),
     ],

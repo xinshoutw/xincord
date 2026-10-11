@@ -15,18 +15,18 @@ from xincord.core.cli import Options, main, parse_args
 
 
 def test_defaults() -> None:
-    assert parse_args([]) == Options(token=None, level="INFO", no_online=False, force_lang=False)
+    assert parse_args([]) == Options(level="INFO", no_online=False, force_lang=False)
 
 
 @pytest.mark.parametrize(
     "argv",
     [
-        ["-t", "abc", "-l", "debug", "-N", "-Flang"],
-        ["--token", "abc", "--level", "DEBUG", "--no-online", "--force-renew-lang-resources"],
+        ["-l", "debug", "-N", "-Flang"],
+        ["--level", "DEBUG", "--no-online", "--force-renew-lang-resources"],
     ],
 )
 def test_every_option(argv: list[str]) -> None:
-    assert parse_args(argv) == Options(token="abc", level="DEBUG", no_online=True, force_lang=True)
+    assert parse_args(argv) == Options(level="DEBUG", no_online=True, force_lang=True)
 
 
 @pytest.mark.parametrize(
@@ -40,7 +40,6 @@ def test_rejected_options(argv: list[str], capsys: pytest.CaptureFixture[str]) -
     assert "usage: xincord" in capsys.readouterr().err
 
 
-@pytest.mark.xfail(strict=True, reason="Command line options")
 @pytest.mark.parametrize("argv", [["--token", "abc"], ["-t", "abc"]])
 def test_token_option_is_gone(argv: list[str], capsys: pytest.CaptureFixture[str]) -> None:
     """Requirement: Command line options, scenario Rejected options.

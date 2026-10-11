@@ -10,6 +10,7 @@ Kotlin:
 import argparse
 import asyncio
 import logging
+import os
 import signal
 import sys
 from contextlib import nullcontext
@@ -43,6 +44,9 @@ PLUGINS = Path("plugins")
 DATA = Path("data")
 DATABASE = DATA / "xincord.db"
 STOP_SIGNALS = (signal.SIGINT, signal.SIGTERM)
+# The bot token's environment variable, which overrides config.yaml's token: never the command
+# line, which every user of the host can list.
+TOKEN = "XINCORD_TOKEN"  # noqa: S105 - the variable's name, not a token
 # discord.py colours its log lines inside any Docker container, with a terminal or without. Off a
 # terminal, as in a container's log, they stay plain, laid out as the coloured ones.
 PLAIN = logging.Formatter("%(asctime)s %(levelname)-8s %(name)s %(message)s", "%Y-%m-%d %H:%M:%S")
@@ -52,7 +56,6 @@ PLAIN = logging.Formatter("%(asctime)s %(levelname)-8s %(name)s %(message)s", "%
 class Options:
     """The parsed command line."""
 
-    token: str | None = None
     level: str = "INFO"
     no_online: bool = False
     force_lang: bool = False
@@ -61,7 +64,6 @@ class Options:
 def parse_args(argv: Sequence[str] | None = None) -> Options:
     """Parse the command line; print a usage message and exit with status 2 if it is invalid."""
     parser = argparse.ArgumentParser(prog="xincord", description="Run the xincord Discord bot.")
-    parser.add_argument("-t", "--token", help="the bot token; overrides token in config.yaml")
     parser.add_argument(
         "-l", "--level", type=str.upper, choices=sorted(LEVELS), default="INFO", help="log level"
     )
@@ -108,9 +110,9 @@ async def run(options: Options, *, console: bool = False) -> int:
         config = load_config(CORE_CONFIG, CoreConfig, default_core_config())
     except ConfigError as error:
         return _failed(str(error))
-    token = options.token or config.token
+    token = os.environ.get(TOKEN) or config.token
     if not (token or options.no_online):
-        return _failed(f"No bot token: set token in {CORE_CONFIG} or pass --token")
+        return _failed(f"No bot token: set {TOKEN} or token in {CORE_CONFIG}")
     store = await Store.open(DATABASE)
     try:
         plugins = discover(config.plugins)

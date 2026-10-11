@@ -4,7 +4,6 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
-import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -280,7 +279,6 @@ def test_image_checked_in_ci() -> None:
     assert all(PINNED.fullmatch(item) for item in uses), uses
 
 
-@pytest.mark.xfail(strict=True, raises=KeyError, reason="Token from .env")
 def test_token_from_env() -> None:
     """Requirement: Token from .env."""
     compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))

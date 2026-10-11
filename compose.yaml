@@ -16,6 +16,8 @@ services:
     environment:
       # The bot's time zone, an IANA name from .env (see .env.example); UTC when unset.
       TZ: ${TZ:-UTC}
+      # The bot token from .env (see .env.example); config.yaml's token when unset.
+      XINCORD_TOKEN: ${XINCORD_TOKEN:-}
     volumes:
       - .:/bot  # config.yaml and plugins/ sit next to this file
       - data:/bot/data  # the database and the plugins' data files stay in a named volume

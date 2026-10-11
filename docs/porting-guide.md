@@ -947,7 +947,8 @@ Every deliberate difference, added by the change that introduces it.
 | Command line | logback level names; an unknown name silently became DEBUG | Python level names in any case; an unknown name is a usage error | core-startup |
 | Command line | `--ignore-update` (`-I`) and `--auto-defer-interactions` / `--no-auto-defer-interactions` | removed: no version check, and commands opt out of the defer with `extras` | core-startup |
 | Logging | also written to `log/output.log`, rotated at 1 MB | stderr only | core-startup |
-| Startup | the token was compared with a placeholder string | the default token is empty; `--token` overrides the config | core-startup |
+| Startup | the token was compared with a placeholder string | the default token is empty; `XINCORD_TOKEN` overrides the config | core-startup, core-token-env |
+| Command line | `-t <token>` passed the token, which process lists then showed | removed: the token comes from `XINCORD_TOKEN` or `config.yaml` | core-token-env |
 | Startup | plugins loaded after JDA was ready, so `setup` could read the guild cache | plugins load before the gateway connects | core-startup |
 | Command upload | guild commands were uploaded at startup only when there were any, so the last removed one stayed | an empty payload is uploaded once | core-startup |
 | Mentions | every mention type pinged, including `@everyone` and roles | users and the replied-to user only, unless a message opts in | core-startup |

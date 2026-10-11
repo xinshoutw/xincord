@@ -1,7 +1,7 @@
 ## 1. Token
 
-- [ ] 1.1 xfail tests (`--token` rejected, the token from `XINCORD_TOKEN`, compose's variable)
-- [ ] 1.2 `cli`, the default config, `compose.yaml`, `.env.example`, README and the docs; update the
+- [x] 1.1 xfail tests (`--token` rejected, the token from `XINCORD_TOKEN`, compose's variable)
+- [x] 1.2 `cli`, the default config, `compose.yaml`, `.env.example`, README and the docs; update the
       old tests; remove the markers
 
 ## 2. Close

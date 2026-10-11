@@ -17,13 +17,14 @@ service until every in-scope plugin passes its scenarios.
 
 ```sh
 uv run xincord --help
-uv run xincord --token "<bot token>"
+uv run xincord
 ```
 
 xincord works in the current directory: it writes `config.yaml` on the first start, keeps each
 plugin's files in `plugins/<Name>/`, its database in `data/xincord.db`, and the data files that a
-plugin keeps itself in `data/<Name>/` (ChatLogger's message log). Set `token` (or pass
-`--token`) and list the plugins to load under `plugins`. `--no-online` loads the config and the
+plugin keeps itself in `data/<Name>/` (ChatLogger's message log). Set the bot token in the
+environment variable `XINCORD_TOKEN` (or `token` in `config.yaml`) and list the plugins to load
+under `plugins`. `--no-online` loads the config and the
 plugins without connecting and exits with status 1 if one did not load. SIGINT or SIGTERM stops
 the bot; SIGHUP, or `/xincord reload [plugin]` run by the application owner, reloads the config
 and the plugins without disconnecting. In a terminal, the `console > ` prompt accepts
@@ -37,7 +38,7 @@ bot keeps `config.yaml` and `plugins/` next to them.
 ```sh
 curl -fsSLO https://raw.githubusercontent.com/xinshoutw/xincord/main/compose.yaml
 curl -fsSL -o .env https://raw.githubusercontent.com/xinshoutw/xincord/main/.env.example
-# in .env: LAVALINK_PASSWORD, and XINCORD_VERSION, TZ, COMPOSE_PROFILES=music (MusicPlayer's
+# in .env: XINCORD_TOKEN, LAVALINK_PASSWORD, and XINCORD_VERSION, TZ, COMPOSE_PROFILES=music (MusicPlayer's
 # node), Spotify or YouTube's settings if wanted
 docker compose up -d             # start; the bot writes config.yaml and plugins/ on the first start
 docker compose kill -s HUP bot   # reload the config and the plugins

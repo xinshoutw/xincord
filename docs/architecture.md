@@ -83,9 +83,9 @@ How xincord is built: the core, the plugin conventions and each port, as recorde
   - `xincord.core.admin.Xincord`: the global, guild-only `/xincord` group (administrators see it by
     default); `reload [plugin]` runs for the application owner only and replies ephemerally with
     the summary; `plugin` autocompletes loaded plugins. `setup_hook` registers it.
-  - `xincord.core.cli`: the `xincord` console script. `parse_args` (`--token`, `--level`,
-    `--no-online`, `--force-renew-lang-resources` with v3's short forms) returns `Options`;
-    `run(options)` loads `config.yaml`, opens `data/xincord.db` (`DATA / "xincord.db"`; the bot
+  - `xincord.core.cli`: the `xincord` console script. `parse_args` (`--level`, `--no-online`,
+    `--force-renew-lang-resources` with v3's short forms) returns `Options`; `run(options)`
+    takes the token from `XINCORD_TOKEN` or the config (`core-token-env`), loads `config.yaml`, opens `data/xincord.db` (`DATA / "xincord.db"`; the bot
     gets `DATA`, `data/`, for the plugins' data directories), discovers `CoreConfig.plugins`
     and either checks them offline (`--no-online`: load, unload, exit 0 or 1) or connects until
     SIGINT or SIGTERM closes the bot and the store; SIGHUP runs `bot.reload()`. Logs go to stderr
