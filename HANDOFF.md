@@ -84,11 +84,11 @@ repository root (gitignored), with the owner's test application and guild `xinco
 
 ## Next steps
 
-1. The owner's review items of 2026-10-12, in progress: compose without a TTY and the node in
-   the `music` profile (done, deployed), the image built in CI (done), the plugins pinned to
-   their core with the plugin API in `docs/plugin-api.md` (done), the token from
-   `XINCORD_TOKEN` (done), an online backup. Code changes reach production with
-   the next release (the owner approves it), the plain log lines included.
+1. The next release, 0.3.0, when the owner approves it: it brings the plain log lines, the token
+   from `XINCORD_TOKEN` (`--token` is gone) and the backup command to production. Then, on the
+   host: `XINCORD_VERSION=0.3.0` in both `.env` files, `docker compose pull && docker compose up
+   -d`; move each token from `config.yaml` to `XINCORD_TOKEN` in `.env`; a daily launchd job
+   runs the backup for both bots (`docs/porting/owner-review.md`).
 2. PyPI's first release, 1.0.0, when the owner says so.
 3. Issues: #3 (youtube-source back to a release that holds its TV client fix), #2 (CustomCommands'
    features left out).

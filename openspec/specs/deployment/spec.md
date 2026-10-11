@@ -20,7 +20,8 @@ runtime files and the secrets file `.env`.
 
 #### Scenario: Build context
 - **WHEN** the `.dockerignore` file is read
-- **THEN** it excludes `.venv`, `.git`, the tool caches, `config.yaml`, `plugins`, `data` and `.env`
+- **THEN** it excludes `.venv`, `.git`, the tool caches, `config.yaml`, `plugins`, `data`,
+  `backups` and `.env`
 
 ### Requirement: Compose service
 `compose.yaml` SHALL run the `bot` service from `ghcr.io/xinshoutw/xincord`, tagged
