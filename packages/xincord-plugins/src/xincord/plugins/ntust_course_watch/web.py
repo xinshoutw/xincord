@@ -7,7 +7,7 @@ Kotlin:
 import json
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 import aiohttp
 
@@ -26,6 +26,14 @@ API = "https://querycourse.ntust.edu.tw/QueryCourse/api//courses"  # v3's URL, w
 TIMEOUT = aiohttp.ClientTimeout(total=30, connect=5)
 HEADERS = {"content-type": "application/json; charset=utf-8"}  # v3's header
 OK = 200
+
+
+class Query(Protocol):
+    """What the plugin asks of the course query: :class:`Api`, or a fake in tests."""
+
+    async def course(self, semester: str, code: str) -> Course | None:
+        """Ask about ``code`` in ``semester``."""
+        ...
 
 
 class QueryError(Exception):

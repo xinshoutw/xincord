@@ -1,4 +1,4 @@
-"""The plugin's cog: the commands.
+"""The plugin's cog: the commands, the loop and the posts.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/Event.kt:14-61
@@ -6,6 +6,9 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/command/Register.kt:12-28
 """
 
+import asyncio
+import time
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 import discord
@@ -15,12 +18,20 @@ from discord.ext import commands
 from .courses import course_code
 from .store import Registrations
 from .texts import course_list, text
+from .web import open_api
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+    from contextlib import AbstractAsyncContextManager
+
     from xincord.core.i18n import Lang
     from xincord.core.storage import Store
 
     from .config import Config
+    from .web import Query
+
+type OpenApi = Callable[[], AbstractAsyncContextManager[Query]]
+type Sleep = Callable[[float], Awaitable[object]]
 
 
 class CommandSpec(NamedTuple):
@@ -51,6 +62,13 @@ class NtustCourseWatch(commands.Cog):
         self.config = config
         self.registrations = Registrations(store)
         self.lang = lang
+        self.tasks: tuple[asyncio.Task[None], ...] = ()  # the loop, from READY
+        self.posting: set[asyncio.Task[None]] = set()  # the alerts on their way
+        # The effects that tests replace: the waits, the clocks and the course query.
+        self.sleep: Sleep = asyncio.sleep
+        self.clock: Callable[[], float] = time.monotonic
+        self.now: Callable[[], datetime] = lambda: datetime.now(UTC)
+        self.open_api: OpenApi = open_api
 
     def command(self, name: str) -> app_commands.Command[Any, ..., None]:
         """Build v3's command ``name``, described from ``register.yaml``, for every member.
