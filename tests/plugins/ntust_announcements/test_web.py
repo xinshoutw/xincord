@@ -231,9 +231,6 @@ async def test_page_encoding(server: Server) -> None:
     assert page.text == "caf\N{REPLACEMENT CHARACTER} \N{REPLACEMENT CHARACTER}"
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Board pages list their announcements"
-)
 def test_page_certificates() -> None:
     """Requirement: Board pages list their announcements."""
     context = page_context()
@@ -244,3 +241,10 @@ def test_page_certificates() -> None:
     assert not context.verify_flags & ssl.VERIFY_X509_STRICT
     assert context.verify_mode == ssl.CERT_REQUIRED
     assert context.check_hostname
+
+
+async def test_pages_use_the_context() -> None:
+    """Requirement: Board pages list their announcements."""
+    async with open_web(MODEL) as web_:
+        assert not web_.tls.verify_flags & ssl.VERIFY_X509_STRICT
+        assert web_.tls.check_hostname

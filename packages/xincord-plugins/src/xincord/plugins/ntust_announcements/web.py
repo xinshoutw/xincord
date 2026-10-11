@@ -10,8 +10,9 @@ Kotlin:
 """
 
 import json
+import ssl
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Protocol, cast
 
 import aiohttp
@@ -20,7 +21,6 @@ from .gemini import GeminiError
 from .pages import trim
 
 if TYPE_CHECKING:
-    import ssl
     from collections.abc import AsyncGenerator
 
 API = "https://generativelanguage.googleapis.com"  # Gemini's REST API
@@ -51,8 +51,15 @@ class FetchError(Exception):
 
 
 def page_context() -> ssl.SSLContext:
-    """TLS for the pages: certificates and host names verified, without the strict X.509 checks."""
-    raise NotImplementedError
+    """TLS for the pages: certificates and host names verified, without the strict X.509 checks.
+
+    Python 3.13 made ``VERIFY_X509_STRICT`` a default, and the certificate chains of NTUST's three
+    hosts lack a Subject Key Identifier, which those checks refuse (checked on 2026-10-11): no page
+    would load. Java's ``HttpClient``, v3's, accepted them. Gemini keeps Python's default.
+    """
+    context = ssl.create_default_context()
+    context.verify_flags &= ~ssl.VERIFY_X509_STRICT
+    return context
 
 
 def _field(value: object, name: str) -> object:
@@ -107,6 +114,7 @@ class Web:
     session: aiohttp.ClientSession
     model: str
     api: str = API
+    tls: ssl.SSLContext = field(default_factory=page_context)  # for the pages, not for Gemini
 
     async def page(self, url: str) -> Page:
         """GET a page, following up to ten redirects (v3 followed none).
@@ -115,7 +123,7 @@ class Web:
             FetchError: The page answered with a status other than 200.
         """
         async with self.session.get(
-            url, timeout=PAGE_TIMEOUT, max_redirects=MAX_REDIRECTS
+            url, ssl=self.tls, timeout=PAGE_TIMEOUT, max_redirects=MAX_REDIRECTS
         ) as response:
             if response.status != OK:
                 raise FetchError(response.status)

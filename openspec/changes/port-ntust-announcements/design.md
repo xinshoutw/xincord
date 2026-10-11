@@ -104,6 +104,11 @@ lists; crossposting; later board pages; commands; the v3 data import itself; the
   the page's scheme and other relative links resolve against the page with `urljoin` (v3 mangled
   both, bug 12); other schemes stay as written, as in v3. The page's URL is the one after
   redirects.
+- Pages are fetched with certificates and host names verified but without Python's
+  `VERIFY_X509_STRICT` (`web.page_context`): Python 3.13 made it a default, and the certificate
+  chains of NTUST's three hosts lack a Subject Key Identifier, which it refuses (checked on
+  2026-10-11 with Python 3.14.8 and OpenSSL 3.5.9: every page failed, the relaxed context read
+  them); Java's `HttpClient` accepted them. Gemini's requests keep Python's default context.
 - The live pages (2026-10-11) confirmed v3's layouts: the Student Affairs and Academic Affairs
   boards are `table.listTB.table` with `thead` and `tbody`, the Language Center's are
   `div.row.listBS`, the student resource room's `412-1053-8272.php` page has the same table (bug 15
