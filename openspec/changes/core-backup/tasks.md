@@ -1,8 +1,8 @@
 ## 1. Backup
 
-- [ ] 1.1 xfail tests (the consistent copy, a failed backup, retention, the command, the build
+- [x] 1.1 xfail tests (the consistent copy, a failed backup, retention, the command, the build
       context)
-- [ ] 1.2 `xincord.core.backup`, the ignore files, README and the docs; remove the markers
+- [x] 1.2 `xincord.core.backup`, the ignore files, README and the docs; remove the markers
 
 ## 2. Close
 

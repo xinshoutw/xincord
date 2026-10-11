@@ -14,5 +14,6 @@ htmlcov/
 /config.yaml
 /plugins/
 /data/
+/backups/
 # Secrets for compose (.env.example lists them).
 /.env

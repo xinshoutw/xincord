@@ -24,6 +24,8 @@ runs Economy, UptimeHeartbeat and TicketAwayNotice. Before enabling another plug
 
 ## Production follow-ups
 
+- Backups: after the next release, a daily launchd job on the host runs `docker compose exec -T
+  bot python -m xincord.core.backup` for both bots (`core-backup`); copy `backups/` off the host.
 - MusicPlayer: check the panel's emojis on the production application (v3's names). The node
   uses a youtube-source snapshot (`youtube-remote-cipher`): move back to a release once one holds
   the TV client's fix (#233); it depends on the public yt-cipher unless `YOUTUBE_CIPHER_URL` names
@@ -44,7 +46,6 @@ runs Economy, UptimeHeartbeat and TicketAwayNotice. Before enabling another plug
   lobby without a room.
 - Ticket: a long archive near Discord's rate limits, and authors whose names Discord refuses for
   webhooks (the archive renames them).
-- Backups copy `data/ChatLogger/` as well as `data/xincord.db`, best with the bot stopped.
 - NtustAnnouncements: TWCA's intermediate certificate in the package expires on 2030-10-16; if
   NTUST changes its certificates, check the log for TLS failures on the boards.
 

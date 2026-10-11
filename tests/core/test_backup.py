@@ -31,7 +31,6 @@ def values(path: Path) -> list[str]:
         return [row[0] for row in db.execute("SELECT value FROM kv ORDER BY value")]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Online backup")
 def test_consistent_copy_while_the_bot_writes(tmp_path: Path) -> None:
     """Requirement: Online backup, scenario A consistent copy while the bot writes."""
     data = tmp_path / "data"
@@ -56,7 +55,6 @@ def test_consistent_copy_while_the_bot_writes(tmp_path: Path) -> None:
     assert [path.name for path in (tmp_path / "backups").iterdir()] == [NAME]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Online backup")
 def test_failed_backup_leaves_nothing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Online backup, scenario A failed backup."""
     data = tmp_path / "data"
@@ -74,7 +72,6 @@ def test_failed_backup_leaves_nothing(tmp_path: Path, monkeypatch: pytest.Monkey
     assert list((tmp_path / "backups").iterdir()) == []
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Backup retention")
 def test_the_oldest_backups_go(tmp_path: Path) -> None:
     """Requirement: Backup retention, scenario The oldest go."""
     data = tmp_path / "data"
@@ -91,7 +88,6 @@ def test_the_oldest_backups_go(tmp_path: Path) -> None:
     assert remaining == sorted([*taken[2:], NAME, "notes.txt"])
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Backup command")
 def test_the_command(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

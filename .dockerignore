@@ -15,5 +15,6 @@ tests
 config.yaml
 plugins
 data
+backups
 # Secrets for compose.
 .env

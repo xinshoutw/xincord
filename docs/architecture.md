@@ -24,6 +24,10 @@ How xincord is built: the core, the plugin conventions and each port, as recorde
     namespace and key; `update` (atomic read-modify-write), `run` (plugin tables), `lock(key)`.
     `run` rolls back when the commit itself fails (another connection's lock held past
     `BUSY_TIMEOUT`, 5 s), since `chat-logger-split-storage`.
+  - `xincord.core.backup` (`core-backup`): `python -m xincord.core.backup [DESTINATION] [--keep
+    N]` copies `data/` into `backups/<UTC time>/` while the bot runs, databases (by their header)
+    through SQLite's backup API, SQLite's sidecar files left out; a hidden partial directory is
+    renamed once complete; the newest 7 backups stay.
   - `xincord.core.i18n`: `export_lang`, `Lang.load` (locales, flattened YAML keys, Discord name
     rules, key-set warnings), `Lang.text` / `Lang.template` (fallback), `Lang.localization` (no
     fallback), `Lang.command` and `Translator`; `is_command_name` (Discord's name rules: letters,

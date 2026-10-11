@@ -43,12 +43,15 @@ curl -fsSL -o .env https://raw.githubusercontent.com/xinshoutw/xincord/main/.env
 docker compose up -d             # start; the bot writes config.yaml and plugins/ on the first start
 docker compose kill -s HUP bot   # reload the config and the plugins
 docker compose logs -f bot       # logs, rotated at 10 MB
+docker compose exec -T bot python -m xincord.core.backup   # back up data/ into backups/
 docker compose pull              # update to XINCORD_VERSION, then docker compose up -d
 docker compose stop              # stop
 ```
 
 The image runs `xincord` as a non-root user; the database stays in the `<directory>_data` volume
-(the empty `data/` beside `compose.yaml` is only its mount point).
+(the empty `data/` beside `compose.yaml` is only its mount point). The backup command copies it
+while the bot runs into `backups/<UTC time>/` beside `compose.yaml` and keeps the newest 7
+(`--keep`): run it daily from cron or launchd, and copy `backups/` off the host.
 The `lavalink` service plays MusicPlayer's audio with the config inline in `compose.yaml`; it runs
 when `.env` sets `COMPOSE_PROFILES=music`. Its password is `LAVALINK_PASSWORD` in `.env`, and `lavalink.password` in
 `plugins/MusicPlayer/config.yaml` is the same. Videos that YouTube plays only to a signed-in client
