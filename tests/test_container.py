@@ -4,12 +4,14 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
 # Exact versions of the pinned series, so that Renovate's patch updates pass.
 PYTHON_IMAGE = re.compile(r"python:3\.14\.\d+-slim-trixie\b")
 UV_IMAGE = re.compile(r"ghcr\.io/astral-sh/uv:\d+\.\d+\.\d+\s")
+PINNED = re.compile(r"[\w.-]+/[\w.-]+@[0-9a-f]{40} # v\d+(\.\d+)*")  # an action at a commit
 
 
 def instructions() -> list[tuple[str, str]]:
@@ -261,3 +263,19 @@ def test_node_only_with_the_music_profile() -> None:
 
     assert compose["services"]["lavalink"]["profiles"] == ["music"]
     assert re.search(r"^# COMPOSE_PROFILES=music$", example, re.MULTILINE)
+
+
+@pytest.mark.xfail(strict=True, raises=KeyError, reason="Image checked in CI")
+def test_image_checked_in_ci() -> None:
+    """Requirement: Image checked in CI."""
+    text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    steps = cast("list[dict[str, Any]]", yaml.safe_load(text)["jobs"]["image"]["steps"])
+    (build,) = [step for step in steps if step.get("uses", "").startswith("docker/build-push-")]
+    runs = [cast("str", step["run"]) for step in steps if "run" in step]
+
+    assert build["with"]["platforms"] == "linux/amd64"
+    assert (build["with"]["push"], build["with"]["load"]) == (False, True)
+    assert any("entry_points" in run and "xincord.plugins" in run for run in runs)
+    assert any(run.rstrip().endswith("--no-online") for run in runs)
+    uses = re.findall(r"uses: (\S+(?: # \S+)?)", text)
+    assert all(PINNED.fullmatch(item) for item in uses), uses

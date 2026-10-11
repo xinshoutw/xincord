@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -87,6 +88,23 @@ def test_renovate_commit_messages() -> None:
     assert "semanticCommitScope" in config
     assert config["semanticCommitScope"] is None
     assert [rule.get("semanticCommitType") for rule in actions] == ["ci"]
+
+
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason="Renovate opens version updates")
+def test_commit_type_holds_over_the_presets() -> None:
+    """Requirement: Renovate opens version updates, scenario Commit messages.
+
+    config:recommended's :semanticPrefixFixDepsChoreOthers gives every package `chore` in package
+    rules, which override the top-level type: the first rule of our own sets `build` again.
+    """
+    first, *others = rules(renovate())
+
+    assert first == {
+        "description": first.get("description"),
+        "matchPackageNames": ["*"],
+        "semanticCommitType": "build",
+    }
+    assert any(rule.get("matchManagers") == ["github-actions"] for rule in others)
 
 
 def test_renovate_managers() -> None:
