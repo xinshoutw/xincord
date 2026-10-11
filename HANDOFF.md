@@ -735,6 +735,35 @@ Decided on 2026-10-11 (`docs/porting/decisions.md`, Amendments 4 to 6):
   operates the production host, inspects the real v3 data and writes one-off migration scripts
   outside the repository (section 5). `migrate_v3`, the config conversion, stays.
 
+Answered on 2026-10-11 (evening), after the core's run under compose, from the review queue (every
+"Choices made without the owner" list there was answered and deleted):
+
+- **Test guild:** the owner created the guild `xincord-test` (1558859846730776706) for the Discord
+  checks and invited the test application `xincord-test` (application 1558847245061849158); the
+  bot left the owner's guild Hx on request. The owner joins with a second account for the checks
+  that need one.
+- **Reload uploads:** a reload uploads only the commands that changed, and the first READY after a
+  start uploads every scope with force, so that a restart repairs the commands. This replaces
+  `core-reload`'s forced upload at every reload, which kept `/xincord reload` "thinking" for over
+  a minute behind Discord's rate limit (about two uploads a minute per route). Follow-up change.
+- **Time zone:** compose passes `TZ` from `.env` to the bot, UTC when unset, and the owner's `.env`
+  sets `Asia/Taipei`; this covers Giveaway's typed end times, Ticket's archive times and
+  NtustAnnouncements' `{{now}}`. Follow-up change.
+- **Ticket:** channel names keep v3's username, so TicketAwayNotice's default prefixes do not match
+  them.
+- **ChatLogger:** `log_all: true` stays the default. A deleted message's text is still removed once
+  its deletion is handled, and a new config key lets operators keep it until the retention
+  (default: removed). Follow-up change.
+- **CustomCommands:** the features left out (command options, cooldowns, buttons that run actions,
+  global commands, and the rest of the design's "Left out") wait for a real need, tracked in issue
+  #2.
+- **Accepted as implemented:** ChatLogger's one embed per stored message in a bulk deletion,
+  Economy's reads that create no wallet and its `no-permission` for another member's `/balance`,
+  UptimeHeartbeat's failure episodes, NtustAnnouncements' first pass that posts a board's first
+  page (the migrated lists prevent it at cutover), BotInfo's source link as a third embed field,
+  and every other choice in the queue. The queue keeps the user-visible changes and the manual
+  checks until the Discord checks.
+
 1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
    (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script
    fills that list; plugins that are not enabled no longer create files under `plugins/<Name>/`;

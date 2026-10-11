@@ -6,7 +6,8 @@ with what the owner has not seen yet:
 - **User-visible changes:** copy, commands, options, permissions and interaction flows that differ
   from v3 or are new.
 - **Choices made without the owner:** questions the inventory and `decisions.md` did not settle,
-  the option implemented, and the alternative.
+  the option implemented, and the alternative. Every choice listed up to `release-pipeline` was
+  answered on 2026-10-11 (`HANDOFF.md`, section 6) and deleted.
 - **Manual checks:** what needs a real guild, a token or Docker (the smoke checklist lives in the
   archived change's `design.md`).
 
@@ -21,13 +22,6 @@ here; delete a section once it is empty.
 - `option1` accepts at most 1024 characters; v3 gave no reply above that.
 - Option text is shown as typed (v3 expanded `%...%`), and the command answers in threads, voice channel chats and announcement channels (v3 gave no reply there).
 - `example_key` is optional (default `example_value`); a v3 config's `enabled` key now logs an unknown-key warning.
-### Choices made without the owner
-- Whether Example gets an entry point: implemented yes (`Example = "xincord.plugins.example"`), inert unless `plugins` lists it, as v3 shipped it disabled; alternative: copy-only code that operators cannot enable.
-- What the template adds to v3's sample: implemented a used config value (`example_key` in the reply) and a counter button whose count lives in its component ID; alternative: v3's unused `example_key` and no component.
-- v3 plugin config files: implemented keeping v3's YAML keys so v3 files load, with `enabled` only warning; alternative: make `migrate_v3` strip `enabled` from every plugin config.
-- Where v3's `Placeholder.get(event)` lives: implemented `placeholder_values` in the plugin, to move into `xincord.core.placeholders` when a second plugin needs it; alternative: a core helper now.
-- How commands are built: implemented `app_commands.Command` in `setup` with the cog's bound method as callback and `rename`/`describe` applied to it; alternative: a nested callback function, without the cog as binding.
-- Test layout: implemented `tests/plugins/<package>/`, golden data in `tests/fixtures/plugins/<package>/golden.yaml`, fakes in `tests/support/discord_fakes.py` and the `store` fixture in `tests/conftest.py`; alternative: fixtures and fakes next to each plugin's tests.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-example/design.md` (needs a token and a test guild).
 
@@ -41,13 +35,6 @@ here; delete a section once it is empty.
 - `%bc_answer_round%` is the part before the decimal point (v3: the whole answer); the shipped templates do not use it.
 - The en-US `formula` description says the multiplication sign can be omitted (v3: "bracket is ignorable"); existing `plugins/Calculator/lang/` files keep v3's text unless renewed with `--force-renew-lang-resources`.
 - No `plugins/Calculator/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list.
-### Choices made without the owner
-- Size limit: implemented 50,000 digits per value (admits `(1+1/1000)^1000`, refuses `(1+1/10000)^10000`) and a worker thread; alternative: a larger limit or a timeout.
-- Error messages: kept English in every locale, as v3's; alternative: localized texts in the lang files.
-- A channel that refuses the message: implemented the answer in the deferred ephemeral response; alternative: an error message, or a public interaction reply instead of a channel message.
-- `%bc_answer_round%`: implemented the part before the decimal point, which v3's `split('.')` meant; alternative: round half up, or drop the key.
-- `formula` length: implemented 1018 characters, which fit the code fence in a 1024-character embed field; alternative: Discord's 6000 with an error above 1018.
-- Non-ASCII digits (`３`, `١٢`): kept v3's `Unknown Token` error; alternative: read them as digits.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-basic-calculator/design.md` (needs a token and a test guild).
 
@@ -59,14 +46,6 @@ here; delete a section once it is empty.
 - Roles created and guilds joined after startup work without a reload (v3 resolved the roles once, at the first join).
 - When the bot is ready, and after a reload, warnings name configured guilds the bot is not in, a missing Manage Roles and roles it cannot give (v3 logged nothing for unknown role IDs).
 - The bundled `plugins/AutoRole/config.yaml` lists no guilds and shows placeholder IDs in a comment (v3 shipped real guild and role IDs, disabled); a v3 file loads unchanged and warns `unknown key enabled`.
-### Choices made without the owner
-- How roles are added: implemented one atomic add-role request per role, which never removes a role; alternative: one request for all roles as v3 (`add_roles(atomic=False)`), cheaper under rate limits but able to drop a role given at the same moment.
-- A guild listed twice: implemented v3's last entry wins; alternative: reject duplicates when the config loads, or merge their roles.
-- Members who have not passed membership screening: implemented roles at the join, as v3; alternative: wait until they pass.
-- Config problems: implemented warnings when the bot is ready, on a reload into a ready bot and at each join; alternative: warnings at joins only.
-- Validation: kept v3's (`guilds` required, positive `guild_id`, at least one role ID, role IDs any integers); alternative: positive role IDs only.
-- Member chunking: kept discord.py's default, which downloads every guild's members before ready once the members intent is on (v3 did not chunk); alternative: `chunk_guilds_at_startup=False` in the core.
-- Audit log: no reason on the role requests, as v3; alternative: a reason such as `AutoRole`.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-auto-role/design.md` (needs a token, a test guild and a second account).
 
@@ -77,12 +56,6 @@ here; delete a section once it is empty.
 - An invalid `source_url` (not http or https, spaces, over 512 characters) disables BotInfo with an error that names the key; a v3 `config.yaml` (`enabled` only) loads with the default URL and warns `unknown key enabled`.
 - v3 lang files kept in `plugins/BotInfo/lang/` show v3's embed without the source field until renewed with `--force-renew-lang-resources` (which renews every enabled plugin's lang files) or edited.
 - The command always answers (v3 needed the core's auto-defer switch), and guilds that are unavailable during a Discord outage still count as guilds (JDA left them out).
-### Choices made without the owner
-- Where the link shows: implemented a third embed field in both locales; alternative: a link button under the embed, or a link on the embed title.
-- URL check: implemented http or https without spaces and at most 512 characters (Discord's link-button limit), checked at load; alternative: any text, unchecked.
-- Current member counts: implemented the privileged members intent, so the counts follow joins and leaves as in v3; alternative: no privileged intent, with counts as of the last connection.
-- Member count: kept v3's per-guild sum (users in several guilds counted once per guild, bots included); alternative: unique users from the member cache.
-- Unavailable guilds: counted, with the members discord.py knew (none if unknown); alternative: left out of both counts, as JDA did.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-bot-info/design.md` (needs a token and a test guild).
 
@@ -102,22 +75,6 @@ here; delete a section once it is empty.
 - `custom-commands-from-config`: an en-US template for some commands only logs the core's warning at each load that en-US lacks the others; they fall back to zh-TW.
 - `custom-commands-from-config`: `python -m xincord.core.migrate_v3` renames v3's `plugins/CustomCommands/config.yaml` (moved from SimpleCommand; only `enabled`) to `config.v3.yaml`, with a report line, so that the bundled commands are written.
 - `custom-commands-from-config`: every plugin: a reload whose `config.yaml`, lang files or templates are broken keeps the previous version running, and the summary names the file and the key (before: the plugin vanished while still listed as loaded, and only a restart brought it back); when even the previous version fails, the plugin and the plugins that depend on it are unloaded, the commands are uploaded without theirs, and the summary says to run a full reload.
-### Choices made without the owner
-- A channel that refuses the message: implemented the message in the deferred ephemeral response, as Calculator; alternative: an error text telling the administrator that the bot cannot post there.
-- What is posted: implemented the whole template, as v3 posted the built message (an operator's link buttons, Components V2 layouts and their uploaded files too); alternative: content and embeds only, as Calculator posts.
-- `custom-commands-from-config`: where the names' localizations live: implemented in each command's entry in `config.yaml` (`localizations: {zh-TW: {name, description}}`), `register.yaml` dropped; alternative: `register.yaml` keyed by command name, which v3's copy would keep feeding but which splits a command over two files.
-- `custom-commands-from-config`: a config without `commands` (v3's file): implemented an error that names the key, plus `migrate_v3` setting v3's file aside; alternative: a missing key meaning the bundled five commands.
-- `custom-commands-from-config`: template locale: implemented zh-TW for posts and public replies, the user's for ephemeral replies; alternative: a per-command choice (user, guild or a fixed locale).
-- `custom-commands-from-config`: permissions: implemented discord.py's flag names, `[]` for every member; alternative: Discord's integer bitfield or JDA's names.
-- `custom-commands-from-config`: guild lists: implemented a core filter of each guild's upload (`extras["guilds"]`), so that names stay unique across plugins; alternative: discord.py's per-guild commands, which would allow one name with different templates per guild, but where a name clash with another plugin would make Discord refuse that guild's whole upload.
-- `custom-commands-from-config`: placeholders: implemented the user's, the bot's and the channel's; alternative: v3's bot keys only.
-- `custom-commands-from-config`: templates: implemented a render of each command's templates at load, refusing what cannot be posted; alternative: refusing only `uid` and `model_key`, or checking nothing (v3 failed at each use).
-- `custom-commands-from-config`: names: implemented discord.py's rule and Discord's for the command name (no apostrophe), Discord's for localized names (apostrophe allowed); alternative: one rule for both.
-- `custom-commands-from-config`: a misspelled key inside an entry (`guild:`, `replay:`) only warns, as decision B6 says for every config file, and the entry keeps its default (every guild, a post in the channel); alternative: refuse unknown keys inside entries, an exception to B6.
-- `custom-commands-from-config`: limit: implemented the room left of Discord's 100 commands at load (`/xincord` and the plugins loaded before count); alternative: a fixed lower limit that leaves room for the plugins loaded after.
-- `custom-commands-from-config`: failed reloads (a core fix found here): implemented replaying the previous version's config, lang and templates; alternative: only unloading the plugin cleanly.
-- `custom-commands-from-config`: a command whose guild list or name changed stays registered where an upload failed, and runs there until the next upload; alternative: a guild check in the callback.
-- `custom-commands-from-config`: left out (the design's "Left out"): command options, per-role or per-user permissions (only an OAuth2 user token can set them), buttons that run actions, global commands, one name with different templates per guild, a configurable default locale, cooldowns.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-simple-command/design.md` (needs a token, a test guild and a member without Administrator).
 - Smoke checklist in `openspec/changes/archive/2026-10-11-custom-commands-from-config/design.md` (needs a token, a test guild and a second guild, a member without Administrator, and zh-TW, en-US and Japanese clients).
@@ -132,15 +89,6 @@ here; delete a section once it is empty.
 - A welcome or bye message that Discord refuses logs a warning that names the guild and the channel (v3: JDA's exception log).
 - `invalid-channel`, `*-bind-already` and `*-unbind-empty` no longer create data; the commands always answer (v3 needed the core's auto-defer switch).
 - No `plugins/WelcomeGoodbye/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list.
-### Choices made without the owner
-- Where the bindings live: implemented v3's document per guild in the store's key-value table (namespace `WelcomeGoodbye`, key = guild ID), so that a later migration can copy v3's files; alternative: a plugin table with one column per channel.
-- Bye message keys: implemented the member keys when discord.py still knew the member; alternative: v3's user-only keys.
-- Bindings of guilds left while offline or disabled: implemented their deletion when the bot is ready; alternative: keep them until the bot leaves that guild again, as v3.
-- A channel where the bot cannot post: implemented v3's unchecked bind, with a log warning at each refused message; alternative: check View Channel, Send Messages and Embed Links when binding and tell the administrator (new copy).
-- `guild-only`: kept as a guard that guild commands never reach, rendered with the interaction's placeholders like `no-permission` (v3: global ones only); alternative: drop the check and its two templates.
-- Core API: implemented `placeholder_values(interaction)` (Protocols `EventLike`, `ClientLike`) in `xincord.core.placeholders`, moved from Example, which now imports it; alternative: a copy per plugin.
-- Core fix: `interaction_values` gives no `channel_category_name` for a thread whose parent channel discord.py has not cached, where it raised and left the command unanswered (found by a probe through discord.py's own objects); alternative: none.
-- Core gap found in the audit, unchanged: v3's commons-text read `%key:-fallback%` as a fallback for a missing key, while the core's `render` leaves it as written (no shipped template uses it); alternative: support the syntax in `render`.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-welcome-bye-guild/design.md` (needs a token, a test guild and a second account).
 
@@ -159,17 +107,6 @@ here; delete a section once it is empty.
 - `uptime-heartbeat-keep-pushing`: a failed ping of any kind leaves `-1` in the URL and the push goes on, as in v3 (the port skipped the push after an unexpected error).
 - `uptime-heartbeat-keep-pushing`: an unexpected error's traceback is part of its error line, redacted, instead of a separate exception record.
 - `uptime-heartbeat-keep-pushing`: the bundled `config.yaml` comment describes this instead of the 404 stop; an existing `plugins/UptimeHeartbeat/config.yaml` keeps its old comment.
-### Choices made without the owner
-- Bundled config: implemented no listeners and a commented example on `status.example.com`; alternative: v3's sample listener on the owner's status domain with a placeholder token.
-- `%ping%`: implemented v3's REST ping, a timed `GET /users/@me` through discord.py's undocumented `HTTPClient.request` and `Route`; alternative: discord.py's public gateway latency (`bot.latency`), a different quantity.
-- HTTP client: implemented aiohttp, already installed with discord.py and now declared by `xincord-plugins`; alternative: httpx, a new dependency.
-- Interval range: implemented 1 to 2147483647 seconds (v3's `Int` without zero and negatives); alternative: a larger minimum, such as 10 seconds.
-- URL check: implemented an http or https URL with a host and no spaces, checked at load; alternative: v3's unchecked URL, which fails at every push.
-- When pushing starts: implemented at READY (at once when the plugin loads into a ready bot), so that the monitor shows the bot as up only once it is connected; alternative: at load, before the gateway connects.
-- Redirects: kept v3's behavior of not following them (a 3xx logs an error); alternative: follow them, so that an `http://` URL redirected to `https://` works.
-- Failure log policy (`uptime-heartbeat-keep-pushing`): implemented failure episodes: each kind (status code, exception type) is logged at its level once per episode and the rest at debug level, and an episode ends once the step has worked three times in a row, with one info line (`works again after N failed pushes`, or `measures the REST ping again`), so steady, alternating (502 and 504) and flapping failures log one line per kind; the price is a recovery line two intervals late. Alternative: your example as first built (a failure logged when its kind differs from the previous one, the episode ending at the first success), which a cross-review found still logged at every push for alternating kinds and for flapping; or a reminder while a failure lasts (for example hourly).
-- Error texts and tracebacks (`uptime-heartbeat-keep-pushing`): implemented cutting every http or https URL in them to its origin and removing the listener URL's user info, path, query and fragment wherever they appear (a server's malformed answer can quote the request line), with an unexpected error's traceback logged as text; alternative: log only the error's type, without its text or traceback.
-- Core gap, closed in `port-ntust-announcements`: a YAML syntax error in a config file is now logged with its line and column only, without PyYAML's snippet of the faulty line, which could show a listener's URL (and NtustAnnouncements' API keys); alternative: restore the snippets.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-interval-pusher/design.md` (needs a token and an Uptime Kuma push monitor or another endpoint that shows its requests); its steps 4 and 5 are replaced by the next one's.
 - Smoke checklist in `openspec/changes/archive/2026-10-10-uptime-heartbeat-keep-pushing/design.md`: a wrong token or a paused monitor logs one warning and keeps pushing, a resumed monitor logs `works again` at the third push in a row that works, an unanswered address times out with the origin only, and `docker compose logs bot | grep <token>` finds nothing.
@@ -185,15 +122,6 @@ here; delete a section once it is empty.
 - A v3 `config.yaml` loads unchanged and warns `unknown key enabled`; there the two new replies are English (`Failed to create the form`, `Failed to submit the feedback`) until added; a blank reply or one over 2000 characters disables the plugin with the key named.
 - The command always answers (v3 needed the core's auto-defer switch).
 - Core, every plugin: embed field names and values are trimmed and an empty one becomes U+200E, as v3 did through JDA (xincord sent them as rendered, and Discord refuses an empty field).
-### Choices made without the owner
-- A `member` option naming a user outside the server: implemented `form_failure`; alternative: post the form anyway (only that user could press it, after joining).
-- A refused review: implemented keeping the form and telling the member; alternative: v3's deletion regardless.
-- Star counts: implemented whole numbers 0 to 5 (where v3 did not throw), checked at the press; alternative: clamp them, or allow any count.
-- Double submission from two clients: kept v3's two reviews (the second deletion is a logged warning); alternative: a per-form lock that posts only the first.
-- The highlight: implemented after the modal, with the bot's token; alternative: through the interaction webhook, as v3 tried.
-- Core: JDA's field trimming in the renderer for every plugin (VoiceLogger and ChatLogger rely on it too); alternative: U+200E for the empty feedback in this plugin only.
-- Core: `modal_values` in `xincord.core.templates` for every plugin with modals; alternative: a parser in this plugin.
-- `TextChannelOption` copied from WelcomeGoodbye (no other v3 command restricts a channel option); alternative: move it into the core.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-feedbacker/design.md` (needs a token, a test guild and a second account).
 - This is the first modal xincord sends (a label around the text input, as discord.py builds it): check that it opens in both languages.
@@ -212,18 +140,6 @@ here; delete a section once it is empty.
 - A `top-money` or `top-cost` template whose first embed has no description disables the plugin at load, naming the file (v3: no reply at each use).
 - The commands always answer (v3 needed the core's auto-defer switch).
 - An `economy@` button whose ID is not in v3's field format is logged as malformed instead of showing the wallet; no v3 template or production message has one.
-### Choices made without the owner
-- `admin_id` in the bundled file: implemented an empty list with v3's at-least-one rule, so the plugin waits for the operator; alternative: load with a warning and answer `no-permission` to every administrator command.
-- Amount range: implemented exact Python integers without a bound (Discord sends at most 2^53 per change); alternative: keep v3's 32-bit range and refuse results outside it.
-- Negative amounts: kept v3's `Bad Value`, English in every locale, after the command runs; alternative: `min_value=0` on the option so that Discord's client refuses them, or a localized template.
-- `/balance member:` from a non-administrator: implemented `no-permission` when the member is someone else; alternative: v3's silent fallback to their own wallet.
-- Board ties: implemented the lowest user ID first; alternative: the order in which the wallets were first changed.
-- Reads: implemented no write for `/balance`, the button and the boards; alternative: v3's zero wallet on the first read, which put the member on the boards.
-- Before values: implemented both in every change reply; alternative: only those of the amounts the command changes, as v3 set them.
-- Wallets of guilds the bot left: kept, as v3 did; alternative: delete them on leave and at startup, as WelcomeGoodbye does.
-- Unreadable stored entries: implemented a logged error, the command left "thinking" and nothing overwritten; alternative: read them as 0, which the next change would write over.
-- The `economy@` button (no producer in v3's templates or the production copy): kept for IDs the core's v3 decoder reads, any fields ignored; alternative: drop it.
-- Core: `global_values(client)` in `xincord.core.placeholders`, now used by BotInfo, CustomCommands and Economy's `no-permission` (v3 rendered it with its global keys only); alternative: render `no-permission` with the user's values, without a core change.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-economy/design.md` (needs a token, a test guild and a second account).
 - At cutover, keep the existing `plugins/Economy/config.yaml` (it lists the administrators); its `enabled` and Google Sheets keys can be deleted to silence the warnings.
@@ -243,19 +159,6 @@ here; delete a section once it is empty.
 - Leaving a guild also deletes its rooms' records, and a guild unavailable at startup keeps its bindings (v3 deleted them).
 - The en-US `unbind-fail` title reads `Unbind fail, the channel was not found in settings` (v3: `is not be found`); existing `plugins/DynamicVoiceChannel/lang/` files keep v3's text.
 - No `plugins/DynamicVoiceChannel/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list; the plugin no longer needs SQLiteAPI.
-### Choices made without the owner
-- Where the rooms live: implemented one document per guild, `{"<room ID>": <owner ID>}` under `DynamicVoiceChannel.rooms`; alternative: one entry per room keyed by its ID, like v3's MongoDB documents (which hold no guild), or a plugin table.
-- When a room is tracked: implemented once the lobby's copy exists; alternative: only after every step succeeded (a failed rename would then leave a second lobby for good).
-- Positions: implemented JDA's raw `PATCH /channels/<id>` with positions 0 and 1 through discord.py's internal `HTTPClient.request`; alternative: discord.py's `edit(position=...)`, which renumbers every voice channel of the guild in one bulk request.
-- The member's permissions: implemented a separate `PUT` of their overwrite, which keeps the others; alternative: v3's single PATCH with the whole overwrite list and the name.
-- Unusable room names: implemented keeping the old name with a warning; alternative: cut the name to 100 characters.
-- `format-name-2`: kept required, stored and unused, as in v3; alternative: make it optional or drop it.
-- Stale bindings: kept v3's removal at startup (category gone, or no voice channel with the lobby's exact name), now also on a load into a ready bot; alternative: keep them until unbound.
-- A guild's voice changes: implemented one after another under a per-guild lock, so a room's creation that Discord rate-limits delays the guild's other joins and leaves; alternative: no lock, with v3's orphan rooms.
-- A join handled after the member already left the lobby creates no room; alternative: v3's room regardless, deleted right after.
-- Copy: implemented the grammar fix above; alternative: keep v3's text.
-- `VoiceChannelOption`: a third copy of the channel transformer (WelcomeGoodbye and Feedback have text ones); alternative: a core `ChannelOption(types)`.
-- Unreadable stored documents: implemented an error without overwriting them (the commands stay "thinking", READY skips the guild); alternative: read them as empty, which the next change would overwrite.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-dynamic-voice-channel/design.md` (needs a token, a test guild and a second account).
 - The bot needs Manage Channels and Manage Roles (or Administrator) in the bound categories.
@@ -278,18 +181,6 @@ here; delete a section once it is empty.
 - Channel names and statuses are shown as written (v3 expanded `%...%` in them).
 - Settings of a guild the bot leaves are deleted at once, and deleted channels are dropped from the lists when the bot is ready (v3 did both at its next start).
 - No `plugins/VoiceLogger/config.yaml`.
-### Choices made without the owner
-- Status events, which discord.py 2.7.1 drops: implemented a core method, `Bot.relay_gateway_event(name)`, that adds a parser to discord.py's internal parser table and dispatches `gateway_voice_channel_status_update`; alternative: `enable_debug_events=True` with discord.py's public `on_socket_raw_receive` (every gateway message parsed twice), or `on_audit_log_entry_create` with the moderation intent (discord.py drops the channel and the status of types 192 and 193).
-- Earlier statuses: implemented tracking them in memory from the events, unknown ones empty, forgotten at each READY and when a guild becomes unavailable or is left, as JDA's cache; alternative: Discord's Request Channel Info (gateway opcode 43) for each guild at READY.
-- Attribution: implemented the newest audit log entry of the change's type and channel within 30 seconds, leaving out type-192 entries of another status, the same status first, read again once after 2 seconds; alternative: v3's newest type-192 entry of the guild, a longer wait, or also bounding the entries by the channel's previous event.
-- A change without an entry: implemented the log with `-` as the member; alternative: no log, as v3 when the audit log had no type-192 entry.
-- A channel without a category: implemented `-`; alternative: an empty field.
-- Long lists: implemented the lines that fit and `...`; alternative: refusing additions past the limit (new copy).
-- Listen channels: implemented any channel where the command runs; alternative: text and voice channels only, as v3's code intended, with a new refusal message.
-- Posting: implemented partial messageables (no cache), a 404 forgetting the listen channel; alternative: v3's cache lookup, skipping missing channels.
-- Checks at READY: kept v3's pruning of left guilds and of deleted list entries; deleted listen channels are forgotten at their next log instead (an archived thread is not cached at READY); alternative: v3's start-up pruning of missing listen channels.
-- Leaving a guild: implemented deleting its settings at once; alternative: v3's deletion at the next start.
-- Core API: `Bot.relay_gateway_event` (spec delta on `core-plugins`, tested in `tests/core/test_gateway.py`); alternative: a VoiceLogger-only hook into discord.py.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-voice-logger/design.md` (needs a token, a test guild and a second account).
 - The bot needs View Audit Log for the members of status changes, and View Channel, Send Messages and Embed Links in the listen channels.
@@ -319,28 +210,6 @@ here; delete a section once it is empty.
 `chat-logger-split-storage`: a message file that another program keeps locked for more than 5 seconds (a database browser holding a read transaction open) makes that message's storing, edit or deletion fail with an error; inspect copies of the files.
 `chat-logger-split-storage`: core: each plugin's context names a data directory, `data/<Name>/`, which the core never creates (`PluginContext.data_directory`; `Bot(...)` takes the required keyword `data`, and the program passes `data/`).
 `chat-logger-split-storage`: core, every plugin: a store write whose commit fails (another program holding a lock on `data/xincord.db` past 5 seconds) is rolled back and raises; before, a later write committed it.
-### Choices made without the owner
-- Deleted messages: implemented removing their text once the deletion is handled; alternative: keeping it until the retention, as v3 kept it.
-- Threads: implemented detection through the parent channel and its category, or the thread's own ID; alternative: the thread's own ID only, as v3's allow mode.
-- Bulk deletions: implemented one embed per stored message; alternative: one summary embed per purge (a new template and new copy).
-- Edits: implemented logging only a change of the text, a member's text being its content; alternative: every update, as v3, or telling previews apart by `edited_timestamp`.
-- Reading new messages: implemented the relayed `MESSAGE_CREATE` payload (`bot.relay_gateway_event`), because discord.py's `on_message` object takes an edit parsed together with it in place, and the edit's log was lost; alternative: `on_message`, losing such edits.
-- Authors who are no members: implemented the stored ID's mention, `-` and no thumbnail; alternative: fetching the user (`fetch_user`) for the name and the avatar, one more request.
-- Left guilds with `log_all: true`: implemented keeping their messages until the retention, as v3 kept them; alternative: deleting them at the leave whatever `log_all` says.
-- Shared code: implemented `xincord.plugins.listen_channels` (settings, store, menu, posts, checks) for VoiceLogger and ChatLogger; alternative: two copies, as v3 had.
-- The READY check of the lists (both plugins): implemented asking Discord about each listed ID that discord.py has not cached and dropping it only on a 404, so archived threads stay; alternative: v3's dropping of every uncached ID, which unblocks a blocked thread after a restart.
-`chat-logger-split-storage`: file naming: implemented `messages-<UTC second where the file starts>.db` in ISO 8601's basic format (`messages-20261011T120005Z.db`), the names being the only record of the ranges; alternative: sequence numbers (`messages-0001.db`) with each file's range stored inside it.
-`chat-logger-split-storage`: size default: implemented 256 MiB; alternative: 1 GiB (fewer files, coarser expiry) or 64 MiB.
-`chat-logger-split-storage`: config keys: implemented `retention_days` kept with the default 1826 (5 x 365.25 days, rounded down) and `max_file_size_mb` in MiB from 1 to 65536 (the bound refuses a size typed in bytes); alternative: `retention_years`, or a size in bytes or GB.
-`chat-logger-split-storage`: when a file is too large: implemented a check of the newest file's page count after each message stored in it; alternative: a check every N messages, or a cap that makes SQLite refuse writes (`PRAGMA max_page_count`).
-`chat-logger-split-storage`: where a split falls: implemented the second after the newest stored message, so that no stored message moves; a late message for an older range still goes to that file, which can then pass the limit a little; alternative: splitting at the current time and moving rows.
-`chat-logger-split-storage`: the first file: implemented created with the first stored message and named after its second (none before any traffic, none under `--no-online`); alternative: created when the plugin loads, named after the load.
-`chat-logger-split-storage`: threads: implemented one thread for all of the plugin's files, one connection per file; alternative: a thread per file.
-`chat-logger-split-storage`: unload during traffic: implemented closing the files after the work already queued; a listener of the unloaded version that stores later fails, and discord.py logs it; alternative: waiting for the listeners still running.
-`chat-logger-split-storage`: a new file that keeps failing (a full disk): implemented a retry with every message stored in the full file, logged once per episode; alternative: retrying at most once a minute.
-`chat-logger-split-storage`: the old table: implemented `DROP TABLE IF EXISTS ChatLogger_messages` at every load; alternative: a one-off step in a migration.
-`chat-logger-split-storage`: the v3 import plan (`design.md`, "Migration"), which the one-off migration at cutover follows: planned an import that refuses a `data/ChatLogger/` holding files and brings back v3's rows of deleted messages until the retention (v3 kept them); alternative: merging into existing files, or dropping v3's rows that could be deleted messages (they cannot be told apart).
-- Operator templates that put text around `%cl_msg_before%` or `%cl_msg_after%` (or move them into a title or the content) can exceed Discord's limits, and the log is then refused with a warning: implemented fitting the bare values only, as the shipped templates show them; alternative: clamping every rendered text in the core's renderer, for every plugin.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-chat-logger/design.md` (needs a token, a test guild and a second account); its steps 1 and 13, which look for `ChatLogger_messages` in `data/xincord.db`, are replaced by the checklist below.
 - Smoke checklist in `openspec/changes/archive/2026-10-11-chat-logger-split-storage/design.md`: a split at `max_file_size_mb: 1`, edits and deletions on both sides of it, a restart, the expiry of a whole file (needs a token, a test guild and a day).
@@ -368,20 +237,6 @@ here; delete a section once it is empty.
 - New lang files `plugins/Giveaway/lang/<locale>/text.yaml` hold the texts that v3 wrote in code (field names, statuses, replies, errors); operators can edit them.
 - A post button without a giveaway ID answers `Giveaway not found.` in the user's language (v3: `Invalid giveaway id.` in English); a modal with an unknown sub-action gets no response.
 - End times after 9999 (`+12026-01-05 10:00`) and `9999-12-31 24:00` get the format error.
-### Choices made without the owner
-- Builder updates: implemented answering each press and submission with `response.edit_message`; alternative: v3's edits through the command's hook (15-minute limit).
-- Joins and draws: implemented deferring at once, then editing the post through the press's webhook and replying with ephemeral follow-ups, the post re-rendered on every press; alternative: v3's REST edit of the post and an ephemeral reply, which a burst of joins queues behind the channel's rate limit.
-- Drafts: implemented no time limit (one per member and guild, gone at confirmation, cancel, a new command, the guild's leave, a reload or a restart); alternative: drop drafts idle for a day.
-- Leaving a guild: implemented keeping its giveaways (rerolls after a re-invite); alternative: v3's deletion.
-- Guilds left while offline: implemented drawing their due giveaways when the bot is back; alternative: v3's silent draw without posting.
-- Time zone: implemented `timeZone`, empty by default for the host's zone as in v3, which is UTC in the container; alternative: ship `timeZone: "Asia/Taipei"`, or set `TZ` in `compose.yaml`.
-- Invalid `defaultLocale`: implemented failing this plugin's load with the key named; alternative: fall back to zh-TW, as v3's code intended.
-- Language: implemented one locale per message (the locale's files, else zh-TW for Chinese locales, else en-US); alternative: the configured default locale for every missing locale.
-- Hard-coded texts: implemented a new `text.yaml` per locale; alternative: English texts in code for every locale (Python files cannot hold the zh-TW texts).
-- Winners: implemented `random.SystemRandom` and `sample`, v3's distribution; alternative: `secrets.SystemRandom` (the same generator).
-- Thumbnails: implemented showing any-case http(s) URLs with the scheme in lower case; alternative: refuse uppercase schemes at input.
-- End times: implemented years 0001 to 9999; alternative: compute later years by hand.
-- The automatic draw's period: implemented counting from the end of each pass; alternative: v3's fixed rate from each start.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-giveaway/design.md` (needs a token, a test guild and a second account).
 - Before cutover, set `timeZone: "Asia/Taipei"` in `plugins/Giveaway/config.yaml` (or `TZ` in `compose.yaml`): the container's zone is UTC, so typed end times would be read 8 hours off.
@@ -398,13 +253,6 @@ here; delete a section once it is empty.
 - `/feedbacker` is `/feedback` (the base and en-US name; zh-TW clients still see 評價表單); its `register.yaml` key is `feedback` in both locales.
 - Log lines use the new names (`Calculator cannot post ...`, `CustomCommands cannot post ...`, `WelcomeGoodbye deleted the channels of guild ...`, `UptimeHeartbeat listener 1 started (every 60 s)`, `Feedback cannot post a form in ...`), and so do the logger names (`xincord.plugins.uptime_heartbeat.pusher`).
 - `python -m xincord.core.migrate_v3 <dir>` writes the new names under `plugins:` and moves each renamed plugin's v3 directory to its new name, with a report line each.
-### Choices made without the owner
-- Placeholder keys: kept v3's, the template's `%_Example@option1%` included, like `wbg@` and `fb_`; alternative: `%Example@...%`, which no v3 operator used.
-- v3 directories: implemented moving them to the new names in `migrate_v3` (both kept, with a report line, when the new one exists), so that v3's config and lang files are found; alternative: only the new names under `plugins:`, the operator moving the directories.
-- The migration already maps the three plugins not ported yet (TicketAwayNotice, NtustAnnouncements, NtustCourseWatch); alternative: add each with its port.
-- `/feedback`'s `register.yaml` key: implemented `feedback`, so a `register.yaml` copied from v3 gives the base names (`feedback`, English descriptions) until it is renewed; alternative: v3's `feedbacker` key, which keeps v3's localizations and `/feedbacker` for en-US clients.
-- Cog classes take the new names too (`bot.get_cog("Calculator")`); alternative: v3's class names.
-- A v3 name listed by hand under `plugins:` gets `Plugin Feedbacker is not installed`; alternative: name the new plugin in that error (a core change).
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-rename-plugins/design.md`.
 - Done: `docker compose build`, then `docker compose run --rm -T bot --no-online` with all thirteen ported plugins enabled, exited 0 with every one loaded; this settles the image checks of the earlier sections.
@@ -430,22 +278,6 @@ here; delete a section once it is empty.
 - The archive pings nobody, splits long messages, links files over the guild's upload limit, renames authors whose name Discord refuses for webhooks, deletes its empty thread when the webhook cannot be made, and reports every failure (v3 hung).
 - Panels of guilds the bot left while offline are deleted at READY (v3 deleted them only when it saw the leave).
 - `/add-ticket` with a text that is no message ID shows at most 100 characters of it in the error.
-### Choices made without the owner
-- TicketAwayNotice: kept v3's channel name, the member's username, so TicketAwayNotice's default prefixes (`客服單-`, `ticket-`) still do not match Ticket's channels; alternative: name ticket channels `ticket-<username>`.
-- Texts: `text.yaml` per locale, replies in the user's locale (zh-TW where the plugin has no files, as v3's templates) and public texts (control row, archive markers) in zh-TW; alternative: v3's Chinese texts for every user.
-- Builder defaults follow the administrator's language; alternative: v3's zh-TW defaults for everyone.
-- v3's four English errors translated for zh-TW; alternative: keep them in English.
-- No config: the archive's thread names and markers use the host's zone (UTC in the container); alternative: a `timeZone` key as Giveaway's.
-- The category's overwrites are copied only when the bot is an administrator or holds every permission they set (JDA's fallback); alternative: always copy and let Discord refuse.
-- A ticket channel whose opener is refused is deleted; alternative: keep it without controls, as v3.
-- Drafts are per user and guild; alternative: v3's one per user.
-- Webhook names that Discord refuses fall back to the username, then the user ID; files over the upload limit are linked; alternative: fail the archive, as v3.
-- A Discord refusal inside a started thread is marked and the archive goes on, other errors (a lost connection) stop it; alternative: v3's catch-all.
-- Channels without overwrites or deletion (not guild channels) answer lock-failed or delete-failed with a fixed English reason; alternative: no answer.
-- `confirm-add.yaml`, which v3 never used, ships unchanged; v3's `plugins/Ticket/config.yaml` is left unread.
-- An opener that fails without a Discord refusal (a lost connection, an unload) leaves the channel without its control row and the member's reply "thinking"; only Discord's refusals delete the channel and answer, as in the other plugins; alternative: clean up after any failure.
-- The archive holds one message's files in memory (up to about 1 GB for ten files at boost level 3), where JDA streamed them; alternative: stream the files.
-- `/add-ticket` on a v3 panel before the one-off migration of v3's panels at cutover gives the new button index 0, the v3 button's, so both open the new entry and the core's ID upgrade fails at each press; implemented nothing special (the migration comes first); alternative: refuse `/add-ticket` on messages with v3 Ticket buttons.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-11-port-ticket/design.md`.
 - The archive copies other members' messages only with the Message Content intent enabled in the developer portal (as in v3; the plugin does not request it, so the bot connects without it).
@@ -464,10 +296,6 @@ here; delete a section once it is empty.
 - New labels (`control.*` in both `text.yaml` files): `Click to lock`, `Click to unlock`, `Save conversation` and `Delete` in en-US, and the zh-TW words the owner gave. The row is a public message in the default locale (zh-TW), so every reader sees the zh-TW labels; the en-US ones show nowhere today.
 - Rows already posted keep their labels until they are rebuilt, which the next lock or unlock does; save and delete leave the row as it is, and the core's upgrade of v3's IDs keeps a v3 row's labels.
 - Exported lang files (`plugins/Ticket/lang/<locale>/text.yaml`) keep the old labels until renewed with `--force-renew-lang-resources` (which renews every enabled plugin's lang files, edits included) or edited by hand (the four `control.*` lines).
-### Choices made without the owner
-- A user who is no member keeps v3's silent acknowledgement on all four buttons; Discord sends the member with every interaction in a guild, so this cannot happen in a ticket channel; alternative: the admin-only text.
-- @everyone never counts as a staff role: discord.py lists it among every member's roles (JDA did not), so a panel whose staff roles hold it (an edited or imported document) made every member staff on save and delete since `port-ticket`, and would have on lock and unlock; found in the cross-review and fixed, as v3 decided; alternative: count it, letting every member use such a panel's rows.
-- Lock and unlock need the panel button's stored entry, which names the staff roles, as save and delete do: a ticket whose entry is gone (above) can no longer be locked, unlocked, saved or deleted from its row, and staff change or delete such a channel by hand; alternative: let Administrators use the row without the entry.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-11-ticket-staff-controls/design.md`: the ticket's member presses each button (the admin-only text, nothing changes); a member with the staff role and an Administrator lock, unlock, save and delete; a row posted before the change takes the new labels at its next lock or unlock.
 - After the one-off migration at cutover, staff lock and unlock a v3 ticket (until then they answer the not-found text).
@@ -484,18 +312,6 @@ here; delete a section once it is empty.
 - The bundled `config.yaml` holds 0 for `guild_id` and `user_id`, so the plugin does not load until both are set (v3 shipped the shop's real IDs); v3's file loads unchanged and warns `unknown key enabled`.
 - The bundled `not-online.yaml` holds an example shop name (範例商店) and example channel IDs, with the text in the embed's description, where channel mentions show as links (v3: in the title, shown as raw `<#...>` text); v3's footer `❖ ORDERLY SERVER ❖` is kept, and operators' files keep their own text.
 - New log lines: warnings for a guild the bot is not in and an owner who is not a member (at READY and per channel), a refused member lookup and a refused notice; a template that can never be posted (a component ID, more than ten embeds, an empty message) keeps the plugin from loading, with the file named.
-### Choices made without the owner
-- Channel kinds: implemented every new channel and thread that takes messages (text, announcement, voice and stage chats, threads, forum posts); alternative: text channels only, all that v3 managed to post in.
-- The bot's own threads: skipped, so that Ticket's archive (a thread named after the ticket channel) never gets the notice (found in the cross-review); alternative: treat them as any thread.
-- Ticket's channels: kept v3's prefix matching, so the default prefixes (`客服單-`, `ticket-`) do not match Ticket's channels, named after the username (see the Ticket section's question); alternative: also watch every channel that Ticket opens.
-- The wait: implemented a check of the channel and the owner before and after `delay_millis`; alternative: v3's single check before the wait.
-- An owner that discord.py has not cached (a large guild still being chunked): read through REST, whose member has no presence and counts as offline, as in v3; alternative: skip the notice, or ask the gateway for the presence (`query_members(presences=True)`).
-- Notices that wait during an unload or a reload are dropped; alternative: hand them to the reloaded plugin.
-- Bundled config: both IDs ship as 0 and the plugin does not load until they are set; alternative: optional IDs, with the plugin idle until set.
-- Validation: both IDs must be positive integers at load (v3 took any text); prefixes stay case-sensitive, numbers in `prefix` are read as text as v3 did, and an empty prefix still matches every channel, as in v3.
-- Bundled template: v3's text with example values, moved into the description; alternative: keep it in the title as v3, or a new generic text.
-- The notice stays zh-TW for everyone, with v3's global placeholders only (`bot_id`, `bot_name`); alternative: the guild's locale, or guild and channel placeholders.
-- A check at READY warns about a missing guild or owner (v3 checked nothing); alternative: warnings only when a channel is created.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-11-port-ticket-away-notice/design.md`.
 - Allow the Presence intent in the developer portal before enabling TicketAwayNotice (the Server Members intent is already on), or the bot does not connect.
@@ -518,23 +334,6 @@ here; delete a section once it is empty.
 - Log lines (English) name the board; each kind of failure is logged once per episode, with a line when it works again; keys are named by their position (`key 2`), never by their last four characters; a warning at READY names a board whose channel the bot cannot see or that takes no messages; blank entries are a debug line instead of v3's "empty content" warning at every cycle.
 - Core, for every plugin and the core config: a YAML syntax error now gives the file, the line and the column without quoting the faulty line, which could hold an API key or a push token (found in the cross-review).
 - A board's page is parsed in a worker thread; an announcement that raises is logged once per kind and episode and tried again at the next pass, while the board's later entries are posted; a message part of only whitespace is left out; only NTUST's hosts' `/p/<n>.php` pages count as articles (v3's pattern took any host).
-### Choices made without the owner
-- First pass with nothing stored: kept v3's behavior, every first-page entry posted (about 250 over the 18 boards); alternative: remember the first page without posting, which also covers a board added later.
-- Config surface: the boards (URL, layout, channel, title prefix) became config, and every model setting too since your request of 2026-10-11 (next section); five fetches at a time, 30 s page timeouts and v3's split sizes stay constants; alternative: config keys for them too.
-- Guild: no `guild-id` key, each channel identifies its guild and the READY check names a missing channel; alternative: a guild key checked at READY, as v3's `getGuildById`.
-- Channels: any channel that takes messages; alternative: announcement channels only, as v3 required.
-- Failures: a failing article page is retried at every pass while it stays on the first page; unconvertible content is posted as its title link; a refused first message waits for the next pass, a refused later part counts as posted with an error; alternative: v3's skip for good.
-- Remembered links: up to 100 per board after they leave the page; alternative: v3's page-only list, or all of them forever.
-- Gemini: its REST API over aiohttp, one session for the plugin; alternative: the google-genai Python SDK, a larger dependency tree.
-- HTML: the standard library's parser with a small tree in the plugin; alternative: an HTML5 parser dependency (selectolax, BeautifulSoup with html5lib) for full jsoup parity.
-- TLS: NTUST's pages are fetched without Python's `VERIFY_X509_STRICT`, because their certificate chains lack a Subject Key Identifier, which Python 3.13+ refuses, and with TWCA's public intermediate certificate added, because `www.academic.ntust.edu.tw` does not send it (certificates and host names are still verified; Gemini keeps the default); alternative: strict checks and no extra certificate, under which no NTUST page loads. The bundled intermediate expires on 2030-10-16.
-- `{{now}}`: the host's local time, as v3 (UTC in the container unless `TZ` is set); alternative: a `time-zone` key as Giveaway's.
-- v3's write-only `announcement_data` archive is not kept; alternative: keep it for parity, though nothing read it.
-- Default model stays v3's `gemini-2.5-flash`; alternative: a newer model as the default.
-- Requests to the model time out after `request-timeout`, 300 s by default (v3's SDK set none); rate-limit waits log at debug.
-- Refused posts: an article's messages wait in memory until the channel takes them (lost on a restart, after which the article is converted again); alternative: store them, or post nothing more to a board whose channel refused a post until a reload.
-- HTML parsing differences from jsoup on malformed pages (a `form` between a table and its rows, links misnested across blocks, links in `option`) are accepted, since NTUST's pages are well formed; alternative: an HTML5 parser dependency.
-- Core: the YAML snippets are dropped for every config file, which also closes UptimeHeartbeat's open item above; alternative: keep them and accept that a secret on a faulty line is logged.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-11-port-ntust-announcements/design.md` (a Gemini API key and a test guild).
 - At cutover: migrate v3's stored lists (a one-off script) before enabling the plugin, or the first pass posts every board's first page; add `boards` with the 18 channel IDs to the migrated `plugins/NtustAnnouncements/config.yaml`.
@@ -554,17 +353,6 @@ here; delete a section once it is empty.
 - Reworded lines, with either format: `Gemini attempt 3 of 10 at <article> failed with key 1: ...` is `conversion attempt 3 of 10 at <article> failed with key 1: ...`; `Gemini gave no text` is `the model gave no text`; `Gemini works again after 3 failed attempts` is `conversions work again after 3 failed attempts`; `Gemini failed 10 attempts at <article>` is `gave up converting <article> after 10 attempts`; the board's `since Gemini could not convert it` is `since the model could not convert it`; at debug level, `every Gemini key is at its limit` is `every key is at its rate limit` and `Gemini converted ...` is `converted ...`; a count of one reads `1 attempt`. The logger name is `xincord.plugins.ntust_announcements.conversion` (was `...gemini`).
 - Error texts in those lines have every URL cut to its scheme, host and port and the endpoint's path removed, so an API's help link shows only its origin; an error answer as a list of one error (Gemini's OpenAI-compatible endpoint) or as a text gives its message.
 - Config errors: v3's example key reads `replace the example key with your API key` (was `... with a Gemini API key`); with `gemini`, a model with characters other than letters, digits, `.`, `-` and `_` reads `the gemini format takes letters, digits, '.', '-' and '_'` (was pydantic's pattern message); each new key has its own messages, none quoting the endpoint.
-### Choices made without the owner
-- Key names and shape: flat kebab-case keys beside `api-keys` and `model`; alternative: nested groups (`timeout: {total, connect}`, `rate-limit: {requests, seconds}`, `retries: {attempts, waits}`).
-- `endpoint` holds the API's version path (`.../v1beta`, `.../v1`) and each format appends its own; one default, Gemini's native endpoint, for both formats, so switching `api-format` alone gets 404 answers until `endpoint` changes; alternative: a default per format (Gemini's OpenAI-compatible endpoint for `openai`), or `endpoint` required with `openai`.
-- `endpoint` refuses user info, a query and a fragment: keys belong in `api-keys`, aiohttp refuses a bearer header together with credentials in the URL, and the format's path is appended; alternative: accept them, for proxies with basic auth or Azure OpenAI's `api-version` query (a format of its own).
-- `temperature: null` and `max-output-tokens: null` send nothing, leaving the API's default; `max-output-tokens` goes as Gemini's `maxOutputTokens` and as `max_tokens` with `openai`, which Ollama, OpenRouter and Gemini's compatible endpoint take but OpenAI's reasoning models refuse (as they refuse any temperature but their own, which the comment says); alternative: `max_completion_tokens`, OpenAI's current name, which Ollama does not list, or no output limit at all.
-- Bounds: temperature 0 to 2; max-output-tokens 1 to 1048576; request-timeout above 0 up to 3600 s; connect-timeout above 0 up to request-timeout; rate-limit 1 to 10000; rate-window above 0 up to 86400 s; max-attempts 1 to 100; retry-waits 1 to 100 waits of 0 to 86400 s; a model of 1 to 256 characters without whitespace (`gemini`: letters, digits, `.`, `-`, `_`, since it goes into the URL); booleans (YAML's `yes`, `on`, `true`) are refused where a number goes, unlike the plugin's older keys; the endpoint is read as aiohttp reads it (no backslash, no port 0); alternative: other bounds, or none.
-- Log wording: the same neutral lines for both formats, the provider shown by the endpoint's origin in the READY line; alternative: keep "Gemini" in the lines when the format is `gemini`.
-- The module `gemini.py` became `conversion.py` (and `Gemini` `Converter`), so that the logger name, printed on every line, names no product; alternative: keep the name, which shows `...gemini` with any API.
-- `openai` answers: the first choice's `message.content` when it is text; a refusal, a tool call or a list of content parts is a failed attempt; the prompt goes as the only user message, as it was Gemini's only part; alternative: join content parts, or send the prompt as a system message.
-- Keys: `api-keys` stays required with every format (Ollama takes any text; the comment suggests one that no address or message holds, since every key is replaced in error texts and a short one garbles them); only whole keys are hidden, so an API's message that quotes a masked key (OpenAI shows its start and last four characters) is logged as the API wrote it; alternative: allow an empty list for APIs without keys, or log only the status of a refused attempt.
-- A reload, even one that fails and sets the previous version up again, builds a new cog whose rate limiter starts empty, as before this change: right after a reload a key can take up to `rate-limit` attempts more within one window than the setting allows, and an article in its retries starts its attempts again (found in the cross-review); alternative: keep the limiter's state across reloads, outside the plugin's modules.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-11-ntust-announcements-model-config/design.md` (a token, a test guild and API keys): the READY line, Gemini's OpenAI-compatible endpoint with the same key, OpenAI or OpenRouter, Ollama, a wrong key, the retries, an invalid value on reload.
 - Ollama on the Mac from the compose container: `endpoint: "http://host.docker.internal:11434/v1"` (the container's `localhost` is the container).
@@ -582,20 +370,6 @@ here; delete a section once it is empty.
 - zh-TW clients see new Chinese command descriptions and replies; the alerts stay in English, as v3's.
 - A channel that Discord no longer knows (404) loses its registrations at its next alert; `[`, `]` and `\` in a course's name are escaped in the alert's link.
 - English log lines, once per kind of failure and episode (v3 printed every failure to stdout).
-### Choices made without the owner
-- Course query: one request per registered code, since NTUST's server no longer answers v3's whole-catalogue request (2026-10-11: no answer in 60 s, then a 500 after 120 s); alternative: v3's whole catalogue at every interval, which keeps NTUST's server busy two minutes per request and alerts nothing.
-- Repeated alerts: v3's alert while a course has seats, at most once per `alert-interval` (60 s) per channel and course; alternative: one alert when seats appear, never repeated.
-- Defaults: v3's semester and go-live time, so that v3's file loads unchanged; alternative: no defaults, the plugin waiting for the operator's semester and start.
-- `interval` from 1 second (v3's 1.5 by default); alternative: v3's 1.5 seconds as the minimum.
-- `start` needs its UTC offset; alternative: the host's local time as v3 (UTC in the container), or a time zone key as Giveaway's.
-- Nothing is asked before `start` or while nothing is registered; alternative: v3's polling at all times.
-- Language: en-US (v3's English) is the default locale, and zh-TW translates the replies and the descriptions (also the alerts, unused while they follow the default locale); alternative: English only, or zh-TW as the default, which makes the alerts Chinese.
-- New reply `invalid-code`; alternative: accept any text as v3, or also check that NTUST lists the course.
-- Registrations of a channel that answers 404 are forgotten; those of guilds the bot left stay, as in v3 (their alerts are refused and logged once); alternative: forget them on a guild leave too.
-- The request body is the course query site's current one (`OnlyIntensive` added, `CourseTeacher` empty, the code in `CourseNo`); requests time out after 5 s to connect and 30 s in all (v3: no limit).
-- No limit on a member's registrations; each registered code adds a request to the round.
-- Alert states live in memory: after a restart or any reload (`/xincord reload`, SIGHUP), a course with seats is alerted again at once and a full alert owed before is dropped (found in the cross-review); alternative: keep them in the store.
-- Stored codes that are no course code (from a v3 import or a hand edit) are left out and dropped at the next change; alternative: refuse the whole document until it is fixed.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-11-port-ntust-course-watch/design.md`.
 - Before each course selection: set `semester` and `start` in `plugins/NtustCourseWatch/config.yaml`; during the first selection, check in the log that NTUST answers the per-code requests under load.
@@ -616,24 +390,10 @@ here; delete a section once it is empty.
 - The bot leaves voice after `player.auto_leave_timeout` (v3's 10 minutes) with nothing playing; a reload or an unload stops the music and leaves voice; panels are deleted when the bot leaves; a moderator's disconnection clears the songs.
 - After a new gateway session (READY again, not a resume), the bot leaves the voice channels that discord.py forgot; members run `/play` again. A node that answers nothing for 15 seconds makes the command answer `node-unavailable`.
 - Autocomplete suggestions answer within 2.5 seconds (or not at all) and leave other plugins' autocompletes alone.
-### Choices made without the owner
-- Spotify's credentials: in `.env` for the node; alternative: keep v3's `engines.spotify` in the plugin's config and push the ID and secret to LavaSrc with its `PATCH /v4/lavasrc/config`.
-- The password in two places (`.env` for the node, the plugin's config for the bot); alternative: the bot reads `LAVALINK_PASSWORD` from its environment too.
-- The bot starts once the node has started, not once it is healthy, so that the other plugins run while the node starts or fails; alternative: `condition: service_healthy`.
-- Missing emojis fall back to Unicode ones (`▰`/`▱` for the bar); alternative: ship v3's `images/` and upload the missing ones as application emojis at READY.
-- `player.auto_leave_timeout: 0` means never; alternative: leave at once.
-- The history keeps v3's 240 songs (played ones leave first, then songs are refused and counted); alternative: honor v3's unused `player.max_queue_size` (100 upcoming songs).
-- `/skip` past the last song ends the list, while the skip button at the last song keeps v3's `no-more-songs` (both v3's texts); alternative: the button ends the list too.
-- Volume and loop mode stay per guild in memory until the plugin unloads or the guild is removed, as v3 (a reload now resets them); alternative: keep them in the store.
-- A failed or stuck song moves on in single-song loop too; alternative: stop the loop.
-- Lavalink's request logging is off and its load handler logs warnings only (both log every member's search); alternative: Lavalink's defaults.
-- After a new gateway session the bot leaves the voice channels that discord.py forgot; alternative: rejoin them and keep playing.
-- A request to the node fails after 15 seconds without an answer; alternative: lavalink.py's default (aiohttp's 5 minutes) or another limit.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-11-port-music-player/design.md`.
 - A real voice test with a token: DAVE through Lavalink 4.2.2 is untested here (no token or guild); listen to a song, a move between channels and a moderator's disconnection.
 - Upload v3's emoji images (`XsDiscordBotKt/Plugins/MusicPlayer/src/main/resources/images/`) as the application's emojis if the bot's application changed; otherwise check that the existing ones show.
-- At startup discord.py warns that PyNaCl and davey are missing and "voice will NOT be supported": that is its own voice client; MusicPlayer's voice goes through Lavalink, which needs neither.
 - Done: the wheel, `xincord --no-online` (bundled, filled and v3 configs), the node healthy on this Mac with both plugins, the image with all eighteen plugins, the plugin's link from the image to the node (a YouTube search, the refused sources, a wrong password), a probe through discord.py's own objects, again after the cross-review's fixes (a moderator's disconnection and a second READY), and the node's logs without queries (archived design, "Checks" and "Cross-review").
 
 ## Dependency updates (`dependency-updates`)
@@ -641,12 +401,6 @@ here; delete a section once it is empty.
 ### User-visible changes
 - Renovate opens version-update PRs on Mondays (Asia/Taipei) and a Dependency Dashboard issue listing what waits; Dependabot opens security-update PRs as advisories appear.
 - Patch updates and the monthly `uv.lock` maintenance merge themselves (squashed) once CI passes; minor and major updates wait for you.
-### Choices made without the owner
-- Release age: implemented 7 days with strict internal checks (no branch before then); alternative: 3 days, or none.
-- GHCR images (uv, Lavalink) and GitHub's runners give no release dates: implemented no release age and no automerge for them; alternative: hold them until you approve them on the dashboard.
-- `uv.lock` updates within the ranges in `pyproject.toml` (`update-lockfile`); a range changes only when a release leaves it; alternative: raise the lower bounds at every update.
-- Commits `build: ...` / `ci: ...` without a scope; alternative: `build(deps): ...`, with `deps` added to AGENTS.md's scopes.
-- uv's image and `uv_build` share one PR (group `uv`).
 ### Manual checks
 - After this change lands, Renovate's first run opens the Dependency Dashboard issue; check that its first patch PR merges itself after CI.
 - GitHub documents Dependabot's uv support at uv 0.11, while `uv.lock` comes from uv 0.12: if a Dependabot uv security PR fails on the lock file, turn on Renovate's `vulnerabilityAlerts` instead.
@@ -655,11 +409,6 @@ here; delete a section once it is empty.
 
 ### User-visible changes
 - Pushing a GPG-signed `v*` tag (README, "Releasing") releases xincord: the workflow checks the signature against your GitHub GPG keys and the versions, pushes `ghcr.io/xinshoutw/xincord:<version>` and `:latest` (amd64 and arm64), and creates the GitHub Release with both distributions attached.
-### Choices made without the owner
-- 0.x releases are GitHub prereleases; alternative: ordinary releases.
-- `latest` moves with every release, 0.x included; alternative: `latest` only from 1.0.0.
-- Release notes list the commit subjects since the previous tag; alternative: a CHANGELOG file or a changelog tool.
-- arm64 is built through QEMU on one runner (slower, several minutes); alternative: native arm64 runners, if the plan offers them for private repositories.
 ### Manual checks
 - Before the first 1.x tag: create the `pypi` environment with yourself as required reviewer (Settings, Environments), and add pending trusted publishers on PyPI for `xincord` and `xincord-plugins` (workflow `release.yml`, environment `pypi`).
 - When the repository goes public: make the GHCR package `xincord` public too.
