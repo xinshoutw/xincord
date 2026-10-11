@@ -11,6 +11,7 @@ Kotlin:
 """
 
 import logging
+import sqlite3
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -423,3 +424,23 @@ async def test_announcement_that_raises(scene: Scene, caplog: pytest.LogCaptureF
         f"NtustAnnouncements board {BOARD}: its announcements work again after 2 failures"
         in plugin_lines(caplog, logging.INFO)
     )
+
+
+@pytest.mark.xfail(strict=True, reason="Each board remembers what it posted")
+async def test_store_write_fails(scene: Scene, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Requirement: Each board remembers what it posted."""
+
+    async def locked(_posted: Posted, _board: str, _links: object) -> None:
+        msg = "database is locked"
+        raise sqlite3.OperationalError(msg)
+
+    with monkeypatch.context() as patched:
+        patched.setattr(Posted, "save", locked)
+        # Each pass posts one announcement, then fails to store it and ends.
+        for _ in range(len(ENTRIES)):
+            await scene.watcher.check()
+
+    assert scene.sent == expected_posts(ENTRIES)  # none posted twice
+    await scene.watcher.check()  # the store works again
+    assert await scene.stored() == tuple(ENTRIES)
+    assert scene.sent == expected_posts(ENTRIES)

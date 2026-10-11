@@ -253,6 +253,10 @@ document SHALL stop its board and stay.
 - **WHEN** the channel refuses the posts at three passes, then takes them
 - **THEN** each article is fetched and converted once, and posted when the channel takes it
 
+#### Scenario: Store refusing a write
+- **WHEN** the store refuses to save the board's document after a post
+- **THEN** the announcement is not posted again while the plugin runs, and is stored later
+
 #### Scenario: Links that leave the page
 - **WHEN** a pass sees the page without some posted links and a later pass sees them again
 - **THEN** they are not posted again
