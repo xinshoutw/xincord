@@ -75,6 +75,15 @@ class NtustAnnouncements(commands.Cog):
             task.cancel()
         await asyncio.gather(*self.tasks, return_exceptions=True)
 
+    @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        """Check the boards' channels once the guilds are cached; fires for each session."""
+        self.check()
+
+    def check(self) -> None:
+        """Warn about each board whose channel the bot cannot see or that takes no messages."""
+        raise NotImplementedError
+
     async def _run(self) -> None:
         """Wait until the bot is ready, then run one loop per board over one session.
 
