@@ -227,3 +227,17 @@ async def test_default_allowed_mentions(store: Store, tmp_path: Path) -> None:
 
     assert mentions is not None
     assert mentions.to_dict() == {"parse": ["users"], "replied_user": True}
+
+
+@pytest.mark.xfail(strict=True, reason="Startup loads the configured plugins")
+async def test_no_voice_warnings(
+    store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: Startup loads the configured plugins."""
+    monkeypatch.setattr(discord.VoiceClient, "warn_nacl", True)
+    monkeypatch.setattr(discord.VoiceClient, "warn_dave", True)
+
+    Bot([], root=tmp_path, data=tmp_path / "data", store=store)
+
+    messages = [record.getMessage() for record in caplog.records]
+    assert [message for message in messages if "voice" in message] == []

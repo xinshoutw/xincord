@@ -5,7 +5,9 @@ Kotlin:
 """
 
 import asyncio
+import io
 import logging
+import re
 import signal
 import sys
 from contextlib import contextmanager
@@ -15,9 +17,11 @@ import discord
 import pytest
 from prompt_toolkit.application import create_app_session
 from prompt_toolkit.completion import CompleteEvent
+from prompt_toolkit.data_structures import Size
 from prompt_toolkit.document import Document
 from prompt_toolkit.input import create_pipe_input
 from prompt_toolkit.output import DummyOutput
+from prompt_toolkit.output.vt100 import Vt100_Output
 
 from plugin_fakes import until, watch_closes, write_config
 from xincord.core import cli
@@ -124,6 +128,24 @@ async def test_completing(fake_plugins: FakePlugins, store: Store, tmp_path: Pat
     assert offered("re") == ["reload"]
     assert offered("s") == ["stop", "shutdown"]
     assert offered("reload A") == ["Alpha"]
+
+
+@pytest.mark.xfail(strict=True, reason="Console completion")
+async def test_no_space_kept_for_a_menu(store: Store, tmp_path: Path) -> None:
+    """Requirement: Console completion."""
+    bot = Bot([], root=tmp_path, data=tmp_path / "data", store=store)
+    screen = io.StringIO()
+    terminal = Vt100_Output(screen, lambda: Size(rows=24, columns=80), enable_cpr=False)
+
+    with create_pipe_input() as pipe, create_app_session(input=pipe, output=terminal):
+        pipe.send_text("stop\r")
+        async with asyncio.timeout(5):
+            await run_console(bot, lambda: None)
+    shown = screen.getvalue()
+
+    assert "console > " in shown
+    assert shown.count("\n") == 1  # the line feed after the accepted input
+    assert re.search(r"\x1b\[\d*A", shown) is None
 
 
 class Terminal:

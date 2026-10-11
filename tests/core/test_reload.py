@@ -6,9 +6,10 @@ Kotlin:
 """
 
 import asyncio
+import logging
 from pathlib import Path
 from types import SimpleNamespace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -17,6 +18,7 @@ from xincord.core.bot import Bot
 
 if TYPE_CHECKING:
     from plugin_fakes import FakePlugins
+    from xincord.core.command_tree import CommandTree
     from xincord.core.storage import Store
 
 RECORDING = """
@@ -232,3 +234,45 @@ async def test_upload_after_a_reload_that_unloads(
     assert summary.startswith("Reload failed: ")
     assert bot.tree.get_command("probe") is None
     assert syncs == [("global", True), (1, True)]
+
+
+@pytest.mark.xfail(strict=True, reason="Reloads upload the commands and never overlap")
+async def test_summary_before_the_upload(
+    installed: FakePlugins,
+    store: Store,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Requirement: Reloads upload the commands and never overlap."""
+    bot = await started(installed, store, [])
+    uploads: list[tuple[bool, bool]] = []
+
+    async def sync_global(used: Store, *, force: bool = False) -> bool:
+        assert used is store
+        uploads.append(("Reloaded: none." in caplog.messages, force))
+        return True
+
+    def is_ready(_: Bot) -> bool:
+        return True
+
+    monkeypatch.setattr(cast("CommandTree", bot.tree), "sync_global", sync_global)
+    monkeypatch.setattr(Bot, "is_ready", is_ready)
+    monkeypatch.setattr(Bot, "guilds", property(lambda _: []))
+    caplog.set_level(logging.INFO, logger="xincord.core.bot")
+
+    assert await bot.reload() == "Reloaded: none."
+    assert uploads == [(True, True)]
+
+
+@pytest.mark.xfail(strict=True, reason="Reloads upload the commands and never overlap")
+async def test_waiting_reload(
+    installed: FakePlugins, store: Store, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: Reloads upload the commands and never overlap."""
+    installed.add("Slow", SLOW)
+    bot = await started(installed, store, ["Slow"])
+    caplog.set_level(logging.INFO, logger="xincord.core.bot")
+
+    await asyncio.gather(bot.reload(), bot.reload())
+
+    assert caplog.messages.count("Waiting for the running reload to finish") == 1

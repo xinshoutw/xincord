@@ -3,6 +3,7 @@
 import re
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -148,3 +149,16 @@ def test_node_logs_no_queries() -> None:
 
     # Lavalink 4.2.2's load handler names each identifier at INFO (checked with the image).
     assert config["logging"]["level"]["lavalink.server.player.AudioLoaderRestHandler"] == "WARN"
+
+
+@pytest.mark.xfail(strict=True, reason="Container image")
+def test_image_turns_off_cpr() -> None:
+    """Requirement: Container image."""
+    steps = instructions()
+    stages = [index for index, (keyword, _) in enumerate(steps) if keyword == "FROM"]
+    runtime = steps[stages[-1] :]
+
+    assert any(
+        keyword == "ENV" and "PROMPT_TOOLKIT_NO_CPR=1" in arguments.split()
+        for keyword, arguments in runtime
+    )
