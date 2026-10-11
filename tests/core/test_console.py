@@ -130,7 +130,6 @@ async def test_completing(fake_plugins: FakePlugins, store: Store, tmp_path: Pat
     assert offered("reload A") == ["Alpha"]
 
 
-@pytest.mark.xfail(strict=True, reason="Console completion")
 async def test_no_space_kept_for_a_menu(store: Store, tmp_path: Path) -> None:
     """Requirement: Console completion."""
     bot = Bot([], root=tmp_path, data=tmp_path / "data", store=store)

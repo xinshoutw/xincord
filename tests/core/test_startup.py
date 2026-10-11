@@ -229,7 +229,6 @@ async def test_default_allowed_mentions(store: Store, tmp_path: Path) -> None:
     assert mentions.to_dict() == {"parse": ["users"], "replied_user": True}
 
 
-@pytest.mark.xfail(strict=True, reason="Startup loads the configured plugins")
 async def test_no_voice_warnings(
     store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:

@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import NestedCompleter
+from prompt_toolkit.shortcuts import CompleteStyle
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -32,7 +33,9 @@ def completer(bot: Bot) -> Completer:
 
 async def run_console(bot: Bot, stop: Callable[[], None]) -> None:
     """Read commands until a stop word or end of input, then call ``stop``."""
-    session: PromptSession[str] = PromptSession()
+    # Matches are listed above the prompt, so no lines stay free below it: under compose the
+    # terminal's output is the container's log.
+    session: PromptSession[str] = PromptSession(complete_style=CompleteStyle.READLINE_LIKE)
     while True:
         try:
             # Rebuilt each time, so plugins loaded by a reload complete too.

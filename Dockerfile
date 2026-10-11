@@ -21,7 +21,8 @@ RUN useradd --uid 1000 --create-home xincord \
     && mkdir -p /bot/data \
     && chown -R xincord:xincord /bot
 COPY --from=builder /app/.venv /app/.venv
-ENV PATH="/app/.venv/bin:${PATH}" PYTHONUNBUFFERED=1
+# No cursor position requests: with nobody attached, the console's terminal never answers them.
+ENV PATH="/app/.venv/bin:${PATH}" PYTHONUNBUFFERED=1 PROMPT_TOOLKIT_NO_CPR=1
 USER xincord
 WORKDIR /bot
 ENTRYPOINT ["xincord"]

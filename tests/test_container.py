@@ -3,7 +3,6 @@
 import re
 from pathlib import Path
 
-import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -151,7 +150,6 @@ def test_node_logs_no_queries() -> None:
     assert config["logging"]["level"]["lavalink.server.player.AudioLoaderRestHandler"] == "WARN"
 
 
-@pytest.mark.xfail(strict=True, reason="Container image")
 def test_image_turns_off_cpr() -> None:
     """Requirement: Container image."""
     steps = instructions()

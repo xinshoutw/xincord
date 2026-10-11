@@ -70,6 +70,8 @@ class Bot(commands.Bot):
             force_lang: Replace exported lang files with the bundled ones.
             config: The core config, for the status rotation and the interaction log.
         """
+        # Voice plays through Lavalink (MusicPlayer), never through discord.py's own VoiceClient.
+        discord.VoiceClient.warn_nacl = discord.VoiceClient.warn_dave = False
         # Application commands only: the prefix just satisfies commands.Bot.
         super().__init__(
             command_prefix=commands.when_mentioned,
@@ -127,6 +129,8 @@ class Bot(commands.Bot):
         Returns:
             A one-line summary, also logged. Failures are logged and summarized, not raised.
         """
+        if self._reloading.locked():
+            logger.info("Waiting for the running reload to finish")
         async with self._reloading:
             before = self.loaded
             try:
@@ -142,16 +146,17 @@ class Bot(commands.Bot):
                     # The plugins that the failed reload unloaded take their commands along.
                     await self._sync_commands(force=True)
                 return f"Reload failed: {error}"
+            summary = f"Reloaded: {', '.join(reloaded) or 'none'}."
+            if failed:
+                summary += f" Failed: {', '.join(failed)} (see the log)."
+            # Logged before the upload, which may wait a minute for Discord's rate limit.
+            logger.info("%s", summary)
             if self.is_ready():
                 # A manual reload also repairs the commands on Discord.
                 await self._sync_commands(force=True)
                 if plugin is None:
                     self._rotate_status(restart=True)
-        summary = f"Reloaded: {', '.join(reloaded) or 'none'}."
-        if failed:
-            summary += f" Failed: {', '.join(failed)} (see the log)."
-        logger.info("%s", summary)
-        return summary
+            return summary
 
     @property
     def loaded(self) -> tuple[str, ...]:

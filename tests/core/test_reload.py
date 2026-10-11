@@ -236,7 +236,6 @@ async def test_upload_after_a_reload_that_unloads(
     assert syncs == [("global", True), (1, True)]
 
 
-@pytest.mark.xfail(strict=True, reason="Reloads upload the commands and never overlap")
 async def test_summary_before_the_upload(
     installed: FakePlugins,
     store: Store,
@@ -264,7 +263,6 @@ async def test_summary_before_the_upload(
     assert uploads == [(True, True)]
 
 
-@pytest.mark.xfail(strict=True, reason="Reloads upload the commands and never overlap")
 async def test_waiting_reload(
     installed: FakePlugins, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
