@@ -414,11 +414,6 @@ async def test_counts_of_one(caplog: pytest.LogCaptureFixture) -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="API keys stay within the rate limit and failed attempts are retried",
-)
 async def test_window_edge() -> None:
     """Requirement: API keys stay within the rate limit and failed attempts are retried."""
     # The key's only attempt leaves the window between two readings of the clock.

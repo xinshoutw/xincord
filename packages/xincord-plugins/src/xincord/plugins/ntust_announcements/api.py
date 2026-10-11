@@ -117,8 +117,12 @@ def answer_text(api_format: ApiFormat, answer: object) -> str:
 
 
 def error_message(answer: object) -> str:
-    """The ``error.message`` of an error answer, which both formats' APIs give; else empty."""
-    if isinstance(answer, list) or isinstance(_field(answer, "error"), str):
-        raise NotImplementedError  # stub: an error list, an error text
-    message = _field(_field(answer, "error"), "message")
+    """The message of an error answer; empty when it has none.
+
+    Both formats' APIs give ``error.message``; Gemini's OpenAI-compatible endpoint wraps the error
+    in a list of one, and some compatible servers give ``error`` as a text.
+    """
+    items = _items(answer)
+    error = _field(items[0] if items else answer, "error")
+    message = error if isinstance(error, str) else _field(error, "message")
     return message if isinstance(message, str) else ""

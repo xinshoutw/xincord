@@ -40,7 +40,7 @@
       aiohttp refuses or that reach no port), "An OpenAI-compatible API turns an article into
       Markdown" (an error list, an error text) and "API keys stay within the rate limit and failed
       attempts are retried" (the window's edge), found in the review
-- [ ] 5.6 Strict numbers, endpoints read as aiohttp reads them, both error shapes, one clock
+- [x] 5.6 Strict numbers, endpoints read as aiohttp reads them, both error shapes, one clock
       reading per pass; remove the markers
 - [ ] 5.7 The review's notes: reloads and the limiter, placeholder keys, Ollama from compose, the
       connect limit, and the failures package's docstring

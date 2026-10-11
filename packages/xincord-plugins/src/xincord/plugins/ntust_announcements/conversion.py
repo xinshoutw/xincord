@@ -129,10 +129,7 @@ class KeyRing:
 
         That is when the oldest attempt among the keys leaves the window.
         """
-        windows = [self._attempts(key, now) for key in self.keys]
-        if not all(windows):
-            raise NotImplementedError  # stub: a key has room again, the clock moved since take
-        return min(window[0] for window in windows) + self.window - now
+        return min(self._attempts(key, now)[0] for key in self.keys) + self.window - now
 
 
 def describe(error: BaseException) -> str:
@@ -187,9 +184,12 @@ class Converter:
         limits = self.limits
         failed = 0
         while failed < limits.max_attempts:
-            index = self.ring.take(self.clock())
+            # One reading per pass: an attempt that left the window between two readings would
+            # leave every key with room, and nothing to wait for.
+            now = self.clock()
+            index = self.ring.take(now)
             if index is None:
-                wait = self.ring.wait(self.clock())
+                wait = self.ring.wait(now)
                 logger.debug(
                     "NtustAnnouncements: every key is at its rate limit; waiting %.1f s", wait
                 )

@@ -411,11 +411,6 @@ GEMINI_OPENAI_ERROR = [
 ]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="An OpenAI-compatible API turns an article into Markdown",
-)
 @pytest.mark.parametrize(
     ("answer", "message"),
     [
@@ -432,11 +427,6 @@ def test_error_messages(answer: object, message: str) -> None:
     assert error_message(answer) == message
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="An OpenAI-compatible API turns an article into Markdown",
-)
 async def test_openai_error_list(server: Server) -> None:
     """Requirement: An OpenAI-compatible API turns an article into Markdown."""
     server.api = (400, json.dumps(GEMINI_OPENAI_ERROR))

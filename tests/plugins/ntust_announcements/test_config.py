@@ -591,7 +591,6 @@ def test_example_key(api_format: str) -> None:
     )
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The model settings are config")
 @pytest.mark.parametrize(
     ("change", "error"),
     [
@@ -651,7 +650,6 @@ def test_booleans_are_no_numbers(change: tuple[str, str], error: str) -> None:
     assert line.startswith(f"config.yaml: {error}")
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The model settings are config")
 @pytest.mark.parametrize(
     "endpoint",
     [
