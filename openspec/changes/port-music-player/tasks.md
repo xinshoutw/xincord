@@ -19,7 +19,7 @@
 - [x] 3.2 Implement the identifier rule, the times, the bar, the thumbnails, the panel values and
       the queue embed; remove the markers
 - [x] 3.3 xfail tests for "The history keeps v3's order of play" against stubs in `history.py`
-- [ ] 3.4 Implement the history; remove the markers
+- [x] 3.4 Implement the history; remove the markers
 
 ## 4. Session
 

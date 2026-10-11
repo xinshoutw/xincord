@@ -79,33 +79,79 @@ class History:
         return self.entries[self.index + 1 :] if self.active else []
 
     def add(self, entries: Sequence[Entry]) -> Added:
-        """Add ``entries`` after the others; the first starts when the history is idle."""
-        raise NotImplementedError
+        """Add ``entries`` after the others; the first starts when the history is idle.
+
+        Past ``limit`` songs, played ones leave first, the index following; the songs that still
+        do not fit are refused and counted (v3 dropped the newest silently).
+        """
+        played = self.index + (0 if self.active else 1) if self.entries else 0
+        excess = len(self.entries) + len(entries) - self.limit
+        if (drop := min(max(excess, 0), played)) > 0:
+            del self.entries[:drop]
+            self.index -= drop
+        accepted = list(entries[: self.limit - len(self.entries)])
+        first = len(self.entries)
+        self.entries.extend(accepted)
+        start = None
+        if accepted and not self.active:
+            self.index, self.active = first, True
+            start = accepted[0]
+        return Added(len(accepted), len(entries) - len(accepted), start)
 
     def skip(self) -> Entry | None:
         """Go to the next song and return it, or None at the last one (the index stays)."""
-        raise NotImplementedError
+        if self.index + 1 >= len(self.entries):
+            return None
+        self.index += 1
+        return self.entries[self.index]
 
     def skip_many(self, count: int) -> Entry | None:
-        """Skip ``count`` songs: the song reached, or None when the list ends past the last."""
-        raise NotImplementedError
+        """Skip ``count`` songs: the song reached, or None when the list ends past the last.
+
+        v3 allowed one more than the upcoming songs, the playing one included, then re-showed the
+        last song; skipping past it ends the list, as v3's unreachable text said.
+        """
+        if count <= len(self.upcoming):
+            self.index += count
+            return self.entries[self.index]
+        self.index, self.active = len(self.entries) - 1, False
+        return None
 
     def previous(self, position: int) -> Entry:
-        """v3's previous button: restart the song, or go back one before 5000 ms."""
-        raise NotImplementedError
+        """v3's previous button: restart the song, or go back one before 5000 ms.
+
+        The song restarts from ``PREVIOUS_THRESHOLD`` on, and when it is the first one.
+        """
+        if self.index > 0 and position < PREVIOUS_THRESHOLD:
+            self.index -= 1
+        return self.entries[self.index]
 
     def ended(self, loop: LoopMode, *, failed: bool) -> Entry | None:
-        """The current song ended: the song to start next, or None when the history goes idle."""
-        raise NotImplementedError
+        """The current song ended: the song to start next, or None when the history goes idle.
+
+        In single-song loop a finished song plays again; a failed one is never restarted (v3
+        looped it forever).
+        """
+        if loop is LoopMode.SINGLE and not failed:
+            return self.entries[self.index]
+        if (following := self.skip()) is None:
+            self.active = False
+        return following
 
     def shuffle(self, rng: Random) -> int:
         """Shuffle the upcoming songs; return how many, or 0 when fewer than two."""
-        raise NotImplementedError
+        upcoming = self.upcoming
+        if len(upcoming) < 2:  # noqa: PLR2004 - v3's "at least two songs"
+            return 0
+        rng.shuffle(upcoming)
+        self.entries[self.index + 1 :] = upcoming
+        return len(upcoming)
 
     def stop(self) -> None:
         """Forget every song, as v3's ``/stop`` and ``/disconnect`` did."""
-        raise NotImplementedError
+        self.entries.clear()
+        self.index, self.active = 0, False
 
     def idle(self) -> None:
         """The player dropped the current song: nothing plays, and the songs stay."""
-        raise NotImplementedError
+        self.active = False

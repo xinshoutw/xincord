@@ -8,8 +8,6 @@ Kotlin:
 
 import random
 
-import pytest
-
 from xincord.plugins.music_player.audio import Track
 from xincord.plugins.music_player.history import Added, Entry, History, LoopMode, Requester
 
@@ -31,9 +29,6 @@ def titles(entries: list[Entry]) -> list[str]:
     return [entry.track.title for entry in entries]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The history keeps v3's order of play"
-)
 def test_first_and_later_songs() -> None:
     """Requirement: The history keeps v3's order of play."""
     history = History()
@@ -47,9 +42,6 @@ def test_first_and_later_songs() -> None:
     assert titles(history.upcoming) == ["Song 2"]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The history keeps v3's order of play"
-)
 def test_a_song_added_after_the_end() -> None:
     """Requirement: The history keeps v3's order of play."""
     history = History()
@@ -66,9 +58,6 @@ def test_a_song_added_after_the_end() -> None:
     assert history.previous(0) == song(2)  # the ended songs stay behind it
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The history keeps v3's order of play"
-)
 def test_skip() -> None:
     """Requirement: The history keeps v3's order of play."""
     history = History()
@@ -79,9 +68,6 @@ def test_skip() -> None:
     assert (history.index, history.active) == (1, True)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The history keeps v3's order of play"
-)
 def test_skip_many() -> None:
     """Requirement: The history keeps v3's order of play."""
     history = History()
@@ -94,9 +80,6 @@ def test_skip_many() -> None:
     assert history.upcoming == []
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The history keeps v3's order of play"
-)
 def test_previous() -> None:
     """Requirement: The history keeps v3's order of play."""
     history = History()
@@ -110,9 +93,6 @@ def test_previous() -> None:
     assert history.index == 0
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The history keeps v3's order of play"
-)
 def test_shuffle() -> None:
     """Requirement: The history keeps v3's order of play."""
     history = History()
@@ -131,9 +111,6 @@ def test_shuffle() -> None:
     assert history.index == 1
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The history keeps v3's order of play"
-)
 def test_full_history() -> None:
     """Requirement: The history keeps v3's order of play."""
     history = History(limit=5)
@@ -151,9 +128,6 @@ def test_full_history() -> None:
     assert full == Added(0, 2, None)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The history keeps v3's order of play"
-)
 def test_full_history_after_the_end() -> None:
     """Requirement: The history keeps v3's order of play."""
     history = History(limit=3)
@@ -167,9 +141,6 @@ def test_full_history_after_the_end() -> None:
     assert (history.index, history.active) == (0, True)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Playback follows the node's events"
-)
 def test_ends() -> None:
     """Requirement: Playback follows the node's events."""
     history = History()
@@ -181,9 +152,6 @@ def test_ends() -> None:
     assert (history.index, history.active) == (1, False)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Playback follows the node's events"
-)
 def test_idle() -> None:
     """Requirement: Playback follows the node's events."""
     history = History()
@@ -196,9 +164,6 @@ def test_idle() -> None:
     assert history.add([song(3)]).start == song(3)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Members control playback with v3's replies"
-)
 def test_stop() -> None:
     """Requirement: Members control playback with v3's replies."""
     history = History()
