@@ -1,0 +1,48 @@
+# The texts that v3 wrote in its code (MusicPlayer.kt, MusicPlayerUtils.kt, HistoryIndexManager.kt
+# and Event.kt), in zh-TW for every member; these are their English translations, and the few
+# texts that xincord adds. The plugin fills the %music_player@...% placeholders; their values are
+# inserted as written.
+
+# Replies to commands (MusicPlayer.kt:335-731, MusicPlayerUtils.kt:97-109).
+join-voice-first: "❌ You must join a voice channel first to use this!"
+voice-channel-not-found: "❌ Cannot find your voice channel!"
+cannot-connect: "❌ Cannot connect to the voice channel!"
+not-connected: "❌ The bot is not connected to any voice channel!"
+play-join-voice-first: "❌ You must join a voice channel first to play music!"
+no-connect-permission: "❌ The bot has no permission to connect to that voice channel!"
+empty-query: "❌ Please give the name or the URL of the song to play!"
+empty-playlist: "❌ The playlist is empty!"
+no-matches: "❌ No matching song found: %music_player@query%"
+load-failed: "❌ The song could not be loaded: %music_player@error%"
+nothing-playing: "❌ No song is playing right now!"
+already-paused: "⏸️ The song is already paused!"
+already-playing: "▶️ The song is already playing!"
+skip-too-many: "❌ You can skip at most %music_player@count% songs!"
+skipped-to-end: "⏭️ Skipped; the playlist has ended"
+shuffle-join-voice: "❌ You must be in a voice channel to use this command!"
+shuffle-too-few: "❌ The playlist does not have enough songs to shuffle! (at least 2)"
+shuffled: "🔀 Shuffled the playlist: %music_player@count% songs."
+
+# New in xincord: the node cannot be reached, and the history of 240 songs is full.
+node-unavailable: "❌ The music server is unavailable; please try again later"
+queue-full: "❌ The playlist is full; no more songs can be added!"
+queue-truncated: "The playlist is full: %music_player@added% songs added, %music_player@refused% left out"
+
+# The panel's text after a press (MusicPlayer.kt:306-956, HistoryIndexManager.kt:110-157).
+button-join-voice: "❌ You must be in a voice channel to control the music!"
+previous-no-song: "❌ No song is playing"
+previous-idle: "❌ Cannot read the current playback state"
+no-more-songs: "❌ There are no more songs to play"
+
+# Unexpected errors, with or without their text (Event.kt:79-118, messages.show_detailed_errors).
+command-error: "❌ An error occurred while handling the command: %music_player@error%"
+command-error-hidden: "❌ An error occurred while handling the command; please try again later"
+button-error: "❌ An error occurred while handling the button: %music_player@error%"
+button-error-hidden: "❌ An error occurred while handling the button; please try again later"
+
+# Panels and suggestions (MusicPlayerUtils.kt:114-147, MusicPlayer.kt:265-271 and 637-680); the
+# queue's last line is new in xincord.
+live: "Live"
+live-length: "∞ (live)"
+queue-more: "… and %music_player@count% more songs"
+current-volume: "Current volume: %music_player@volume%"

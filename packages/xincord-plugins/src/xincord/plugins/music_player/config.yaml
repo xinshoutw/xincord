@@ -1,0 +1,39 @@
+# MusicPlayer: list it under `plugins` in the core config.yaml to enable it.
+# Members bring the bot into their voice channel with /join or /play and control the songs with
+# commands and the buttons of the ephemeral player panel. A Lavalink node plays the audio: compose
+# runs it as the `lavalink` service (compose.yaml, lavalink/application.yml).
+
+# The Lavalink node. `password` is LAVALINK_PASSWORD of the .env file next to compose.yaml; the
+# plugin does not load until it is set.
+lavalink:
+  host: "lavalink"  # the compose service; the node's host name elsewhere
+  port: 2333
+  password: ""
+
+player:
+  # The volume of a guild until a member changes it with /volume, 0 to 100.
+  default_volume: 40
+  # Milliseconds with no song playing before the bot leaves the voice channel; 0 never leaves.
+  auto_leave_timeout: 600000
+
+messages:
+  # Whether error replies include the error's text.
+  show_detailed_errors: true
+
+# The names of the bot application's emojis (Discord Developer Portal, the application's Emojis
+# page; v3's images in Plugins/MusicPlayer/src/main/resources/images). A name that the application
+# lacks shows as a Unicode emoji.
+emojis:
+  progress_white_start: "music_player__line_white_start"
+  progress_white_full: "music_player__line_white_full"
+  progress_white_end: "music_player__line_white_end"
+  progress_black: "music_player__line_black"
+  progress_black_end: "music_player__line_black_end"
+  media_play: "music_player__media_play"
+  media_pause: "music_player__media_pause"
+  media_ordered: "music_player__media_ordered"
+  media_repeat_once: "music_player__media_repeat_once"
+  media_previous: "music_player__media_previous"
+  media_pause_resume: "music_player__media_pause_resume"
+  media_next: "music_player__media_next"
+  media_disconnect: "music_player__media_disconnect"

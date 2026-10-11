@@ -1,6 +1,6 @@
 ## 1. Resources
 
-- [ ] 1.1 Add lavalink.py 5.11.1 to `xincord-plugins` (pinned in `uv.lock`) and bundle
+- [x] 1.1 Add lavalink.py 5.11.1 to `xincord-plugins` (pinned in `uv.lock`) and bundle
       `config.yaml` and `lang/` (v3's register files and templates, the four button emoji IDs as
       placeholders, final newlines; `text.yaml` with v3's zh-TW texts and en-US translations);
       add `golden.yaml` under `tests/fixtures/plugins/music_player/`

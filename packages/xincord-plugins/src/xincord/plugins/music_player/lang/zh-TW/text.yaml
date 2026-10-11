@@ -1,0 +1,47 @@
+# The texts that v3 wrote in its code (MusicPlayer.kt, MusicPlayerUtils.kt, HistoryIndexManager.kt
+# and Event.kt), and the few that xincord adds. The plugin fills the %music_player@...%
+# placeholders; their values are inserted as written.
+
+# Replies to commands (MusicPlayer.kt:335-731, MusicPlayerUtils.kt:97-109).
+join-voice-first: "❌ 您必須先加入語音頻道才能使用此功能！"
+voice-channel-not-found: "❌ 無法找到您的語音頻道！"
+cannot-connect: "❌ 無法連接到語音頻道！"
+not-connected: "❌ 機器人目前沒有連接到任何語音頻道！"
+play-join-voice-first: "❌ 您必須先加入語音頻道才能播放音樂！"
+no-connect-permission: "❌ 機器人沒有連接到該語音頻道的權限！"
+empty-query: "❌ 請提供要播放的歌曲名稱或URL！"
+empty-playlist: "❌ 播放清單為空！"
+no-matches: "❌ 找不到符合的歌曲：%music_player@query%"
+load-failed: "❌ 載入歌曲時發生錯誤：%music_player@error%"
+nothing-playing: "❌ 目前沒有正在播放的歌曲！"
+already-paused: "⏸️ 歌曲已經暫停了！"
+already-playing: "▶️ 歌曲已經在播放了！"
+skip-too-many: "❌ 只能跳過 %music_player@count% 首歌曲！"
+skipped-to-end: "⏭️ 已跳過歌曲，播放清單已結束"
+shuffle-join-voice: "❌ 您必須在語音頻道中才能使用此指令！"
+shuffle-too-few: "❌ 播放清單中沒有足夠的歌曲可以打亂！（至少需要2首歌曲）"
+shuffled: "🔀 已成功打亂播放清單！共打亂了 %music_player@count% 首歌曲。"
+
+# New in xincord: the node cannot be reached, and the history of 240 songs is full.
+node-unavailable: "❌ 音樂伺服器目前無法使用，請稍後再試"
+queue-full: "❌ 播放清單已滿，無法再加入歌曲！"
+queue-truncated: "播放清單已滿：已加入 %music_player@added% 首歌曲，%music_player@refused% 首未加入"
+
+# The panel's text after a press (MusicPlayer.kt:306-956, HistoryIndexManager.kt:110-157).
+button-join-voice: "❌ 您必須在語音頻道中才能控制音樂播放！"
+previous-no-song: "❌ 沒有正在播放的歌曲"
+previous-idle: "❌ 無法獲取當前播放狀態"
+no-more-songs: "❌ 沒有更多歌曲可播放"
+
+# Unexpected errors, with or without their text (Event.kt:79-118, messages.show_detailed_errors).
+command-error: "❌ 處理指令時發生錯誤：%music_player@error%"
+command-error-hidden: "❌ 處理指令時發生錯誤，請稍後再試"
+button-error: "❌ 處理按鈕互動時發生錯誤：%music_player@error%"
+button-error-hidden: "❌ 處理按鈕互動時發生錯誤，請稍後再試"
+
+# Panels and suggestions (MusicPlayerUtils.kt:114-147, MusicPlayer.kt:265-271 and 637-680); the
+# queue's last line is new in xincord.
+live: "直播中"
+live-length: "∞ (直播)"
+queue-more: "…還有 %music_player@count% 首歌曲"
+current-volume: "當前音量: %music_player@volume%"

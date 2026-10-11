@@ -338,6 +338,15 @@ wheels = [
 ]
 
 [[package]]
+name = "lavalink"
+version = "5.11.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiohttp" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/88/26/94a168ce3d9ae8dc1d209881fd8ced7f182b9b9fd51d0fa03c18621edec6/lavalink-5.11.1.tar.gz", hash = "sha256:995945373f897b34bda77287b9ec02d203c6e8bba497135d24654558f615e9b7", size = 55402, upload-time = "2026-10-06T14:29:14.619Z" }
+
+[[package]]
 name = "multidict"
 version = "6.9.1"
 source = { registry = "https://pypi.org/simple" }
@@ -868,6 +877,7 @@ version = "0.1.0"
 source = { editable = "packages/xincord-plugins" }
 dependencies = [
     { name = "aiohttp" },
+    { name = "lavalink" },
     { name = "xincord" },
     { name = "yarl" },
 ]
@@ -875,6 +885,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.14.4" },
+    { name = "lavalink", specifier = ">=5.11.1" },
     { name = "xincord", editable = "." },
     { name = "yarl", specifier = ">=1.25.1" },
 ]

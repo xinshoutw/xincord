@@ -1,0 +1,119 @@
+# Golden data for the MusicPlayer tests. The text is v3's, from
+# XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/ (command/Register.kt and resources/lang/),
+# unless noted.
+
+# The guild commands in v3's order: the base name and English description of Register.kt, the
+# en-US and zh-TW names and descriptions of register.yaml, and the options.
+commands:
+  - name: "join"
+    description: "Make the bot join your voice channel"
+    en-US: ["join", "Make the bot join your current voice channel"]
+    zh-TW: ["加入", "讓機器人加入您所在的語音頻道"]
+  - name: "disconnect"
+    description: "Make the bot leave the voice channel"
+    en-US: ["disconnect", "Make the bot leave the current voice channel"]
+    zh-TW: ["離開", "讓機器人離開目前的語音頻道"]
+  - name: "play"
+    description: "Play music"
+    en-US: ["play", "Play a specified song or add it to the queue"]
+    zh-TW: ["播放", "播放指定的歌曲或將其加入佇列"]
+    options:
+      - name: "query"
+        description: "Song name, artist, or URL"
+        type: 3
+        required: true
+        max_length: 500
+        autocomplete: true
+        en-US: ["song", "Enter a song's YouTube/Spotify URL or keyword"]
+        zh-TW: ["歌曲", "輸入歌曲的 YouTube/Spotify 網址或關鍵字"]
+  - name: "pause"
+    description: "Pause the currently playing music"
+    en-US: ["pause", "Pause the currently playing song"]
+    zh-TW: ["暫停", "暫停目前正在播放的歌曲"]
+  - name: "resume"
+    description: "Resume the paused music"
+    en-US: ["resume", "Resume the paused song"]
+    zh-TW: ["繼續", "繼續播放已暫停的歌曲"]
+  - name: "stop"
+    description: "Stop playing and clear the playlist"
+    en-US: ["stop", "Stop the playback and clear the entire queue"]
+    zh-TW: ["停止", "停止播放並清空整個佇列"]
+  - name: "skip"
+    description: "Skip the currently playing song"
+    en-US: ["skip", "Skip the currently playing song"]
+    zh-TW: ["跳過", "跳過目前播放的歌曲"]
+    options:
+      - name: "count"
+        description: "Number of songs to skip (default is 1)"
+        type: 4
+        required: false
+        min_value: 1
+        max_value: 50
+        autocomplete: false
+        en-US: ["amount", "The number of songs to skip (default is 1)"]
+        zh-TW: ["數量", "要跳過的歌曲數量 (預設為 1)"]
+  - name: "volume"
+    description: "Set the player volume"
+    en-US: ["volume", "Adjust the playback volume"]
+    zh-TW: ["音量", "調整播放音量"]
+    options:
+      - name: "level"
+        description: "Volume level (0-100)"
+        type: 4
+        required: true
+        min_value: 0
+        max_value: 100
+        autocomplete: true
+        en-US: ["level", "Set the volume level (0-100)"]
+        zh-TW: ["大小", "設定音量大小 (0-100)"]
+  - name: "queue"
+    description: "View the current playlist"
+    en-US: ["queue", "View the current song queue"]
+    zh-TW: ["待播清單", "查看目前的歌曲播放佇列"]
+  - name: "shuffle"
+    description: "Shuffle the current playlist once"
+    en-US: ["shuffle", "Shuffle the current song queue"]
+    zh-TW: ["打亂播放清單", "打亂目前的歌曲播放佇列"]
+  - name: "now-playing"
+    description: "View detailed information of the currently playing song"
+    en-US: ["now-playing", "Display information about the currently playing song"]
+    zh-TW: ["正在播放", "顯示目前正在播放的歌曲資訊"]
+
+# The footer of the track panels and the volume panel's title per locale, for the requester
+# "alice" and a volume changed from 40 to 70.
+footer:
+  en-US: "Requested by alice"
+  zh-TW: "由 alice 點播"
+volume_title:
+  en-US: "Player volume adjusted from 40 ➞ 70"
+  zh-TW: "播放音量調整 40 ➞ 70"
+
+# The colours (MusicPlayerUtils.kt:292-296 and the templates).
+colors:
+  playing: 0x68c06e
+  paused: 0xba9c55
+  queue: 0x9bd9d5
+  volume: 0x7fbf78
+
+# v3's button IDs (inventory section 4), their action, and the new ID of each.
+ids:
+  "musicplayer@a:previous": ["previous", "music_player:1:a=previous"]
+  "musicplayer@a:pause-resume": ["pause-resume", "music_player:1:a=pause-resume"]
+  "musicplayer@a:skip": ["skip", "music_player:1:a=skip"]
+  "musicplayer@a:loop": ["loop", "music_player:1:a=loop"]
+  "musicplayer@a:disconnect": ["disconnect", "music_player:1:a=disconnect"]
+
+# The buttons of the track panels: style and emoji placeholder, in v3's order.
+buttons:
+  - [2, "previous"]
+  - [2, "pause-resume"]
+  - [2, "skip"]
+  - [2, "loop"]
+  - [4, "disconnect"]
+
+# v3's texts in zh-TW, for the replies the tests check (MusicPlayer.kt).
+texts:
+  nothing-playing: "❌ 目前沒有正在播放的歌曲！"
+  join-voice-first: "❌ 您必須先加入語音頻道才能使用此功能！"
+  live: "直播中"
+  live-length: "∞ (直播)"
