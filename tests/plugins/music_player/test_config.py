@@ -7,7 +7,7 @@ Kotlin:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -16,7 +16,10 @@ from plugin_fakes import FIXTURES, load_plugin
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from xincord.core.bot import Bot
     from xincord.core.storage import Store
+    from xincord.plugins.music_player.cog import MusicPlayer
+    from xincord.plugins.music_player.config import Config
 
 NODE = 'lavalink:\n  password: "example-password"\n'
 # v3's bundled config.yaml as written (no final newline), with the node that xincord needs.
@@ -56,15 +59,11 @@ V3_EMOJIS = {
 }
 
 
-def config_of(bot: object) -> Any:  # noqa: ANN401 - the plugin's model
+def config_of(bot: Bot) -> Config:
     """The loaded plugin's config."""
-    return cast("Any", bot).get_cog("MusicPlayer").config
+    return cast("MusicPlayer", bot.get_cog("MusicPlayer")).config
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="The config names the node, the player's defaults, the errors and the emojis",
-)
 async def test_v3_config_file_with_a_node(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -86,10 +85,6 @@ async def test_v3_config_file_with_a_node(
         assert f"unknown key {key}\n" in caplog.text
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="The config names the node, the player's defaults, the errors and the emojis",
-)
 async def test_bundled_config_waits_for_the_password(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -102,10 +97,6 @@ async def test_bundled_config_waits_for_the_password(
     assert "unknown key" not in caplog.text
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="The config names the node, the player's defaults, the errors and the emojis",
-)
 async def test_bundled_config_with_a_password(tmp_path: Path, store: Store) -> None:
     """Requirement: The config names the node, the player's defaults, the errors and the emojis."""
     root = tmp_path / "plugins"
@@ -142,10 +133,6 @@ async def test_bundled_config_with_a_password(tmp_path: Path, store: Store) -> N
         pytest.param("player: {}\n", "lavalink", id="no node"),
     ],
 )
-@pytest.mark.xfail(
-    strict=True,
-    reason="The config names the node, the player's defaults, the errors and the emojis",
-)
 async def test_invalid_values(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture, text: str, key: str
 ) -> None:
@@ -164,10 +151,6 @@ async def test_invalid_values(
         pytest.param("lavalink: 31415926535\n", id="no mapping"),
         pytest.param("lavalink:\n  password: [31415926535]\n", id="a list"),
     ],
-)
-@pytest.mark.xfail(
-    strict=True,
-    reason="The config names the node, the player's defaults, the errors and the emojis",
 )
 async def test_the_password_stays_hidden(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture, text: str
