@@ -1,6 +1,6 @@
 ## 1. Staff-only control row
 
-- [ ] 1.1 xfail tests for "The control row locks and unlocks the ticket" (the ticket's member and
+- [x] 1.1 xfail tests for "The control row locks and unlocks the ticket" (the ticket's member and
       other members refused, a row without its entry, a user who is no member), "Administrators
       delete the ticket" (any other member refused) and "v3's panels and tickets keep working" (a
       v3 row pressed by the ticket's member), against a stub `_refuse` that the new cases reach;

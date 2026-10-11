@@ -1,4 +1,5 @@
-"""Deleting a ticket from the control row: its staff and administrators only.
+"""Deleting a ticket from the control row: its staff and administrators only; anyone else is told
+so.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:181-196
@@ -25,6 +26,7 @@ FIELDS = {"user_id": "8", "msg_id": PANEL, "btn_index": "0"}
 DEFERRED: Sent = ("response.defer", {"ephemeral": False, "thinking": False})
 DELETED: Sent = ("channel.delete", {"id": 5})
 FAILED = "Deleting the ticket failed: "
+ADMIN_ONLY = "Only administrators can use this."
 
 
 async def stored(scene: Scene) -> None:
@@ -49,16 +51,28 @@ async def test_deletion(scene: Scene, roles: tuple[int, ...], admin: bool) -> No
     assert scene.channel.sent == [DELETED]
 
 
-async def test_not_a_staff_member(scene: Scene) -> None:
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="Administrators delete the ticket"
+)
+@pytest.mark.parametrize(
+    ("user", "locale", "text"),
+    [
+        (8, "en-US", ADMIN_ONLY),
+        (8, "zh-TW", GOLDEN["texts"]["zh-TW"]["admin-only"]),
+        (9, "en-US", ADMIN_ONLY),
+    ],
+    ids=["the-tickets-member", "the-tickets-member-zh-TW", "another-member"],
+)
+async def test_not_a_staff_member(scene: Scene, user: int, locale: str, text: str) -> None:
     """Requirement: Administrators delete the ticket."""
     await stored(scene)
-    member = scene.who(user=8, admin=False, message_id=ROW)
+    member = scene.who(user=user, admin=False, message_id=ROW, locale=locale)
 
     interaction = await scene.click("delete", member, **FIELDS)
 
-    # v3's deferEdit, and nothing else.
-    assert interaction.sent == [DEFERRED]
-    assert scene.channel.sent == []
+    # v3 acknowledged the press and did nothing.
+    assert interaction.sent == [("response.send_message", {"content": text, "ephemeral": True})]
+    assert scene.channel.sent == []  # the channel stays
 
 
 async def test_not_a_member(scene: Scene) -> None:

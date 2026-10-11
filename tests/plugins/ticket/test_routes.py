@@ -88,6 +88,7 @@ async def test_v3_panel_button(scene: Scene) -> None:
 
 async def test_v3_control_row(scene: Scene) -> None:
     """Requirement: v3's panels and tickets keep working."""
+    await stored(scene)
     scene.guild.members.append(FakeMember(scene.guild, id=CAROL, name="carol"))
     interaction = scene.interaction(
         {"component_type": 2, "custom_id": V3_ROW[0]}, COMPONENT, scene.who(message_id=ROW)
@@ -107,6 +108,25 @@ async def test_v3_control_row(scene: Scene) -> None:
     # still holds with v3's IDs.
     assert button_ids(interaction.sent[1][1]["view"]) == row_ids("unlock", "save", "delete")
     assert button_ids(interaction.sent[2][1]["view"]) == row_ids("lock", "save", "delete")
+
+
+@pytest.mark.xfail(strict=True, reason="v3's panels and tickets keep working")
+async def test_v3_control_row_refused(scene: Scene) -> None:
+    """Requirement: v3's panels and tickets keep working."""
+    await stored(scene)
+    scene.guild.members.append(FakeMember(scene.guild, id=CAROL, name="carol"))
+    carol = scene.who(user=CAROL, admin=False, message_id=ROW)
+    interaction = scene.interaction({"component_type": 2, "custom_id": V3_ROW[0]}, COMPONENT, carol)
+    interaction.message = v3_message(interaction.sent, ROW, V3_ROW)
+
+    await scene.bot.on_interaction(interaction.as_interaction())
+
+    # The admin-only text, then the core's upgrade of the row it fetched.
+    assert methods(interaction) == ["response.send_message", "message.edit"]
+    reply = "Only administrators can use this."
+    assert interaction.sent[0][1] == {"content": reply, "ephemeral": True}
+    assert scene.channel.sent == []  # carol keeps the channel
+    assert button_ids(interaction.sent[1][1]["view"]) == row_ids("lock", "save", "delete")
 
 
 async def test_v3_reason_modal(scene: Scene) -> None:
@@ -145,6 +165,7 @@ async def test_v3_save_select(scene: Scene) -> None:
 
 async def test_new_ids(scene: Scene) -> None:
     """Requirement: v3's panels and tickets keep working."""
+    await stored(scene)
     scene.guild.members.append(FakeMember(scene.guild, id=CAROL, name="carol"))
     [custom_id, *_] = row_ids("lock")
     interaction = scene.interaction(

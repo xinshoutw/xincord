@@ -1,8 +1,10 @@
-"""The control row's lock and unlock: the ticket's member loses or regains View Channel.
+"""The control row's lock and unlock: the ticket's member loses or regains View Channel, for the
+ticket's staff only.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:148-179
     XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:784-832
+    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:834-837
 """
 
 import logging
@@ -11,9 +13,10 @@ from typing import TYPE_CHECKING, cast
 import discord
 import pytest
 
-from discord_fakes import FakeMember, button_rows, forbidden
+from discord_fakes import FakeMember, FakeRole, FakeUser, button_rows, forbidden
 from plugin_fakes import golden
 from xincord.plugins.ticket.cog import IDS
+from xincord.plugins.ticket.store import NAMESPACE
 
 if TYPE_CHECKING:
     from conftest import Scene
@@ -21,11 +24,21 @@ if TYPE_CHECKING:
 
 GOLDEN = golden("ticket")
 MEMBER = 8  # the ticket's member
+PANEL = "500"
 ROW = 901  # the control row's message in the ticket channel
-FIELDS = {"user_id": str(MEMBER), "msg_id": "500", "btn_index": "0"}
+FIELDS = {"user_id": str(MEMBER), "msg_id": PANEL, "btn_index": "0"}
 DEFERRED: Sent = ("response.defer", {"ephemeral": False, "thinking": False})
 VIEW = discord.Permissions(view_channel=True).value
 SEND = discord.Permissions(send_messages=True).value
+ADMIN_ONLY = "Only administrators can use this."
+
+
+async def stored(scene: Scene) -> None:
+    """Panel 500's button 0, whose staff role is role 3."""
+    scene.guild.roles.append(FakeRole(3))
+    await scene.store.put(
+        NAMESPACE, "10", {PANEL: [{"reasonTitle": "Why?", "adminIds": [3], "categoryId": 0}]}
+    )
 
 
 def controls(action: str) -> str:
@@ -64,6 +77,7 @@ def shown_row(interaction: FakeInteraction) -> discord.ui.View:
 
 async def test_lock_and_unlock(scene: Scene) -> None:
     """Requirement: The control row locks and unlocks the ticket."""
+    await stored(scene)
     member = bob(scene)
     scene.channel.overwrites = {
         member: discord.PermissionOverwrite(view_channel=True, send_messages=True)
@@ -100,6 +114,7 @@ async def test_lock_and_unlock(scene: Scene) -> None:
 
 async def test_cached_member(scene: Scene) -> None:
     """Requirement: The control row locks and unlocks the ticket."""
+    await stored(scene)
     # discord.py has member 8; Discord would not answer a fetch (it has no members here).
     scene.guild.cached_members.append(FakeMember(scene.guild, id=MEMBER))
 
@@ -109,16 +124,82 @@ async def test_cached_member(scene: Scene) -> None:
     assert overwrites(scene) == [(MEMBER, 0, VIEW)]
 
 
-async def test_anyone_in_the_channel(scene: Scene) -> None:
+async def test_staff_role(scene: Scene) -> None:
     """Requirement: The control row locks and unlocks the ticket."""
+    await stored(scene)
     bob(scene)
-    member = scene.who(user=MEMBER, admin=False, message_id=ROW)
+    staff = scene.who(user=9, admin=False, roles=(3,), message_id=ROW)
 
-    # No permission check, as in v3: the member can lock themselves out.
-    interaction = await scene.click("lock", member, **FIELDS)
+    interaction = await scene.click("lock", staff, **FIELDS)
 
     shown_row(interaction)
     assert overwrites(scene) == [(MEMBER, 0, VIEW)]
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="The control row locks and unlocks the ticket"
+)
+@pytest.mark.parametrize("action", ["lock", "unlock"])
+@pytest.mark.parametrize(
+    ("user", "locale", "text"),
+    [
+        (MEMBER, "en-US", ADMIN_ONLY),
+        (MEMBER, "zh-TW", GOLDEN["texts"]["zh-TW"]["admin-only"]),
+        (9, "en-US", ADMIN_ONLY),
+    ],
+    ids=["the-tickets-member", "the-tickets-member-zh-TW", "another-member"],
+)
+async def test_not_the_tickets_staff(
+    scene: Scene, action: str, user: int, locale: str, text: str
+) -> None:
+    """Requirement: The control row locks and unlocks the ticket."""
+    await stored(scene)
+    bob(scene)
+    member = scene.who(user=user, admin=False, message_id=ROW, locale=locale)
+
+    interaction = await scene.click(action, member, **FIELDS)
+
+    # v3 checked nobody, so the member could lock themselves out.
+    assert interaction.sent == [("response.send_message", {"content": text, "ephemeral": True})]
+    assert scene.channel.sent == []  # no overwrite changes
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="The control row locks and unlocks the ticket"
+)
+@pytest.mark.parametrize(
+    "fields",
+    [{"msg_id": "501", "btn_index": "0"}, {"msg_id": PANEL, "btn_index": "1"}, {}],
+    ids=["other-message", "other-index", "missing"],
+)
+async def test_no_entry(scene: Scene, fields: dict[str, str]) -> None:
+    """Requirement: The control row locks and unlocks the ticket."""
+    await stored(scene)
+    bob(scene)
+    staff = scene.who(message_id=ROW)
+
+    interaction = await scene.click("unlock", staff, user_id=str(MEMBER), **fields)
+
+    reply = GOLDEN["texts"]["en-US"]["not-found"]
+    assert interaction.sent == [("response.send_message", {"content": reply, "ephemeral": True})]
+    assert scene.channel.sent == []
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="The control row locks and unlocks the ticket"
+)
+async def test_not_a_member(scene: Scene) -> None:
+    """Requirement: The control row locks and unlocks the ticket."""
+    await stored(scene)
+    bob(scene)
+    interaction = scene.button("lock", scene.who(message_id=ROW), **FIELDS)
+    interaction.user = FakeUser(id=7)  # Discord sent a user, not a member
+
+    await scene.handle(interaction)
+
+    # v3's deferEdit, as save and delete answer it, and nothing else.
+    assert interaction.sent == [DEFERRED]
+    assert scene.channel.sent == []
 
 
 @pytest.mark.parametrize(
@@ -133,6 +214,7 @@ async def test_member_who_left(
     scene: Scene, caplog: pytest.LogCaptureFixture, locale: str, failed: str
 ) -> None:
     """Requirement: The control row locks and unlocks the ticket."""
+    await stored(scene)
     with caplog.at_level(logging.WARNING):
         interaction = await scene.click("lock", scene.who(message_id=ROW, locale=locale), **FIELDS)
 
@@ -145,6 +227,7 @@ async def test_member_who_left(
 
 async def test_refused_overwrite(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The control row locks and unlocks the ticket."""
+    await stored(scene)
     bob(scene)
     scene.channel.permissions_error = forbidden()
 
@@ -161,6 +244,7 @@ async def test_refused_overwrite(scene: Scene, caplog: pytest.LogCaptureFixture)
 
 async def test_channel_without_overwrites(scene: Scene) -> None:
     """Requirement: The control row locks and unlocks the ticket."""
+    await stored(scene)
     bob(scene)
     interaction = scene.button("lock", scene.who(message_id=ROW), **FIELDS)
     interaction.channel = None  # discord.py knew no such channel type
@@ -174,9 +258,10 @@ async def test_channel_without_overwrites(scene: Scene) -> None:
 @pytest.mark.parametrize("fields", [{"user_id": "x"}, {}], ids=["not-a-number", "missing"])
 async def test_malformed_member(scene: Scene, fields: dict[str, str]) -> None:
     """Requirement: The control row locks and unlocks the ticket."""
+    await stored(scene)
     bob(scene)
 
-    interaction = await scene.click("lock", scene.who(message_id=ROW), msg_id="500", **fields)
+    interaction = await scene.click("lock", scene.who(message_id=ROW), msg_id=PANEL, **fields)
 
     # v3's parse or cast threw before any answer.
     assert interaction.sent == []

@@ -159,6 +159,10 @@ class ControlRow:
         controls = _controls(fields)
         if controls is None:
             return
+        found = await self._staff_entry(interaction, fields)
+        if isinstance(found, str):
+            await self._refuse(interaction, found)
+            return
         await interaction.response.defer()
         try:
             await _permit(interaction, controls.user_id, allowed=not locked)
@@ -186,8 +190,11 @@ class ControlRow:
         if found == "error.not-found":
             await tell(interaction, self.texts(interaction).get("error.not-found"))
             return
+        if found == "error.admin-only":
+            await self._refuse(interaction, "error.admin-only")
+            return
         await interaction.response.defer()  # v3's deferEdit
-        if isinstance(found, str):  # no member, or no staff
+        if isinstance(found, str):  # no member
             return
         try:
             await _remove(interaction)
@@ -299,6 +306,11 @@ class ControlRow:
         if not is_staff(roles, entry, administrator=interaction.permissions.administrator):
             return "error.admin-only"
         return entry
+
+    async def _refuse(self, interaction: discord.Interaction, key: str) -> None:
+        """Answer a press of the control row that the ticket's staff did not make; ``key`` is
+        what ``_staff_entry`` refused it with."""
+        raise NotImplementedError
 
     async def _failed(self, interaction: discord.Interaction, key: str, error: Exception) -> None:
         """Tell the user, after the acknowledgement, the text ``key`` with ``error``."""
