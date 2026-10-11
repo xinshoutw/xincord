@@ -13,7 +13,7 @@ import discord
 import pytest
 
 from discord_fakes import FakeChannel, FakeMessage, forbidden, not_found
-from plugin_fakes import FIXTURES
+from plugin_fakes import FIXTURES, until
 from xincord.plugins.ntust_announcements.config import Board, bundled_review_prompt
 from xincord.plugins.ntust_announcements.messages import content_messages
 from xincord.plugins.ntust_announcements.pages import Link, article_html
@@ -40,6 +40,7 @@ REVIEWED = "# Reviewed"
 LOGGER = "xincord.plugins.ntust_announcements"
 CROSS_MARK = "\N{CROSS MARK}"
 THUMBS_UP = "\N{THUMBS UP SIGN}"
+HOURGLASS = "\N{HOURGLASS WITH FLOWING SAND}"
 REVIEWER = 7
 # The dormitory's board alone, reviewed by user 7 with a prompt that shows what it got.
 REVIEWING = f"""\
@@ -197,24 +198,44 @@ async def test_review_fails(stage: Stage, caplog: pytest.LogCaptureFixture) -> N
 
 @dataclass
 class Deleting(FakeMessage):
-    """A message whose deletion is recorded by its ID."""
+    """A message whose deletion and the bot's reactions are recorded by its ID."""
 
     record: list[int] = field(default_factory=list[int])
+    reactions: list[tuple[str, int, str]] = field(default_factory=list[tuple[str, int, str]])
+    reaction_error: Exception | None = None
 
     @override
     async def delete(self) -> None:
         self.record.append(self.id)
 
+    async def add_reaction(self, emoji: str, /) -> None:
+        if self.reaction_error is not None:
+            raise self.reaction_error
+        self.reactions.append(("add", self.id, emoji))
+
+    async def remove_reaction(self, emoji: str, member: object, /) -> None:
+        del member
+        self.reactions.append(("remove", self.id, emoji))
+
 
 @dataclass
 class Channel(FakeChannel):
-    """A channel that records which of its messages are deleted."""
+    """A channel that records which of its messages are deleted and the bot's reactions."""
 
     deleted: list[int] = field(default_factory=list[int])
+    reactions: list[tuple[str, int, str]] = field(default_factory=list[tuple[str, int, str]])
+    reaction_error: Exception | None = None
 
     @override
     def get_partial_message(self, message_id: int, /) -> FakeMessage:
-        return Deleting(sent=self.sent, id=message_id, channel_id=self.id, record=self.deleted)
+        return Deleting(
+            sent=self.sent,
+            id=message_id,
+            channel_id=self.id,
+            record=self.deleted,
+            reactions=self.reactions,
+            reaction_error=self.reaction_error,
+        )
 
 
 def reaction(
@@ -377,3 +398,57 @@ async def test_redo_error(
     # The error is logged with its traceback, and the announcement can be redone again.
     assert any(record.exc_info and "failed" in record.getMessage() for record in caplog.records)
     assert scene.cog.redoing == set()
+
+
+@pytest.mark.xfail(strict=True, reason="A redo shows that it runs")
+@pytest.mark.parametrize("config", [REVIEWING])
+async def test_sign(scene: Scene) -> None:
+    """Requirement: A redo shows that it runs."""
+    channel, message_id = await posted(scene)
+    scene.web.hold = asyncio.Event()  # the redo's article page waits
+
+    await scene.cog.on_raw_reaction_add(reaction(message_id, REVIEWER))
+    await until(lambda: scene.web.under_way == 1)
+    signed = list(channel.reactions)  # before the article arrived
+    scene.web.hold.set()
+    await asyncio.gather(*scene.cog.redos)
+
+    assert signed == [("add", message_id, HOURGLASS)]
+    assert channel.reactions == signed  # the sign went with the old post
+    assert channel.deleted == [message_id]
+
+
+@pytest.mark.xfail(strict=True, reason="A redo shows that it runs")
+@pytest.mark.parametrize("config", [REVIEWING])
+@pytest.mark.parametrize("outcome", ["the old post stays", "the redo raises"])
+async def test_sign_removed(scene: Scene, monkeypatch: pytest.MonkeyPatch, outcome: str) -> None:
+    """Requirement: A redo shows that it runs."""
+    channel, message_id = await posted(scene)
+
+    async def redo(_self: Watcher, announcement: Announcement) -> bool:
+        del announcement
+        if outcome == "the redo raises":
+            msg = "unexpected"
+            raise RuntimeError(msg)
+        return False
+
+    monkeypatch.setattr(Watcher, "redo", redo)
+
+    await scene.cog.on_raw_reaction_add(reaction(message_id, REVIEWER))
+    await asyncio.gather(*scene.cog.redos)
+
+    assert channel.reactions == [("add", message_id, HOURGLASS), ("remove", message_id, HOURGLASS)]
+
+
+@pytest.mark.xfail(strict=True, reason="A redo shows that it runs")
+@pytest.mark.parametrize("config", [REVIEWING])
+async def test_refused_sign(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: A redo shows that it runs."""
+    channel, message_id = await posted(scene)
+    channel.reaction_error = forbidden()
+
+    await scene.cog.on_raw_reaction_add(reaction(message_id, REVIEWER))
+    await asyncio.gather(*scene.cog.redos)
+
+    assert channel.deleted == [message_id]  # redone all the same
+    assert any(f"message {message_id}" in line for line in warnings(caplog))
