@@ -15,7 +15,7 @@ import discord
 from discord.http import HTTPClient, Route
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Callable, Mapping
 
     import aiohttp
     import pytest
@@ -280,6 +280,19 @@ class FakeVoiceChannel(FakeChannel):
     errors: dict[str, Exception] = field(default_factory=dict[str, Exception])
     gate: asyncio.Event | None = None
     cloning: asyncio.Event = field(default_factory=asyncio.Event)
+    user_limit: int = 0  # 0: no limit
+
+    async def connect(
+        self,
+        *,
+        cls: Callable[[Any, Any], Any],
+        self_deaf: bool = False,
+        self_mute: bool = False,
+    ) -> object:
+        """Connect with the voice protocol that ``cls`` makes, as discord.py's ``connect``."""
+        voice = cls(None, self)
+        await voice.connect(timeout=60.0, reconnect=True, self_deaf=self_deaf, self_mute=self_mute)
+        return voice
 
     @property
     def jump_url(self) -> str:
@@ -529,6 +542,15 @@ class FakeGuild:
     members: list[FakeMember] = field(default_factory=_no_members)  # as Discord has them
     cached_members: list[FakeMember] = field(default_factory=_no_members)  # as discord.py has them
     filesize_limit: int = 10 * 1024 * 1024  # the upload limit of the guild's boost tier, in bytes
+    voice_client: object = None  # the bot's voice connection in the guild, if any
+    voice_moves: list[int | None] = field(default_factory=list[int | None])  # change_voice_state
+
+    async def change_voice_state(
+        self, *, channel: FakeChannel | None, self_mute: bool = False, self_deaf: bool = False
+    ) -> None:
+        """Record the channel the bot asked to be in (None: none), as discord.py sends it."""
+        del self_mute, self_deaf
+        self.voice_moves.append(None if channel is None else channel.id)
 
     @property
     def me(self) -> FakeMe | None:
@@ -603,6 +625,7 @@ class FakeMember:
     roles: tuple[FakeRole, ...] = ()
     created_at: datetime = datetime(2021, 6, 1, tzinfo=UTC)
     joined_at: datetime | None = datetime(2022, 1, 1, tzinfo=UTC)
+    voice: object = None  # the member's voice state (voice_state(channel)), None outside voice
 
     def __hash__(self) -> int:
         """A member is a key of permission overwrites, by its ID."""

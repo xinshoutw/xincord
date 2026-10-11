@@ -9,19 +9,33 @@ from typing import TYPE_CHECKING
 
 from discord.ext import commands
 
+from .commands import Commands
+
 if TYPE_CHECKING:
     from xincord.core.i18n import Lang
     from xincord.core.templates import Templates
 
+    from .audio import Link, Player
     from .config import Config
+    from .session import Session
 
 
-class MusicPlayer(commands.Cog):
+class MusicPlayer(Commands, commands.Cog):
     """The plugin's state and handlers; ``setup`` adds them."""
 
     def __init__(self, bot: commands.Bot, config: Config, lang: Lang, templates: Templates) -> None:
-        """Keep the bot and what ``setup`` loaded."""
+        """Keep the bot and what ``setup`` loaded; no session, no link until READY."""
         self.bot = bot
         self.config = config
         self.lang = lang
         self.templates = templates
+        self.sessions: dict[int, Session] = {}
+        self.link: Link | None = None
+
+    def joined(self, guild_id: int, player: Player) -> None:
+        """The bot is connecting in the guild: its session plays on ``player``."""
+        raise NotImplementedError
+
+    def left(self, guild_id: int) -> None:
+        """The bot left voice in the guild: its session forgets the songs."""
+        raise NotImplementedError
