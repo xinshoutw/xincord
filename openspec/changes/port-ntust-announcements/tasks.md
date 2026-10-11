@@ -80,7 +80,7 @@
 - [x] 9.12 Give YAML errors the line and column without the text; remove the marker
 - [x] 9.13 xfail tests for self-closing links and classes split at no-break spaces (found in the
       review: jsoup differs)
-- [ ] 9.14 Follow jsoup there; remove the markers
+- [x] 9.14 Follow jsoup there; remove the markers
 - [ ] 9.15 xfail tests for parsing off the event loop and a long run of whitespace (found in the
       review: the loop blocked for seconds)
 - [ ] 9.16 Parse in a worker thread and make the minifier's step linear; remove the markers

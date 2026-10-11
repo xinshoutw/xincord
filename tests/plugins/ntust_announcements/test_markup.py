@@ -197,7 +197,6 @@ def test_deep_nesting() -> None:
     assert container.outer_html().endswith("deep" + "</span>" * 3000 + "</div>")
 
 
-@pytest.mark.xfail(strict=True, reason="Board pages list their announcements")
 def test_self_closing_tags() -> None:
     """Requirement: Board pages list their announcements."""
     # HTML ignores the slash of a non-void start tag, as jsoup does: the link keeps its title.
@@ -208,7 +207,6 @@ def test_self_closing_tags() -> None:
     assert texts(html, "p") == ["after"]
 
 
-@pytest.mark.xfail(strict=True, reason="Board pages list their announcements")
 def test_class_separators() -> None:
     """Requirement: Board pages list their announcements."""
     # jsoup splits classes at Java's whitespace, which leaves out no-break spaces.

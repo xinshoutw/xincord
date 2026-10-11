@@ -10,6 +10,7 @@ Kotlin:
 
 import html
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from functools import cache
 from html.parser import HTMLParser
@@ -161,6 +162,20 @@ WHITESPACE = frozenset(" \t\n\f\r\xa0")
 INVISIBLE = frozenset("\u200b\xad")
 # Java's String.trim(), which ends jsoup's text(): every character up to U+0020.
 JAVA_TRIM = "".join(chr(code) for code in range(0x21))
+# Java's Character.isWhitespace: Unicode spaces but the no-break ones, and ASCII controls.
+CLASS_SEPARATOR = re.compile(
+    "["
+    + "".join(
+        re.escape(chr(code))
+        for code in range(0x3001)
+        if chr(code) in "\t\n\x0b\f\r\x1c\x1d\x1e\x1f"
+        or (
+            unicodedata.category(chr(code)) in {"Zs", "Zl", "Zp"}
+            and chr(code) not in "\xa0\u2007\u202f"
+        )
+    )
+    + "]+"
+)
 COMPOUND = re.compile(r"([A-Za-z][A-Za-z0-9-]*)?((?:[#.][A-Za-z0-9_-]+)*)")
 PART = re.compile(r"([#.])([A-Za-z0-9_-]+)")
 
@@ -231,8 +246,12 @@ class Element:
         return self.attrs.get(name) or ""
 
     def classes(self) -> frozenset[str]:
-        """The element's classes, in lower case."""
-        return frozenset(self.attr("class").lower().split())
+        """The element's classes, in lower case, split at Java's whitespace as jsoup splits them.
+
+        Java's ``Character.isWhitespace`` leaves out the no-break spaces, which Python's
+        ``str.split`` takes.
+        """
+        return frozenset(part for part in CLASS_SEPARATOR.split(self.attr("class").lower()) if part)
 
     def select(self, selector: str) -> list[Element]:
         """The element and its descendants that match ``selector``, in document order.
@@ -400,6 +419,11 @@ class _Builder(HTMLParser):
         self._open(tag, attrs)
         if tag in VOID:
             self.stack.pop()
+
+    @override
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        # HTML ignores the slash of a non-void start tag, as jsoup does: <a href=x /> stays open.
+        self.handle_starttag(tag, attrs)
 
     @override
     def handle_endtag(self, tag: str) -> None:
