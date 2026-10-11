@@ -28,8 +28,9 @@
 
 ## 5. Gemini
 
-- [ ] 5.1 xfail tests for "The prompt is filled in one pass" and "Gemini keys stay within the rate
-      limit and failed attempts are retried" against stubs in `gemini.py`
+- [x] 5.1 xfail tests for "The prompt is filled in one pass", "Gemini keys stay within the rate
+      limit and failed attempts are retried" and Gemini's lines of "Problems are logged without
+      flooding or showing the keys" against stubs in `gemini.py`
 - [ ] 5.2 Implement `fill_prompt`, `KeyRing`, `backoff` and `Gemini.convert`; remove the markers
 - [ ] 5.3 xfail tests for "Gemini turns an article into Markdown" against stubs in `web.py`, with a
       local server standing for NTUST and Gemini
