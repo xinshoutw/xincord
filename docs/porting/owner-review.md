@@ -28,7 +28,6 @@ runs Economy, UptimeHeartbeat and TicketAwayNotice. Before enabling another plug
   uses a youtube-source snapshot (`youtube-remote-cipher`): move back to a release once one holds
   the TV client's fix (#233); it depends on the public yt-cipher unless `YOUTUBE_CIPHER_URL` names
   a server of your own.
-- NtustAnnouncements: v3's first Gemini key is invalid; delete it from `api-keys`.
 - After a few days: delete the migration's copies on the production host (`CUTOVER.md`,
   "Afterwards") and the rehearsal volumes `xincord-rehearsal-data` and
   `xincord-shirotsuki-rehearsal`.
@@ -52,7 +51,9 @@ runs Economy, UptimeHeartbeat and TicketAwayNotice. Before enabling another plug
 
 - PyPI's first release is 1.0.0: the trusted publishers (environments `pypi` and `pypi-plugins`)
   and LICENSE (in both distributions since `license-files`) are in place; the owner picks the time.
-- Renovate: its first run opens the Dependency Dashboard issue (not seen by 2026-10-12, 02:00
-  Asia/Taipei); check that its first patch PR merges itself after CI.
+- Renovate has not run since its config reached `main` (no Dependency Dashboard issue by
+  2026-10-12, 05:00 Asia/Taipei): the onboarding PR #1 was closed before the config file landed,
+  and Renovate disabled itself. Check the repository at developer.mend.io and start a run there;
+  then check that its first patch PR merges itself after CI.
 - If a Dependabot uv security PR fails on the lock file (GitHub documents uv 0.11; `uv.lock` comes
   from uv 0.12), turn on Renovate's `vulnerabilityAlerts` instead.

@@ -86,9 +86,10 @@ repository root (gitignored), with the owner's test application and guild `xinco
    each): `docker compose down`; `mv <dir> <dir>.clone`; a new `<dir>` with `compose.yaml` from
    `main`, the old `.env` plus `XINCORD_VERSION=0.2.2`, and `config.yaml` and `plugins/` from
    `<dir>.clone/bot/`; `docker compose up -d`; check the log. The volume keeps its name with the
-   directory's.
+   directory's. `xincord-migration/scripts/relayout.sh <name> 0.2.2 [--apply | --rollback]` on
+   the host does it, keeping the directory itself (its dry run passed for both on 2026-10-12).
 2. PyPI's first release, 1.0.0, when the owner says so.
 3. Issues: #3 (youtube-source back to a release that holds its TV client fix), #2 (CustomCommands'
    features left out).
-4. The follow-ups in `docs/porting/owner-review.md`: the plugins not enabled in production, the
-   invalid Gemini key, cleaning up the migration's copies after a few days, what to watch.
+4. The follow-ups in `docs/porting/owner-review.md`: the plugins not enabled in production,
+   Renovate not running yet, cleaning up the migration's copies after a few days, what to watch.
