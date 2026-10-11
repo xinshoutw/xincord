@@ -426,7 +426,6 @@ async def test_announcement_that_raises(scene: Scene, caplog: pytest.LogCaptureF
     )
 
 
-@pytest.mark.xfail(strict=True, reason="Each board remembers what it posted")
 async def test_store_write_fails(scene: Scene, monkeypatch: pytest.MonkeyPatch) -> None:
     """Requirement: Each board remembers what it posted."""
 

@@ -74,7 +74,7 @@
       review: the board's later entries waited forever)
 - [x] 9.8 Guard each announcement and walk the tree without recursion; remove the markers
 - [x] 9.9 xfail test for a store write that fails after a post (found in the review: posted again)
-- [ ] 9.10 Keep the posted links in memory too; remove the marker
+- [x] 9.10 Keep the posted links in memory too; remove the marker
 - [ ] 9.11 xfail test for a YAML syntax error on a key's line (found in the review: the key was
       logged), with a `core-config` delta
 - [ ] 9.12 Give YAML errors the line and column without the text; remove the marker

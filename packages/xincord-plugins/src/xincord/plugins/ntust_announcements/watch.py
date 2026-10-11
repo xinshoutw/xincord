@@ -63,6 +63,8 @@ class Watcher:
     posts: Failures = field(default_factory=Failures)
     document: Failures = field(default_factory=Failures)
     errors: Failures = field(default_factory=Failures)  # announcements that raised unexpectedly
+    # Links posted while the store refused to save them: posted, though not stored yet.
+    delivered: set[str] = field(default_factory=set[str])
     # The messages of announcements that the channel refused, by URL, until they are posted or
     # leave the page.
     ready: dict[str, list[str]] = field(default_factory=dict[str, list[str]])
@@ -101,7 +103,8 @@ class Watcher:
         stored = await self._stored()
         if stored is None:
             return
-        posted = {link.url for link in stored}
+        # The posts that the store has not taken yet count too, so that none is posted twice.
+        posted = {link.url for link in stored} | self.delivered
         new: dict[str, Link] = {}
         for link in links:
             if link.url not in posted:
@@ -115,12 +118,15 @@ class Watcher:
             clean = clean and announced is not None
             if announced:
                 posted.add(link.url)
+                self.delivered.add(link.url)
                 kept = remember(stored, links, posted)
                 await self.posted.save(self.board.name, kept)
+                self.delivered.clear()  # the document holds them now
         if clean and (failed := self.errors.succeed()):
             logger.info("%s: its announcements work again after %d failures", self.name, failed)
         if (tidied := remember(stored, links, posted)) != kept:
             await self.posted.save(self.board.name, tidied)  # new order, titles or links that left
+            self.delivered.clear()
         on_page = {link.url for link in links}
         self.ready = {url: messages for url, messages in self.ready.items() if url in on_page}
 
