@@ -528,3 +528,35 @@ here; delete a section once it is empty.
 - If Google retires `gemini-2.5-flash`, set `model`.
 - Done: the wheel, `xincord --no-online`, the image with the sixteen ported plugins, NTUST's TLS from the image and a probe through discord.py's own objects (archived design, "Checks").
 - TWCA's intermediate certificate in the package expires on 2030-10-16; if NTUST changes its certificates, check the log for TLS failures on the boards.
+
+## NtustCourseWatch (v3 NtustCourse, `port-ntust-course-watch`)
+
+### User-visible changes
+- The plugin is `NtustCourseWatch` under `plugins:` and in `plugins/NtustCourseWatch/`; `migrate_v3` moves v3's `plugins/NtustCourse/` there, and v3's file (`enabled` only) loads with v3's values.
+- `config.yaml` has `semester` (v3's `1142`), `start` (v3's 2025-12-26 09:00, written with `+08:00`), `interval` (v3's 1.5 seconds, at least 1) and `alert-interval` (60 seconds, at least 10), with comments that ask for the semester and the start of each course selection.
+- The plugin asks NTUST about the registered courses only, one per request every `interval` seconds, in turn (five registered courses: each checked every 7.5 seconds), and nothing before `start` or while nothing is registered (v3 asked for the whole catalogue every 1.5 seconds, all the time).
+- A channel hears about a course with seats at most once per `alert-interval` (v3: at every poll, about every 1.5 seconds), and gets the full alert only after an available alert; mention lists too long for one message come in several posts.
+- Registrations survive restarts; `/course-remove` removes only the member (v3: every member of the channel); codes are read loosely (case, spaces, full width), and anything other than 9 to 20 letters and digits (NTUST's codes have nine; it matches codes as prefixes) gets the new reply `invalid-code`; `/course-list` compares IDs exactly and lists each course once, sorted.
+- zh-TW clients see new Chinese command descriptions and replies; the alerts stay in English, as v3's.
+- A channel that Discord no longer knows (404) loses its registrations at its next alert; `[`, `]` and `\` in a course's name are escaped in the alert's link.
+- English log lines, once per kind of failure and episode (v3 printed every failure to stdout).
+### Choices made without the owner
+- Course query: one request per registered code, since NTUST's server no longer answers v3's whole-catalogue request (2026-10-11: no answer in 60 s, then a 500 after 120 s); alternative: v3's whole catalogue at every interval, which keeps NTUST's server busy two minutes per request and alerts nothing.
+- Repeated alerts: v3's alert while a course has seats, at most once per `alert-interval` (60 s) per channel and course; alternative: one alert when seats appear, never repeated.
+- Defaults: v3's semester and go-live time, so that v3's file loads unchanged; alternative: no defaults, the plugin waiting for the operator's semester and start.
+- `interval` from 1 second (v3's 1.5 by default); alternative: v3's 1.5 seconds as the minimum.
+- `start` needs its UTC offset; alternative: the host's local time as v3 (UTC in the container), or a time zone key as Giveaway's.
+- Nothing is asked before `start` or while nothing is registered; alternative: v3's polling at all times.
+- Language: en-US (v3's English) is the default locale, and zh-TW translates the replies and the descriptions (also the alerts, unused while they follow the default locale); alternative: English only, or zh-TW as the default, which makes the alerts Chinese.
+- New reply `invalid-code`; alternative: accept any text as v3, or also check that NTUST lists the course.
+- Registrations of a channel that answers 404 are forgotten; those of guilds the bot left stay, as in v3 (their alerts are refused and logged once); alternative: forget them on a guild leave too.
+- The request body is the course query site's current one (`OnlyIntensive` added, `CourseTeacher` empty, the code in `CourseNo`); requests time out after 5 s to connect and 30 s in all (v3: no limit).
+- No limit on a member's registrations; each registered code adds a request to the round.
+- Alert states live in memory: after a restart or any reload (`/xincord reload`, SIGHUP), a course with seats is alerted again at once and a full alert owed before is dropped (found in the cross-review); alternative: keep them in the store.
+- Stored codes that are no course code (from a v3 import or a hand edit) are left out and dropped at the next change; alternative: refuse the whole document until it is fixed.
+### Manual checks
+- Smoke checklist in `openspec/changes/archive/2026-10-11-port-ntust-course-watch/design.md`.
+- Before each course selection: set `semester` and `start` in `plugins/NtustCourseWatch/config.yaml`; during the first selection, check in the log that NTUST answers the per-code requests under load.
+- At cutover: v3 lost its registrations at each restart; the planned v3 data import can bring back those of v3's MongoDB document (archived design, "Registrations and the v3 data import").
+- The bot needs View Channel and Send Messages where members register.
+- Done: the wheel, `xincord --no-online`, the image with the seventeen ported plugins, NTUST's TLS and one course request from the image, and a probe through discord.py's own objects, again after the cross-review's fixes (archived design, "Checks" and "Cross-review").
