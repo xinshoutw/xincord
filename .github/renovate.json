@@ -47,6 +47,11 @@
   ],
   "packageRules": [
     {
+      "description": "Every update is a build commit, over the chore and fix of config:recommended's presets.",
+      "matchPackageNames": ["*"],
+      "semanticCommitType": "build"
+    },
+    {
       "description": "GitHub Actions and their runners are CI.",
       "matchManagers": ["github-actions"],
       "semanticCommitType": "ci"

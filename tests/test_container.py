@@ -4,7 +4,6 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
-import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -265,7 +264,6 @@ def test_node_only_with_the_music_profile() -> None:
     assert re.search(r"^# COMPOSE_PROFILES=music$", example, re.MULTILINE)
 
 
-@pytest.mark.xfail(strict=True, raises=KeyError, reason="Image checked in CI")
 def test_image_checked_in_ci() -> None:
     """Requirement: Image checked in CI."""
     text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")

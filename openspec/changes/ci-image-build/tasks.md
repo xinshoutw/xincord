@@ -1,7 +1,7 @@
 ## 1. CI and Renovate
 
-- [ ] 1.1 xfail tests (the image job, Renovate's first package rule)
-- [ ] 1.2 `ci.yml` and `renovate.json`; remove the markers
+- [x] 1.1 xfail tests (the image job, Renovate's first package rule)
+- [x] 1.2 `ci.yml` and `renovate.json`; remove the markers
 
 ## 2. Close
 

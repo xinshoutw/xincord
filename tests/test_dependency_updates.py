@@ -5,7 +5,6 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
-import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -90,7 +89,6 @@ def test_renovate_commit_messages() -> None:
     assert [rule.get("semanticCommitType") for rule in actions] == ["ci"]
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="Renovate opens version updates")
 def test_commit_type_holds_over_the_presets() -> None:
     """Requirement: Renovate opens version updates, scenario Commit messages.
 
