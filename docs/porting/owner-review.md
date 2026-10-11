@@ -560,3 +560,36 @@ here; delete a section once it is empty.
 - At cutover: v3 lost its registrations at each restart; the planned v3 data import can bring back those of v3's MongoDB document (archived design, "Registrations and the v3 data import").
 - The bot needs View Channel and Send Messages where members register.
 - Done: the wheel, `xincord --no-online`, the image with the seventeen ported plugins, NTUST's TLS and one course request from the image, and a probe through discord.py's own objects, again after the cross-review's fixes (archived design, "Checks" and "Cross-review").
+
+## MusicPlayer (`port-music-player`)
+
+### User-visible changes
+- The audio plays on a Lavalink 4.2.2 node, compose's new `lavalink` service: `cp .env.example .env` and set `LAVALINK_PASSWORD`; `lavalink.password` in `bot/plugins/MusicPlayer/config.yaml` must be the same, and the plugin does not load until it is set (the bundled file leaves it empty).
+- Every `docker compose` command now needs `LAVALINK_PASSWORD` (in `.env` or the environment), also when MusicPlayer is not enabled; the node always runs beside the bot (about 10 seconds to start, downloading its plugins at each container creation).
+- Spotify moves to the node: `SPOTIFY_ENABLED`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` and `SPOTIFY_COUNTRY_CODE` in `.env` replace v3's `engines.spotify`, which now only warns; arbitrary `http(s)` links and local files no longer load; Yandex Music, Beam and Getyarn are gone.
+- v3's file loads once it has a `lavalink` section, with a warning for each of its 14 keys that never had an effect (`enabled`, `command_message_acknowledges`, `engines`, the cache, lyrics, performance and developer settings...).
+- en-US members get English replies (`text.yaml`); zh-TW members and every other locale keep v3's zh-TW texts. New texts: `node-unavailable`, `queue-full`, `queue-truncated` and the queue's last line `queue-more`.
+- The four button emojis that v3's templates named by the author's application IDs come from four new `emojis` names (v3's names by default); an emoji the application lacks shows as a Unicode one (v3 broke every panel).
+- Button refusals now show in the panel (v3's "This interaction failed"); a press keeps the panel alive another 60 seconds; the queue panel refreshes; a song added after the end of the list plays (v3 queued it forever); `/skip` past the last song ends the list with v3's `skipped-to-end`; every song starts unpaused; a failed or stuck song moves on.
+- The bot leaves voice after `player.auto_leave_timeout` (v3's 10 minutes) with nothing playing; a reload or an unload stops the music and leaves voice; panels are deleted when the bot leaves; a moderator's disconnection clears the songs.
+- After a new gateway session (READY again, not a resume), the bot leaves the voice channels that discord.py forgot; members run `/play` again. A node that answers nothing for 15 seconds makes the command answer `node-unavailable`.
+- Autocomplete suggestions answer within 2.5 seconds (or not at all) and leave other plugins' autocompletes alone.
+### Choices made without the owner
+- Spotify's credentials: in `.env` for the node; alternative: keep v3's `engines.spotify` in the plugin's config and push the ID and secret to LavaSrc with its `PATCH /v4/lavasrc/config`.
+- The password in two places (`.env` for the node, the plugin's config for the bot); alternative: the bot reads `LAVALINK_PASSWORD` from its environment too.
+- The bot starts once the node has started, not once it is healthy, so that the other plugins run while the node starts or fails; alternative: `condition: service_healthy`.
+- Missing emojis fall back to Unicode ones (`▰`/`▱` for the bar); alternative: ship v3's `images/` and upload the missing ones as application emojis at READY.
+- `player.auto_leave_timeout: 0` means never; alternative: leave at once.
+- The history keeps v3's 240 songs (played ones leave first, then songs are refused and counted); alternative: honor v3's unused `player.max_queue_size` (100 upcoming songs).
+- `/skip` past the last song ends the list, while the skip button at the last song keeps v3's `no-more-songs` (both v3's texts); alternative: the button ends the list too.
+- Volume and loop mode stay per guild in memory until the plugin unloads or the guild is removed, as v3 (a reload now resets them); alternative: keep them in the store.
+- A failed or stuck song moves on in single-song loop too; alternative: stop the loop.
+- Lavalink's request logging is off and its load handler logs warnings only (both log every member's search); alternative: Lavalink's defaults.
+- After a new gateway session the bot leaves the voice channels that discord.py forgot; alternative: rejoin them and keep playing.
+- A request to the node fails after 15 seconds without an answer; alternative: lavalink.py's default (aiohttp's 5 minutes) or another limit.
+### Manual checks
+- Smoke checklist in `openspec/changes/archive/2026-10-11-port-music-player/design.md`.
+- A real voice test with a token: DAVE through Lavalink 4.2.2 is untested here (no token or guild); listen to a song, a move between channels and a moderator's disconnection.
+- Upload v3's emoji images (`XsDiscordBotKt/Plugins/MusicPlayer/src/main/resources/images/`) as the application's emojis if the bot's application changed; otherwise check that the existing ones show.
+- At startup discord.py warns that PyNaCl and davey are missing and "voice will NOT be supported": that is its own voice client; MusicPlayer's voice goes through Lavalink, which needs neither.
+- Done: the wheel, `xincord --no-online` (bundled, filled and v3 configs), the node healthy on this Mac with both plugins, the image with all eighteen plugins, the plugin's link from the image to the node (a YouTube search, the refused sources, a wrong password), a probe through discord.py's own objects, again after the cross-review's fixes (a moderator's disconnection and a second READY), and the node's logs without queries (archived design, "Checks" and "Cross-review").

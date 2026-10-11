@@ -1,10 +1,13 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-11 after `port-ntust-course-watch`, the seventeenth plugin port (v3 NtustCourse:
-members register NTUST course codes per channel with three commands, and the plugin asks NTUST's
-course query about one registered course per step and alerts the channels when a course has
-seats; the first plugin that watches items that members register on an external API), which
-followed `port-ntust-announcements` (v3 NtustManager: NTUST's announcement boards read from READY,
+Updated 2026-10-11 after `port-music-player`, the eighteenth and last plugin port of C1 (v3
+MusicPlayer: eleven guild commands, a self-refreshing ephemeral panel with five buttons, and the
+audio on a Lavalink 4.2 node in compose driven by lavalink.py; the first plugin with a second
+service in compose and the first that plays audio). Every in-scope plugin is ported. It followed
+`port-ntust-course-watch` (v3 NtustCourse: members register NTUST course codes per channel with
+three commands, and the plugin asks NTUST's course query about one registered course per step and
+alerts the channels when a course has seats; the first plugin that watches items that members
+register on an external API), `port-ntust-announcements` (v3 NtustManager: NTUST's announcement boards read from READY,
 new articles converted by Gemini and posted to configured channels; the first plugin that scrapes
 HTML and calls an LLM API), `port-ticket-away-notice` (v3 TicketAddons: a notice in new ticket
 channels while the shop's owner is offline, the first plugin with the presences intent),
@@ -177,7 +180,13 @@ starting with Core. Motivation: easier maintenance and faster iteration.
   `uv sync --locked --no-dev --all-packages --no-editable`, user `xincord` in `/bot`, entry point
   `xincord`), `.dockerignore`, and `compose.yaml` (service `bot`: `./bot` bind-mounted at `/bot`,
   named volume `data` = `xincord_data` at `/bot/data`, `stdin_open`, `tty`, `init`,
-  `restart: unless-stopped`, 30 s stop grace, json-file logs 10 MB x 3).
+  `restart: unless-stopped`, 30 s stop grace, json-file logs 10 MB x 3). Since port-music-player,
+  service `lavalink` (`ghcr.io/lavalink-devs/lavalink:4.2.2`, `lavalink/application.yml`
+  read-only with youtube-source 1.18.2 and LavaSrc 4.8.3 pinned, `LAVALINK_SERVER_PASSWORD` from
+  `LAVALINK_PASSWORD` in an untracked `.env` (`.env.example` holds an example; `${VAR:?}` makes
+  every compose command need it), Spotify from `.env`, a `curl` healthcheck of `/version`, no
+  published port, no member's query in its logs); the bot `depends_on` it with
+  `condition: service_started`.
 - **Plugins (`packages/xincord-plugins`):** `xincord.plugins.example` (entry point `Example`, v3's
   _Example), the template: `__init__.py` (metadata constants, `setup`), `config.py`, `cog.py`
   (commands built in `setup` from the Lang with the cog's bound method as callback, `IDS =
@@ -488,8 +497,32 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
   `xincord.plugins.ntust_tls` (NTUST's TLS context, moved from NtustAnnouncements), the scene's
   `Clock` (a wake moves the fake clocks on), `FakeApi`, and `scene.steps(n)`, which fails at once
   when the loop died.
-- **Still to build:** MusicPlayer, the last plugin of C1, and the owner's follow-up changes
-  (section 5).
+- **MusicPlayer** (`xincord.plugins.music_player`, `INTENTS = discord.Intents(voice_states=True)`,
+  zh-TW default with en-US, config `lavalink` (host, port, a required string password, hidden in
+  errors; the bundled file waits for it), v3's `player.default_volume`, `player.auto_leave_timeout`
+  (now applied; 0 never), `messages.show_detailed_errors` and `emojis` (four new button names)):
+  the first plugin that plays audio. Pure modules: `audio.py` (`Track`, `Loaded`, `EndReason` and
+  the Protocols `Player`, `Listener`, `Link`), `history.py` (v3's history: a song added while idle
+  starts, 240 songs with played ones dropped first, `ended(loop, failed=)`), `display.py` (v3's
+  identifier rule, times, bar, thumbnails, the `music_player@` values, the bounded queue embed),
+  `emojis.py` (Unicode fallbacks, `resolve`), `texts.py`. `session.py`: a guild's history on its
+  player under a lock that also orders the decisions (songs without a player are refused, the
+  pause toggle), a start number per song so that stale node events are dropped, `changed` for the
+  idle leave. `node.py`: the only lavalink.py importer: `open_link` at READY (15-second request
+  timeout), a `DefaultPlayer` subclass without its queue that reports ends and stuck songs,
+  `LavalinkVoice(discord.VoiceProtocol)` (voice updates to the node, the `channelId` after a move,
+  one release that tells the plugin first and leaves a newer connection alone, an earlier
+  connection's late leave ignored), `leave_lost` (READY again) and `close` leaving voice.
+  `panels.py`: one self-refreshing panel per member (5 s, deleted 60 s after its last interaction,
+  a press renews it). `replies.py`, `commands.py` (the eleven commands, the autocompletes,
+  `cog_app_command_error`), `buttons.py` (v3's `musicplayer@` IDs and the new ones) and `cog.py`
+  (READY, the emojis, the idle leave, `on_guild_remove`, `cog_unload`). Reuse:
+  `tests/support/lavalink_fakes.py` (a local Lavalink v4 node, `hold` for slow answers),
+  `tests/support/music_fakes.py` (`FakeLink`, `FakePlayer` with `hold`, `FakeVoice`, `Clock` with
+  `advance` and `asleep`), the scene's `who()` and `press()`, `FakeVoiceChannel.connect(cls=...)`,
+  `FakeGuild.voice_client` and `change_voice_state`, `FakeMember.voice`,
+  `FakeInteraction.delete_error` and `delete_gate`, `FakeResponse.autocomplete`.
+- **Still to build:** the owner's follow-up changes (section 5), then the cutover (C2).
 
 ## 5. Status and next steps
 
@@ -504,34 +537,22 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 `port-dynamic-voice-channel`, `port-voice-logger`, `port-chat-logger`, `port-giveaway`,
 `rename-plugins`, `uptime-heartbeat-keep-pushing`, `custom-commands-from-config`,
 `chat-logger-split-storage`, `port-ticket`, `port-ticket-away-notice`,
-`port-ntust-announcements`, `port-ntust-course-watch`. Each one's
+`port-ntust-announcements`, `port-ntust-course-watch`, `port-music-player`. Each one's
 `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
-### Next: the plugins
+### Next: the data import, then the cutover
 
-Core is complete; Example (the template), Calculator, AutoRole, BotInfo, CustomCommands,
-WelcomeGoodbye, UptimeHeartbeat, Feedback, Economy, DynamicVoiceChannel, VoiceLogger, ChatLogger,
-Giveaway, Ticket, TicketAwayNotice, NtustAnnouncements and NtustCourseWatch are ported. Next, the
-last plugin of C1: **MusicPlayer** (`port-music-player`,
-`docs/porting/analysis/inventory/MusicPlayer.md`): a per-guild music player with slash commands,
-a self-refreshing ephemeral player panel with five control buttons (v3 components with the derived
-`musicplayer@` prefix) and voice, which B14 ports to a Lavalink 4.2+ node in `compose.yaml` with
-lavalink.py (v3's AudioAPI folds into its declared requirements, B12); verify the Lavalink image
-on arm64 first (section 6, item 4). It is the first plugin with a second service in compose and
-the first that plays audio; its tests need a fake Lavalink node.
-The owner renamed nine plugins on 2026-10-10 (`docs/porting/decisions.md`, Amendment 1; the table
-in `docs/porting-guide.md`, "Plugin names"), and every renamed plugin is ported under its new name;
-MusicPlayer keeps its name.
-Port the plugins in C1 order with the `port-plugin` skill (`.claude/skills/port-plugin/SKILL.md`),
-one OpenSpec change each (`port-<plugin-kebab>`): Example (done), Calculator (done),
-AutoRole (done), BotInfo (done, with the configurable AGPL source link of C3), CustomCommands
-(done), WelcomeGoodbye (done), UptimeHeartbeat (done), Feedback (done), Economy (done),
-DynamicVoiceChannel (done), VoiceLogger (done), ChatLogger (done), Giveaway (done), Ticket (done),
-TicketAwayNotice (done, v3 TicketAddons), NtustAnnouncements (done, v3 NtustManager),
-NtustCourseWatch (done, v3 NtustCourse), then MusicPlayer (with Lavalink in `compose.yaml`).
-Update `docs/porting-guide.md` after each one.
+Core is complete and every in-scope plugin of C1 is ported: Example (the template), Calculator,
+AutoRole, BotInfo, CustomCommands, WelcomeGoodbye, UptimeHeartbeat, Feedback, Economy,
+DynamicVoiceChannel, VoiceLogger, ChatLogger, Giveaway, Ticket, TicketAwayNotice,
+NtustAnnouncements, NtustCourseWatch and MusicPlayer (`port-music-player`, with the `lavalink`
+service in `compose.yaml`). The owner renamed nine plugins (`docs/porting/decisions.md`,
+Amendment 1); MusicPlayer kept its name. Next: the owner's follow-up change below (the v3 data
+import), then the cutover of decision C2 (every in-scope plugin's scenarios pass), which needs the
+owner: a run with a real token under compose (section 6) and the manual smoke checklists of the
+archived changes, MusicPlayer's real voice test with DAVE first.
 
 The owner also asked for follow-up changes (section 6). Done: UptimeHeartbeat logs URLs as origins
 only and never stops a listener (`uptime-heartbeat-keep-pushing`); CustomCommands defines its
@@ -633,9 +654,11 @@ Answered on 2026-10-10 (afternoon), from the review queue (the answered items we
    on a 3.2.x directory its `plugins` list is almost empty (found in `rename-plugins`' review).
 3. **ChatLogger** needs the Message Content intent turned on in the developer portal before the
    operator enables it, or Discord refuses the bot's connection.
-4. **Lavalink image** (arm64, compose details): verify when MusicPlayer starts. **VoiceLogger
-   status events** were built in port-voice-logger (the core relays the gateway event; the audit
-   log is read raw); what needs a real guild is in `docs/porting/owner-review.md`.
+4. **Lavalink image:** verified in port-music-player: `ghcr.io/lavalink-devs/lavalink:4.2.2`
+   (Ubuntu, arm64) turned healthy on the owner's Mac with both plugins, and the plugin reached it
+   from the bot's image; a real voice test (DAVE) needs a token (review queue, "MusicPlayer").
+   **VoiceLogger status events** were built in port-voice-logger (the core relays the gateway
+   event; the audit log is read raw); what needs a real guild is in `docs/porting/owner-review.md`.
 5. **Giveaway's time zone:** before cutover, set `timeZone: "Asia/Taipei"` in
    `plugins/Giveaway/config.yaml` (or `TZ` in `compose.yaml`): the container's zone is UTC, so typed
    end times would be read 8 hours off. Whether v3's running giveaways come along is up to the v3
@@ -660,6 +683,11 @@ Answered on 2026-10-10 (afternoon), from the review queue (the answered items we
    per-code requests under load. v3 lost its registrations at each restart; the v3 data import
    can restore those of v3's MongoDB document (archived design, "Registrations and the v3 data
    import").
+10. **MusicPlayer** (review queue, "MusicPlayer"): before the first `docker compose up`, copy
+   `.env.example` to `.env` and set `LAVALINK_PASSWORD` (every compose command needs it now) and
+   the same `lavalink.password` in `bot/plugins/MusicPlayer/config.yaml`; Spotify, if wanted, in
+   `.env`; check the application's emojis (v3's names) and a real voice session with DAVE
+   (`openspec/changes/archive/2026-10-11-port-music-player/design.md`, smoke checklist).
 
 ## 7. Verified facts and pitfalls
 
@@ -1057,12 +1085,48 @@ setup-uv v10.2.0, setup-node v7.1.0.
 - A task that nothing awaits until the unload hides the error that ended it: log it from a done
   callback (`task.exception()` also marks it retrieved).
 
+- lavalink.py 5.11.1 (MusicPlayer): `DefaultPlayer.handle_event` plays the next song of its own
+  queue at each end that may start one; `player.current` stays set after a song ended and is the
+  `track` of the next end event; event hooks run as unawaited tasks, the player's `handle_event` in
+  order in the message's task; a 401 stops its reconnects for good; it sends the voice state's
+  `channelId` only with a new voice session (a move keeps it: drop the cached `sessionId`);
+  `player_manager.destroy` of an unknown guild asks every node to delete it; its requests take
+  aiohttp's 5-minute default unless `request_timeout` is given (`total` leaves its WebSocket
+  alone); it ships an sdist only and no `py.typed` (`# pyright: ignore[reportMissingTypeStubs]` on
+  the import); its client's connector option `enable_cleanup_closed` makes aiohttp warn on Python
+  3.14 (ignored in pytest).
+- The Lavalink 4.2.2 image: the Ubuntu variant (glibc 2.35) for DAVE, not Alpine; `curl` inside;
+  uid 322; plugins downloaded at each container creation; `/version` needs the password; no log
+  files unless configured; request logging (on in Lavalink's example) logs every search, and
+  `lavalink.server.player.AudioLoaderRestHandler` logs each load's identifier at INFO (WARN in
+  `lavalink/application.yml`).
+- discord.py voice protocols (MusicPlayer's cross-review): READY after a new gateway session (not a
+  resume) empties discord.py's voice clients without calling them; a voice state goes to the
+  protocol the guild has when it arrives, so Discord's late answer to a leave reaches the next
+  connection; `VoiceProtocol.cleanup()` removes whatever the guild has registered; and
+  `channel.connect` releases a protocol only after a timeout. What a command checks before an
+  await (a load, a lock, the node) may be gone after it: decide under the session's lock.
+- compose's `${VAR:?message}` fails every compose command while `VAR` is unset (`run --rm -T bot
+  --no-online` included): the image check needs `.env`. A healthcheck string with `: ` in a block
+  list must be quoted, or YAML reads a mapping.
+- discord.py's `Client.__init__` warns that PyNaCl and davey are missing ("voice will NOT be
+  supported"): its own `VoiceClient`; a `VoiceProtocol` for Lavalink needs neither.
+- A component interaction's `response.defer()` is a deferred update (type 6), and its
+  `edit_original_response` / `delete_original_response` edit or delete the pressed message, an
+  ephemeral one too (MusicPlayer's probe); a command's response message ID comes from
+  `edit_original_response`'s return value.
+- Without the project's hooks, `ruff check --fix` deletes an import that nothing uses yet: add
+  imports with the code that uses them, or check after the fix. A text replacement anchored on a
+  line that the formatter reflowed silently matches nothing: assert the anchor (a script with
+  `assert old in text`).
+
 **v3 behaviors never to reproduce:** loading plugins in reverse dependency order, non-atomic JSON
 writes that reset corrupt files, recursive placeholder expansion, shared mutable placeholder
 caches, `asTextChannel()` failures in threads, voice chat and announcement channels, allow-all
 mentions, guild filters that never applied, delayed messages that nothing could cancel or check
-again, and alerts posted at every poll beyond Discord's rate limit (the porting guide has the full
-list).
+again, alerts posted at every poll beyond Discord's rate limit, and songs queued forever after
+the end of a list, refusals that never reached the member and refresh tasks that ran forever (the
+porting guide has the full list).
 
 **Exact numbers (Calculator):** `decimal` defaults to 28 digits, and `Fraction` reduces with a
 gcd that costs 75 to 180 ms per operation at 100,000 digits; scaled integers (v3's `BigDecimal`)
