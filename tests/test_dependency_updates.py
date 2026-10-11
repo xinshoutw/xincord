@@ -5,7 +5,6 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
-import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -45,9 +44,6 @@ def custom(config: Config, datasource: str) -> Config:
     return next(manager for manager in managers if manager["datasourceTemplate"] == datasource)
 
 
-@pytest.mark.xfail(
-    strict=True, raises=FileNotFoundError, reason="Dependabot opens security updates only"
-)
 def test_dependabot_version_updates_are_off() -> None:
     """Requirement: Dependabot opens security updates only."""
     updates = cast("list[Config]", dependabot()["updates"])
@@ -61,9 +57,6 @@ def test_dependabot_version_updates_are_off() -> None:
         assert update["open-pull-requests-limit"] == 0
 
 
-@pytest.mark.xfail(
-    strict=True, raises=FileNotFoundError, reason="Dependabot opens security updates only"
-)
 def test_dependabot_commit_messages() -> None:
     """Requirement: Dependabot opens security updates only."""
     updates = cast("list[Config]", dependabot()["updates"])
@@ -72,7 +65,6 @@ def test_dependabot_commit_messages() -> None:
     assert messages == {"uv": {"prefix": "build"}, "github-actions": {"prefix": "ci"}}
 
 
-@pytest.mark.xfail(strict=True, raises=FileNotFoundError, reason="Renovate opens version updates")
 def test_renovate_waits_seven_days_every_monday() -> None:
     """Requirement: Renovate opens version updates."""
     config = renovate()
@@ -85,7 +77,6 @@ def test_renovate_waits_seven_days_every_monday() -> None:
     assert config["vulnerabilityAlerts"] == {"enabled": False}
 
 
-@pytest.mark.xfail(strict=True, raises=FileNotFoundError, reason="Renovate opens version updates")
 def test_renovate_commit_messages() -> None:
     """Requirement: Renovate opens version updates."""
     config = renovate()
@@ -98,11 +89,14 @@ def test_renovate_commit_messages() -> None:
     assert [rule.get("semanticCommitType") for rule in actions] == ["ci"]
 
 
-@pytest.mark.xfail(strict=True, raises=FileNotFoundError, reason="Renovate opens version updates")
 def test_renovate_managers() -> None:
     """Requirement: Renovate opens version updates."""
     config = renovate()
-    pep621 = [rule for rule in rules(config) if rule.get("matchManagers") == ["pep621"]]
+    pep621 = [
+        rule
+        for rule in rules(config)
+        if rule.get("matchManagers") == ["pep621"] and "rangeStrategy" in rule
+    ]
     groups = [rule for rule in rules(config) if rule.get("groupName") == "uv"]
 
     assert set(config["enabledManagers"]) == {
@@ -118,7 +112,6 @@ def test_renovate_managers() -> None:
     assert {"ghcr.io/astral-sh/uv", "uv_build"} <= set(groups[0]["matchPackageNames"])
 
 
-@pytest.mark.xfail(strict=True, raises=FileNotFoundError, reason="Renovate opens version updates")
 def test_renovate_ignores_python_ranges_and_the_workspace() -> None:
     """Requirement: Renovate opens version updates."""
     disabled = [rule for rule in rules(renovate()) if rule.get("enabled") is False]
@@ -130,11 +123,6 @@ def test_renovate_ignores_python_ranges_and_the_workspace() -> None:
     assert {"xincord", "xincord-plugins"} <= set(names)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=FileNotFoundError,
-    reason="Renovate updates the versions that no manager reads",
-)
 def test_every_openspec_pin_is_managed() -> None:
     """Requirement: Renovate updates the versions that no manager reads."""
     manager = custom(renovate(), "npm")
@@ -149,6 +137,8 @@ def test_every_openspec_pin_is_managed() -> None:
     ]
     versions: set[str] = set()
     for path in tracked:
+        if not path.is_file():
+            continue
         relative = path.relative_to(ROOT).as_posix()
         text = path.read_text(encoding="utf-8")
         if relative.startswith(SKIPPED) or not OPENSPEC_PIN.search(text):
@@ -162,11 +152,6 @@ def test_every_openspec_pin_is_managed() -> None:
     assert len(versions) == 1
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=FileNotFoundError,
-    reason="Renovate updates the versions that no manager reads",
-)
 def test_lavalink_plugins_are_managed() -> None:
     """Requirement: Renovate updates the versions that no manager reads."""
     manager = custom(renovate(), "maven")
@@ -184,11 +169,6 @@ def test_lavalink_plugins_are_managed() -> None:
     assert manager["registryUrlTemplate"] == LAVALINK_MAVEN
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=FileNotFoundError,
-    reason="Renovate automerges patch updates and lock-file maintenance only",
-)
 def test_patch_updates_automerge() -> None:
     """Requirement: Renovate automerges patch updates and lock-file maintenance only."""
     config = renovate()
@@ -199,11 +179,6 @@ def test_patch_updates_automerge() -> None:
     assert config.get("automerge", False) is False
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=FileNotFoundError,
-    reason="Renovate automerges patch updates and lock-file maintenance only",
-)
 def test_minor_and_major_updates_wait() -> None:
     """Requirement: Renovate automerges patch updates and lock-file maintenance only."""
     every = rules(renovate())
@@ -220,11 +195,6 @@ def test_minor_and_major_updates_wait() -> None:
     assert python[0] > last_automerge
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=FileNotFoundError,
-    reason="Renovate automerges patch updates and lock-file maintenance only",
-)
 def test_lock_file_maintenance_is_monthly() -> None:
     """Requirement: Renovate automerges patch updates and lock-file maintenance only."""
     maintenance = cast("Config", renovate()["lockFileMaintenance"])
@@ -232,11 +202,6 @@ def test_lock_file_maintenance_is_monthly() -> None:
     assert maintenance == {"enabled": True, "schedule": ["* 0-3 1 * *"], "automerge": True}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=FileNotFoundError,
-    reason="Renovate automerges patch updates and lock-file maintenance only",
-)
 def test_renovate_waits_for_ci() -> None:
     """Requirement: Renovate automerges patch updates and lock-file maintenance only."""
     config = renovate()
@@ -250,11 +215,6 @@ def test_renovate_waits_for_ci() -> None:
     assert "pull_request" in triggers
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=FileNotFoundError,
-    reason="Renovate automerges patch updates and lock-file maintenance only",
-)
 def test_updates_without_release_dates_wait_for_the_owner() -> None:
     """Requirement: Renovate automerges patch updates and lock-file maintenance only."""
     every = rules(renovate())

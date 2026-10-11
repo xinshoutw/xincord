@@ -1,0 +1,99 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Version updates. Dependabot (.github/dependabot.yml) opens the security updates.",
+  "extends": ["config:recommended"],
+  "timezone": "Asia/Taipei",
+  "schedule": ["* * * * 1"],
+  "minimumReleaseAge": "7 days",
+  "internalChecksFilter": "strict",
+  "vulnerabilityAlerts": { "enabled": false },
+  "semanticCommits": "enabled",
+  "semanticCommitType": "build",
+  "semanticCommitScope": null,
+  "enabledManagers": [
+    "pep621",
+    "github-actions",
+    "dockerfile",
+    "docker-compose",
+    "pyenv",
+    "custom.regex"
+  ],
+  "separateMinorPatch": true,
+  "platformAutomerge": false,
+  "automergeType": "pr",
+  "automergeStrategy": "squash",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["* 0-3 1 * *"],
+    "automerge": true
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "The OpenSpec CLI that the gate and the docs run through npx.",
+      "managerFilePatterns": ["/^scripts/gate\\.sh$/", "/^AGENTS\\.md$/", "/^HANDOFF\\.md$/"],
+      "matchStrings": ["@fission-ai/openspec@(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "@fission-ai/openspec",
+      "datasourceTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "description": "The Lavalink node's plugins, from the repository the node downloads them from.",
+      "managerFilePatterns": ["/^lavalink/application\\.yml$/"],
+      "matchStrings": ["dependency: \"(?<depName>[^:\"]+:[^:\"]+):(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "maven",
+      "registryUrlTemplate": "https://maven.lavalink.dev/releases"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "GitHub Actions and their runners are CI.",
+      "matchManagers": ["github-actions"],
+      "semanticCommitType": "ci"
+    },
+    {
+      "description": "Update uv.lock within the ranges; change a range only when a release leaves it.",
+      "matchManagers": ["pep621"],
+      "rangeStrategy": "update-lockfile"
+    },
+    {
+      "description": "requires-python is a support promise, not a pin.",
+      "matchManagers": ["pep621"],
+      "matchDepTypes": ["requires-python"],
+      "enabled": false
+    },
+    {
+      "description": "The workspace's own packages and compose's locally built image.",
+      "matchPackageNames": ["xincord", "xincord-plugins"],
+      "enabled": false
+    },
+    {
+      "description": "uv's image and its build backend move together.",
+      "matchPackageNames": ["ghcr.io/astral-sh/uv", "uv_build", "uv-build"],
+      "groupName": "uv"
+    },
+    {
+      "description": "Patch updates merge once CI passes.",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    },
+    {
+      "description": "GHCR gives no release dates: no release age, and the owner merges.",
+      "matchPackageNames": ["ghcr.io/**"],
+      "minimumReleaseAge": null,
+      "automerge": false
+    },
+    {
+      "description": "GitHub's runners give no release dates: no release age, and the owner merges.",
+      "matchDepTypes": ["github-runner"],
+      "minimumReleaseAge": null,
+      "automerge": false
+    },
+    {
+      "description": "A new Python minor or major version waits for the owner.",
+      "matchPackageNames": ["python"],
+      "matchUpdateTypes": ["minor", "major"],
+      "automerge": false
+    }
+  ]
+}

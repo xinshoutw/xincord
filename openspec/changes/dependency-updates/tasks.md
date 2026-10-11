@@ -7,8 +7,8 @@
 
 ## 2. Configuration
 
-- [ ] 2.1 `.github/dependabot.yml`
-- [ ] 2.2 `.github/renovate.json`, checked once with `renovate-config-validator --strict`
+- [x] 2.1 `.github/dependabot.yml`
+- [x] 2.2 `.github/renovate.json`, checked once with `renovate-config-validator --strict`
 
 ## 3. Docs and close
 
