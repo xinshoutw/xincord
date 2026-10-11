@@ -157,6 +157,20 @@ async def test_stored_codes_asked(cog: NtustCourseWatch, fakes: Fakes, store: St
     assert fakes.asked == [("1142", "CE162A001")] * 3
 
 
+@pytest.mark.xfail(strict=True, reason="Channels hear once when a course fills")
+async def test_course_missing_from_one_answer(cog: NtustCourseWatch, fakes: Fakes) -> None:
+    """Requirement: Channels hear once when a course fills."""
+    await cog.registrations.add("CE162A001", 5, 1)
+    fakes.answers["CE162A001"] = [SEATS, None, FULL]
+    watcher = fakes.watcher(cog)
+
+    for _ in range(3):
+        await watcher.step()
+
+    # v3 skipped an empty answer and kept its state; the course had seats when it was listed last.
+    assert [post.content for _, post in fakes.posts][1:] == [GOLDEN["alerts"]["full"]]
+
+
 async def test_full_after_another_channel_registered(cog: NtustCourseWatch, fakes: Fakes) -> None:
     """Requirement: Channels hear once when a course fills."""
     await cog.registrations.add("CE162A001", 5, 1)
