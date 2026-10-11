@@ -39,6 +39,7 @@ type OpenWeb = Callable[[Api], AbstractAsyncContextManager[Requests]]  # setting
 
 FETCHES = 5  # NTUST pages fetched at a time, v3's maxConcurrentRequests
 CROSS_MARK = "\N{CROSS MARK}"  # a reviewer's reaction that redoes a post
+HOURGLASS = "\N{HOURGLASS WITH FLOWING SAND}"  # the bot's sign on the marked message during a redo
 logger = logging.getLogger(__name__)
 
 
@@ -134,18 +135,45 @@ class NtustAnnouncements(commands.Cog):
             payload.user_id,
             link.url,
         )
-        task = asyncio.create_task(self._redo(watcher, announcement))
+        marked = (payload.channel_id, payload.message_id)
+        task = asyncio.create_task(self._redo(watcher, announcement, marked))
         self.redos.add(task)
         task.add_done_callback(self.redos.discard)
 
-    async def _redo(self, watcher: Watcher, announcement: Announcement) -> None:
-        """Run the redo; any unexpected error is logged with its traceback."""
+    async def _redo(
+        self, watcher: Watcher, announcement: Announcement, marked: tuple[int, int]
+    ) -> None:
+        """Run the redo with an hourglass on the marked message, removed if the old post stays.
+
+        A replaced post takes the marked message, and its hourglass, along. An unexpected error is
+        logged with its traceback.
+        """
+        await self._sign(*marked, on=True)
+        replaced = False
         try:
-            await watcher.redo(announcement)
+            replaced = await watcher.redo(announcement)
         except Exception:
             logger.exception("NtustAnnouncements: redoing %s failed", announcement.link.url)
         finally:
             self.redoing.discard(announcement.link.url)
+        if not replaced:
+            await self._sign(*marked, on=False)
+
+    async def _sign(self, channel_id: int, message_id: int, *, on: bool) -> None:
+        """Add the bot's hourglass to a marked message, or remove it; a refusal is a warning."""
+        message = self.bot.get_partial_messageable(channel_id).get_partial_message(message_id)
+        try:
+            if on:
+                await message.add_reaction(HOURGLASS)
+            elif self.bot.user is not None:
+                await message.remove_reaction(HOURGLASS, self.bot.user)
+        except discord.HTTPException as error:
+            logger.warning(
+                "NtustAnnouncements: the hourglass on message %d of channel %d failed: %s",
+                message_id,
+                channel_id,
+                error,
+            )
 
     def check(self) -> None:
         """Warn about each board whose channel the bot cannot see or that takes no messages.

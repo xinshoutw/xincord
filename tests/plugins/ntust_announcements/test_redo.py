@@ -12,8 +12,9 @@ from typing import TYPE_CHECKING, Any, cast, override
 import discord
 import pytest
 
-from discord_fakes import FakeChannel, FakeMessage, forbidden, not_found
+from discord_fakes import BOT_USER, FakeChannel, FakeMessage, forbidden, not_found
 from plugin_fakes import FIXTURES, until
+from xincord.core.bot import Bot
 from xincord.plugins.ntust_announcements.config import Board, bundled_review_prompt
 from xincord.plugins.ntust_announcements.messages import content_messages
 from xincord.plugins.ntust_announcements.pages import Link, article_html
@@ -400,7 +401,6 @@ async def test_redo_error(
     assert scene.cog.redoing == set()
 
 
-@pytest.mark.xfail(strict=True, reason="A redo shows that it runs")
 @pytest.mark.parametrize("config", [REVIEWING])
 async def test_sign(scene: Scene) -> None:
     """Requirement: A redo shows that it runs."""
@@ -418,11 +418,11 @@ async def test_sign(scene: Scene) -> None:
     assert channel.deleted == [message_id]
 
 
-@pytest.mark.xfail(strict=True, reason="A redo shows that it runs")
 @pytest.mark.parametrize("config", [REVIEWING])
 @pytest.mark.parametrize("outcome", ["the old post stays", "the redo raises"])
 async def test_sign_removed(scene: Scene, monkeypatch: pytest.MonkeyPatch, outcome: str) -> None:
     """Requirement: A redo shows that it runs."""
+    monkeypatch.setattr(Bot, "user", property(lambda _bot: BOT_USER))  # set at the login
     channel, message_id = await posted(scene)
 
     async def redo(_self: Watcher, announcement: Announcement) -> bool:
@@ -440,7 +440,6 @@ async def test_sign_removed(scene: Scene, monkeypatch: pytest.MonkeyPatch, outco
     assert channel.reactions == [("add", message_id, HOURGLASS), ("remove", message_id, HOURGLASS)]
 
 
-@pytest.mark.xfail(strict=True, reason="A redo shows that it runs")
 @pytest.mark.parametrize("config", [REVIEWING])
 async def test_refused_sign(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A redo shows that it runs."""

@@ -2,7 +2,7 @@
 
 - [x] 1.1 xfail tests for "A redo shows that it runs" (the sign before the article is fetched, its
       removal when the old post stays or the redo raises, a refused reaction)
-- [ ] 1.2 `Watcher.redo` returns whether it replaced the post; `_redo` adds and removes ⏳; remove
+- [x] 1.2 `Watcher.redo` returns whether it replaced the post; `_redo` adds and removes ⏳; remove
       the markers
 
 ## 2. Close

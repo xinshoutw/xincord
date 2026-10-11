@@ -93,22 +93,26 @@ class Watcher:
             await self.check()
             await sleep(interval)
 
-    async def redo(self, announcement: Announcement) -> None:
+    async def redo(self, announcement: Announcement) -> bool:
         """Post ``announcement`` again, converted anew and reviewed, then delete its old messages.
 
         The new messages come first: when the article fails or the channel refuses them, the old
         post stays, also through a restart during the model's retries.
+
+        Returns:
+            Whether the new post replaced the old one.
         """
         link = announcement.link
         messages = await self._messages(link, review=True)
         if messages is None or not await self._post(link, messages):
             logger.warning("%s: %s was not posted again; its old post stays", self.name, link.url)
-            return
+            return False
         for message_id in announcement.message_ids:
             await self._delete(announcement.channel_id, message_id)
         if self.announcements is not None:
             await self.announcements.forget(announcement)
         logger.info("%s: replaced the post of %s", self.name, link.url)
+        return True
 
     async def _delete(self, channel: int, message_id: int) -> None:
         """Delete one old message; one that is gone already counts as deleted."""
