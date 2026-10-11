@@ -45,7 +45,7 @@ it (below). What waits for the owner is in `docs/owner-review.md`; how it is bui
 - Releases: README, "Releasing" (both `pyproject.toml` versions, `uv lock`, a signed `v*` tag). A
   tag builds both distributions, the image `ghcr.io/xinshoutw/xincord` (public) and the GitHub
   Release; from 1.0.0 it also publishes to PyPI through the environments `pypi` and `pypi-plugins`
-  (trusted publishers registered, LICENSE in both distributions). Latest: `v0.3.0`.
+  (trusted publishers registered, LICENSE in both distributions). Latest: `v0.3.1`.
 
 ## Running it
 
@@ -65,7 +65,8 @@ repository root (gitignored), with the owner's test application and guild `xinco
   command with a TTY: use `ssh -o RemoteCommand=none -o RequestTTY=no xs-mac '...'`, with
   `/usr/local/bin` on `PATH` for docker. Redact tokens and keys from anything printed there.
 - Both bots, their plugins, tokens and the daily backup: `docs/owner-review.md`, "Production".
-  Each runs the `compose.yaml` of its release tag with `XINCORD_VERSION` set to it (0.3.0);
+  Each runs the `compose.yaml` of its release tag with `XINCORD_VERSION` set to it (0.3.1 since
+  2026-10-12);
   compose projects `xincord` and `xincord-shirotsuki`, volumes `<project>_data`.
 - To update: copy `compose.yaml` from the new tag, set `XINCORD_VERSION` in `.env`, then
   `docker compose pull && docker compose up -d` in each directory, and check `docker compose logs
