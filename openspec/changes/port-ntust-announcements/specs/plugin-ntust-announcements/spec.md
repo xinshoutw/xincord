@@ -194,6 +194,10 @@ first. A title link SHALL be the header and `# [title](url)`, `\[]` escaped, the
   limit
 - **THEN** the parts are cut at 1980 units, or before that character
 
+#### Scenario: Blank parts
+- **WHEN** a cut leaves a part of only whitespace
+- **THEN** that part is left out and the others are posted
+
 #### Scenario: Title link
 - **WHEN** a title holds `]` or is 3000 characters long
 - **THEN** the message escapes it, or cuts it with an ellipsis, keeps the whole URL and fits in

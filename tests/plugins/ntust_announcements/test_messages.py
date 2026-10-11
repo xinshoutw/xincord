@@ -138,3 +138,20 @@ def test_url_without_room() -> None:
     message = link_message("Notice", url)
 
     assert message == f"{HEADER}\n{url}"[:MESSAGE_LIMIT]
+
+
+@pytest.mark.xfail(strict=True, reason="Announcements become messages within Discord's limits")
+@pytest.mark.parametrize(
+    "content",
+    [
+        pytest.param("a" * 1980 + "\n\n\n" + "b" * 3000, id="line breaks"),
+        pytest.param("a" * 1975 + "\n" + " " * 10 + "\n" + "b" * 3000, id="spaces"),
+    ],
+)
+def test_no_blank_parts(content: str) -> None:
+    """Requirement: Announcements become messages within Discord's limits."""
+    messages = content_messages(content)
+
+    # Discord refuses a message of only whitespace, and a refused later part ends the post.
+    assert all(message.strip() for message in messages)
+    assert "".join(messages).count("b") == 3000
