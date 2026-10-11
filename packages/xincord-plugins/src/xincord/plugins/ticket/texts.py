@@ -1,4 +1,4 @@
-"""The texts that v3 wrote in its code, from ``text.yaml``."""
+"""The plugin's texts outside its templates, from ``text.yaml``."""
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from xincord.core.i18n import Lang
 
 TEXT = "text"  # the stem of the lang file that holds them
-ERROR_MAX = 200  # v3's take(200) of an error's text
+ERROR_MAX = 200  # the most of an error's text that users see
 
 
 @dataclass(frozen=True)
@@ -30,12 +30,12 @@ class Texts:
 
 
 async def tell(interaction: discord.Interaction, text: str) -> None:
-    """Answer the interaction with ``text``, ephemerally, as v3's replies."""
+    """Answer the interaction with ``text``, ephemerally."""
     await interaction.response.send_message(text, ephemeral=True)
 
 
 def readable_error(error: BaseException) -> str:
-    """An error as v3 showed it to users: its text on one line, at most 200 UTF-16 code units, or
+    """An error as users see it: its text on one line, at most 200 UTF-16 code units, or
     its class name; URLs are cut to their origin, since a webhook's URL holds its token.
     """
     text = str(error).replace("\n", " ")
@@ -43,7 +43,7 @@ def readable_error(error: BaseException) -> str:
 
 
 def units(text: str) -> int:
-    """The length of ``text`` in UTF-16 code units, as Java's ``String.length``."""
+    """The length of ``text`` in UTF-16 code units."""
     return len(text.encode("utf-16-le")) // 2
 
 

@@ -33,7 +33,7 @@ async def test_no_draft(scene: Scene, how: str) -> None:
     """Requirement: Only the latest builder of a draft works."""
     interaction = await act(scene, how, scene.who())
 
-    # v3 acknowledged silently without a step, so a builder after a restart did nothing.
+    # A builder after a restart gets the session-expired text.
     assert interaction.sent == [EXPIRED]
     assert scene.cog.drafts == {}
 
@@ -45,7 +45,7 @@ async def test_older_builder(scene: Scene, how: str) -> None:
 
     interaction = await act(scene, how, scene.who(message_id=43))
 
-    # v3 found the step by the user only, so any of their builders drove the newest draft.
+    # Only the builder that shows the draft drives it.
     assert interaction.sent == [EXPIRED]
     assert scene.session().draft == Draft("Old")
     assert scene.session().message_id == 44
@@ -66,4 +66,4 @@ async def test_unknown_sub_action(scene: Scene) -> None:
 
     interaction = await scene.press("unknown")
 
-    assert interaction.sent == []  # no response, as in v3
+    assert interaction.sent == []  # no response

@@ -127,7 +127,6 @@ async def test_refused_messages(scene: Scene, text: str, message: str, reply: st
 
     interaction = await add(scene, text)
 
-    # v3 stayed "thinking" (B7, B9), stored a broken draft (B8) or failed at the confirmation.
     assert interaction.sent == [("edit_original_response", {"content": reply})]
     assert scene.cog.drafts == {}
 

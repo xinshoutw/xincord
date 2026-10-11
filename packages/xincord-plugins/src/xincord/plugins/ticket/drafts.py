@@ -1,4 +1,4 @@
-"""A new draft and the builder's changes to it, as v3's StepManager and StepData made them."""
+"""A new draft and the builder's changes to it."""
 
 from dataclasses import replace
 from typing import TYPE_CHECKING
@@ -14,9 +14,9 @@ if TYPE_CHECKING:
 
 
 def defaults(texts: Texts) -> Draft:
-    """v3's new ``StepData``, its texts in the administrator's language from ``text.yaml``.
+    """A new draft, its texts in the administrator's language from ``text.yaml``.
 
-    The color (cyan), the style (green), no staff roles and the panel channel's category are v3's.
+    The color is cyan, the style green, with no staff roles, in the panel channel's category.
     """
     return Draft(
         reason_title=texts.get("defaults.reason-title"),
@@ -33,10 +33,9 @@ def submit(draft: Draft, sub_action: str, values: Mapping[str, str]) -> Draft | 
     """The draft that the submitted modal ``sub_action`` makes of ``draft``, or the error key.
 
     ``values`` are the modal's inputs by ID, empty when not filled in. Empty texts unset the author,
-    its icon, the title and the description (JDA refused an empty title and icon URL, and the
-    builder stopped updating); an empty reason title is ignored, as in v3. v3's zh-TW button modal,
-    in operators' files, says ``modify-btn-content``, which v3's handler did not know (B2). Other
-    modals (the preview's) change nothing.
+    its icon, the title and the description; an empty reason title is ignored. The zh-TW button
+    modal in some operators' files says ``modify-btn-content``, which counts as ``modify-btn-text``.
+    Other modals (the preview's) change nothing.
     """
     match sub_action:
         case "modify-author":
@@ -65,7 +64,6 @@ def _color(draft: Draft, text: str) -> Draft | str:
 def _button(draft: Draft, text: str, emoji: str) -> Draft | str:
     """The draft with the button's label and emoji, or the error key when both are empty.
 
-    v3 checked for missing inputs, which Discord never sends, and an empty button failed to render.
     The emoji is kept as typed: Discord refuses what is no emoji when the builder shows it.
     """
     if not text and not emoji:
@@ -74,13 +72,10 @@ def _button(draft: Draft, text: str, emoji: str) -> Draft | str:
 
 
 def select_roles(draft: Draft, values: Sequence[str]) -> Draft:
-    """The draft with the selected staff roles, which replace the earlier ones, as in v3."""
+    """The draft with the selected staff roles, which replace the earlier ones."""
     return replace(draft, admin_ids=tuple(int(value) for value in values if value.isdecimal()))
 
 
 def select_style(draft: Draft, index: str) -> Draft:
-    """The draft with the color button's style: 1 blue, 2 gray, 3 green, 4 red; else unchanged.
-
-    v3's ``ButtonStyle.fromKey`` gave no usable style for other indexes, and the press failed.
-    """
+    """The draft with the color button's style: 1 blue, 2 gray, 3 green, 4 red; else unchanged."""
     return replace(draft, button_style=int(index)) if index in STYLES else draft

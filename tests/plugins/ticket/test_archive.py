@@ -271,7 +271,7 @@ async def test_forwarded_messages(cog: Ticket) -> None:
     source, target = channels(
         [
             Message(1, BOB, "help me"),
-            Message(2, ALICE),  # an embed only, or a sticker: skipped, as in v3
+            Message(2, ALICE),  # an embed only, or a sticker: skipped
             Message(3, ALICE, attachments=[Attached("log.txt")]),
         ]
     )
@@ -286,7 +286,7 @@ async def test_forwarded_messages(cog: Ticket) -> None:
     )
     assert webhook[0] == "channel.create_webhook"
     assert WEBHOOK.fullmatch(cast("str", webhook[1]["name"]))
-    # The member under their display name, the user under their username, as v3.
+    # The member under their display name, the user under their username.
     assert rest == [
         ("webhook.send", forwarded("help me", "Bobby", BOB_AVATAR)),
         ("webhook.send", forwarded(None, "alice", ALICE_AVATAR, ["log.txt"])),
@@ -307,8 +307,8 @@ async def test_long_messages_and_large_files(cog: Ticket) -> None:
 
     await archive(source, target, options(cog))
 
-    # Parts of 2000, the files with the last (v3 hung, B12); a file over the guild's upload
-    # limit is linked on its own line (v3's upload failed).
+    # Parts of 2000, the files with the last; a file over the guild's upload limit is linked on
+    # its own line.
     assert sends(target.sent) == [
         forwarded("x" * 2000, "Bobby", BOB_AVATAR),
         forwarded("x" * 1900 + "\n" + large.url, "Bobby", BOB_AVATAR, ["log.txt"]),
@@ -329,7 +329,7 @@ async def test_names_discord_refuses(cog: Ticket) -> None:
 
     await archive(source, target, options(cog))
 
-    # v3's archive failed there.
+    # A name that Discord refuses for a webhook falls back to the next one.
     assert [fields["username"] for fields in sends(target.sent)] == ["bob", "8"]
 
 
@@ -350,7 +350,7 @@ async def test_names_discord_refuses(cog: Ticket) -> None:
         (replace(BOB, nick="Everyone"), "bob"),
         (replace(BOB, nick="here"), "bob"),
         (replace(BOB, nick="discord", name="clyde"), "8"),
-        (ALICE, "alice"),  # no member: the username, as v3's author.name
+        (ALICE, "alice"),  # no member: the username
         (replace(ALICE, name="discordian"), "7"),
     ],
 )
@@ -399,7 +399,7 @@ THUMBS, TONE = chr(0x1F44D), chr(0x1F3FD)
 )
 def test_thread_name(name: str, kept: str) -> None:
     """Requirement: The archive copies the conversation into a thread."""
-    # 100 UTF-16 code units at most, the time taking 20 (v3's BreakIterator kept graphemes).
+    # 100 UTF-16 code units at most, the time taking 20, graphemes kept whole.
     assert thread_name(name, NOW, UTC) == kept + SUFFIX
 
 
@@ -409,7 +409,7 @@ def test_thread_name_in_a_zone() -> None:
     local = datetime.fromtimestamp(NOW, UTC).astimezone().strftime("%Y-%m-%d_%H:%M:%S")
 
     assert thread_name("bob", NOW, taipei) == "bob-2026-02-28_10:00:00"
-    assert thread_name("bob", NOW, None) == f"bob-{local}"  # the host's zone, as v3
+    assert thread_name("bob", NOW, None) == f"bob-{local}"  # the host's zone
 
 
 @pytest.mark.parametrize(
@@ -422,7 +422,7 @@ def test_thread_name_in_a_zone() -> None:
 )
 def test_webhook_name(milliseconds: int, counter: int, name: str) -> None:
     """Requirement: The archive copies the conversation into a thread."""
-    # Java's Long.toString(n, 36) of the time and of the counter's 20 low bits.
+    # Base 36 of the time and of the counter's 20 low bits.
     assert webhook_name(milliseconds, counter) == name
 
 
@@ -441,7 +441,7 @@ async def test_saved(scene: Scene, locale: str, texts: dict[str, str]) -> None:
 
     interaction = await scene.handle(selection)
 
-    # A new ephemeral answer (v3's deferReply), so the select stays usable.
+    # A new ephemeral answer, so the select stays usable.
     assert interaction.sent == [
         ("response.defer", {"ephemeral": True, "thinking": True}),
         ("edit_original_response", {"content": texts["saving"]}),
@@ -474,7 +474,7 @@ LAST = discord.utils.time_snowflake(datetime(2026, 2, 28, 1, 45, tzinfo=UTC))
 
 
 def marker(text: str) -> dict[str, object]:
-    """A marker in the archive thread, under the webhook's own name and avatar, as v3."""
+    """A marker in the archive thread, under the webhook's own name and avatar."""
     return {
         "content": text,
         "username": None,
@@ -538,7 +538,7 @@ async def test_threads_in_threads(cog: Ticket) -> None:
     await archive(source, target, options(cog))
 
     # A thread's own threads stay as they are; an owner whom discord.py has not cached shows as
-    # their ID, as v3.
+    # their ID.
     assert sends(target.sent) == [
         forwarded("look", "Bobby", BOB_AVATAR),
         marker(MARKERS["start-by-id"]),
@@ -568,7 +568,7 @@ async def test_a_thread_that_fails(cog: Ticket, read: int) -> None:
 
     await archive(source, target, options(cog))
 
-    # The error marker and the end marker without a time; the archive goes on, as v3.
+    # The error marker and the end marker without a time; the archive goes on.
     assert sends(target.sent) == [
         forwarded("look", "Bobby", BOB_AVATAR),
         marker(MARKERS["start"]),
@@ -602,7 +602,7 @@ async def test_a_refused_error_marker(cog: Ticket, caplog: pytest.LogCaptureFixt
     with caplog.at_level(logging.WARNING):
         await archive(source, target, options(cog))
 
-    # Logged, and the end marker still goes, as v3.
+    # Logged, and the end marker still goes.
     assert sends(target.sent)[1:] == [
         marker(MARKERS["start"]),
         marker(MARKERS["end-without-messages"]),
@@ -625,7 +625,7 @@ async def test_refused_send(cog: Ticket) -> None:
     with pytest.raises(discord.Forbidden):
         await archive(source, target, options(cog))
 
-    # The thread keeps what was sent; the webhook goes (v3 leaked it on some failures, B12).
+    # The thread keeps what was sent; the webhook goes.
     assert sends(target.sent) == [forwarded("kept", "Bobby", BOB_AVATAR)]
     assert target.sent[-1] == ("webhook.delete", {})
 
@@ -641,7 +641,7 @@ async def test_no_webhook(cog: Ticket, refused: bool) -> None:  # noqa: FBT001
     with pytest.raises(discord.Forbidden):
         await archive(source, target, options(cog))
 
-    # The empty thread goes (v3 left it); a refused deletion changes nothing more.
+    # The empty thread goes; a refused deletion changes nothing more.
     assert methods(target.sent) == ["channel.create_thread", "thread.delete"]
 
 
@@ -652,7 +652,7 @@ async def test_undeletable_webhook(cog: Ticket) -> None:
 
     thread = await archive(source, target, options(cog))
 
-    assert thread.id == ARCHIVE  # the archive is whole: the error is ignored, as v3's
+    assert thread.id == ARCHIVE  # the archive is whole: the error is ignored
     assert methods(target.sent)[-1] == "webhook.delete"
 
 
@@ -665,7 +665,7 @@ async def test_refused_end_marker(cog: Ticket) -> None:
     with pytest.raises(discord.Forbidden):
         await archive(source, target, options(cog))
 
-    # It stops the archive, as in v3.
+    # It stops the archive.
     assert sends(target.sent)[-1] == forwarded("inside", "Bobby", BOB_AVATAR)
     assert target.sent[-1] == ("webhook.delete", {})
 

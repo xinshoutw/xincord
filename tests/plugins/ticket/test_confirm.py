@@ -113,7 +113,6 @@ async def test_posted_panel(scene: Scene) -> None:
 
     interaction = await scene.press("confirm-create")
 
-    # v3 deleted the builder first and never acknowledged the press (B15).
     assert interaction.sent == [
         ("response.defer", {"ephemeral": False, "thinking": False}),
         ("delete_original_response", {}),
@@ -141,13 +140,13 @@ async def test_button_added_to_a_panel(scene: Scene) -> None:
     assert methods(interaction.sent) == ["response.defer", "delete_original_response"]
     [(method, fields)] = message.sent
     assert method == "message.edit"
-    assert list(fields) == ["view"]  # the content and the embeds stay (v3 kept the first, B17)
+    assert list(fields) == ["view"]  # the content and the embeds stay
     view = fields["view"]
     assert isinstance(view, discord.ui.View)
     assert view.is_finished()  # the router handles its buttons, not discord.py
     assert rows_of(view) == [
-        [press(0), press(1)],  # the stored list's length (v3: the row's size, B6)
-        [None],  # the link button's row stays (v3 dropped every row but the first, B17)
+        [press(0), press(1)],  # the stored list's length
+        [None],  # the link button's row stays
     ]
     assert await scene.store.get(NAMESPACE, "10") == {
         str(TARGET): [STORED, {"reasonTitle": "Why?", "adminIds": [3], "categoryId": 30}]
@@ -162,7 +161,7 @@ async def test_button_added_to_a_message_without_rows(scene: Scene) -> None:
     await scene.press("confirm-create")
 
     [(_, fields)] = message.sent
-    assert button_rows(fields["view"]) == [[("Open", press(0), 3)]]  # v3 threw
+    assert button_rows(fields["view"]) == [[("Open", press(0), 3)]]  # a new row
 
 
 async def test_refused_post(scene: Scene) -> None:
@@ -205,7 +204,7 @@ async def test_message_changed_since(scene: Scene, change: str, error: str) -> N
 
 async def test_broken_document(scene: Scene) -> None:
     """Requirement: A panel that cannot be posted keeps the builder."""
-    await scene.store.put(NAMESPACE, "10", [])  # not v3's shape
+    await scene.store.put(NAMESPACE, "10", [])  # another shape
     scene.keep(DRAFT)
 
     interaction = await scene.press("confirm-create")
@@ -260,7 +259,7 @@ async def test_double_confirmation(scene: Scene) -> None:
             {"content": "This setup has expired; run the command again.", "ephemeral": True},
         )
     ]
-    assert methods(channel.sent) == ["channel.send"]  # v3 would have posted twice
+    assert methods(channel.sent) == ["channel.send"]  # posted once
 
 
 @dataclass
@@ -292,7 +291,7 @@ async def test_unexpected_failure(scene: Scene) -> None:
 async def test_undeletable_panel(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: A panel that cannot be posted keeps the builder."""
     scene.channel = BrokenChannel(id=5)
-    await scene.store.put(NAMESPACE, "10", [])  # not v3's shape
+    await scene.store.put(NAMESPACE, "10", [])  # another shape
     scene.keep(DRAFT)
 
     interaction = await scene.press("confirm-create")
@@ -317,7 +316,7 @@ async def test_refused_edit(scene: Scene) -> None:
 async def test_broken_list(scene: Scene) -> None:
     """Requirement: A panel that cannot be posted keeps the builder."""
     message = target(scene, [])
-    await scene.store.put(NAMESPACE, "10", {str(TARGET): {}})  # not v3's shape
+    await scene.store.put(NAMESPACE, "10", {str(TARGET): {}})  # another shape
     scene.keep(DRAFT, target=Target(TARGET, discord.Embed(title="Panel")))
 
     interaction = await scene.press("confirm-create")

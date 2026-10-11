@@ -127,16 +127,15 @@ class ControlRow:
     zone: tzinfo | None  # the time zone of the archive's names and markers; None: the host's
 
     def texts(self, interaction: discord.Interaction) -> Texts:
-        """The texts of a reply to the user who acted: their locale, else zh-TW (v3's templates).
+        """The texts of a reply to the user who acted: their locale, else zh-TW.
 
-        ``Lang.text`` falls back per key to zh-TW, which v3 showed every locale without lang files:
-        its templates fell back to zh-TW and its texts were Chinese.
+        ``Lang.text`` falls back per key to zh-TW for every locale without lang files.
         """
         return Texts(self.lang, interaction.locale.value)
 
     @property
     def public(self) -> Texts:
-        """The texts of public messages (the control row, the archive's markers): zh-TW, as v3."""
+        """The texts of public messages (the control row, the archive's markers): zh-TW."""
         return Texts(self.lang, self.lang.default_locale)
 
     async def lock(
@@ -145,12 +144,11 @@ class ControlRow:
         """Deny (``locked``) or allow the ticket's member View Channel, then show the other row.
 
         For the ticket's staff only (:meth:`_staff`): anyone else, the ticket's member too, is
-        refused and nothing changes; v3 checked nobody, so the member could lock themselves out.
-        Only the store is read before the acknowledgement, which comes before any request to
-        Discord: v3 answered after fetching the member and setting the overwrite, within
-        Discord's three seconds or not at all. The overwrite's other permissions stay. A failure
+        refused and nothing changes, so the member cannot lock themselves out. Only the store is
+        read before the acknowledgement, which comes before any request to Discord, within its
+        three seconds. The overwrite's other permissions stay. A failure
         (the member left, a refused overwrite) is told to the user, and the row stays as it was.
-        A row whose member is no user ID gets no response from anyone: v3 threw.
+        A row whose member is no user ID gets no response from anyone.
         """
         controls = _controls(fields)
         if controls is None:
@@ -176,12 +174,12 @@ class ControlRow:
     async def delete(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
         """Delete the ticket channel for its staff (:meth:`_staff`); anyone else is refused.
 
-        v3 acknowledged anyone but staff and did nothing. The staff's press is acknowledged before
-        the deletion (v3's ``deferEdit``), and a refused deletion is told to the user.
+        The staff's press is acknowledged before the deletion, and a refused deletion is told to
+        the user.
         """
         if await self._staff(interaction, fields) is None:
             return
-        await interaction.response.defer()  # v3's deferEdit
+        await interaction.response.defer()
         try:
             await _remove(interaction)
         except (discord.HTTPException, ChannelError) as error:
@@ -192,10 +190,10 @@ class ControlRow:
 
     async def save(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
         """Offer the ticket's staff (:meth:`_staff`), ephemerally, a select of the text channel to
-        save it in; anyone else is refused, as in v3.
+        save it in; anyone else is refused.
 
         The select's ID carries the row's fields; a row whose member is no user ID gets no
-        response (v3 threw).
+        response.
         """
         if await self._staff(interaction, fields) is None:
             return
@@ -214,14 +212,14 @@ class ControlRow:
     ) -> None:
         """Check a save select's choice, then save the conversation into the chosen channel.
 
-        Another select gets v3's acknowledgement only. The checks run in v3's order, each refusal
+        Another select gets an acknowledgement only. The checks run in this order, each refusal
         answering its text: a member, the entry, staff, the ticket a text channel, a text channel
         chosen, the bot's View Channel and Read Message History in the ticket, and its View
         Channel, Send Messages, Send Messages in Threads, Create Public Threads and Manage
         Webhooks in the chosen channel.
         """
         if fields.get("sub_action") != "select-channel":
-            await interaction.response.defer()  # v3's deferEdit
+            await interaction.response.defer()
             return
         found = await self._staff_entry(interaction, fields)
         checked = found if isinstance(found, str) else _save_channels(interaction, values)
@@ -235,9 +233,9 @@ class ControlRow:
     ) -> None:
         """Archive ``source`` into a new thread of ``target`` and tell the user how it went.
 
-        A new ephemeral answer, v3's ``deferReply``, so that the select stays usable; it says that
-        the archive is under way, then where it went, or v3's save-failed text with the error. The
-        markers use the default locale, as v3's. An answer that Discord refuses, after its 15
+        A new ephemeral answer, so that the select stays usable; it says that the archive is under
+        way, then where it went, or the save-failed text with the error. The markers use the
+        default locale. An answer that Discord refuses, after its 15
         minutes, is logged.
         """
         await interaction.response.defer(ephemeral=True, thinking=True)
@@ -247,7 +245,7 @@ class ControlRow:
         options = Options(self.public, self.clock(), self.zone, guild.filesize_limit)
         try:
             thread = await archive(cast("History", source), cast("ArchiveTarget", target), options)
-        except Exception as error:  # noqa: BLE001 - every failure is told, as v3's onError
+        except Exception as error:  # noqa: BLE001 - every failure is told
             logger.warning(
                 "Ticket cannot save channel %s into channel %s: %s",
                 source.id,
@@ -271,10 +269,10 @@ class ControlRow:
         self, interaction: discord.Interaction, fields: Mapping[str, str]
     ) -> Entry | str:
         """The entry of the row's panel button when one of its staff acted, else the error key
-        that refuses: ``error.no-member``, ``error.not-found`` or ``error.admin-only``, in v3's
+        that refuses: ``error.no-member``, ``error.not-found`` or ``error.admin-only``, in this
         order.
 
-        Staff hold one of the entry's roles, or Administrator (v3's ``hasTicketAdminPermission``).
+        Staff hold one of the entry's roles, or Administrator.
         """
         guild_id = cast("int", interaction.guild_id)  # members act in guilds
         roles = _role_ids(interaction.user, guild_id)
@@ -294,8 +292,7 @@ class ControlRow:
         """The entry of the row's panel button when one of its staff pressed a button of the
         control row; otherwise the press is refused (:meth:`_refuse`) and None returned.
 
-        The one check of lock, unlock, save and delete, at the owner's request: v3 checked save
-        and delete only, and acknowledged anyone but staff on delete without a word.
+        The one check of lock, unlock, save and delete, at the owner's request.
         """
         found = await self._staff_entry(interaction, fields)
         if isinstance(found, str):
@@ -307,12 +304,12 @@ class ControlRow:
         """Answer a press of the control row that the ticket's staff did not make; ``key`` is
         what :meth:`_staff_entry` refused it with.
 
-        A user who is no member gets v3's acknowledgement only (Discord sends the member with
+        A user who is no member gets an acknowledgement only (Discord sends the member with
         every interaction in a guild, so this happens outside guilds only); anyone else the text
         ``key``, not-found or admin-only, as the interaction's ephemeral response.
         """
         if key == "error.no-member":
-            await interaction.response.defer()  # v3's deferEdit
+            await interaction.response.defer()
             return
         await tell(interaction, self.texts(interaction).get(key))
 
@@ -324,10 +321,10 @@ class ControlRow:
 
 def _role_ids(user: object, guild_id: int) -> frozenset[int] | None:
     """The IDs of a member's roles but @everyone's, which is the guild's ID; None for a user who
-    is no member (v3's ``event.member``).
+    is no member.
 
-    discord.py lists @everyone among every member's roles, where JDA's ``getRoles`` left it out:
-    an entry naming it would make every member staff.
+    discord.py lists @everyone among every member's roles: an entry naming it would make every
+    member staff.
     """
     if not isinstance(user, HasRoles):
         return None
@@ -344,9 +341,9 @@ def _controls(fields: Mapping[str, str]) -> Controls | None:
 
 async def _permit(interaction: discord.Interaction, user_id: int, *, allowed: bool) -> None:
     """Allow or deny the member ``user_id`` View Channel in the interaction's channel, the
-    overwrite's other permissions kept (JDA's ``upsertPermissionOverride``).
+    overwrite's other permissions kept.
 
-    The member comes from discord.py's cache, else from Discord (JDA's ``retrieveMemberById``).
+    The member comes from discord.py's cache, else from Discord.
 
     Raises:
         discord.HTTPException: The member is not in the guild (NotFound), or Discord refused the
@@ -371,7 +368,7 @@ def _save_channels(
 ) -> tuple[CheckedChannel, CheckedChannel] | str:
     """The ticket channel and the chosen channel of a save, else the error key that refuses it.
 
-    In v3's order: the ticket a text channel, a text channel among the choice, the bot's View
+    In this order: the ticket a text channel, a text channel among the choice, the bot's View
     Channel and Read Message History in the ticket, and what it needs to post in the other.
     """
     source = _text_channel(interaction.channel)

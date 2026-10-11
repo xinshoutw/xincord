@@ -1,4 +1,4 @@
-"""Each guild's panels in the store, as v3's documents."""
+"""Each guild's panels in the store, one document per guild."""
 
 import json
 from typing import TYPE_CHECKING
@@ -15,16 +15,16 @@ if TYPE_CHECKING:
 
 GOLDEN = golden("ticket")
 GUILD = 10
-PANEL = "1290000000000000001"  # the panel of v3's example document
+PANEL = "1290000000000000001"  # the panel of the example document
 
 
 async def keep(store: Store, document: JSON, guild: int = GUILD) -> None:
-    """Store a guild's document, as v3 left it."""
+    """Store a guild's document."""
     await store.put(NAMESPACE, str(guild), document)
 
 
-async def test_v3_document(store: Store) -> None:
-    """Requirement: Panels are stored as v3's documents."""
+async def test_document(store: Store) -> None:
+    """Requirement: Panels are stored as documents."""
     await keep(store, json.loads(GOLDEN["document"]))
     panels = Panels(store)
 
@@ -42,20 +42,20 @@ async def test_v3_document(store: Store) -> None:
     [("1", "0"), (PANEL, "2"), (PANEL, "-1"), (PANEL, "x"), (PANEL, "")],
 )
 async def test_missing_entries(store: Store, message: str, index: str) -> None:
-    """Requirement: Panels are stored as v3's documents."""
+    """Requirement: Panels are stored as documents."""
     await keep(store, json.loads(GOLDEN["document"]))
     before = await store.get(NAMESPACE, str(GUILD))
     panels = Panels(store)
 
     assert await panels.entry(GUILD, message, index) is None
     assert await panels.entry(11, PANEL, "0") is None
-    # Reading writes nothing: v3 created the guild's file there.
+    # Reading writes nothing.
     assert await store.get(NAMESPACE, "11") is None
     assert await store.get(NAMESPACE, str(GUILD)) == before
 
 
 async def test_appending_keeps_the_others(store: Store) -> None:
-    """Requirement: Panels are stored as v3's documents."""
+    """Requirement: Panels are stored as documents."""
     kept: JSON = {"reasonTitle": "a", "adminIds": [], "categoryId": 0, "extra": 1}
     await keep(store, {"1": [kept], "2": []})
 
@@ -71,11 +71,11 @@ async def test_appending_keeps_the_others(store: Store) -> None:
     added = document["1"]
     assert isinstance(added, list)
     assert isinstance(added[1], dict)
-    assert list(added[1]) == ["reasonTitle", "adminIds", "categoryId"]  # Moshi's order
+    assert list(added[1]) == ["reasonTitle", "adminIds", "categoryId"]  # the stored order
 
 
 async def test_placed_before_stored(store: Store) -> None:
-    """Requirement: Panels are stored as v3's documents."""
+    """Requirement: Panels are stored as documents."""
     panels = Panels(store)
     placed: list[int] = []
 
@@ -114,7 +114,7 @@ async def test_placed_before_stored(store: Store) -> None:
     ],
 )
 async def test_broken_entries(store: Store, entry: JSON) -> None:
-    """Requirement: Panels are stored as v3's documents."""
+    """Requirement: Panels are stored as documents."""
     await keep(store, {PANEL: [entry]})
 
     with pytest.raises(DataError, match=f"guild {GUILD}, message {PANEL}"):
@@ -125,7 +125,7 @@ async def test_broken_entries(store: Store, entry: JSON) -> None:
 
 @pytest.mark.parametrize("document", [[], "x", {PANEL: "x"}, {PANEL: {}}])
 async def test_broken_documents(store: Store, document: JSON) -> None:
-    """Requirement: Panels are stored as v3's documents."""
+    """Requirement: Panels are stored as documents."""
     await keep(store, document)
     panels = Panels(store)
 
@@ -138,7 +138,7 @@ async def test_broken_documents(store: Store, document: JSON) -> None:
 
 
 async def test_forgotten_guilds(store: Store) -> None:
-    """Requirement: Panels are stored as v3's documents."""
+    """Requirement: Panels are stored as documents."""
     await keep(store, {"1": []})
     await keep(store, {"2": []}, guild=11)
     panels = Panels(store)

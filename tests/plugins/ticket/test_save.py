@@ -1,4 +1,4 @@
-"""Saving a ticket: the save button's channel select, and the select's checks in v3's order."""
+"""Saving a ticket: the save button's channel select, and the select's checks in their order."""
 
 from typing import TYPE_CHECKING
 
@@ -112,7 +112,7 @@ async def test_not_a_member(scene: Scene) -> None:
 
     await scene.handle(interaction)
 
-    # v3's deferEdit.
+    # A deferred update.
     assert interaction.sent == [("response.defer", {"ephemeral": False, "thinking": False})]
 
 
@@ -122,7 +122,7 @@ async def test_malformed_member(scene: Scene) -> None:
 
     interaction = await scene.click("save", scene.who(message_id=ROW), **FIELDS | {"user_id": "x"})
 
-    assert interaction.sent == []  # v3's cast threw before any answer
+    assert interaction.sent == []  # no answer
 
 
 async def test_other_select(scene: Scene) -> None:
@@ -132,7 +132,7 @@ async def test_other_select(scene: Scene) -> None:
 
     interaction = await scene.handle(scene.selection(custom_id, [str(TARGET)]))
 
-    # v3's deferEdit.
+    # A deferred update.
     assert interaction.sent == [("response.defer", {"ephemeral": False, "thinking": False})]
 
 
@@ -165,7 +165,7 @@ async def test_everyone_among_the_staff_roles(scene: Scene, control: str) -> Non
     await scene.store.put(
         NAMESPACE, "10", {PANEL: [{"reasonTitle": "Why?", "adminIds": [GUILD], "categoryId": 0}]}
     )
-    # discord.py lists @everyone among every member's roles; JDA's getRoles left it out.
+    # discord.py lists @everyone among every member's roles.
     member = scene.who(user=8, admin=False, roles=(GUILD,), message_id=ROW)
 
     if control == "button":

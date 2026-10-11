@@ -1,4 +1,4 @@
-"""The texts that v3 wrote in its code, per reader, and the control row's labels."""
+"""The texts of text.yaml, per reader, and the control row's labels."""
 
 from typing import TYPE_CHECKING, cast
 
@@ -32,8 +32,7 @@ async def test_replies_in_the_users_locale(bot: Bot, locale: str, expected: str)
 
     texts = ticket(bot).texts(interaction.as_interaction())
 
-    # A locale without lang files falls back to zh-TW, as v3's templates did, and v3's texts were
-    # Chinese for every locale.
+    # A locale without lang files falls back to zh-TW.
     assert texts.get("error.not-found") == GOLDEN["texts"][expected]["not-found"]
 
 
@@ -50,7 +49,7 @@ async def test_control_row_labels(bot: Bot, locale: str) -> None:
 
     labels = {action: texts.get(f"control.{action}") for action in LABELS}
 
-    # The owner's labels (2026-10-11), in both bundled files; v3's were its Kotlin strings.
+    # The owner's labels (2026-10-11), in both bundled files.
     assert labels == GOLDEN["labels"][locale]
 
 

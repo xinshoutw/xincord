@@ -70,7 +70,7 @@ def overwrites(scene: Scene) -> list[tuple[object, int, int]]:
 def shown_row(interaction: FakeInteraction) -> discord.ui.View:
     """The control row that the press showed instead of the pressed one."""
     [deferred, (method, fields)] = interaction.sent
-    assert deferred == DEFERRED  # at once: v3 answered after fetching the member and the overwrite
+    assert deferred == DEFERRED  # at once, before the member and the overwrite
     assert method == "edit_original_response"
     assert list(fields) == ["view"]  # the components only
     view = fields["view"]
@@ -160,7 +160,7 @@ async def test_not_the_tickets_staff(
 
     interaction = await scene.click(action, member, **FIELDS)
 
-    # v3 checked nobody, so the member could lock themselves out.
+    # The member cannot lock themselves out.
     assert interaction.sent == [("response.send_message", {"content": text, "ephemeral": True})]
     assert scene.channel.sent == []  # no overwrite changes
 
@@ -192,7 +192,7 @@ async def test_not_a_member(scene: Scene) -> None:
 
     await scene.handle(interaction)
 
-    # v3's deferEdit, as save and delete answer it, and nothing else.
+    # A deferred update, as save and delete answer it, and nothing else.
     assert interaction.sent == [DEFERRED]
     assert scene.channel.sent == []
 
@@ -202,7 +202,7 @@ async def test_everyone_among_the_staff_roles(scene: Scene, action: str) -> None
     """Requirement: The control row locks and unlocks the ticket."""
     await everyone_on_staff(scene)
     bob(scene)
-    # discord.py lists @everyone among every member's roles; JDA's getRoles left it out.
+    # discord.py lists @everyone among every member's roles.
     member = scene.who(user=MEMBER, admin=False, roles=(GUILD,), message_id=ROW)
 
     interaction = await scene.click(action, member, **FIELDS)
@@ -242,7 +242,7 @@ async def test_member_who_left(
         interaction = await scene.click("lock", scene.who(message_id=ROW, locale=locale), **FIELDS)
 
     reply = failed.replace("%tt@error%", "404 Not Found (error code: 0): Unknown Member")
-    # The row stays as it was (v3: the press failed).
+    # The row stays as it was.
     assert interaction.sent == [DEFERRED, ("followup.send", {"content": reply, "ephemeral": True})]
     assert scene.channel.sent == []
     assert "Ticket cannot lock channel 5 for member 8" in caplog.text
@@ -286,6 +286,6 @@ async def test_malformed_member(scene: Scene, fields: dict[str, str]) -> None:
 
     interaction = await scene.click("lock", scene.who(message_id=ROW), msg_id=PANEL, **fields)
 
-    # v3's parse or cast threw before any answer.
+    # No answer.
     assert interaction.sent == []
     assert scene.channel.sent == []

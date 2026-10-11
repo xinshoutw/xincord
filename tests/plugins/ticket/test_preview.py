@@ -8,7 +8,7 @@ from xincord.plugins.ticket.model import Draft
 from xincord.plugins.ticket.views import preview_button, preview_embed
 
 RED = 4
-CUSTOM = "<:ticket:123456789012345678>"  # a custom emoji, which v3's Emoji.fromUnicode broke
+CUSTOM = "<:ticket:123456789012345678>"  # a custom emoji
 
 
 def test_preview_of_a_draft() -> None:
@@ -24,7 +24,7 @@ def test_preview_of_a_draft() -> None:
     assert button.style is discord.ButtonStyle.danger
     assert button.label == "Open"
     assert button.emoji is None
-    # v3's preview button had no action, so pressing it failed (B1); it opens the reason modal.
+    # The preview button opens the reason modal.
     assert button.custom_id == IDS.build({"action": "create", "sub_action": "prev"})
 
 
@@ -53,7 +53,7 @@ def test_preview_with_icon_description_and_emoji() -> None:
 
 def test_icon_without_author() -> None:
     """Requirement: The preview shows the draft."""
-    # JDA's setAuthor(null, ...) dropped the icon with the author.
+    # The icon goes with the author.
     embed = preview_embed(Draft("Why?", author_icon_url="https://cdn.example/icon.png", title="T"))
 
     assert embed_dict(embed) == {"title": "T", "color": 0x00FFFF}

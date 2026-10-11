@@ -64,7 +64,6 @@ async def test_not_a_staff_member(scene: Scene, user: int, locale: str, text: st
 
     interaction = await scene.click("delete", member, **FIELDS)
 
-    # v3 acknowledged the press and did nothing.
     assert interaction.sent == [("response.send_message", {"content": text, "ephemeral": True})]
     assert scene.channel.sent == []  # the channel stays
 
@@ -75,7 +74,7 @@ async def test_everyone_among_the_staff_roles(scene: Scene) -> None:
     await scene.store.put(
         NAMESPACE, "10", {PANEL: [{"reasonTitle": "Why?", "adminIds": [GUILD], "categoryId": 0}]}
     )
-    # discord.py lists @everyone among every member's roles; JDA's getRoles left it out.
+    # discord.py lists @everyone among every member's roles.
     member = scene.who(user=8, admin=False, roles=(GUILD,), message_id=ROW)
 
     interaction = await scene.click("delete", member, **FIELDS)

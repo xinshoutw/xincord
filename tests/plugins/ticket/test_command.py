@@ -49,7 +49,7 @@ def run(locale: str = "en-US", message_id: int = 43) -> FakeInteraction:
 
 
 def expected_rows(name: str, locale: str) -> list[list[tuple[str | None, str | None, int]]]:
-    """v3's builder ``name`` in ``locale`` under the preview button of a new draft, new IDs."""
+    """The builder ``name`` in ``locale`` under the preview button of a new draft, new IDs."""
     builder = GOLDEN["builder"][name]
     preview: tuple[str | None, str | None, int] = (GOLDEN["preview"][locale]["button"], PREVIEW, 3)
     buttons: list[list[tuple[str | None, str | None, int]]] = [
@@ -140,7 +140,7 @@ async def test_new_draft(cog: Ticket) -> None:
         (),
         0,
     )
-    assert draft.button_emoji == chr(0x2709)  # v3's envelope, without a variation selector
+    assert draft.button_emoji == chr(0x2709)  # an envelope, without a variation selector
 
 
 async def test_outside_guild(cog: Ticket) -> None:

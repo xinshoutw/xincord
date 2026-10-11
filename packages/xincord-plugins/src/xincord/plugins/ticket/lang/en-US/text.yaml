@@ -1,7 +1,7 @@
-# The texts that v3 wrote in its code (Ticket.kt, StepManager.kt and StepData.kt).
+# The plugin's texts outside its templates.
 # The plugin fills the %tt@...% placeholders; their values are inserted as written.
 
-# A new panel's values in the builder (StepData.kt:181-196, in the words of v3's en-US modals).
+# A new panel's values in the builder.
 defaults:
   reason-title: "Do you have any questions we can help with?"
   author: "Ticket Service"
@@ -12,7 +12,7 @@ defaults:
   button-emoji: "✉"
 
 # The labels of a ticket channel's control row, in the default locale: the owner's since
-# 2026-10-11 (v3's were in its code, Ticket.kt:783-821).
+# 2026-10-11.
 control:
   lock: "Click to lock"
   unlock: "Click to unlock"
@@ -36,7 +36,6 @@ error:
   no-target-permission: "The bot lacks permissions in the target channel (VIEW_CHANNEL / MESSAGE_SEND / MESSAGE_SEND_IN_THREADS / CREATE_PUBLIC_THREADS / MANAGE_WEBHOOKS)"
   save-failed: "Saving failed: %tt@error%"
   no-category: "Error (the category cannot be found)"
-  # v3 wrote these four in English for every locale.
   message-not-found: "Cannot find the message by id: %tt@message-id%"
   message-full: "This message is full of buttons, please recreate a new message"
   category-not-found: "Cannot find a category with the id %tt@category-id%!"
@@ -53,7 +52,7 @@ error:
   lock-failed: "Changing the ticket's permissions failed: %tt@error%"
   delete-failed: "Deleting the ticket failed: %tt@error%"
 
-# The markers of a flattened thread in the archive (Ticket.kt:719-746), in the default locale.
+# The markers of a flattened thread in the archive, in the default locale.
 archive:
   start: "[Thread start]\nAuthor: %tt@owner%\nName: %tt@name%\nStarted: %tt@time%"
   end: "[Thread end]\nAuthor: %tt@owner%\nName: %tt@name%\nLast message: %tt@time%"

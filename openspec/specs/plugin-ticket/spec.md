@@ -11,7 +11,7 @@ the conversation into a thread of another channel and deletes the channel.
 ### Requirement: The plugin installs as Ticket
 The `xincord-plugins` distribution SHALL register the plugin in the `xincord.plugins` entry-point
 group as `Ticket`, pointing to `xincord.plugins.ticket`, with no dependencies, no intents and no
-config. It SHALL bundle v3's en-US and zh-TW lang files (`register.yaml`, seven message and seven
+config. It SHALL bundle en-US and zh-TW lang files (`register.yaml`, seven message and seven
 modal templates) with a `text.yaml` per locale, which its first load writes to
 `plugins/Ticket/lang/`.
 
@@ -24,9 +24,9 @@ modal templates) with a `text.yaml` per locale, which its first load writes to
 - **THEN** the 32 lang files exist under `plugins/Ticket/lang/` and no `config.yaml` is written
 
 ### Requirement: Texts follow the reader
-The plugin SHALL take the texts that v3 wrote in its code from `text.yaml`: replies to one user
+The plugin SHALL take its texts outside the templates from `text.yaml`: replies to one user
 in that user's locale and public messages (the control row, the archive's markers) in the default
-locale, zh-TW, a missing locale or key falling back to zh-TW. zh-TW SHALL hold v3's texts, en-US
+locale, zh-TW, a missing locale or key falling back to zh-TW. zh-TW SHALL hold Chinese texts, en-US
 English ones, except the control row's labels (`control.*`), which SHALL be the owner's in both;
 values SHALL be inserted as written.
 
@@ -44,15 +44,15 @@ values SHALL be inserted as written.
   labels in zh-TW, and `Click to lock`, `Click to unlock`, `Save conversation` and `Delete` in
   en-US
 
-### Requirement: Panels are stored as v3's documents
+### Requirement: Panels are stored as documents
 Each guild's panels SHALL be one document in the store's namespace `Ticket` under the guild ID:
-v3's JSON, `{"<message ID>": [{"reasonTitle", "adminIds", "categoryId"}, ...]}`, a button's index
+the JSON `{"<message ID>": [{"reasonTitle", "adminIds", "categoryId"}, ...]}`, a button's index
 in its message being its position in the list. Reads SHALL write nothing; a new button SHALL be
-appended under the guild's lock, other entries kept as stored; an entry that is not v3's shape
+appended under the guild's lock, other entries kept as stored; an entry of another shape
 SHALL raise for operations on it and never be overwritten.
 
-#### Scenario: v3's document
-- **WHEN** a guild's document is v3's example with two buttons on one message
+#### Scenario: A stored document
+- **WHEN** a guild's document is the example with two buttons on one message
 - **THEN** the second button's entry reads with its reason title, staff role IDs and category ID,
   exact above 2^53
 
@@ -62,7 +62,7 @@ SHALL raise for operations on it and never be overwritten.
 
 #### Scenario: Appending keeps the others
 - **WHEN** a button is added to a message that has one, in a document with an unknown field
-- **THEN** the message's list has two entries, the new one in v3's field order, and the rest of the
+- **THEN** the message's list has two entries, the new one in the stored field order, and the rest of the
   document is unchanged
 
 #### Scenario: Broken entries
@@ -71,24 +71,24 @@ SHALL raise for operations on it and never be overwritten.
 
 ### Requirement: The commands are localized administrator guild commands
 The plugin SHALL register the guild commands `create-ticket` (no options) and `add-ticket` with a
-required string option `message_id`, with v3's base names and descriptions, the localizations of
+required string option `message_id`, with English base names and descriptions, the localizations of
 `register.yaml` (`create_ticket.*`, `add_ticket.*`, `add_ticket.options.message_id.*`) and a default
 permission of Administrator.
 
 #### Scenario: Command payloads
 - **WHEN** the plugin's guild commands are built
-- **THEN** their payloads hold v3's names, descriptions, zh-TW and en-US localizations, the
+- **THEN** their payloads hold the names, descriptions, zh-TW and en-US localizations, the
   option and `default_member_permissions` 8
 
 ### Requirement: The create command opens the builder
-`/create-ticket` SHALL replace the user's draft in the guild with a new one holding v3's defaults
+`/create-ticket` SHALL replace the user's draft in the guild with a new one holding the defaults
 from `text.yaml` in the user's locale (reason title, author, icon URL, title, description, button
 text and emoji; color `0x00FFFF`, green button, no staff roles, the panel channel's category) and
-edit the deferred response into v3's `create-ticket` builder.
+edit the deferred response into the `create-ticket` builder.
 
 #### Scenario: A new draft
 - **WHEN** a zh-TW administrator runs `/create-ticket`
-- **THEN** the response shows `create-ticket` with the preview of v3's defaults, and the draft is
+- **THEN** the response shows `create-ticket` with the preview of the defaults, and the draft is
   kept with the response's message ID
 
 #### Scenario: A second command replaces the draft
@@ -97,7 +97,7 @@ edit the deferred response into v3's `create-ticket` builder.
 
 ### Requirement: The add command opens the builder for a message
 `/add-ticket` SHALL fetch the message from the command's channel and edit the deferred response
-into v3's `add-ticket` builder, the preview showing its first embed; it SHALL answer instead when
+into the `add-ticket` builder, the preview showing its first embed; it SHALL answer instead when
 the ID is not a number (showing its first 100 characters), the message is not found, the bot did
 not send it, its first action row holds five components or a select, or it has no embed.
 
@@ -120,7 +120,7 @@ not send it, its first action row holds five components or a select, or it has n
 ### Requirement: The preview shows the draft
 The builder SHALL show a preview embed (the author with its icon, the title, the description and
 the color, empty values left out; an added button's message's embed instead) and a preview button
-with the draft's style, label and emoji, which opens v3's `preview-reason` modal titled with the
+with the draft's style, label and emoji, which opens the `preview-reason` modal titled with the
 reason title; submitting that modal SHALL leave the draft.
 
 #### Scenario: Preview of a draft
@@ -147,7 +147,7 @@ text ephemerally.
 
 ### Requirement: Builder buttons open pre-filled modals
 `modify-author`, `modify-content`, `modify-color`, `modify-btn-text` and `modify-reason` SHALL open
-v3's modals `modify-author`, `modify-content`, `modify-embed-color`, `modify-btn-text` and
+the modals `modify-author`, `modify-content`, `modify-embed-color`, `modify-btn-text` and
 `modify-reason-title` in the user's locale, pre-filled with the draft (the color as `#RRGGBB`, the
 emoji as written) and the interaction's placeholder values.
 
@@ -156,7 +156,7 @@ emoji as written) and the interaction's placeholder values.
 - **THEN** each modal opens with the draft's values in its inputs
 
 ### Requirement: Builder buttons switch screens
-`modify-category`, `modify-admin` and `modify-btn-color` SHALL replace the builder with v3's
+`modify-category`, `modify-admin` and `modify-btn-color` SHALL replace the builder with the
 `modify-category`, `modify-admin-role` and `modify-btn-color` screens, and `back` with the main
 screen, each through the press.
 
@@ -168,7 +168,7 @@ screen, each through the press.
 Submissions SHALL set the author and icon URL, the title and description, the reason title (an
 empty one ignored), the color (`#RRGGBB`, `0xRRGGBB` or `RRGGBB` with one to six hex digits) and the
 button's text and emoji (both empty refused), then show the main screen. A bad color SHALL be
-refused with an error; v3's zh-TW `modify-btn-content` SHALL count as `modify-btn-text`.
+refused with an error; a zh-TW `modify-btn-content` SHALL count as `modify-btn-text`.
 
 #### Scenario: Values set
 - **WHEN** the administrator submits the author `Shop` with an empty icon, the color `0x00ff00`,
@@ -179,13 +179,13 @@ refused with an error; v3's zh-TW `modify-btn-content` SHALL count as `modify-bt
 - **WHEN** the color is `green`, `#1234567` or empty, or the button text and emoji are both empty
 - **THEN** the reply is the matching error and the draft is unchanged
 
-#### Scenario: v3's zh-TW button modal
-- **WHEN** the submission comes from v3's zh-TW modal, whose ID says `modify-btn-content`
+#### Scenario: A zh-TW button modal of operators' files
+- **WHEN** the submission comes from a zh-TW modal whose ID says `modify-btn-content`
 - **THEN** the button's text and emoji change
 
 ### Requirement: Selections change the draft
 The role select SHALL replace the staff roles; the category select SHALL set the category, or
-answer v3's category-not-found error for a channel the guild does not know as a category; a color
+answer the category-not-found error for a channel the guild does not know as a category; a color
 button SHALL set the style 1 to 4 (blue, gray, green, red). Each SHALL show the main screen.
 
 #### Scenario: Roles, category and style
@@ -205,7 +205,7 @@ user SHALL get the refused text with Discord's error ephemerally.
 - **THEN** the reply is the refused text with the error, and the draft keeps its emoji
 
 ### Requirement: Confirming posts a new panel
-`confirm-create` on a new panel's builder SHALL take the draft before its first await, post v3's
+`confirm-create` on a new panel's builder SHALL take the draft before its first await, post the
 `confirm-create` (the preview embed and the panel button, index 0) in the builder's channel, store
 the button's entry as a new list under the posted message's ID and delete the builder.
 
@@ -248,7 +248,7 @@ and a second confirmation while the first runs SHALL get the session-expired tex
 
 ### Requirement: Pressing a panel button asks for the reason
 A panel button SHALL look its entry up by the pressed message (or the ID's message) and the
-button's index, then open v3's `press-ticket` modal in the user's locale, its input labeled with the
+button's index, then open the `press-ticket` modal in the user's locale, its input labeled with the
 reason title (at most 45 characters) and its ID naming the message and the index; without an entry
 the user SHALL get the not-found text.
 
@@ -265,7 +265,7 @@ A reason SHALL be deferred ephemerally, then the bot SHALL create a text channel
 member's username in the entry's category (category 0: the panel channel's), send the staff role
 mentions, two line breaks and the reason (split at 2000 characters, the last part with the
 unlocked control row, pinging those roles only) and reply with the go-to-channel text; a missing
-entry or category SHALL get v3's error.
+entry or category SHALL get its error.
 
 #### Scenario: A ticket
 - **WHEN** member 8 (`bob`) submits `help me` for an entry with staff roles 3 and 4 and category 0
@@ -274,7 +274,7 @@ entry or category SHALL get v3's error.
 
 #### Scenario: Missing entry or category
 - **WHEN** the entry is gone, or the category is unknown or the panel channel has none
-- **THEN** the reply is v3's not-found or category text and no channel is created
+- **THEN** the reply is the not-found or category text and no channel is created
 
 #### Scenario: A long reason
 - **WHEN** the opener would exceed 2000 characters
@@ -284,7 +284,7 @@ entry or category SHALL get v3's error.
 - **WHEN** Discord refuses the channel, or its first message (the channel is then deleted)
 - **THEN** the reply is the ticket-failed text with the error
 
-### Requirement: Ticket channels get v3's permissions and the bot's
+### Requirement: Ticket channels get the category's permissions and the bot's
 The channel's overwrites SHALL be the category's (when the bot holds every permission they set, or
 Administrator), then @everyone denied View Channel, the member and each existing staff role allowed
 it, and the bot allowed it on top of its own copied overwrite.
@@ -345,11 +345,11 @@ admin-only text, ephemerally, the channel kept.
 - **THEN** the reply is the admin-only text, ephemerally, and the channel stays
 
 ### Requirement: Administrators choose where to save the conversation
-Save SHALL answer v3's not-found or admin-only text, or ephemerally offer a text channel select.
-The selection SHALL check, in v3's order, the member, the entry, staff, a text source channel, a
+Save SHALL answer the not-found or admin-only text, or ephemerally offer a text channel select.
+The selection SHALL check, in this order, the member, the entry, staff, a text source channel, a
 text target and the bot's permissions (View Channel and Read Message History in the source; View
 Channel, Send Messages, Send Messages in Threads, Create Public Threads and Manage Webhooks in the
-target), each failure answering its v3 text.
+target), each failure answering its text.
 
 #### Scenario: The select
 - **WHEN** a staff member presses save
@@ -397,7 +397,7 @@ time and the archive SHALL go on.
 
 ### Requirement: A failed archive is reported and cleans up
 Any failure outside a thread SHALL stop the archive, delete the webhook (and the thread when the
-webhook could not be made), and edit the answer into v3's save-failed text with the error, its
+webhook could not be made), and edit the answer into the save-failed text with the error, its
 URLs cut to their origin and at most 200 characters.
 
 #### Scenario: Refused send
@@ -409,25 +409,25 @@ URLs cut to their origin and at most 200 characters.
 - **WHEN** the webhook cannot be created
 - **THEN** the thread is deleted and the answer is the save-failed text
 
-### Requirement: v3's panels and tickets keep working
-The routes SHALL take v3's IDs (`ticket@` with v3's fields, the user ID in hex) for panel buttons,
+### Requirement: Legacy panels and tickets keep working
+The routes SHALL take legacy IDs (`ticket@` with the legacy fields, the user ID in hex) for panel buttons,
 reason modals, control rows and the save select, act as for new IDs, and leave the core to upgrade
 the message.
 
-#### Scenario: v3's panel button
+#### Scenario: A legacy panel button
 - **WHEN** a member presses `ticket@a:press;f:0` on a stored panel
 - **THEN** the reason modal opens, and the core rewrites the panel's IDs in the new format
 
-#### Scenario: v3's control row
+#### Scenario: A legacy control row
 - **WHEN** a staff member presses `ticket@a:lock;d:<hex user ID>;e:<message ID>;f:0`
 - **THEN** the member is locked out and the row shows new-format IDs
 
-#### Scenario: v3's control row pressed by the ticket's member
+#### Scenario: A legacy control row pressed by the ticket's member
 - **WHEN** the ticket's member presses the same button
 - **THEN** the reply is the admin-only text, and the core still rewrites the row's IDs
 
 ### Requirement: Leaving a guild forgets its panels
-When the bot leaves a guild, the plugin SHALL delete the guild's panels, as v3 did, and its
+When the bot leaves a guild, the plugin SHALL delete the guild's panels and its
 drafts; when the bot is ready, or the plugin loads into a ready bot, it SHALL delete the panels of
 guilds the bot is no longer in.
 

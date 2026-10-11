@@ -22,7 +22,6 @@ async def test_invalid_emoji(scene: Scene) -> None:
 
     interaction = await scene.submit("modify-btn-text", {"btn-text": "Open", "btn-emoji": "abc"})
 
-    # v3 kept the invalid emoji, and every later render of the builder failed silently.
     reply = f"Discord refused this change: {INVALID}"
     assert interaction.sent == [("response.send_message", {"content": reply, "ephemeral": True})]
     assert scene.session().draft == DRAFT
@@ -45,7 +44,7 @@ async def test_refused_screen(scene: Scene) -> None:
     [
         (RuntimeError("first\nsecond"), "first second"),
         (RuntimeError("x" * 300), "x" * 200),
-        # A character outside the BMP counts twice, as in Java's String.take.
+        # A character outside the BMP counts twice, as two UTF-16 code units.
         (RuntimeError("x" * 199 + chr(0x1F3AB)), "x" * 199),
         (RuntimeError(), "RuntimeError"),
         (

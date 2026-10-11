@@ -1,4 +1,4 @@
-"""Each guild's panels, kept in the shared store as v3's documents."""
+"""Each guild's panels, kept in the shared store, one document per guild."""
 
 import re
 from typing import TYPE_CHECKING
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from .model import Entry
 
 NAMESPACE = "Ticket"  # the store namespace: the plugin's name, keys are guild IDs
-# A button's index as v3 read it with Kotlin's toIntOrNull: an Int, ASCII digits only here.
+# A button's index: an optional sign and ASCII digits.
 INDEX = re.compile(r"[+-]?[0-9]{1,9}")
 
 type Undo = Callable[[], Awaitable[object]]  # takes a placed button off its message again
@@ -25,7 +25,7 @@ class Panels:
     """The panels of every guild, one document per guild: ``{"<message ID>": [entry, ...]}``.
 
     A button's index in its message is its entry's position in the message's list. Every change
-    runs under the guild's lock; reads write nothing (v3 created the guild's file when reading).
+    runs under the guild's lock; reads write nothing.
     """
 
     def __init__(self, store: Store) -> None:
@@ -40,7 +40,7 @@ class Panels:
         """The entry of button ``index`` (decimal text) of the panel ``message_id``, or None.
 
         Raises:
-            DataError: The guild's document or the entry is not v3's shape.
+            DataError: The guild's document or the entry is of another shape.
         """
         entries = (await self._document(guild_id)).get(message_id)
         if entries is None or not INDEX.fullmatch(index):
@@ -62,7 +62,7 @@ class Panels:
         its entry. The document's other values are written back as they were.
 
         Raises:
-            DataError: The guild's document or the panel's list is not v3's shape.
+            DataError: The guild's document or the panel's list is of another shape.
             sqlite3.Error: The store failed.
         """
         async with self.lock(guild_id):
@@ -81,7 +81,7 @@ class Panels:
             return index
 
     async def forget(self, guild_id: int) -> None:
-        """Delete the guild's panels, as v3 deleted its file."""
+        """Delete the guild's panels."""
         async with self.lock(guild_id):
             await self.store.delete(NAMESPACE, str(guild_id))
 

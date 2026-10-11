@@ -57,7 +57,7 @@ def plugin_modules() -> Iterator[None]:
 
 @pytest.fixture(autouse=True)
 def logged_in(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The bot's user, which discord.py sets at the login, for v3's ``bot_*`` values."""
+    """The bot's user, which discord.py sets at the login, for the ``bot_*`` values."""
     monkeypatch.setattr(Bot, "user", property(lambda _bot: BOT_USER))
 
 

@@ -1,4 +1,4 @@
-"""Pressing a panel's button asks for the reason in v3's modal."""
+"""Pressing a panel's button asks for the reason in a modal."""
 
 from typing import TYPE_CHECKING
 
@@ -51,7 +51,6 @@ async def test_reason_modal(scene: Scene) -> None:
 
     opened = modal(await scene.click("press", scene.who(user=8, message_id=PANEL), btn_index="1"))
 
-    # v3's en-US title was the zh-TW one and the other way round (B13).
     assert opened.title == "Create Ticket"
     assert label(opened) == "Refund"
     expected = IDS.build({"action": "submit", "msg_id": str(PANEL), "btn_index": "1"})
@@ -65,7 +64,7 @@ async def test_message_in_the_id(scene: Scene) -> None:
     who = scene.who(user=8, message_id=999)
     opened = modal(await scene.click("press", who, msg_id=str(PANEL), btn_index="0"))
 
-    # The modal names the message that the entry came from (v3: the pressed message).
+    # The modal names the message that the entry came from.
     assert label(opened) == "Why?"
     expected = IDS.build({"action": "submit", "msg_id": str(PANEL), "btn_index": "0"})
     assert opened.custom_id == expected

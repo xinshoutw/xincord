@@ -61,7 +61,7 @@ async def test_empty_reason_ignored(scene: Scene) -> None:
 
     interaction = await scene.submit("modify-reason", {"reason": ""})
 
-    main_screen(interaction)  # v3 ignored an empty reason title and showed the builder again
+    main_screen(interaction)  # an empty reason title is ignored
     assert scene.session().draft == DRAFT
 
 
@@ -94,11 +94,11 @@ async def test_refused_values(
     assert scene.session().draft == DRAFT
 
 
-async def test_v3_zh_tw_button_modal(scene: Scene) -> None:
+async def test_zh_tw_button_modal(scene: Scene) -> None:
     """Requirement: Submitted modals change the draft."""
     scene.keep(DRAFT)
 
-    # v3's zh-TW modal, still in operators' files, named modify-btn-content (B2).
+    # The zh-TW modal of some operators' files is named modify-btn-content.
     interaction = await scene.submit("modify-btn-content", {"btn-text": "", "btn-emoji": TICKET})
 
     main_screen(interaction)
@@ -113,7 +113,7 @@ async def test_other_modals_change_nothing(scene: Scene, sub_action: str) -> Non
 
     interaction = await scene.submit(sub_action, {"reason": "x"})
 
-    main_screen(interaction)  # v3 showed the builder again
+    main_screen(interaction)
     assert scene.session().draft == DRAFT
 
 
@@ -123,8 +123,8 @@ async def test_other_modals_change_nothing(scene: Scene, sub_action: str) -> Non
         ("#00FFFF", 0x00FFFF),
         ("0x00ffff", 0x00FFFF),
         ("0X00FFFF", 0x00FFFF),
-        ("00FFFF", 0x00FFFF),  # v3: 0x0FFFFF
-        ("#FFF", 0x000FFF),  # v3 did not expand it either
+        ("00FFFF", 0x00FFFF),
+        ("#FFF", 0x000FFF),  # not expanded
         (" #12 ", 0x12),
         ("green", None),
         ("#1234567", None),

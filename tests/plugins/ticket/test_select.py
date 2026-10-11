@@ -61,7 +61,7 @@ async def test_unknown_category(scene: Scene, channel: str) -> None:
 
     interaction = await scene.choose("modify-category", [channel])
 
-    reply = f"Cannot find a category with the id {channel}!"  # v3's text
+    reply = f"Cannot find a category with the id {channel}!"
     assert interaction.sent == [("response.send_message", {"content": reply, "ephemeral": True})]
     assert scene.session().draft == DRAFT
 
@@ -73,7 +73,6 @@ async def test_other_styles_change_nothing(scene: Scene, index: str) -> None:
 
     interaction = await scene.press("modify-btn-color-submit", color_index=index)
 
-    # v3's ButtonStyle.fromKey gave no usable style there, and the press failed.
     main_screen(interaction)
     assert scene.session().draft == DRAFT
 
@@ -84,5 +83,5 @@ async def test_other_selects_change_nothing(scene: Scene) -> None:
 
     interaction = await scene.choose("other", ["3"], component_type=ROLE_SELECT)
 
-    main_screen(interaction)  # v3 showed the builder again
+    main_screen(interaction)
     assert scene.session().draft == DRAFT

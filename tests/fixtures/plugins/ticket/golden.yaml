@@ -1,7 +1,6 @@
-# Golden data for the Ticket tests. The texts are v3's, from
-# XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/ (its Kotlin code and its resources), unless noted.
+# Golden data for the Ticket tests: the plugin's bundled texts, unless noted.
 
-# Texts that v3 wrote in Ticket.kt (zh-TW) and their en-US texts (new).
+# Texts from text.yaml, per locale.
 texts:
   en-US:
     not-found: "Error (the ticket settings were not found; they may have been deleted)"
@@ -9,7 +8,6 @@ texts:
     not-found: "錯誤 (找不到 Ticket 設定資料，可能已被刪除)"
     # reply.go-to-channel with the channel `%tt@thread%`, inserted as written.
     go-to-placeholder: "請到此頻道 %tt@thread% 並等待人員回覆繼續!"
-    # New: v3's lock and unlock failed without an answer.
     lock-failed: "變更客服單權限失敗：%tt@error%"
     choose-channel: "請選擇要儲存對話的文字頻道"
     admin-only: "僅管理員可使用此功能"
@@ -18,7 +16,7 @@ texts:
     saved: "存檔完成，已建立 Thread：%tt@thread%"
 
 # The control row's labels (text.yaml's control.*), the owner's since ticket-staff-controls
-# (2026-10-11); v3's Kotlin labels (Ticket.kt:783-821) were 關閉, 開啟, 儲存對話 and 刪除.
+# (2026-10-11).
 labels:
   zh-TW:
     lock: "點擊鎖定"
@@ -31,13 +29,12 @@ labels:
     save: "Save conversation"
     delete: "Delete"
 
-# A guild's document as v3's Moshi wrote it (compact, its field order), after the inventory's
-# example: two buttons on one panel, the second with its own category. Snowflakes above 2^53 must
+# A guild's document as stored (compact, in its field order): two buttons on one panel, the second with its own category. Snowflakes above 2^53 must
 # stay exact.
 document: '{"1290000000000000001":[{"reasonTitle":"有任何可以幫助的問題嗎~","adminIds":[1280000000000000002],"categoryId":0},{"reasonTitle":"退款","adminIds":[],"categoryId":1270000000000000003}]}'
 refund: "退款"
 
-# The guild commands (command/Register.kt:29-43, lang/*/register.yaml), as discord.py's payload
+# The guild commands (lang/*/register.yaml), as discord.py's payload
 # lists them; options are compared by the keys listed here.
 commands:
   - type: 1
@@ -93,8 +90,8 @@ builder:
         - ["設定頻道目錄"]
         - ["設定按鈕文字", "設定按鈕顏色", "設定詢問標題", "設定允許身分組", "確定建立"]
 
-# A new draft's preview (StepData.kt:145-196) as Embed.to_dict() without "type" and "flags", and
-# its button's label; en-US takes the words of v3's en-US modals (new: v3's defaults were zh-TW).
+# A new draft's preview as Embed.to_dict() without "type" and "flags", and its button's label,
+# per locale.
 preview:
   zh-TW:
     embed:
@@ -113,7 +110,7 @@ preview:
     button: "Contact Us"
     reason-title: "Do you have any questions we can help with?"
 
-# The markers of a flattened thread (Ticket.kt:719-746), as the tests render them: thread
+# The markers of a flattened thread, as the tests render them: thread
 # "question", started at 2026-02-28 01:00:00 UTC by Bobby (cached) or member 8 (not cached), its
 # last message at 01:45:00.
 archive:
@@ -132,7 +129,7 @@ messages:
   confirm-create:
     en-US: [[["button", "Open", "ticket:1:a=press;f=0", 3]]]
     zh-TW: [[["button", "Open", "ticket:1:a=press;f=0", 3]]]
-  confirm-add:  # which v3 never used
+  confirm-add:
     en-US: [[["button", "Open", "ticket:1:a=press;f=0", 3]]]
     zh-TW: [[["button", "Open", "ticket:1:a=press;f=0", 3]]]
   modify-admin-role:
@@ -257,65 +254,64 @@ modals:
       inputs:
         - ["reason", "原因", "paragraph", null, null, null, null, true]
 
-# v3's ID shapes (inventory section 4): the fields that IDS.parse reads and the new ID that the core
-# writes. v3 wrote user IDs in lowercase hex: 112210f47de98115 is 1234567890123456789.
+# Legacy ID shapes: the fields that IDS.parse reads and the new ID that the core writes. Legacy
+# IDs hold user IDs in lowercase hex: 112210f47de98115 is 1234567890123456789.
 ids:
-  - v3: "ticket@a:create;b:modify-author"
+  - legacy: "ticket@a:create;b:modify-author"
     fields: {action: "create", sub_action: "modify-author"}
     new: "ticket:1:a=create;b=modify-author"
-  - v3: "ticket@a:create;b:back"
+  - legacy: "ticket@a:create;b:back"
     fields: {action: "create", sub_action: "back"}
     new: "ticket:1:a=create;b=back"
-  - v3: "ticket@a:create;b:modify-btn-color-submit;c:3"
+  - legacy: "ticket@a:create;b:modify-btn-color-submit;c:3"
     fields: {action: "create", sub_action: "modify-btn-color-submit", color_index: "3"}
     new: "ticket:1:a=create;b=modify-btn-color-submit;c=3"
-  - v3: "ticket@a:create;b:modify-category"
+  - legacy: "ticket@a:create;b:modify-category"
     fields: {action: "create", sub_action: "modify-category"}
     new: "ticket:1:a=create;b=modify-category"
-  - v3: "ticket@a:create;b:modify-admin"
+  - legacy: "ticket@a:create;b:modify-admin"
     fields: {action: "create", sub_action: "modify-admin"}
     new: "ticket:1:a=create;b=modify-admin"
-  - v3: "ticket@b:prev"  # v3's preview button, without an action (B1)
+  - legacy: "ticket@b:prev"  # the preview button, without an action
     fields: {sub_action: "prev"}
     new: "ticket:1:b=prev"
-  - v3: "ticket@a:create;b:modify-embed-color"
+  - legacy: "ticket@a:create;b:modify-embed-color"
     fields: {action: "create", sub_action: "modify-embed-color"}
     new: "ticket:1:a=create;b=modify-embed-color"
-  - v3: "ticket@a:create;b:modify-btn-content"  # v3's zh-TW button modal (B2)
+  - legacy: "ticket@a:create;b:modify-btn-content"  # the zh-TW button modal of some files
     fields: {action: "create", sub_action: "modify-btn-content"}
     new: "ticket:1:a=create;b=modify-btn-content"
-  - v3: "ticket@a:press;f:0"
+  - legacy: "ticket@a:press;f:0"
     fields: {action: "press", btn_index: "0"}
     new: "ticket:1:a=press;f=0"
-  - v3: "ticket@a:press;e:1290000000000000001;f:1"
+  - legacy: "ticket@a:press;e:1290000000000000001;f:1"
     fields: {action: "press", msg_id: "1290000000000000001", btn_index: "1"}
     new: "ticket:1:a=press;e=1290000000000000001;f=1"
-  - v3: "ticket@a:submit;e:1290000000000000001;f:0"
+  - legacy: "ticket@a:submit;e:1290000000000000001;f:0"
     fields: {action: "submit", msg_id: "1290000000000000001", btn_index: "0"}
     new: "ticket:1:a=submit;e=1290000000000000001;f=0"
-  - v3: "ticket@a:lock;d:112210f47de98115;e:1290000000000000001;f:0"
+  - legacy: "ticket@a:lock;d:112210f47de98115;e:1290000000000000001;f:0"
     fields: {action: "lock", user_id: "1234567890123456789", msg_id: "1290000000000000001", btn_index: "0"}
     new: "ticket:1:a=lock;d=1234567890123456789;e=1290000000000000001;f=0"
-  - v3: "ticket@a:unlock;d:112210f47de98115;e:1290000000000000001;f:0"
+  - legacy: "ticket@a:unlock;d:112210f47de98115;e:1290000000000000001;f:0"
     fields: {action: "unlock", user_id: "1234567890123456789", msg_id: "1290000000000000001", btn_index: "0"}
     new: "ticket:1:a=unlock;d=1234567890123456789;e=1290000000000000001;f=0"
-  - v3: "ticket@a:save;d:112210f47de98115;e:1290000000000000001;f:0"
+  - legacy: "ticket@a:save;d:112210f47de98115;e:1290000000000000001;f:0"
     fields: {action: "save", user_id: "1234567890123456789", msg_id: "1290000000000000001", btn_index: "0"}
     new: "ticket:1:a=save;d=1234567890123456789;e=1290000000000000001;f=0"
-  - v3: "ticket@a:delete;d:112210f47de98115;e:1290000000000000001;f:0"
+  - legacy: "ticket@a:delete;d:112210f47de98115;e:1290000000000000001;f:0"
     fields: {action: "delete", user_id: "1234567890123456789", msg_id: "1290000000000000001", btn_index: "0"}
     new: "ticket:1:a=delete;d=1234567890123456789;e=1290000000000000001;f=0"
-  - v3: "ticket@a:save;b:select-channel;d:112210f47de98115;e:1290000000000000001;f:0"
+  - legacy: "ticket@a:save;b:select-channel;d:112210f47de98115;e:1290000000000000001;f:0"
     fields: {action: "save", sub_action: "select-channel", user_id: "1234567890123456789", msg_id: "1290000000000000001", btn_index: "0"}
     new: "ticket:1:a=save;b=select-channel;d=1234567890123456789;e=1290000000000000001;f=0"
-  - v3: "ticket@f:0"  # before v3's b4d10e2: no action, no answer
+  - legacy: "ticket@f:0"  # no action: no answer
     fields: {btn_index: "0"}
     new: "ticket:1:f=0"
 
-# The texts that v3 wrote in Ticket.kt (zh-TW) and StepManager.kt (English), by text.yaml key;
-# %tt@...% stands where v3 put a value. v3's "Cannot found the message by id" is fixed in en-US.
-# The control row's labels are the owner's since ticket-staff-controls (labels, above).
-v3-texts:
+# The texts of text.yaml, by key; %tt@...% stands where a value goes. The control row's labels are
+# the owner's since ticket-staff-controls (labels, above).
+bundled-texts:
   zh-TW:
     error.not-found: "錯誤 (找不到 Ticket 設定資料，可能已被刪除)"
     error.admin-only: "僅管理員可使用此功能"

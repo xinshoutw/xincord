@@ -54,5 +54,5 @@ async def test_first_load_creates_the_files(bot: Bot, tmp_path: Path) -> None:
     assert len(LANG_FILES) == 32
     for name in LANG_FILES:
         assert (directory / "lang" / name).is_file()
-    # v3's only key was enabled, which the core's plugins list replaces.
+    # No config: the core's plugins list enables the plugin.
     assert not (directory / "config.yaml").exists()

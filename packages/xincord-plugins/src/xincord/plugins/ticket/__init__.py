@@ -15,23 +15,23 @@ if TYPE_CHECKING:
 DEPENDS: tuple[str, ...] = ()
 SOFT_DEPENDS: tuple[str, ...] = ()
 # Guild leaves need only discord.py's default guilds intent; the members come with the
-# interactions, and the archive reads the channels' history through REST, as v3.
+# interactions, and the archive reads the channels' history through REST.
 INTENTS = discord.Intents.none()
-DEFAULT_LOCALE = "zh-TW"  # v3's default locale
+DEFAULT_LOCALE = "zh-TW"
 
 
 async def setup(bot: Bot) -> None:
     """Load the lang files and the templates and add the cog; panels are in the shared store.
 
-    No config: v3's only key was ``enabled``, which the core's ``plugins`` list replaces.
+    No config: the core's ``plugins`` list enables the plugin.
     """
     context = bot.plugin_context(__name__)
     lang = context.lang(DEFAULT_LOCALE)
     cog = Ticket(bot, context.store, lang, Templates.load(lang))
     await bot.add_cog(cog)
-    # Guild commands, as in v3. discord.py removes them when the plugin unloads.
+    # Guild commands; discord.py removes them when the plugin unloads.
     for command in cog.commands():
         bot.tree.add_command(command)
-    # The builder's, the panels' and the tickets' components and modals, v3's IDs too, go to
+    # The builder's, the panels' and the tickets' components and modals, legacy IDs too, go to
     # cog.handle; the core drops the route when the plugin unloads.
     bot.route(__name__, IDS, cog.handle)

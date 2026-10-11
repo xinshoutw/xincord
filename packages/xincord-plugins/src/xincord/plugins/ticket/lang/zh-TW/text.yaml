@@ -1,7 +1,7 @@
-# The texts that v3 wrote in its code (Ticket.kt, StepManager.kt and StepData.kt).
+# The plugin's texts outside its templates.
 # The plugin fills the %tt@...% placeholders; their values are inserted as written.
 
-# A new panel's values in the builder (StepData.kt:181-196).
+# A new panel's values in the builder.
 defaults:
   reason-title: "有任何可以幫助的問題嗎~"
   author: "Ticket 服務"
@@ -12,7 +12,7 @@ defaults:
   button-emoji: "✉"
 
 # The labels of a ticket channel's control row, in the default locale: the owner's since
-# 2026-10-11 (v3's were in its code, Ticket.kt:783-821).
+# 2026-10-11.
 control:
   lock: "點擊鎖定"
   unlock: "點擊解鎖"
@@ -36,7 +36,6 @@ error:
   no-target-permission: "機器人缺少目標頻道權限 (VIEW_CHANNEL / MESSAGE_SEND / MESSAGE_SEND_IN_THREADS / CREATE_PUBLIC_THREADS / MANAGE_WEBHOOKS)"
   save-failed: "存檔失敗：%tt@error%"
   no-category: "錯誤 (無法取得目錄)"
-  # v3 wrote these four in English for every locale.
   message-not-found: "找不到 ID 為 %tt@message-id% 的訊息"
   message-full: "此訊息的按鈕已滿，請重新建立一則訊息"
   category-not-found: "找不到 ID 為 %tt@category-id% 的頻道目錄！"
@@ -53,7 +52,7 @@ error:
   lock-failed: "變更客服單權限失敗：%tt@error%"
   delete-failed: "刪除客服單失敗：%tt@error%"
 
-# The markers of a flattened thread in the archive (Ticket.kt:719-746), in the default locale.
+# The markers of a flattened thread in the archive, in the default locale.
 archive:
   start: "【Thread 開始】\n作者: %tt@owner%\n名稱: %tt@name%\n開始時間: %tt@time%"
   end: "【Thread 結束】\n作者: %tt@owner%\n名稱: %tt@name%\n最後一則訊息時間: %tt@time%"

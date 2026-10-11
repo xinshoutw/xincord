@@ -1,10 +1,10 @@
-"""What v3 built in its code: the preview, the panel button, the control row and the save select."""
+"""The views built in code: the preview, the panel button, the control row and the save select."""
 
 from typing import TYPE_CHECKING
 
 import discord
 
-# v3's emojis of the control row, without variation selectors.
+# The emojis of the control row, without variation selectors.
 LOCKED = 0x1F512
 UNLOCKED = 0x1F513
 FLOPPY = 0x1F4BE
@@ -18,9 +18,9 @@ if TYPE_CHECKING:
 
 
 def preview_embed(draft: Draft) -> discord.Embed:
-    """The panel's embed, v3's ``previewEmbed`` of a new panel: unset parts left out.
+    """The panel's embed of a new panel: unset parts left out.
 
-    As JDA's ``setAuthor(null, ...)``, the icon goes with the author.
+    The icon goes with the author.
     """
     embed = discord.Embed(
         title=draft.title or None, description=draft.description or None, color=draft.color
@@ -31,15 +31,12 @@ def preview_embed(draft: Draft) -> discord.Embed:
 
 
 def preview_button(draft: Draft, build_id: IdBuilder) -> discord.ui.Button[discord.ui.View]:
-    """The builder's preview of the panel button, which opens the reason modal's preview.
-
-    v3's preview button had no action, so pressing it failed (B1).
-    """
+    """The builder's preview of the panel button, which opens the reason modal's preview."""
     return _button(draft, build_id({"action": "create", "sub_action": "prev"}))
 
 
 def _button(draft: Draft, custom_id: str) -> discord.ui.Button[discord.ui.View]:
-    """A button with the draft's style, label and emoji, as v3's ``Button.of``."""
+    """A button with the draft's style, label and emoji."""
     return discord.ui.Button[discord.ui.View](
         style=discord.ButtonStyle(draft.button_style),
         custom_id=custom_id,
@@ -51,16 +48,16 @@ def _button(draft: Draft, custom_id: str) -> discord.ui.Button[discord.ui.View]:
 def panel_button(
     draft: Draft, index: int, build_id: IdBuilder
 ) -> discord.ui.Button[discord.ui.View]:
-    """The panel's button ``index``, v3's ``buildTicketButton``: it opens the reason modal."""
+    """The panel's button ``index``: it opens the reason modal."""
     return _button(draft, build_id({"action": "press", "btn_index": str(index)}))
 
 
 def control_row(
     controls: Controls, *, locked: bool, texts: Texts, build_id: IdBuilder
 ) -> discord.ui.View:
-    """A ticket channel's control row, v3's ``buildTicketActionRow``, stopped for the router.
+    """A ticket channel's control row, stopped for the router.
 
-    Unlock (green) or lock (gray), save (blue) and delete (red), with v3's emojis and the labels of
+    Unlock (green) or lock (gray), save (blue) and delete (red), with their emojis and the labels of
     ``texts``; each ID carries the ticket's member and the panel button's message and index.
     """
 
@@ -90,7 +87,7 @@ def control_row(
 
 
 def save_select(controls: Controls, texts: Texts, build_id: IdBuilder) -> discord.ui.View:
-    """The save button's select, v3's ``EntitySelectMenu``: one text channel to save the
+    """The save button's select: one text channel to save the
     conversation in, its ID carrying the row's fields; stopped for the router."""
     choose = texts.get("reply.choose-channel")
     custom_id = build_id(

@@ -31,7 +31,6 @@ async def test_leaving(scene: Scene) -> None:
 
     await dispatch(scene.bot, "guild_remove", FakeGuild(10).as_guild())
 
-    # v3 deleted the guild's file and kept the user's step.
     assert await scene.store.get(NAMESPACE, "10") is None
     assert await scene.store.get(NAMESPACE, "11") == DOCUMENT
     assert scene.cog.drafts == {(7, 11): Session(45, Draft("Elsewhere"))}

@@ -1,4 +1,4 @@
-"""Submitting the reason opens a ticket channel with v3's overwrites, the bot's, and its opener."""
+"""Submitting the reason opens a ticket channel with its overwrites, the bot's, and its opener."""
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
@@ -82,7 +82,7 @@ async def test_ticket(scene: Scene) -> None:
     ]
     (created, opener) = ticket.category.sent
     assert created[0] == "category.create_text_channel"
-    assert created[1]["name"] == "bob"  # the member's username, as in v3
+    assert created[1]["name"] == "bob"  # the member's username
     assert opener[0] == "channel.send"
     fields = opener[1]
     assert fields["content"] == "<@&3> <@&4> \n\nhelp me"
@@ -101,7 +101,7 @@ async def test_ticket(scene: Scene) -> None:
     assert emojis == [chr(0x1F512), chr(0x1F4BE), chr(0x1F5D1)]
     mentions = fields["allowed_mentions"]
     assert isinstance(mentions, discord.AllowedMentions)
-    # The staff roles ping, nothing typed does (v3 pinged everything, S1).
+    # The staff roles ping, nothing typed does.
     assert mentions.everyone is False
     assert [role.id for role in cast("list[discord.Object]", mentions.roles)] == [3, 4]
 
@@ -140,7 +140,7 @@ async def test_panel_in_a_thread(scene: Scene) -> None:
 
     await scene.submit_id(custom_id, {"reason": "x"}, scene.who(user=MEMBER, admin=False))
 
-    # v3's asTextChannel() threw in a thread; the thread's channel's category serves.
+    # In a thread, the thread's channel's category serves.
     assert [method for method, _ in category.sent] == [
         "category.create_text_channel",
         "channel.send",
@@ -169,7 +169,6 @@ async def test_missing_entry_or_category(scene: Scene, missing: str, reply: str)
 
     interaction = await scene.submit_id(custom_id, {"reason": "x"}, scene.who(user=MEMBER))
 
-    # v3 threw (B4), or replied after deferring, which never arrived (B3).
     assert interaction.sent == [
         ("response.defer", {"ephemeral": True, "thinking": True}),
         ("edit_original_response", {"content": reply}),
@@ -181,7 +180,7 @@ async def test_long_reason(scene: Scene) -> None:
     ticket = await open_ticket(scene, reason="x" * 2100)
 
     parts = sends(ticket.category.sent)
-    # v3 threw above 2000 characters and left the channel without controls (B10).
+    # Cut into parts of at most 2000 characters.
     assert [len(cast("str", fields["content"])) for fields in parts] == [2000, 114]
     assert "".join(cast("str", fields["content"]) for fields in parts) == (
         "<@&3> <@&4> \n\n" + "x" * 2100
@@ -208,14 +207,14 @@ async def test_refused_creation(scene: Scene, refused: str) -> None:
     reply = "Opening the ticket failed: 403 Forbidden (error code: 0): Missing Permissions"
     assert interaction.sent[-1] == ("edit_original_response", {"content": reply})
     methods = [method for method, _ in category.sent]
-    # A channel without its control row is deleted (v3 left it, B10).
+    # A channel without its control row is deleted.
     assert methods == (
         [] if refused == "channel" else ["category.create_text_channel", "channel.delete"]
     )
 
 
 async def test_overwrites(scene: Scene) -> None:
-    """Requirement: Ticket channels get v3's permissions and the bot's."""
+    """Requirement: Ticket channels get the category's permissions and the bot's."""
     role5, everyone = FakeRole(5), scene.guild.default_role
     category = FakeCategory(id=CATEGORY)
     category.overwrites = {
@@ -232,18 +231,18 @@ async def test_overwrites(scene: Scene) -> None:
 
     created = category.sent[0][1]["overwrites"]
     assert pairs(created) == {
-        5: (SEND, 0),  # the category's, copied as JDA's createTextChannel did
-        10: (0, VIEW),  # @everyone denied View Channel only (its copied deny goes, as in v3)
+        5: (SEND, 0),  # the category's, copied
+        10: (0, VIEW),  # @everyone denied View Channel only (its copied deny goes)
         MEMBER: (VIEW, 0),
         3: (VIEW, 0),
         4: (VIEW, 0),
-        BOT_USER.id: (VIEW, 0),  # the bot's own (v3 had none, B11)
+        BOT_USER.id: (VIEW, 0),  # the bot's own
     }
 
 
 @pytest.mark.parametrize("administrator", [False, True])
 async def test_overwrites_the_bot_cannot_copy(scene: Scene, administrator: bool) -> None:  # noqa: FBT001
-    """Requirement: Ticket channels get v3's permissions and the bot's."""
+    """Requirement: Ticket channels get the category's permissions and the bot's."""
     category = FakeCategory(id=CATEGORY, bot_permissions=discord.Permissions(view_channel=True))
     category.overwrites = {
         FakeRole(5): discord.PermissionOverwrite(manage_messages=True),  # the bot lacks it
@@ -259,7 +258,7 @@ async def test_overwrites_the_bot_cannot_copy(scene: Scene, administrator: bool)
     await scene.submit_id(custom_id, {"reason": "x"}, scene.who(user=MEMBER))
 
     created = pairs(category.sent[0][1]["overwrites"])
-    # JDA's trySync copied nothing then, unless the bot could sync; an uncached role never goes.
+    # Nothing is copied then, unless the bot can sync; an uncached role never goes.
     expected = {10: (0, VIEW), MEMBER: (VIEW, 0), BOT_USER.id: (VIEW, 0)}
     if administrator:
         expected[5] = (discord.Permissions(manage_messages=True).value, 0)
@@ -303,7 +302,7 @@ async def test_typed_mentions_ping_nobody(scene: Scene) -> None:
     [fields] = sends(ticket.category.sent)
     mentions = fields["allowed_mentions"]
     assert isinstance(mentions, discord.AllowedMentions)
-    # Only the staff roles ping: no user, role or everyone that a member typed (v3's S1).
+    # Only the staff roles ping: no user, role or everyone that a member typed.
     assert mentions.users is False
     assert mentions.everyone is False
     assert [role.id for role in cast("list[discord.Object]", mentions.roles)] == [3, 4]

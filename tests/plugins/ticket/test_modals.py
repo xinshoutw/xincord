@@ -91,7 +91,7 @@ async def test_pre_filled_modals(scene: Scene, sub_action: str, expected: list[I
 
     assert opened.title == "Create Ticket"
     assert inputs(opened) == expected
-    # v3's modal IDs: modify-color opens modify-embed-color, modify-reason modify-reason.
+    # The modal IDs: modify-color opens modify-embed-color, modify-reason modify-reason.
     names = {"modify-color": "modify-embed-color"}
     sub = names.get(sub_action, sub_action)
     assert opened.custom_id == IDS.build({"action": "create", "sub_action": sub})
@@ -105,9 +105,9 @@ async def test_empty_values(scene: Scene) -> None:
     author = inputs(modal(await scene.press("modify-author")))
     color = inputs(modal(await scene.press("modify-color")))
 
-    # An unset value leaves the input empty, as v3's empty text did.
+    # An unset value leaves the input empty.
     assert [value for _, _, value, _, _ in author] == [None, None]
-    assert color[0][2] == "#0000AB"  # v3's "#%06X"
+    assert color[0][2] == "#0000AB"  # six uppercase hex digits
 
 
 async def test_zh_tw_button_modal(scene: Scene) -> None:
@@ -116,7 +116,7 @@ async def test_zh_tw_button_modal(scene: Scene) -> None:
 
     opened = modal(await scene.press("modify-btn-text", scene.who(locale="zh-TW")))
 
-    # v3's zh-TW file said modify-btn-content, which the handler did not know (B2).
+    # The zh-TW modal opens as modify-btn-text.
     assert opened.custom_id == IDS.build({"action": "create", "sub_action": "modify-btn-text"})
 
 
@@ -126,7 +126,7 @@ async def test_preview_button(scene: Scene) -> None:
 
     opened = modal(await scene.press("prev"))
 
-    # v3's preview-reason, unreachable there (B1): titled with the reason title.
+    # preview-reason, titled with the reason title.
     assert opened.title == "Why?"
     assert inputs(opened) == [("Reason", "reason", None, True, None)]
     assert opened.custom_id == IDS.build({"action": "create", "sub_action": "prev"})

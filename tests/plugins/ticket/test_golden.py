@@ -1,4 +1,4 @@
-"""v3's texts and IDs: every shipped template renders in each locale, and v3's IDs read."""
+"""Texts and IDs: every shipped template renders in each locale, and legacy IDs read."""
 
 from typing import TYPE_CHECKING, Any
 
@@ -19,7 +19,7 @@ GOLDEN = golden("ticket")
 LOCALES = ("en-US", "zh-TW")
 DRAFT = Draft("Why?", title="Help", button_text="Open")
 # The modals' values, as the builder and the panels fill them; an empty value leaves its input
-# empty, as v3's.
+# empty.
 VALUES = {
     "tt@author": "Alice",
     "tt@author-icon-url": "https://cdn.example/a.png",
@@ -156,17 +156,17 @@ async def test_modal_templates(cog: Ticket, name: str, locale: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("v3", "fields", "new"),
-    [(shape["v3"], shape["fields"], shape["new"]) for shape in GOLDEN["ids"]],
-    ids=[shape["v3"] for shape in GOLDEN["ids"]],
+    ("legacy", "fields", "new"),
+    [(shape["legacy"], shape["fields"], shape["new"]) for shape in GOLDEN["ids"]],
+    ids=[shape["legacy"] for shape in GOLDEN["ids"]],
 )
-def test_v3_ids(v3: str, fields: dict[str, str], new: str) -> None:
-    """Requirement: v3's panels and tickets keep working."""
-    parsed = IDS.parse(v3)
+def test_legacy_ids(legacy: str, fields: dict[str, str], new: str) -> None:
+    """Requirement: Legacy panels and tickets keep working."""
+    parsed = IDS.parse(legacy)
 
     assert parsed.legacy
     assert dict(parsed.fields) == fields
-    assert IDS.upgrade(v3) == new
+    assert IDS.upgrade(legacy) == new
     assert IDS.parse(new).fields == parsed.fields
 
 
@@ -174,11 +174,11 @@ def test_v3_ids(v3: str, fields: dict[str, str], new: str) -> None:
     ("locale", "key", "text"),
     [
         (locale, key, text)
-        for locale, texts in GOLDEN["v3-texts"].items()
+        for locale, texts in GOLDEN["bundled-texts"].items()
         for key, text in texts.items()
     ],
 )
-async def test_v3_texts(cog: Ticket, locale: str, key: str, text: str) -> None:
+async def test_bundled_texts(cog: Ticket, locale: str, key: str, text: str) -> None:
     """Requirement: Texts follow the reader."""
     reader = FakeInteraction({}, locale=discord.Locale(locale))
 

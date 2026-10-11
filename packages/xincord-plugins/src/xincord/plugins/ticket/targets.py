@@ -14,7 +14,7 @@ ROW_SIZE = 5  # the components an action row holds at most
 
 @runtime_checkable
 class Fetching(Protocol):
-    """A channel that fetches its messages, as v3's ``retrieveMessageById``."""
+    """A channel that fetches its messages."""
 
     async def fetch_message(self, message_id: int, /) -> discord.Message:
         """The channel's message ``message_id``."""
@@ -56,7 +56,7 @@ def is_full(message: discord.Message) -> bool:
 
 
 def first_row(message: discord.Message) -> discord.ActionRow | None:
-    """The message's first action row, v3's ``firstOrNull { it.type == ACTION_ROW }``."""
+    """The message's first action row."""
     return next(
         (component for component in message.components if isinstance(component, discord.ActionRow)),
         None,

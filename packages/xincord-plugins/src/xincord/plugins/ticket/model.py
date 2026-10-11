@@ -1,4 +1,4 @@
-"""A builder's draft, a panel button's stored entry (v3's ``DataContainer``) and its JSON."""
+"""A builder's draft, a panel button's stored entry and its JSON."""
 
 import re
 from dataclasses import dataclass
@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 
 class DataError(Exception):
-    """A stored document or entry is not v3's shape; the message names it."""
+    """A stored document or entry is of another shape; the message names it."""
 
 
 @dataclass(frozen=True)
@@ -22,15 +22,15 @@ class Entry:
     category_id: int
 
 
-GREEN = 3  # JDA's ButtonStyle.SUCCESS, v3's default style of a panel button
+GREEN = 3  # Discord's success style, a panel button's default
 COLOR = re.compile(r"(?:#|0[xX])?([0-9a-fA-F]{1,6})")  # what the color modal takes
 
 
 @dataclass(frozen=True)
 class Draft:
-    """A panel in the builder: v3's ``StepData`` and its ``DataContainer`` together.
+    """A panel in the builder, with its stored entry's fields.
 
-    Empty texts stand for v3's unset (null) values: no author, icon, title, description, label or
+    Empty texts stand for unset values: no author, icon, title, description, label or
     emoji. ``button_style`` is Discord's button style, 1 to 4; ``category_id`` 0 is the panel
     channel's category.
     """
@@ -63,25 +63,24 @@ class Controls:
 
 
 def hex_color(color: int) -> str:
-    """A color as v3 showed it in its modal: ``String.format("#%06X", color and 0xFFFFFF)``."""
+    """A color as the modal shows it: ``#`` and six uppercase hex digits."""
     return f"#{color & 0xFFFFFF:06X}"
 
 
 def parse_color(text: str) -> int | None:
     """The color typed in the color modal: one to six hex digits after ``#``, ``0x`` or nothing.
 
-    v3 parsed the text after its first character, so its own placeholder ``0x00FFFF`` failed and
-    ``FFFFFF`` became ``0x0FFFFF`` (B5). None when the text is no such color.
+    None when the text is no such color.
     """
     match = COLOR.fullmatch(text.strip())
     return None if match is None else int(match[1], 16)
 
 
 def parse_entry(value: JSON, where: str) -> Entry:
-    """Read a stored entry as v3's Moshi did: every field required, integers exact.
+    """Read a stored entry: every field required, integers exact.
 
     Raises:
-        DataError: ``value`` is not v3's shape; the message starts with ``where``.
+        DataError: ``value`` is of another shape; the message starts with ``where``.
     """
     if not isinstance(value, dict):
         msg = f"{where}: the entry is not a JSON object: {value!r}"
@@ -102,7 +101,7 @@ def parse_entry(value: JSON, where: str) -> Entry:
 
 
 def entry_json(entry: Entry) -> dict[str, JSON]:
-    """The entry as v3's Moshi wrote it, in its field order."""
+    """The entry's stored JSON, in its field order."""
     return {
         "reasonTitle": entry.reason_title,
         "adminIds": list(entry.admin_ids),
@@ -111,5 +110,5 @@ def entry_json(entry: Entry) -> dict[str, JSON]:
 
 
 def _is_integer(value: JSON) -> bool:
-    """Whether ``value`` is a JSON integer, which Moshi read as a Kotlin ``Long``; not a boolean."""
+    """Whether ``value`` is a JSON integer, not a boolean."""
     return isinstance(value, int) and not isinstance(value, bool)

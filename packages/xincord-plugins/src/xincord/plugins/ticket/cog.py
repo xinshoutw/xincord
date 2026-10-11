@@ -42,9 +42,8 @@ __all__ = ["IDS", "Session", "Target", "Ticket"]
 
 logger = logging.getLogger(__name__)
 
-BUTTON = 2  # the component type of a button, which v3's onButtonInteraction took
-# The component types of user, role, mentionable and channel selects: v3's
-# EntitySelectInteractionEvent.
+BUTTON = 2  # the component type of a button
+# The component types of user, role, mentionable and channel selects.
 ENTITY_SELECTS = frozenset((5, 6, 7, 8))
 LOCKS = frozenset(("lock", "unlock"))  # the control row's first button, by its state
 # The builder's buttons that open a modal, and the modal's template.
@@ -105,10 +104,10 @@ class Ticket(ControlRow, commands.Cog):
         self.lang = lang
         self.templates = templates
         self.panels = Panels(store)
-        # Each user's draft per guild, by user ID and guild ID; v3's StepManager.steps, per user.
+        # Each user's draft per guild, by user ID and guild ID.
         self.drafts: dict[tuple[int, int], Session] = {}
         self.clock = time.time
-        self.zone = None  # the host's, as v3's ZoneId.systemDefault()
+        self.zone = None  # the host's
 
     @override
     async def cog_load(self) -> None:
@@ -123,8 +122,8 @@ class Ticket(ControlRow, commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: discord.Guild) -> None:
-        """Delete the panels of a guild that the bot left or was removed from, as v3 did, and
-        drop its drafts (v3 kept the user's step).
+        """Delete the panels of a guild that the bot left or was removed from, and
+        drop its drafts.
 
         discord.py does not fire this during an outage (``on_guild_unavailable``).
         """
@@ -134,8 +133,7 @@ class Ticket(ControlRow, commands.Cog):
     async def forget_left_guilds(self) -> None:
         """Delete the panels of the guilds that the bot is no longer in.
 
-        v3 deleted them only when it saw the bot leave a guild while the plugin was enabled. By
-        ``on_ready``, discord.py knows every guild of the session, unavailable ones included. A
+        By ``on_ready``, discord.py knows every guild of the session, unavailable ones included. A
         key that is no guild ID (a hand edit; the plugin never writes one) is left, with a warning.
         """
         for key in await self.panels.guild_ids():
@@ -148,9 +146,9 @@ class Ticket(ControlRow, commands.Cog):
                 logger.info("Ticket deleted the panels of guild %s, which the bot left", key)
 
     def commands(self) -> tuple[app_commands.Command[Any, ..., None], ...]:
-        """Build v3's ``/create-ticket`` and ``/add-ticket``, localized from ``register.yaml``.
+        """Build ``/create-ticket`` and ``/add-ticket``, localized from ``register.yaml``.
 
-        Guild commands that only administrators see by default, as in v3.
+        Guild commands that only administrators see by default.
         """
         lang = self.lang
         create: app_commands.Command[Any, ..., None] = app_commands.Command(
@@ -178,23 +176,21 @@ class Ticket(ControlRow, commands.Cog):
     async def create_ticket(self, interaction: discord.Interaction) -> None:
         """Edit the deferred response into the builder of a new panel for the user.
 
-        v3's defaults in the user's language; the draft replaces one the user had in the guild,
+        The defaults in the user's language; the draft replaces one the user had in the guild,
         and only the new builder message drives it. The command tree deferred the response
-        ephemerally, as v3's core did.
+        ephemerally.
         """
         guild_id = interaction.guild_id
-        if guild_id is None:  # guild commands run in guilds only, as v3's handler assumed
+        if guild_id is None:  # guild commands run in guilds only
             return
         await self._open(interaction, guild_id, Session(0, defaults(self.texts(interaction))))
 
     async def add_ticket(self, interaction: discord.Interaction, message_id: str) -> None:
         """Edit the deferred response into the builder of a button for message ``message_id``.
 
-        The message is looked for in the command's channel, as v3. It must be the bot's (v3 failed
-        silently at the confirmation), with a first row that takes a button (v3 compared its size
-        with five only, B16) and an embed (v3 stayed "thinking", B9); a text that is no ID (v3
-        stayed "thinking", B7) and an unknown message (v3 also stored a broken draft, B8) are
-        answered too.
+        The message is looked for in the command's channel. It must be the bot's, with a first row
+        that takes a button and an embed; a text that is no ID and an unknown message are answered
+        too.
         """
         guild_id = interaction.guild_id
         if guild_id is None:  # guild commands run in guilds only
@@ -224,8 +220,7 @@ class Ticket(ControlRow, commands.Cog):
     async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
         """Send a press, a selection or a submission to its handler; ``setup`` routes here.
 
-        As v3's ``onButtonInteraction``, ``onEntitySelectInteraction`` and ``onModalInteraction``:
-        the action ``create`` drives the builder; the panel's and the control row's buttons, the
+        The action ``create`` drives the builder; the panel's and the control row's buttons, the
         save select and the reason modal have their own. Anything else, string selects included,
         gets no response.
         """
@@ -275,11 +270,10 @@ class Ticket(ControlRow, commands.Cog):
     async def ask(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
         """Answer a panel button with the reason modal of its stored entry.
 
-        The entry is the one of the ID's message, else the pressed message (v3), at the button's
-        index; without one, the user gets v3's not-found text. v3's ``press-ticket`` opens in the
-        user's locale, its input labeled with the reason title (clipped to Discord's 45-character
-        label) and its ID naming the message that the entry came from (v3 named the pressed
-        message even when it had used the ID's).
+        The entry is the one of the ID's message, else the pressed message, at the button's index;
+        without one, the user gets the not-found text. ``press-ticket`` opens in the user's locale,
+        its input labeled with the reason title (clipped to Discord's 45-character label) and its
+        ID naming the message that the entry came from.
         """
         message = interaction.message
         message_id = fields.get("msg_id") or (None if message is None else str(message.id))
@@ -306,8 +300,7 @@ class Ticket(ControlRow, commands.Cog):
     ) -> None:
         """Open a ticket channel for the member who submitted the reason modal.
 
-        Deferred ephemerally (v3's ``deferReply(true)``), then the entry and its category (v3's
-        replies after the deferral never arrived, B3, and a missing entry threw, B4), the channel,
+        Deferred ephemerally, then the entry and its category, the channel,
         named after the member's username, and its opener; the member is told where to go. A
         refusal answers ``ticket-failed``; a channel whose opener was refused is deleted.
         """
@@ -363,7 +356,7 @@ class Ticket(ControlRow, commands.Cog):
         """Create the ticket's text channel in ``category``, named after the member's username.
 
         discord.py's ``create_text_channel(overwrites=...)`` does not copy the category's
-        overwrites as JDA's did, so the whole map is built.
+        overwrites, so the whole map is built.
         """
         guild = cast("discord.Guild", interaction.guild)
         me = guild.me
@@ -394,9 +387,9 @@ class Ticket(ControlRow, commands.Cog):
     async def _send_opener(
         self, channel: TicketChannel, entry: Entry, reason: str, controls: Controls
     ) -> None:
-        """Send v3's opener with the unlocked control row; delete the channel when it is refused.
+        """Send the opener with the unlocked control row; delete the channel when it is refused.
 
-        The staff roles ping and nothing else does (v3 pinged everything, S1).
+        The staff roles ping and nothing else does.
 
         Raises:
             discord.HTTPException: Discord refused a message.
@@ -420,8 +413,7 @@ class Ticket(ControlRow, commands.Cog):
         """Handle a press of the builder's button ``sub_action``.
 
         Without the user's draft, or from a builder message other than the one that shows it, the
-        user gets the session-expired text (v3 acknowledged silently, and any builder of the user
-        drove the newest step). Unknown sub-actions get no response, as in v3.
+        user gets the session-expired text. Unknown sub-actions get no response.
         """
         session = self._session(interaction)
         if session is None:
@@ -459,9 +451,9 @@ class Ticket(ControlRow, commands.Cog):
     ) -> None:
         """Open the modal of the builder's button ``sub_action``, pre-filled with the draft.
 
-        In the user's locale, with v3's ``Placeholder.get(event)`` and the draft's ``tt@*`` values,
-        inserted as written; an empty value leaves its input empty. The preview button opens v3's
-        ``preview-reason``, titled with the reason title, which v3 could not reach (B1).
+        In the user's locale, with the press's placeholder values and the draft's ``tt@*`` values,
+        inserted as written; an empty value leaves its input empty. The preview button opens
+        ``preview-reason``, titled with the reason title.
         """
         draft = session.draft
         values = placeholder_values(interaction) | {
@@ -482,8 +474,8 @@ class Ticket(ControlRow, commands.Cog):
     ) -> bool:
         """Show the builder's ``screen``, or its main screen, through the interaction.
 
-        One type-7 response replaces the whole message, v3's ``deferEdit`` and the edit through
-        the command's hook, which stopped working after 15 minutes (B14). When Discord refuses it
+        One type-7 response replaces the whole message, so the builder outlives the command's
+        15-minute hook. When Discord refuses it
         (an emoji or a URL it does not take), the interaction is still open: the user gets the
         refused text with Discord's error, and False comes back.
         """
@@ -515,8 +507,8 @@ class Ticket(ControlRow, commands.Cog):
         """Change the draft with a selection in the builder's select ``sub_action``.
 
         The role select replaces the staff roles; the category select sets the category when the
-        guild's cache knows it as a category, else answers v3's error. Others change nothing. Each
-        change shows the main screen, as v3.
+        guild's cache knows it as a category, else answers its error. Others change nothing. Each
+        change shows the main screen.
         """
         draft = session.draft
         if sub_action == "modify-admin":
@@ -539,7 +531,7 @@ class Ticket(ControlRow, commands.Cog):
 
         An invalid value gets its error ephemerally and leaves the draft. A valid one replaces the
         builder message through the submission (a modal opened from a message may update it),
-        where v3 deferred and edited it through the command's 15-minute hook.
+        so the builder outlives the command's 15-minute hook.
         """
         values = modal_values(interaction.data)
         changed = submit(session.draft, sub_action, values)
@@ -554,8 +546,7 @@ class Ticket(ControlRow, commands.Cog):
     ) -> None:
         """Show ``draft`` in the builder's main screen through the interaction, then keep it.
 
-        A draft that Discord refuses to show is not kept: v3 kept it, and every later render of
-        the builder failed silently.
+        A draft that Discord refuses to show is not kept, so later renders of the builder work.
         """
         changed = replace(session, draft=draft)
         if await self._screen(interaction, changed):
@@ -567,14 +558,12 @@ class Ticket(ControlRow, commands.Cog):
 
         The draft is taken before the first await, so a second press meanwhile gets the
         session-expired text. When nothing could be posted or stored, the draft comes back (unless
-        the user started another), the builder stays and ``create-failed`` tells the user why; v3
-        deleted the builder first and never acknowledged the press, so failures were invisible
-        (B15).
+        the user started another), the builder stays and ``create-failed`` tells the user why.
         """
         key = (interaction.user.id, cast("int", interaction.guild_id))
         del self.drafts[key]
         try:
-            await interaction.response.defer()  # v3's deferEdit: the builder stays for now
+            await interaction.response.defer()  # the builder stays for now
             if session.target is None:
                 await self._post(interaction, key[1], session.draft)
             else:
@@ -597,7 +586,7 @@ class Ticket(ControlRow, commands.Cog):
         await interaction.delete_original_response()
 
     async def _post(self, interaction: discord.Interaction, guild_id: int, draft: Draft) -> None:
-        """Post v3's ``confirm-create`` in the builder's channel and store its button's entry.
+        """Post ``confirm-create`` in the builder's channel and store its button's entry.
 
         Raises:
             PanelError: The channel takes no messages or refused the panel, or the store failed (the
@@ -634,9 +623,8 @@ class Ticket(ControlRow, commands.Cog):
         """Append the panel's button to the target's first row and store its entry.
 
         Under the guild's lock, the message is fetched again, so that two confirmations for one
-        message never take the same index (v3 edited from its snapshot). The index is the stored
-        list's length (v3 used the row's size, B6), and only the view changes: v3 kept the first
-        embed and the first row alone (B17) and threw for a message without rows. When the store
+        message never take the same index. The index is the stored list's length, and only the view
+        changes; a message without rows gets one. When the store
         fails, the message gets its earlier view back: a button without its entry would answer
         not-found, and the next confirmation would give a second button its ID.
 
@@ -697,8 +685,8 @@ class Ticket(ControlRow, commands.Cog):
     ) -> Message:
         """The builder's ``screen`` (its main screen by default) in the user's locale.
 
-        v3's templates with its models: the preview embed (the target's first embed for an added
-        button) and the preview button; v3 rendered them without a substitutor: its global values.
+        The templates with their models: the preview embed (the target's first embed for an added
+        button) and the preview button, rendered without a substitutor: the global values.
         """
         target = session.target
         main = "create-ticket" if target is None else "add-ticket"
@@ -741,5 +729,5 @@ def _values(data: Mapping[str, object]) -> list[str]:
 
 
 def _is_category(guild: object, text: str) -> bool:
-    """Whether the guild's cache knows ``text`` as a category's ID, v3's ``getCategoryById``."""
+    """Whether the guild's cache knows ``text`` as a category's ID."""
     return getattr(cached_channel(guild, text), "type", None) is discord.ChannelType.category
