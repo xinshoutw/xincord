@@ -10,7 +10,7 @@
 
 - [x] 2.1 xfail tests for "The plugin installs as NtustCourseWatch" and "The config names the
       semester, the start and the intervals", loading the plugin through its entry point
-- [ ] 2.2 Add the package, its `setup`, the config model and the `NtustCourseWatch` entry point;
+- [x] 2.2 Add the package, its `setup`, the config model and the `NtustCourseWatch` entry point;
       remove the markers
 
 ## 3. Course query

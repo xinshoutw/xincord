@@ -9,8 +9,6 @@ Kotlin:
 from importlib.resources import files
 from typing import TYPE_CHECKING
 
-import pytest
-
 from plugin_fakes import load_plugin
 from xincord.core.plugins import PluginInfo, discover
 
@@ -28,7 +26,6 @@ BUNDLED = (
 )
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as NtustCourseWatch")
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as NtustCourseWatch."""
     # No intents beyond discord.py's defaults: v3's info.yaml requested none, and slash commands
@@ -38,7 +35,6 @@ def test_discovered_by_name() -> None:
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="The plugin installs as NtustCourseWatch")
 async def test_first_load_writes_the_files(store: Store, tmp_path: Path) -> None:
     """Requirement: The plugin installs as NtustCourseWatch."""
     bot = await load_plugin("NtustCourseWatch", tmp_path / "plugins", store)

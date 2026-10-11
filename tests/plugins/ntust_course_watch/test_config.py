@@ -8,7 +8,7 @@ Kotlin:
 
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -17,7 +17,10 @@ from plugin_fakes import load_plugin
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from xincord.core.bot import Bot
     from xincord.core.storage import Store
+    from xincord.plugins.ntust_course_watch.cog import NtustCourseWatch
+    from xincord.plugins.ntust_course_watch.config import Config
 
 TAIWAN = timezone(timedelta(hours=8))
 V3_START = datetime(2025, 12, 26, 9, 0, tzinfo=TAIWAN)  # v3's go-live time on the owner's host
@@ -29,12 +32,11 @@ alert-interval: 60
 """
 
 
-def config_of(bot: object) -> Any:  # noqa: ANN401 - the plugin's model
+def config_of(bot: Bot) -> Config:
     """The loaded plugin's config."""
-    return cast("Any", bot).get_cog("NtustCourseWatch").config
+    return cast("NtustCourseWatch", bot.get_cog("NtustCourseWatch")).config
 
 
-@pytest.mark.xfail(strict=True, reason="The config names the semester, the start and the intervals")
 async def test_v3_config_file(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -53,7 +55,6 @@ async def test_v3_config_file(
     assert config.alert_interval == 60
 
 
-@pytest.mark.xfail(strict=True, reason="The config names the semester, the start and the intervals")
 async def test_bundled_config(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -72,7 +73,6 @@ async def test_bundled_config(
     )
 
 
-@pytest.mark.xfail(strict=True, reason="The config names the semester, the start and the intervals")
 @pytest.mark.parametrize(
     ("line", "semester"),
     [
@@ -90,7 +90,6 @@ async def test_numbers_as_text(tmp_path: Path, store: Store, line: str, semester
     assert config_of(bot).semester == semester
 
 
-@pytest.mark.xfail(strict=True, reason="The config names the semester, the start and the intervals")
 async def test_valid_values(tmp_path: Path, store: Store) -> None:
     """Requirement: The config names the semester, the start and the intervals."""
     text = VALID.replace("interval: 1.5", "interval: 1").replace(
@@ -104,7 +103,6 @@ async def test_valid_values(tmp_path: Path, store: Store) -> None:
     assert (config.interval, config.alert_interval) == (1, 10)  # the minimums
 
 
-@pytest.mark.xfail(strict=True, reason="The config names the semester, the start and the intervals")
 @pytest.mark.parametrize(
     ("change", "error"),
     [
@@ -113,7 +111,11 @@ async def test_valid_values(tmp_path: Path, store: Store) -> None:
             "semester: String should match pattern",
             id="semester with a space",
         ),
-        pytest.param(('semester: "1151"', 'semester: ""'), "semester: ", id="empty semester"),
+        pytest.param(
+            ('semester: "1151"', 'semester: ""'),
+            "semester: String should match pattern",
+            id="empty semester",
+        ),
         pytest.param(
             ("start: 2026-12-28T09:00:00+08:00", "start: 2026-12-28T09:00:00"),
             "start: Input should have timezone info",
@@ -131,7 +133,7 @@ async def test_valid_values(tmp_path: Path, store: Store) -> None:
         ),
         pytest.param(
             ("interval: 1.5", "interval: .inf"),
-            "interval: ",
+            "interval: Input should be a finite number",
             id="interval infinite",
         ),
         pytest.param(
