@@ -1,7 +1,7 @@
 ## 1. License files
 
 - [x] 1.1 xfail tests for "The distributions carry the license" (both declarations, the equal copy)
-- [ ] 1.2 `license-files` in both `pyproject.toml`, the plugins' copy; remove the markers; the manual
+- [x] 1.2 `license-files` in both `pyproject.toml`, the plugins' copy; remove the markers; the manual
       check (design)
 
 ## 2. Close

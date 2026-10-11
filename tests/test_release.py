@@ -156,7 +156,6 @@ def test_pypi_job_per_package() -> None:
     assert "uv publish --trusted-publishing always" in plugins["steps"][-1]["run"]
 
 
-@pytest.mark.xfail(strict=True, reason="The distributions carry the license")
 def test_distributions_carry_the_license() -> None:
     """Requirement: The distributions carry the license."""
     plugins = ROOT / "packages" / "xincord-plugins"
