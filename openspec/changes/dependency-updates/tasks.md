@@ -1,9 +1,9 @@
 ## 1. Tests first
 
-- [ ] 1.1 xfail tests for Dependabot's security-only config (`tests/test_dependency_updates.py`)
-- [ ] 1.2 xfail tests for Renovate's schedule, commits, managers, ignored dependencies, regex
+- [x] 1.1 xfail tests for Dependabot's security-only config (`tests/test_dependency_updates.py`)
+- [x] 1.2 xfail tests for Renovate's schedule, commits, managers, ignored dependencies, regex
   managers and automerge policy
-- [ ] 1.3 Container checks accept any exact version of each pinned series
+- [x] 1.3 Container checks accept any exact version of each pinned series
 
 ## 2. Configuration
 

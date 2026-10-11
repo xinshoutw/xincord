@@ -6,6 +6,9 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).parent.parent
+# Exact versions of the pinned series, so that Renovate's patch updates pass.
+PYTHON_IMAGE = re.compile(r"python:3\.14\.\d+-slim-trixie\b")
+UV_IMAGE = re.compile(r"ghcr\.io/astral-sh/uv:\d+\.\d+\.\d+\s")
 
 
 def instructions() -> list[tuple[str, str]]:
@@ -26,11 +29,8 @@ def test_image_definition() -> None:
     stages = [index for index, (keyword, _) in enumerate(steps) if keyword == "FROM"]
     runtime = steps[stages[-1] :]
 
-    assert all(steps[index][1].startswith("python:3.14.8-slim-trixie") for index in stages)
-    assert any(
-        keyword == "COPY" and "ghcr.io/astral-sh/uv:0.12.24" in arguments
-        for keyword, arguments in steps
-    )
+    assert all(PYTHON_IMAGE.match(steps[index][1]) for index in stages)
+    assert any(keyword == "COPY" and UV_IMAGE.search(arguments) for keyword, arguments in steps)
     assert any(
         keyword == "RUN" and "uv sync --locked --no-dev --all-packages --no-editable" in arguments
         for keyword, arguments in steps
@@ -67,7 +67,8 @@ def test_service_definition() -> None:
     assert "data" in compose["volumes"]
 
 
-LAVALINK_IMAGE = "ghcr.io/lavalink-devs/lavalink:4.2.2"
+# Lavalink 4.2.0 or a later 4.x, exact: DAVE arrived in 4.2.0.
+LAVALINK_IMAGE = re.compile(r"ghcr\.io/lavalink-devs/lavalink:4\.(?:[2-9]|[1-9]\d+)\.\d+")
 EXACT = re.compile(r":\d+\.\d+\.\d+$")  # a Maven version that never moves
 
 
@@ -94,7 +95,7 @@ def test_lavalink_service() -> None:
     compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
     lavalink = compose["services"]["lavalink"]
 
-    assert lavalink["image"] == LAVALINK_IMAGE  # Ubuntu (glibc for DAVE), arm64 too
+    assert LAVALINK_IMAGE.fullmatch(lavalink["image"])  # Ubuntu (glibc for DAVE), arm64 too
     assert lavalink["volumes"] == ["./lavalink/application.yml:/opt/Lavalink/application.yml:ro"]
     password = lavalink["environment"]["LAVALINK_SERVER_PASSWORD"]
     assert password.startswith("${LAVALINK_PASSWORD:?")  # from .env, required
