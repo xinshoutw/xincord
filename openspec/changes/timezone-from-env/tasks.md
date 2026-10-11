@@ -1,7 +1,7 @@
 ## 1. Time zone
 
-- [ ] 1.1 xfail test for "Time zone from .env" (the service's `TZ`, the commented example)
-- [ ] 1.2 `TZ` in `compose.yaml` and `.env.example`, the README; remove the marker
+- [x] 1.1 xfail test for "Time zone from .env" (the service's `TZ`, the commented example)
+- [x] 1.2 `TZ` in `compose.yaml` and `.env.example`, the README; remove the marker
 
 ## 2. Close
 

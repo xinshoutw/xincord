@@ -3,7 +3,6 @@
 import re
 from pathlib import Path
 
-import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -68,7 +67,6 @@ def test_service_definition() -> None:
     assert "data" in compose["volumes"]
 
 
-@pytest.mark.xfail(strict=True, reason="Time zone from .env")
 def test_time_zone_from_env() -> None:
     """Requirement: Time zone from .env."""
     compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))

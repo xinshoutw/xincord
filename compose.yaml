@@ -12,6 +12,9 @@ services:
     stdin_open: true
     tty: true
     stop_grace_period: 30s
+    environment:
+      # The bot's time zone, an IANA name from .env (see .env.example); UTC when unset.
+      TZ: ${TZ:-UTC}
     volumes:
       - ./bot:/bot
       - data:/bot/data  # the database and the plugins' data files stay in a named volume

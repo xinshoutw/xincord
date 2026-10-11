@@ -32,7 +32,7 @@ and the plugins without disconnecting. In a terminal, the `console > ` prompt ac
 ## Docker
 
 ```sh
-cp .env.example .env             # once: set LAVALINK_PASSWORD (and Spotify, if wanted)
+cp .env.example .env             # once: set LAVALINK_PASSWORD (and TZ, Spotify, if wanted)
 docker compose up -d --build     # start; the bot writes bot/config.yaml on the first start
 docker compose attach bot        # the console (Ctrl-P Ctrl-Q detaches)
 docker compose kill -s HUP bot   # reload the config and the plugins
