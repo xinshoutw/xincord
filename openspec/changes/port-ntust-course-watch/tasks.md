@@ -51,7 +51,7 @@
       `xincord --no-online` loads the plugin, the image with every ported plugin and the course
       query's TLS from it, and drive the plugin once through discord.py's own objects with HTTP
       recorded
-- [ ] 8.2 Porting guide rows and pitfalls, and skill corrections
+- [x] 8.2 Porting guide rows and pitfalls, and skill corrections
 - [x] 8.3 Audit the inventory against the scenarios and the design
 
 ## 9. Review

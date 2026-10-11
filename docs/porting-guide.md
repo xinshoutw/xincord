@@ -80,7 +80,7 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `kotlin.random.Random.Default` and `shuffled(random).take(k)` | `random.SystemRandom()` on the cog (tests swap in a seeded `random.Random`) and `rng.sample(pool, k)`, the same distribution | |
 | `DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")` (SMART) and `atZone(ZoneId.systemDefault())` | a regex with range checks, the day clamped to the month and `24:00` as the next day, then `datetime(..., tzinfo=zone).timestamp()` (fold 0 matches Java in gaps and overlaps); the zone is a config key, empty for the host's (Giveaway's `times.py`) | |
 | `java.net.URI(value)` with an http(s) scheme and a host | `inputs.is_http_url`: RFC 2396's grammar with a server-based authority, `ipaddress` for IPv6 (Giveaway) | |
-| Kotlin `String.toIntOrNull()` | `re.fullmatch(r"[+-]?\d{1,9}", text)` then `int(text)`: Unicode digits, no `_` | |
+| Kotlin `String.toIntOrNull()` | `re.fullmatch(r"[+-]?\d{1,9}", text)` then `int(text)`: Unicode digits, no `_` (Giveaway's counts); for a whole `Int`, `re.fullmatch(r"[+-]?\d+", text)`, `int(text)` (`ValueError` past 4,300 digits) and the range check (NtustCourseWatch's `to_int_or_none`) | |
 | User-facing texts hard-coded in Kotlin, chosen by a `zh` locale prefix | `lang/<locale>/text.yaml`, read with `Lang.text("text.<key>", locale)` and `%ga@...%` values in one pass; one locale for a message's texts and templates (Giveaway's `texts.language` and `Texts`) | B7 |
 | Moshi data classes with defaults, `JsonGuildFileManager` | frozen dataclasses with `parse_*` (v3's defaults, `DataError` for anything else) and `*_json` in Moshi's field order; each operation parses only the entries it needs (Giveaway's `model.py`) | B8, B11 |
 | camelCase keys in a v3 `config.yaml` | pydantic `Field(alias="camelCase")` on snake_case fields; validation errors name the alias (Giveaway's `Config`) | B6 |
@@ -100,7 +100,11 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | Embedded MongoDB `MemoryCacheDb` holding Core's `TypedListWrapper` (`{"items": [...], "itemTypeName": ...}`) | the wrapper's value in the store under the plugin's name and the document's `_id`; `itemTypeName` read and ignored (NtustAnnouncements' `store.py`) | B8, B11 |
 | `guild.getNewsChannelById(id)!!.sendMessage(...)` for a hard-coded channel | a channel ID in the config and `bot.get_partial_messageable(id).send(content=..., allowed_mentions=AllowedMentions.none())`; a missing or messageless channel is a warning at READY (NtustAnnouncements) | |
 | One `scheduleAtFixedRate` cycle over every board, five at a time through a `Semaphore` held for the whole board | a loop per board in an `asyncio.TaskGroup` (a pass, then `fetch-interval`), the semaphore held while fetching only (NtustAnnouncements' `Watcher`) | |
-| Java's `HttpClient` TLS (no strict X.509 profile) | aiohttp with Python's default context, whose `VERIFY_X509_STRICT` (Python 3.13+) refuses NTUST's certificate chains: pages use a context without that flag (`web.page_context`) | |
+| Java's `HttpClient` TLS (no strict X.509 profile) | aiohttp with Python's default context, whose `VERIFY_X509_STRICT` (Python 3.13+) refuses NTUST's certificate chains: NTUST's hosts use a context without that flag (`xincord.plugins.ntust_tls.ntust_context`, shared by NtustAnnouncements and NtustCourseWatch) | |
+| A coroutine that polls a whole catalogue every 1.5 seconds and posts at every poll while a course has seats (NtustCourse's `CourseMonitorService`) | a task from READY that asks about one registered item per step, in turn, `interval` seconds from one step's start to the next (0.1 seconds at least after a slow answer); alerts throttled per channel and item (NtustCourseWatch's `Watcher` and `Alerts`) | |
+| `MessageCreateBuilder().mentionUsers(ids)` with the mentions in the content | `AllowedMentions(everyone=False, users=[Object(id), ...], roles=False, replied_user=False)`; mentions that exceed 2000 UTF-16 code units or 100 users go on in further posts (NtustCourseWatch's `available_posts`) | B19 |
+| `LocalDateTime.now()` compared with a hard-coded local time | an aware time in config (pydantic's `AwareDatetime`, the offset required: the container's local time is UTC) compared with `datetime.now(UTC)` (NtustCourseWatch's `start`) | |
+| One embedded MongoDB document for the whole plugin (`{"_id": "user_record_map", "value": ...}`) | the value in the store under the plugin's name and the `_id`, changed under one lock with `get` and `put` (NtustCourseWatch's `Registrations`) | B8, B11 |
 | Ktor Web-Dashboard | not ported | B13 |
 
 ## Intents kept from the v4 attempt (A3)
@@ -143,7 +147,7 @@ prefixes keep the v3 names. The other plugins keep their names.
 | Feedbacker | Feedback | `feedback` |
 | TicketAddons | TicketAwayNotice | `ticket_away_notice` |
 | NtustManager | NtustAnnouncements | `ntust_announcements` |
-| NtustCourse | NtustCourseWatch | not ported yet |
+| NtustCourse | NtustCourseWatch | `ntust_course_watch` |
 
 `xincord.core.migrate_v3` (`RENAMED`) writes the new names in the `plugins` list and moves each
 renamed plugin's v3 directory to `plugins/<new name>/`.
@@ -371,6 +375,15 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - Background work over several independent sources runs one loop per source in a `TaskGroup`
   inside the plugin's single task, so that one source's long waits hold up no other; a shared
   `asyncio.Semaphore` bounds the requests themselves (NtustAnnouncements' boards).
+- A plugin that watches items that members register (NtustCourseWatch's courses) asks the
+  external API about one registered item per step, the items in turn, at most once per `interval`
+  seconds (a config key with a minimum, so that the bot cannot hammer the API), and only from the
+  configured start while anything is registered. Repeated alerts are throttled per channel and
+  item, and a state change (full) is announced once per alert; the posts are tasks that hold up no
+  step, tracked on the cog and cancelled in `cog_unload`.
+- A plugin whose v3 texts were all English (NtustCourseWatch) ships them in `lang/en-US/` as its
+  default locale and translates them in `lang/zh-TW/`: replies follow the member's locale, public
+  posts use the default locale, as v3's English ones; command names stay v3's in every locale.
 
 ## Pitfalls
 
@@ -737,7 +750,8 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   (`student`, `www.academic`, `lc` and `querycourse.ntust.edu.tw`, 2026-10-11) lack a Subject Key
   Identifier and fail with `Missing Subject Key Identifier`, where Java and curl accept them.
   Clear only that flag for such hosts, keeping the certificate and host name checks
-  (NtustAnnouncements' `page_context`).
+  (`xincord.plugins.ntust_tls.ntust_context`, NtustAnnouncements' `page_context` until
+  port-ntust-course-watch moved it for NtustCourseWatch).
 - **`min_length` on a list of invalid items.** pydantic checks a constrained list's length after
   its items, counting the valid ones: 18 invalid boards also read as `Tuple should have at least 1
   item`. Refuse an empty list in an after-validator, which runs only when the items are valid.
@@ -774,6 +788,19 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   Gemini conversion), keep the call's result until the step works, or every retry pays again
   (NtustAnnouncements' `Watcher.ready`).
 
+- **NTUST's course query.** It no longer answers v3's whole-catalogue request (`CourseTeacher: " "`):
+  on 2026-10-11, no answer in 60 seconds, then a 500 after 120. It matches `CourseNo` as a prefix
+  and lists a course once per room and time, all with the same counts; a code's request answers in
+  under a second. A client timeout shorter than a server's slow query would let a loop pile up
+  queries on the server: ask for less instead (NtustCourseWatch).
+- **Times in YAML.** PyYAML reads `2025-12-26T09:00:00+08:00` as an aware `datetime` and the same
+  time without its offset as a naive one, which a container would take as UTC: require the offset
+  (pydantic's `AwareDatetime`). YAML 1.1 also reads `0115` as the octal 77, which
+  `coerce_numbers_to_str` turns into `"77"`: quote such values in bundled files.
+- **Codes typed through an input method.** Full-width letters and digits (`ＣＥ１６２`) are what a
+  Chinese input method types; `unicodedata.normalize("NFKC", text)` turns them into ASCII before a
+  code is checked (NtustCourseWatch's `course_code`).
+
 v3 behaviors never to reproduce: loading plugins in reverse dependency order, non-atomic JSON
 writes that silently reset corrupt files, recursive placeholder expansion, shared mutable
 placeholder caches, `asTextChannel()` failures in threads, voice chat and announcement channels,
@@ -781,7 +808,7 @@ allow-all mentions, naming the member of an event after the guild's newest audit
 keeping message content forever, rendering a builder through an expired interaction token,
 drawing a giveaway twice, pinging what a user typed into a ticket, losing an error thrown in a
 callback (Ticket's archive hung), a guild filter that never applied, a delayed message that
-nothing could cancel or check again (TicketAddons), and announcements skipped for good after one failure, posted again after they left a page, or doubled by a second scheduler after a reload (NtustManager).
+nothing could cancel or check again (TicketAddons), announcements skipped for good after one failure, posted again after they left a page, or doubled by a second scheduler after a reload (NtustManager), and alerts posted at every poll beyond Discord's rate limit, a loop that one exception ended for good, and registrations lost at every restart (NtustCourse).
 
 ## Differences from v3
 
@@ -1014,3 +1041,9 @@ Every deliberate difference, added by the change that introduces it.
 | NtustAnnouncements | the stored lists and a write-only archive in the embedded MongoDB, written asynchronously; the config failed the bot even while disabled | v3's list documents in the store, awaited (the planned v3 data import copies them); no archive; only the plugin is disabled by an invalid config, unknown keys warn | port-ntust-announcements |
 | Config files | a YAML syntax error quoted the faulty line (kaml's message) | the line and the column only, so that a key or a token on that line stays out of the log | port-ntust-announcements |
 | NtustAnnouncements | a link that named `.ntust.edu.tw/p/<n>.php` in its path or query counted as an article whatever its host, and was sent to Gemini; a part of only whitespace could not be sent | only NTUST's hosts count; blank parts are left out | port-ntust-announcements |
+| Plugin names | `NtustCourse`, with its files in `plugins/NtustCourse/` | `NtustCourseWatch` under `plugins:` and as `plugins/NtustCourseWatch/`; `migrate_v3` maps the name and moves the directory | rename-plugins, port-ntust-course-watch |
+| NtustCourseWatch | registrations never loaded after a restart, and the next change overwrote the stored ones | v3's document in the store, read at each use (the planned v3 data import copies it) | port-ntust-course-watch |
+| NtustCourseWatch | `/course-remove` unregistered every member of the channel; `/course-list` matched IDs as substrings and listed duplicates; codes were stored as typed | only the member; exact, once each, sorted; codes NFKC, trimmed and upper-cased, other than 1 to 20 letters and digits refused with the new `invalid-code` | port-ntust-course-watch |
+| NtustCourseWatch | a course with seats was posted at every poll (about every 1.5 seconds), beyond Discord's rate limit; mentions over 2000 characters and any other exception stopped the loop until a reload; a reload doubled every alert | at most once per `alert-interval` (60 seconds) per channel and course, a full alert once after an available one, long mentions split, every step and post guarded, a reload replaces the loop | port-ntust-course-watch |
+| NtustCourseWatch | the semester (`1142`) and the go-live time were hard-coded; the whole catalogue was asked for every 1.5 seconds, before the go-live time and with nobody registered, without a timeout | `semester`, `start` (with its offset), `interval` (1.5, at least 1) and `alert-interval` in config with v3's values; one registered code per request, in turn, from `start` while anything is registered, 30-second timeout, since NTUST no longer answers the whole catalogue | port-ntust-course-watch |
+| NtustCourseWatch | English replies and descriptions for everyone; failures printed to stdout; a deleted channel's registrations kept forever; a `]` in a course's name broke the alert's link | zh-TW translations (the alerts stay English); English log lines once per kind and episode; a 404 forgets the channel; names escaped | port-ntust-course-watch |

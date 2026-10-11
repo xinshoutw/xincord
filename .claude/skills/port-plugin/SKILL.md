@@ -13,12 +13,11 @@ its shape and the conventions below. Fix this skill when reality differs; the ne
 Names: `<Plugin>` is the plugin's xincord name (`AutoRole`, `Example`), `<kebab>` its kebab case
 (`auto-role`, `example`) for the change, the capability `plugin-<kebab>` and the commit scope,
 `<package>` the Python package (`auto_role`, `example`). The owner renamed nine plugins
-(`docs/porting/decisions.md`, Amendment 1; the table in `docs/porting-guide.md`, "Plugin names"):
-the one not ported yet is NtustCourse (NtustCourseWatch). Its inventory, Kotlin sources and
-legacy component ID prefixes keep the v3 name; everything else, the store namespace and the new ID
-namespace included, uses the new one, and `xincord.core.migrate_v3.RENAMED` already maps the v3
-name (TicketAwayNotice, v3 TicketAddons, and NtustAnnouncements, v3 NtustManager, were ported
-under their new names).
+(`docs/porting/decisions.md`, Amendment 1; the table in `docs/porting-guide.md`, "Plugin names"),
+and all nine are ported. Their inventories, Kotlin sources and legacy component ID prefixes keep
+the v3 names; everything else, the store namespace and the new ID namespace included, uses the new
+ones, and `xincord.core.migrate_v3.RENAMED` maps the v3 names (TicketAwayNotice, NtustAnnouncements
+and NtustCourseWatch were ported under their new names).
 
 ## Steps
 
@@ -129,7 +128,9 @@ packages/xincord-plugins/src/xincord/plugins/<package>/
 - Code that two plugins share is a package under `xincord.plugins` without an entry point, which
   both import absolutely (`xincord.plugins.listen_channels`, VoiceLogger's and ChatLogger's listen
   channels: `ListenSettings`, `ListenChannels`, `Menu`; `xincord.plugins.redaction`, UptimeHeartbeat's
-  and Ticket's URL redaction). Neither plugin needs the other; discord.py
+  and Ticket's URL redaction; `xincord.plugins.failures`; `xincord.plugins.ntust_tls`, NTUST's TLS
+  context for NtustAnnouncements and NtustCourseWatch, moved by a `refactor` commit of the first
+  plugin whose tests stay where they were). Neither plugin needs the other; discord.py
   leaves the package imported when a plugin unloads, so it holds no state, and what differs is
   passed in. Each plugin builds its command group in its own module, so that unloading removes it.
 
@@ -445,8 +446,17 @@ async def setup(bot: Bot) -> None:
 - Python 3.13+ verifies certificates with `VERIFY_X509_STRICT`, which refuses NTUST's chains
   (no Subject Key Identifier; `querycourse.ntust.edu.tw` too): requests to such hosts take a
   context without that flag, certificates and host names still verified
-  (`ntust_announcements.web.page_context`); other hosts (Gemini) keep Python's default. Move it into
-  a shared package when a second plugin needs it.
+  (`xincord.plugins.ntust_tls.ntust_context`, with TWCA's intermediate); other hosts (Gemini) keep
+  Python's default.
+- Items that members register and that the plugin watches on an external API (NtustCourseWatch's
+  courses): one task from READY asks about one registered item per step, in turn, `interval`
+  seconds from one step's start to the next (a config key with a minimum, 0.1 seconds at least
+  after a slow answer), only from a configured start and while anything is registered. Ask for the
+  registered items, not a whole catalogue: NTUST's course query no longer answers v3's catalogue
+  request, and a client timeout under the server's would pile queries up there. Repeated alerts
+  are throttled per channel and item (`alerts.Alerts`), and posts are tasks kept in a set on the
+  cog (`posting`), so that a rate-limited channel holds up no step; `cog_unload` cancels them with
+  the loop.
 - An LLM API is called over its documented REST API with aiohttp (Gemini's `generateContent`, the
   key in a header, never in the URL); keys are config with hidden validation input, named in logs
   by their position and removed from error texts (`Gemini.hide`).
@@ -517,6 +527,11 @@ async def setup(bot: Bot) -> None:
   pass `interaction.locale.value`, which `Lang.text` falls back from to the default locale per
   key, as v3's templates did; public messages use `lang.default_locale` (Ticket's `texts` and
   `public`).
+- A plugin whose v3 texts were all English (NtustCourseWatch) has `DEFAULT_LOCALE = "en-US"`:
+  `lang/en-US/` holds v3's texts verbatim and `lang/zh-TW/` translates them (listed in the review
+  queue); replies follow `interaction.locale`, public posts use `lang.default_locale`, and both
+  locales hold every key (the core warns about missing ones). Command names stay v3's in every
+  locale (`register.yaml` repeats them), so that members type the same commands.
 - Texts that v3 hard-coded in Kotlin (Giveaway's field names, statuses, replies, errors) go in a
   new `lang/<locale>/text.yaml` with `%ga@...%` placeholders, read with
   `Lang.text("text.<key>", locale)` and rendered in one pass (`texts.Texts`). v3 chose them by a
@@ -718,6 +733,12 @@ async def setup(bot: Bot) -> None:
   it (`asleep(n)` waits for n waits), so a test changes the cache during the wait. `payloads.guild`
   takes `members` and `presences` (`payloads.presence`), `payloads.channel` a `guild_id`, and
   `FakeRest` keeps a multipart upload's parts as `form`.
+- NtustCourseWatch's `scene` (`tests/plugins/ntust_course_watch/conftest.py`) replaces the loaded
+  cog's `open_api` (`FakeApi`: answers per code, the last one repeating, exceptions raised, a
+  `delay` on the clock per answer), `sleep`, `clock` and `now` (one `Clock`: a wait lasts until the
+  test wakes it, then moves both clocks on by the wait) and `bot.get_partial_messageable`;
+  `scene.steps(n)` waits for `n` steps and the posts under way, and fails at once when the loop
+  ended with an error, so a stub's exception surfaces without a timeout.
 - A loop with a first delay and a period runs on `Ticks` (Giveaway's `test_auto_draw.py`): each
   sleep is recorded, waits for the test, and moves the injected clock. A press that must be caught
   in the middle (a double confirmation) uses a fake whose `send` waits on a gate; wait with
