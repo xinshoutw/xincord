@@ -118,5 +118,7 @@ def answer_text(api_format: ApiFormat, answer: object) -> str:
 
 def error_message(answer: object) -> str:
     """The ``error.message`` of an error answer, which both formats' APIs give; else empty."""
+    if isinstance(answer, list) or isinstance(_field(answer, "error"), str):
+        raise NotImplementedError  # stub: an error list, an error text
     message = _field(_field(answer, "error"), "message")
     return message if isinstance(message, str) else ""

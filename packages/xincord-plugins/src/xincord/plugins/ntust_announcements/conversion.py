@@ -129,7 +129,10 @@ class KeyRing:
 
         That is when the oldest attempt among the keys leaves the window.
         """
-        return min(self._attempts(key, now)[0] for key in self.keys) + self.window - now
+        windows = [self._attempts(key, now) for key in self.keys]
+        if not all(windows):
+            raise NotImplementedError  # stub: a key has room again, the clock moved since take
+        return min(window[0] for window in windows) + self.window - now
 
 
 def describe(error: BaseException) -> str:

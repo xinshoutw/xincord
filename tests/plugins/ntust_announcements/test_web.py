@@ -18,7 +18,13 @@ from aiohttp import web
 from aiohttp.test_utils import RawTestServer
 
 from plugin_fakes import FIXTURES
-from xincord.plugins.ntust_announcements.api import Api, ApiError, ApiFormat, answer_text
+from xincord.plugins.ntust_announcements.api import (
+    Api,
+    ApiError,
+    ApiFormat,
+    answer_text,
+    error_message,
+)
 from xincord.plugins.ntust_announcements.web import FetchError, Page, open_web
 from xincord.plugins.ntust_tls import ntust_context
 
@@ -391,6 +397,55 @@ async def test_openai_answers_without_text(server: Server, body: str) -> None:
 def test_openai_answer_text(answer: object, text: str) -> None:
     """Requirement: An OpenAI-compatible API turns an article into Markdown."""
     assert answer_text(ApiFormat.OPENAI, answer) == text
+
+
+# Gemini's OpenAI-compatible endpoint answers an error as a list of one error object.
+GEMINI_OPENAI_ERROR = [
+    {
+        "error": {
+            "code": 400,
+            "message": "API key not valid. Please pass a valid API key.",
+            "status": "INVALID_ARGUMENT",
+        }
+    }
+]
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="An OpenAI-compatible API turns an article into Markdown",
+)
+@pytest.mark.parametrize(
+    ("answer", "message"),
+    [
+        pytest.param(
+            GEMINI_OPENAI_ERROR, "API key not valid. Please pass a valid API key.", id="error list"
+        ),
+        pytest.param({"error": "model not loaded"}, "model not loaded", id="error text"),
+        pytest.param([], "", id="empty list"),
+        pytest.param([{"error": 7}], "", id="list without a message"),
+    ],
+)
+def test_error_messages(answer: object, message: str) -> None:
+    """Requirement: An OpenAI-compatible API turns an article into Markdown."""
+    assert error_message(answer) == message
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="An OpenAI-compatible API turns an article into Markdown",
+)
+async def test_openai_error_list(server: Server) -> None:
+    """Requirement: An OpenAI-compatible API turns an article into Markdown."""
+    server.api = (400, json.dumps(GEMINI_OPENAI_ERROR))
+
+    async with open_web(openai(server)) as web_:
+        with pytest.raises(ApiError) as raised:
+            await web_.generate("key-one", "the prompt")
+
+    assert str(raised.value) == "code 400: API key not valid. Please pass a valid API key."
 
 
 async def test_page(server: Server) -> None:

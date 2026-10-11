@@ -102,6 +102,10 @@ failed ones, the last wait repeating, and give none after the last.
 - **WHEN** the third attempt works
 - **THEN** the conversion gives its text after waiting 60 and 300 seconds
 
+#### Scenario: Window's edge
+- **WHEN** a key's only attempt leaves the window between two readings of the clock
+- **THEN** the conversion waits until it leaves, then makes its attempt, without an error
+
 ### Requirement: Problems are logged without flooding or showing the keys
 Failed board pages, empty pages, failed article pages, failed conversion attempts and refused
 posts SHALL be logged once per kind (a status code, an error type) and failure episode, per board
@@ -155,8 +159,9 @@ SHALL fail the load with its key named, and a reload SHALL apply the file's sett
 
 #### Scenario: Invalid settings
 - **WHEN** a setting is out of its range: an endpoint with another scheme, no host, user info, a
-  query or a fragment, a gemini model with a slash, a blank model, a temperature of 2.5, a timeout
-  of 0, a connect timeout over the request timeout, no retry wait or a negative one
+  query, a fragment, a backslash or port 0, a gemini model with a slash, a blank model, a
+  temperature of 2.5, a timeout of 0, a connect timeout over the request timeout, no retry wait or
+  a negative one, or `true` (YAML's `yes`, `on`) where a number goes
 - **THEN** the plugin does not load, and the error names the key
 
 #### Scenario: Endpoint stays hidden
@@ -194,6 +199,6 @@ URL, within the timeouts, and take `choices[0].message.content`, trimmed. An ans
 - **THEN** the attempt gives the first choice's content, trimmed
 
 #### Scenario: Failed answers
-- **WHEN** the API answers 401 with an error, 200 without choices or with a null content, or blank
-  content
+- **WHEN** the API answers 401 with an error, 400 with a list of one error (Gemini's compatible
+  endpoint) or an error text, 200 without choices or with a null content, or blank content
 - **THEN** the attempt fails, naming the status and the API's message when there is one

@@ -11,11 +11,12 @@ Kotlin:
 
 import re
 from enum import StrEnum
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, cast
 from urllib.parse import urlsplit
 
 from pydantic import (
     AfterValidator,
+    BeforeValidator,
     ConfigDict,
     Field,
     PositiveInt,
@@ -120,9 +121,24 @@ def _endpoint(url: str) -> str:
     message never quotes the URL, whose path can hold a proxy's token.
     """
     parts = _http_url(url)
+    if "\\" in url or (parts is not None and parts.port == 0):
+        raise NotImplementedError  # stub: endpoints as aiohttp reads them
     if parts is None or "@" in parts.netloc or "?" in url or "#" in url:
         raise ValueError(ENDPOINT)
     return url.rstrip("/")
+
+
+def _booleans(value: object) -> bool:
+    """Whether ``value`` is a boolean or a list that holds one."""
+    items: list[object] = cast("list[object]", value) if isinstance(value, list) else [value]
+    return any(isinstance(item, bool) for item in items)
+
+
+def _not_bool_yet(value: object) -> object:
+    """A stub: a boolean where a number goes is not refused yet."""
+    if _booleans(value):
+        raise NotImplementedError
+    return value
 
 
 def _some_waits(waits: tuple[float, ...]) -> tuple[float, ...]:
@@ -182,25 +198,41 @@ class Config(Model):
     api_format: Annotated[ApiFormat, Field(alias="api-format")] = ApiFormat.GEMINI
     endpoint: Annotated[str, AfterValidator(_endpoint)] = GEMINI_ENDPOINT
     model: str = GEMINI_MODEL  # v3's hard-coded model; checked against the format below
-    temperature: Annotated[float, Field(ge=0, le=2, allow_inf_nan=False)] | None = TEMPERATURE
+    temperature: Annotated[
+        Annotated[float, Field(ge=0, le=2, allow_inf_nan=False)] | None,
+        BeforeValidator(_not_bool_yet),
+    ] = TEMPERATURE
     max_output_tokens: Annotated[
-        Annotated[int, Field(ge=1, le=MAX_OUTPUT_TOKENS)] | None, Field(alias="max-output-tokens")
+        Annotated[int, Field(ge=1, le=MAX_OUTPUT_TOKENS)] | None,
+        Field(alias="max-output-tokens"),
+        BeforeValidator(_not_bool_yet),
     ] = None
     request_timeout: Annotated[
-        float, Field(alias="request-timeout", gt=0, le=MAX_TIMEOUT, allow_inf_nan=False)
+        float,
+        Field(alias="request-timeout", gt=0, le=MAX_TIMEOUT, allow_inf_nan=False),
+        BeforeValidator(_not_bool_yet),
     ] = REQUEST_TIMEOUT
     connect_timeout: Annotated[
-        float, Field(alias="connect-timeout", gt=0, le=MAX_TIMEOUT, allow_inf_nan=False)
+        float,
+        Field(alias="connect-timeout", gt=0, le=MAX_TIMEOUT, allow_inf_nan=False),
+        BeforeValidator(_not_bool_yet),
     ] = CONNECT_TIMEOUT
-    rate_limit: Annotated[int, Field(alias="rate-limit", ge=1, le=MAX_RATE_LIMIT)] = PER_WINDOW
-    rate_window: Annotated[float, Field(alias="rate-window", gt=0, le=DAY, allow_inf_nan=False)] = (
-        WINDOW
-    )
-    max_attempts: Annotated[int, Field(alias="max-attempts", ge=1, le=MOST_ATTEMPTS)] = MAX_ATTEMPTS
+    rate_limit: Annotated[
+        int, Field(alias="rate-limit", ge=1, le=MAX_RATE_LIMIT), BeforeValidator(_not_bool_yet)
+    ] = PER_WINDOW
+    rate_window: Annotated[
+        float,
+        Field(alias="rate-window", gt=0, le=DAY, allow_inf_nan=False),
+        BeforeValidator(_not_bool_yet),
+    ] = WINDOW
+    max_attempts: Annotated[
+        int, Field(alias="max-attempts", ge=1, le=MOST_ATTEMPTS), BeforeValidator(_not_bool_yet)
+    ] = MAX_ATTEMPTS
     retry_waits: Annotated[
         tuple[Annotated[float, Field(ge=0, le=DAY, allow_inf_nan=False)], ...],
         Field(alias="retry-waits", max_length=MOST_WAITS),
         AfterValidator(_some_waits),
+        BeforeValidator(_not_bool_yet),
     ] = BACKOFF
     boards: tuple[Board, ...]
 

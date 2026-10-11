@@ -412,3 +412,31 @@ async def test_counts_of_one(caplog: pytest.LogCaptureFixture) -> None:
     assert plugin_lines(caplog, logging.INFO) == [
         "NtustAnnouncements: conversions work again after 1 failed attempt"
     ]
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="API keys stay within the rate limit and failed attempts are retried",
+)
+async def test_window_edge() -> None:
+    """Requirement: API keys stay within the rate limit and failed attempts are retried."""
+    # The key's only attempt leaves the window between two readings of the clock.
+    readings = iter([0.0, 59.9999999, 60.0000001])
+    time = Time()
+    answers = Answers(time)
+    conversions = Converter(
+        ("key-one",),
+        PROMPT,
+        answers,
+        time.sleep,
+        lambda: next(readings, 60.0000002),
+        lambda: NOW,
+        Limits(rate_limit=1, rate_window=60),
+    )
+
+    assert await conversions.convert("<p>x</p>", LINK) == "Markdown"
+    assert await conversions.convert("<p>x</p>", LINK) == "Markdown"
+
+    assert time.sleeps == [pytest.approx(1e-7, abs=1e-9)]  # until the attempt left the window
+    assert len(answers.calls) == 2

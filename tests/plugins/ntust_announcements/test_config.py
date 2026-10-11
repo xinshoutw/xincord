@@ -589,3 +589,85 @@ def test_example_key(api_format: str) -> None:
     assert str(raised.value) == (
         "config.yaml: api-keys.0: Value error, replace the example key with your API key"
     )
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The model settings are config")
+@pytest.mark.parametrize(
+    ("change", "error"),
+    [
+        pytest.param(
+            ("temperature: 0.1", "temperature: off"),
+            "temperature: Input should be a valid number",
+            id="temperature",
+        ),
+        pytest.param(
+            ("max-output-tokens: null", "max-output-tokens: yes"),
+            "max-output-tokens: Input should be a valid integer",
+            id="max-output-tokens",
+        ),
+        pytest.param(
+            ("request-timeout: 300", "request-timeout: true"),
+            "request-timeout: Input should be a valid number",
+            id="request-timeout",
+        ),
+        pytest.param(
+            ("connect-timeout: 30", "connect-timeout: true"),
+            "connect-timeout: Input should be a valid number",
+            id="connect-timeout",
+        ),
+        pytest.param(
+            ("rate-limit: 10", "rate-limit: on"),
+            "rate-limit: Input should be a valid integer",
+            id="rate-limit",
+        ),
+        pytest.param(
+            ("rate-window: 60", "rate-window: true"),
+            "rate-window: Input should be a valid number",
+            id="rate-window",
+        ),
+        pytest.param(
+            ("max-attempts: 10", "max-attempts: true"),
+            "max-attempts: Input should be a valid integer",
+            id="max-attempts",
+        ),
+        pytest.param(
+            ("retry-waits: [60, 300, 900, 1800]", "retry-waits: [60, yes]"),
+            "retry-waits.1: Input should be a valid number",
+            id="retry-waits",
+        ),
+    ],
+)
+def test_booleans_are_no_numbers(change: tuple[str, str], error: str) -> None:
+    """Requirement: The model settings are config."""
+    # YAML reads yes, on and true as true, which a lax number would take as 1.
+    old, new = change
+    text = with_settings(EXPLICIT)
+    assert old in text
+
+    with pytest.raises(ConfigError) as raised:
+        parse(text.replace(old, new, 1))
+
+    [line] = str(raised.value).splitlines()
+    assert line.startswith(f"config.yaml: {error}")
+
+
+@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The model settings are config")
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        pytest.param("https://api.example.com\\secret-token/v1", id="backslash"),
+        pytest.param("https://api.example.com:0/v1", id="port 0"),
+    ],
+)
+def test_endpoints_as_requests_read_them(endpoint: str) -> None:
+    """Requirement: The model settings are config."""
+    # aiohttp's URLs (yarl) refuse a backslash in the authority, and port 0 reaches no server.
+    text = with_settings(EXPLICIT).replace(
+        'endpoint: "https://generativelanguage.googleapis.com/v1beta"', f"endpoint: '{endpoint}'"
+    )
+
+    with pytest.raises(ConfigError) as raised:
+        parse(text)
+
+    assert str(raised.value) == f"config.yaml: {ENDPOINT_ERROR}"
+    assert "secret" not in str(raised.value.__cause__)

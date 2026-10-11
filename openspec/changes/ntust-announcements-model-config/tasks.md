@@ -34,8 +34,16 @@
       through the plugin's web against a local server
 - [x] 5.2 Porting guide rows and conventions, port-plugin skill notes
 - [x] 5.3 Audit: every scenario of the delta has a test
-- [ ] 5.4 Push the work so far (CI green); cross-review (a subagent); record its findings and fix
-      them xfail-first
+- [x] 5.4 Push the work so far (CI green); cross-review (a subagent); record its findings and fix
+      them xfail-first (5.5 to 5.7; design, "Cross-review")
+- [x] 5.5 xfail tests for "The model settings are config" (booleans for numbers, endpoints that
+      aiohttp refuses or that reach no port), "An OpenAI-compatible API turns an article into
+      Markdown" (an error list, an error text) and "API keys stay within the rate limit and failed
+      attempts are retried" (the window's edge), found in the review
+- [ ] 5.6 Strict numbers, endpoints read as aiohttp reads them, both error shapes, one clock
+      reading per pass; remove the markers
+- [ ] 5.7 The review's notes: reloads and the limiter, placeholder keys, Ollama from compose, the
+      connect limit, and the failures package's docstring
 
 ## 6. Close
 
