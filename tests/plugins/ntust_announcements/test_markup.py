@@ -195,3 +195,23 @@ def test_deep_nesting() -> None:
     assert container.text() == "deep"
     assert container.outer_html().startswith('<div class="M23"><span><span>')
     assert container.outer_html().endswith("deep" + "</span>" * 3000 + "</div>")
+
+
+@pytest.mark.xfail(strict=True, reason="Board pages list their announcements")
+def test_self_closing_tags() -> None:
+    """Requirement: Board pages list their announcements."""
+    # HTML ignores the slash of a non-void start tag, as jsoup does: the link keeps its title.
+    html = '<table class="listTB table"><tbody><tr><td><a href="/p/1.php" />Title</td>'
+    html += "<td>2026-10-11</td></tr></tbody></table><br/><p>after</p>"
+
+    assert texts(html, "td a") == ["Title"]
+    assert texts(html, "p") == ["after"]
+
+
+@pytest.mark.xfail(strict=True, reason="Board pages list their announcements")
+def test_class_separators() -> None:
+    """Requirement: Board pages list their announcements."""
+    # jsoup splits classes at Java's whitespace, which leaves out no-break spaces.
+    assert texts(f'<div class="row{NBSP}listBS">a</div>', "div.row.listBS") == []
+    assert texts('<div class="row\tlistBS">b</div>', "div.row.listBS") == ["b"]
+    assert texts(f'<div class="row{IDEOGRAPHIC_SPACE}listBS">c</div>', "div.row.listBS") == ["c"]
