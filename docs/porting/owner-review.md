@@ -169,7 +169,7 @@ here; delete a section once it is empty.
 - Redirects: kept v3's behavior of not following them (a 3xx logs an error); alternative: follow them, so that an `http://` URL redirected to `https://` works.
 - Failure log policy (`uptime-heartbeat-keep-pushing`): implemented failure episodes: each kind (status code, exception type) is logged at its level once per episode and the rest at debug level, and an episode ends once the step has worked three times in a row, with one info line (`works again after N failed pushes`, or `measures the REST ping again`), so steady, alternating (502 and 504) and flapping failures log one line per kind; the price is a recovery line two intervals late. Alternative: your example as first built (a failure logged when its kind differs from the previous one, the episode ending at the first success), which a cross-review found still logged at every push for alternating kinds and for flapping; or a reminder while a failure lasts (for example hourly).
 - Error texts and tracebacks (`uptime-heartbeat-keep-pushing`): implemented cutting every http or https URL in them to its origin and removing the listener URL's user info, path, query and fragment wherever they appear (a server's malformed answer can quote the request line), with an unexpected error's traceback logged as text; alternative: log only the error's type, without its text or traceback.
-- Core gap, unchanged (`uptime-heartbeat-keep-pushing`): a YAML syntax error in `plugins/UptimeHeartbeat/config.yaml` is logged with PyYAML's snippet of the faulty line (about 30 characters after the error), which can show the start of a listener's URL; alternative: drop the snippets from the core's YAML errors.
+- Core gap, closed in `port-ntust-announcements`: a YAML syntax error in a config file is now logged with its line and column only, without PyYAML's snippet of the faulty line, which could show a listener's URL (and NtustAnnouncements' API keys); alternative: restore the snippets.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-interval-pusher/design.md` (needs a token and an Uptime Kuma push monitor or another endpoint that shows its requests); its steps 4 and 5 are replaced by the next one's.
 - Smoke checklist in `openspec/changes/archive/2026-10-10-uptime-heartbeat-keep-pushing/design.md`: a wrong token or a paused monitor logs one warning and keeps pushing, a resumed monitor logs `works again` at the third push in a row that works, an unanswered address times out with the origin only, and `docker compose logs bot | grep <token>` finds nothing.
@@ -488,3 +488,43 @@ here; delete a section once it is empty.
 - The bot needs View Channel, Send Messages and Embed Links in the new channels.
 - An image check with every plugin enabled needs example IDs in `plugins/TicketAwayNotice/config.yaml`, as Economy's `admin_id`.
 - Done: the wheel, `xincord --no-online`, the compose image with the fifteen ported plugins, and a probe through discord.py's gateway code, again after the cross-review's fixes (archived design, "Checks" and "Cross-review").
+
+## NtustAnnouncements (v3 NtustManager, `port-ntust-announcements`)
+
+### User-visible changes
+- The plugin is `NtustAnnouncements` under `plugins:` and in `plugins/NtustAnnouncements/`; `migrate_v3` moves v3's `plugins/NtustManager/` there with its keys and prompt, and that file needs `boards` added (copy them from the bundled file and set each `channel-id`).
+- The bundled `config.yaml` keeps v3's interval, prompt and example key and lists v3's 18 boards with 0 for every channel, so the plugin does not load until the keys and channels are set; new keys `boards` (`name`, `url`, `layout`, `channel-id`, `title-prefix`) and `model` (`gemini-2.5-flash`), with new comments.
+- An announcement whose article page failed or whose post Discord refused is posted at a later pass (v3 lost it); an article that Gemini fails to convert in ten attempts, or whose page has no content container, is posted as its `# [title](url)` link (v3 posted nothing).
+- An announcement that left a board's first page and came back is not posted again (up to 100 remembered per board); a link listed twice on a page is posted once.
+- Boards run on their own schedules: a board waiting hours for Gemini's retries no longer delays the others (still five page fetches at a time).
+- Title links escape `\`, `[` and `]`, percent-encode `(`, `)`, `<`, `>`, `\` and spaces in the URL, and cut a title too long for Discord with an ellipsis; posts never ping, even when Gemini's text holds `@everyone` or a role.
+- The prompt's tokens are replaced in one pass: a title that holds `{{html}}` stays as written.
+- Board pages that redirect are followed (v3: such a board was empty at every cycle).
+- Log lines (English) name the board; each kind of failure is logged once per episode, with a line when it works again; keys are named by their position (`key 2`), never by their last four characters; a warning at READY names a board whose channel the bot cannot see or that takes no messages; blank entries are a debug line instead of v3's "empty content" warning at every cycle.
+- Core, for every plugin and the core config: a YAML syntax error now gives the file, the line and the column without quoting the faulty line, which could hold an API key or a push token (found in the cross-review).
+- A board's page is parsed in a worker thread; an announcement that raises is logged once per kind and episode and tried again at the next pass, while the board's later entries are posted; a message part of only whitespace is left out; only NTUST's hosts' `/p/<n>.php` pages count as articles (v3's pattern took any host).
+### Choices made without the owner
+- First pass with nothing stored: kept v3's behavior, every first-page entry posted (about 250 over the 18 boards); alternative: remember the first page without posting, which also covers a board added later.
+- Config surface: the boards (URL, layout, channel, title prefix) and the model became config; temperature 0.1, 10 requests a minute per key, ten attempts with 60/300/900/1800 s waits, five fetches at a time, 30 s page timeouts and v3's split sizes stay constants; alternative: config keys for them too.
+- Guild: no `guild-id` key, each channel identifies its guild and the READY check names a missing channel; alternative: a guild key checked at READY, as v3's `getGuildById`.
+- Channels: any channel that takes messages; alternative: announcement channels only, as v3 required.
+- Failures: a failing article page is retried at every pass while it stays on the first page; unconvertible content is posted as its title link; a refused first message waits for the next pass, a refused later part counts as posted with an error; alternative: v3's skip for good.
+- Remembered links: up to 100 per board after they leave the page; alternative: v3's page-only list, or all of them forever.
+- Gemini: its REST API over aiohttp, one session for the plugin; alternative: the google-genai Python SDK, a larger dependency tree.
+- HTML: the standard library's parser with a small tree in the plugin; alternative: an HTML5 parser dependency (selectolax, BeautifulSoup with html5lib) for full jsoup parity.
+- TLS: NTUST's pages are fetched without Python's `VERIFY_X509_STRICT`, because their certificate chains lack a Subject Key Identifier, which Python 3.13+ refuses, and with TWCA's public intermediate certificate added, because `www.academic.ntust.edu.tw` does not send it (certificates and host names are still verified; Gemini keeps the default); alternative: strict checks and no extra certificate, under which no NTUST page loads. The bundled intermediate expires on 2030-10-16.
+- `{{now}}`: the host's local time, as v3 (UTC in the container unless `TZ` is set); alternative: a `time-zone` key as Giveaway's.
+- v3's write-only `announcement_data` archive is not kept; alternative: keep it for parity, though nothing read it.
+- Default model stays v3's `gemini-2.5-flash`; alternative: a newer model as the default.
+- Gemini requests time out after 300 s (v3's SDK set none); rate-limit waits log at debug.
+- Refused posts: an article's messages wait in memory until the channel takes them (lost on a restart, after which the article is converted again); alternative: store them, or post nothing more to a board whose channel refused a post until a reload.
+- HTML parsing differences from jsoup on malformed pages (a `form` between a table and its rows, links misnested across blocks, links in `option`) are accepted, since NTUST's pages are well formed; alternative: an HTML5 parser dependency.
+- Core: the YAML snippets are dropped for every config file, which also closes UptimeHeartbeat's open item above; alternative: keep them and accept that a secret on a faulty line is logged.
+### Manual checks
+- Smoke checklist in `openspec/changes/archive/2026-10-11-port-ntust-announcements/design.md` (a Gemini API key and a test guild).
+- At cutover: run the v3 data import before enabling the plugin, or the first pass posts every board's first page; add `boards` with the 18 channel IDs to the migrated `plugins/NtustAnnouncements/config.yaml`.
+- The bot needs View Channel and Send Messages in each board's channel.
+- An image check with every plugin enabled needs example values in `plugins/NtustAnnouncements/config.yaml` (keys other than v3's example, channel IDs), as Economy's and TicketAwayNotice's.
+- If Google retires `gemini-2.5-flash`, set `model`.
+- Done: the wheel, `xincord --no-online`, the image with the sixteen ported plugins, NTUST's TLS from the image and a probe through discord.py's own objects (archived design, "Checks").
+- TWCA's intermediate certificate in the package expires on 2030-10-16; if NTUST changes its certificates, check the log for TLS failures on the boards.

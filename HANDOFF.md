@@ -1,8 +1,10 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-11 after `port-ticket-away-notice`, the fifteenth plugin port (v3 TicketAddons: a
-notice in new ticket channels while the shop's owner is offline, the first plugin with the presences
-intent and delayed work started by an event), which followed `port-ticket` (ticket panels, ticket
+Updated 2026-10-11 after `port-ntust-announcements`, the sixteenth plugin port (v3 NtustManager:
+NTUST's announcement boards read from READY, new articles converted by Gemini and posted to
+configured channels; the first plugin that scrapes HTML and calls an LLM API), which followed
+`port-ticket-away-notice` (v3 TicketAddons: a notice in new ticket channels while the shop's owner
+is offline, the first plugin with the presences intent), `port-ticket` (ticket panels, ticket
 channels with their overwrites, and archives through webhooks), `chat-logger-split-storage`
 (the owner's third follow-up change: ChatLogger keeps 5 years of messages by default in its own
 SQLite files under `data/ChatLogger/`; with it, a data directory per plugin in the core and a core
@@ -72,8 +74,10 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 - **Core modules (all archived and green):**
   - `xincord.core.config`: `load_config`, `parse_model`, `unknown_keys`, `Model`, `ConfigError`,
     the core schema `CoreConfig` (`token`, `plugins`, `status.activities`, `interaction_log`) and
-    the default `resources/config.yaml`. `xincord.core.migrate_v3` converts the v3 core config,
-    lists the plugins whose v3 config had `enabled: true` (renamed ones under their new names,
+    the default `resources/config.yaml`. YAML syntax errors give the line and the column without
+    PyYAML's snippet of the line, which could hold a secret (since port-ntust-announcements).
+    `xincord.core.migrate_v3` converts the v3 core config, lists the plugins whose v3 config had
+    `enabled: true` (renamed ones under their new names,
     `RENAMED`), moves each renamed plugin's v3 directory to its new name and, last, sets aside as
     `config.v3.yaml` the v3 `config.yaml` of a `SET_ASIDE` plugin (CustomCommands) that held only
     `enabled` (`python -m xincord.core.migrate_v3 <dir>`).
@@ -432,10 +436,34 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 - **Plugin names** (`rename-plugins`): the six ported plugins that the owner renamed carry their new
   names everywhere but the inventories, Kotlin citations, legacy component ID prefixes and
   placeholder keys (porting guide, "Plugin names"); `migrate_v3.RENAMED` maps all nine v3 names,
-  and TicketAwayNotice was ported under its new name. Reuse: the capability rename recipe and the
-  image check with every plugin (section 7).
-- **Still to build:** the plugins after TicketAwayNotice and the owner's follow-up changes (section
-  5).
+  and TicketAwayNotice and NtustAnnouncements were ported under their new names. Reuse: the
+  capability rename recipe and the image check with every plugin (section 7).
+- **NtustAnnouncements** (v3 NtustManager; `xincord.plugins.ntust_announcements`, no intents, no
+  lang, config `fetch-interval`, `api-keys`, `prompt` (v3's keys), `boards` and `model`; the bundled
+  file holds v3's prompt, v3's example key and v3's 18 boards with 0 for every channel, so the
+  plugin waits for the operator): the first plugin that scrapes pages and calls an LLM. Pure
+  modules: `markup.py` (a tree over `html.parser`: omitted end tags in tables and lists, the
+  implied `tbody`, v3's selectors, jsoup's `text()`, a serializer), `pages.py` (v3's three layouts,
+  `complete_url` keeping v3's exact URL strings, `is_article`, the container, v3's minifier with
+  `re.ASCII`, Kotlin's `trim`), `messages.py` (v3's header and split in UTF-16 code units, title
+  links escaped and cut), `gemini.py` (`fill_prompt` in one pass, `KeyRing`, `backoff`,
+  `Gemini.convert` with v3's ten attempts), `store.py` (v3's `TypedListWrapper` per board under
+  namespace `NtustAnnouncements`, `remember` keeping up to 100 links that left the page).
+  `web.py`: aiohttp, pages through `page_context` (Python 3.13+'s `VERIFY_X509_STRICT` refuses
+  NTUST's certificates), Gemini's REST `generateContent` with the key in a header. `watch.py`:
+  `Watcher`, one board's passes (posted links stored after each post, failures retried at the next
+  pass, unconvertible articles posted as title links, `Failures` per step; since the cross-review,
+  refused messages wait in `ready` so that Gemini converts an article once, links posted while
+  the store refused them wait in `delivered`, each announcement is guarded, and pages are parsed
+  in `asyncio.to_thread` with walks that need no recursion). `cog.py`: one task that
+  waits for READY and runs a loop per board in a `TaskGroup`, five fetches at a time, posts through
+  partial messageables without mentions, the ready check. Reuse: `xincord.plugins.failures`
+  (`Failures`, moved from UptimeHeartbeat), `page_context` and `markup.py` (move them into shared
+  packages when NtustCourseWatch needs them), the conftest's `offline` guard (aiohttp refuses every
+  host but this machine's), `FakeWeb`, the `Clock` whose `wake` ends the waits started so far, and
+  trimmed copies of live pages as fixtures.
+- **Still to build:** the plugins after NtustAnnouncements and the owner's follow-up changes
+  (section 5).
 
 ## 5. Status and next steps
 
@@ -449,7 +477,8 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 `port-welcome-bye-guild`, `port-interval-pusher`, `port-feedbacker`, `port-economy`,
 `port-dynamic-voice-channel`, `port-voice-logger`, `port-chat-logger`, `port-giveaway`,
 `rename-plugins`, `uptime-heartbeat-keep-pushing`, `custom-commands-from-config`,
-`chat-logger-split-storage`, `port-ticket`, `port-ticket-away-notice`. Each one's
+`chat-logger-split-storage`, `port-ticket`, `port-ticket-away-notice`,
+`port-ntust-announcements`. Each one's
 `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
@@ -458,24 +487,27 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 
 Core is complete; Example (the template), Calculator, AutoRole, BotInfo, CustomCommands,
 WelcomeGoodbye, UptimeHeartbeat, Feedback, Economy, DynamicVoiceChannel, VoiceLogger, ChatLogger,
-Giveaway, Ticket and TicketAwayNotice are ported. Next: **NtustAnnouncements**
-(`port-ntust-announcements`, v3 NtustManager, `docs/porting/analysis/inventory/NtustManager.md`): a
-background poster without commands that polls NTUST's announcement boards over HTTP, has Gemini turn
-each new article into Markdown and posts it to a guild and channel that v3 hard-coded (config keys
-with example values, never the real IDs); its API key needs the redaction and hidden config errors
-of section 7, and its loop UptimeHeartbeat's `Failures`.
+Giveaway, Ticket, TicketAwayNotice and NtustAnnouncements are ported. Next: **NtustCourseWatch**
+(`port-ntust-course-watch`, v3 NtustCourse, `docs/porting/analysis/inventory/NtustCourse.md`): a
+course-seat watcher with slash commands that polls NTUST's course query API (`POST
+https://querycourse.ntust.edu.tw/QueryCourse/api//courses`) about every 1.5 seconds and posts to the
+channels that registered a course when it has seats; C1 moves its hard-coded semester and go-live
+time into config. Its host's certificate fails Python's strict X.509 checks like NTUST's other
+hosts (checked on 2026-10-11): move NtustAnnouncements' `web.page_context` into a shared package
+and use it there. Its loop follows NtustAnnouncements' (a task from READY,
+`xincord.plugins.failures` for repeated failures, the conftest's `offline` guard in its tests).
 The owner renamed nine plugins on 2026-10-10 (`docs/porting/decisions.md`, Amendment 1; the table
 in `docs/porting-guide.md`, "Plugin names"), and `rename-plugins` applied the renames to the ported
 ones. A port of a renamed plugin uses the new name for the entry point, `plugins/<Name>/`, the
 store namespace, the component ID namespace, the package, the capability and the change
-(`port-ticket-away-notice`), and keeps the v3 name in the legacy prefix; the inventories and the
-Kotlin sources keep the v3 names.
+(`port-ticket-away-notice`, `port-ntust-announcements`), and keeps the v3 name in the legacy
+prefix; the inventories and the Kotlin sources keep the v3 names.
 Port the plugins in C1 order with the `port-plugin` skill (`.claude/skills/port-plugin/SKILL.md`),
 one OpenSpec change each (`port-<plugin-kebab>`): Example (done), Calculator (done),
 AutoRole (done), BotInfo (done, with the configurable AGPL source link of C3), CustomCommands
 (done), WelcomeGoodbye (done), UptimeHeartbeat (done), Feedback (done), Economy (done),
 DynamicVoiceChannel (done), VoiceLogger (done), ChatLogger (done), Giveaway (done), Ticket (done),
-TicketAwayNotice (done, v3 TicketAddons), then NtustAnnouncements (v3 NtustManager),
+TicketAwayNotice (done, v3 TicketAddons), NtustAnnouncements (done, v3 NtustManager), then
 NtustCourseWatch (v3 NtustCourse), MusicPlayer (with Lavalink in `compose.yaml`). Update
 `docs/porting-guide.md` after each one.
 
@@ -594,6 +626,12 @@ Answered on 2026-10-10 (afternoon), from the review queue (the answered items we
    the developer portal before the plugin is enabled, or Discord refuses the bot's connection; at
    cutover, `guild_id` must be the shop's guild, since the guild filter now applies (the READY check
    names a wrong one).
+
+8. **NtustAnnouncements** (review queue, "NtustAnnouncements"): at cutover, run the v3 data
+   import (`current_announcement_lists` from v3's MongoDB, design "Storage and the v3 data
+   import") before enabling the plugin, or its first pass posts every board's first page; add
+   `boards` with the 18 channel IDs to the migrated `plugins/NtustAnnouncements/config.yaml`;
+   `{{now}}` is UTC in the container unless `TZ` is set.
 
 ## 7. Verified facts and pitfalls
 
@@ -952,8 +990,27 @@ setup-uv v10.2.0, setup-node v7.1.0.
   placeholder) fails at render time, where a load-time render with no values catches a `uid` or a
   `model_key` that the plugin cannot give.
 - An image check or `xincord --no-online` with every plugin enabled needs example values in
-  `plugins/Economy/config.yaml` (`admin_id`) and `plugins/TicketAwayNotice/config.yaml` (`guild_id`,
-  `user_id`), whose bundled files wait for the operator.
+  `plugins/Economy/config.yaml` (`admin_id`), `plugins/TicketAwayNotice/config.yaml` (`guild_id`,
+  `user_id`) and `plugins/NtustAnnouncements/config.yaml` (a key other than v3's example, and every
+  `channel-id`), whose bundled files wait for the operator.
+
+- Python 3.13+ adds `VERIFY_X509_STRICT` to `ssl.create_default_context()`, which aiohttp uses:
+  NTUST's hosts (`student`, `www.academic`, `lc`, `querycourse`) fail it with `Missing Subject Key
+  Identifier`, in the image too (OpenSSL 3.5.7); clear only that flag for them. The academic host
+  also leaves out TWCA's intermediate (`unable to get local issuer certificate`): the package
+  ships it (`twca-secure-ssl-ca.pem`, until 2030-10-16) and `ntust_announcements.web.page_context`
+  loads it.
+- pydantic's `min_length` on a list counts the items that validated: invalid items also read as an
+  empty list. Check emptiness in an after-validator.
+- `monkeypatch.setattr("pkg.module.name", ...)` walks the attributes from the top package, which
+  can reach a stale module after discord.py executed a plugin's package again; patch
+  `importlib.import_module("pkg.module")`. A test that loaded NtustAnnouncements into a ready bot
+  once reached NTUST that way; its conftest now refuses every host but 127.0.0.1 (`offline`).
+- aiohttp's `ClientConnectorError` shows its `OSError`'s `strerror`: raise `OSError(errno, text)`
+  in fakes, or the text reads `[None]`.
+- Java's `\s` is ASCII and its multiline `^`/`$` also break at `\r`, U+0085, U+2028 and U+2029;
+  jsoup's `text()` collapses spaces, tabs, line breaks and no-break spaces, drops U+200B and U+00AD
+  and separates blocks and `br` (NtustAnnouncements' `markup.py` and `pages.minify`).
 
 **v3 behaviors never to reproduce:** loading plugins in reverse dependency order, non-atomic JSON
 writes that reset corrupt files, recursive placeholder expansion, shared mutable placeholder

@@ -9,7 +9,8 @@ schema, and migrates the v3 core config.
 ### Requirement: Config files are validated against a typed schema
 Loading a config file SHALL validate it against the caller's schema. Any invalid value, YAML
 syntax error, or non-mapping document SHALL fail the load with a config error that names the file
-and the location of every problem. An empty file SHALL load as an empty mapping.
+and the location of every problem; a YAML syntax error SHALL give its line and column without
+quoting the file's text, which can hold secrets. An empty file SHALL load as an empty mapping.
 
 #### Scenario: Valid file loads
 - **WHEN** a file matches the schema
@@ -26,6 +27,11 @@ and the location of every problem. An empty file SHALL load as an empty mapping.
 #### Scenario: Empty file uses the defaults
 - **WHEN** the file is empty and every field has a default
 - **THEN** the load returns the defaults
+
+#### Scenario: YAML errors quote no text
+- **WHEN** a line that holds a secret has a YAML syntax error
+- **THEN** the config error and the error chained to it give the line and the column, not the
+  secret
 
 ### Requirement: Missing config files are created from the default
 When the config file does not exist, loading SHALL first write the caller's default text to that
