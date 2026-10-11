@@ -93,8 +93,8 @@ def viewing(
 
 
 def is_staff(role_ids: Iterable[int], entry: Entry, *, administrator: bool) -> bool:
-    """Whether a member may delete or save a ticket: they hold one of its entry's staff roles, or
-    Administrator (v3's ``hasTicketAdminPermission``)."""
+    """Whether a member may use a ticket's control row (lock, unlock, save and delete): they hold
+    one of its entry's staff roles, or Administrator (v3's ``hasTicketAdminPermission``)."""
     return administrator or not set(entry.admin_ids).isdisjoint(role_ids)
 
 

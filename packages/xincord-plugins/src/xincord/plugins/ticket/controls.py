@@ -150,18 +150,18 @@ class ControlRow:
     ) -> None:
         """Deny (``locked``) or allow the ticket's member View Channel, then show the other row.
 
-        Acknowledged at once: v3 answered after fetching the member and setting the overwrite,
-        within Discord's three seconds or not at all. The overwrite's other permissions stay. No
-        permission check, as in v3: anyone who sees the channel may press it, the member too. A
-        failure (the member left, a refused overwrite) is told to the user, and the row stays as
-        it was. A row whose member is no user ID gets no response: v3 threw.
+        For the ticket's staff only (:meth:`_staff`): anyone else, the ticket's member too, is
+        refused and nothing changes; v3 checked nobody, so the member could lock themselves out.
+        Only the store is read before the acknowledgement, which comes before any request to
+        Discord: v3 answered after fetching the member and setting the overwrite, within
+        Discord's three seconds or not at all. The overwrite's other permissions stay. A failure
+        (the member left, a refused overwrite) is told to the user, and the row stays as it was.
+        A row whose member is no user ID gets no response from anyone: v3 threw.
         """
         controls = _controls(fields)
         if controls is None:
             return
-        found = await self._staff_entry(interaction, fields)
-        if isinstance(found, str):
-            await self._refuse(interaction, found)
+        if await self._staff(interaction, fields) is None:
             return
         await interaction.response.defer()
         try:
@@ -180,22 +180,14 @@ class ControlRow:
         await interaction.edit_original_response(view=row)
 
     async def delete(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
-        """Delete the ticket channel for its staff; anyone else gets an acknowledgement only.
+        """Delete the ticket channel for its staff (:meth:`_staff`); anyone else is refused.
 
-        The entry of the row's panel button names the staff roles (v3's not-found text without
-        one). As in v3, every press is acknowledged first, and nothing else happens for those who
-        are no staff or no members; a refused deletion is told to the user.
+        v3 acknowledged anyone but staff and did nothing. The staff's press is acknowledged before
+        the deletion (v3's ``deferEdit``), and a refused deletion is told to the user.
         """
-        found = await self._staff_entry(interaction, fields)
-        if found == "error.not-found":
-            await tell(interaction, self.texts(interaction).get("error.not-found"))
-            return
-        if found == "error.admin-only":
-            await self._refuse(interaction, "error.admin-only")
+        if await self._staff(interaction, fields) is None:
             return
         await interaction.response.defer()  # v3's deferEdit
-        if isinstance(found, str):  # no member
-            return
         try:
             await _remove(interaction)
         except (discord.HTTPException, ChannelError) as error:
@@ -205,23 +197,18 @@ class ControlRow:
             await self._failed(interaction, "error.delete-failed", error)
 
     async def save(self, interaction: discord.Interaction, fields: Mapping[str, str]) -> None:
-        """Offer the ticket's staff, ephemerally, a select of the text channel to save it in.
+        """Offer the ticket's staff (:meth:`_staff`), ephemerally, a select of the text channel to
+        save it in; anyone else is refused, as in v3.
 
-        In v3's order: a user who is no member gets an acknowledgement only, a row without its
-        entry the not-found text, and anyone but staff the admin-only text. The select's ID
-        carries the row's fields; a row whose member is no user ID gets no response (v3 threw).
+        The select's ID carries the row's fields; a row whose member is no user ID gets no
+        response (v3 threw).
         """
-        found = await self._staff_entry(interaction, fields)
-        if found == "error.no-member":
-            await interaction.response.defer()  # v3's deferEdit
-            return
-        texts = self.texts(interaction)
-        if isinstance(found, str):
-            await tell(interaction, texts.get(found))
+        if await self._staff(interaction, fields) is None:
             return
         controls = _controls(fields)
         if controls is None:
             return
+        texts = self.texts(interaction)
         await interaction.response.send_message(
             texts.get("reply.choose-channel"),
             view=save_select(controls, texts, IDS.build),
@@ -307,10 +294,33 @@ class ControlRow:
             return "error.admin-only"
         return entry
 
+    async def _staff(
+        self, interaction: discord.Interaction, fields: Mapping[str, str]
+    ) -> Entry | None:
+        """The entry of the row's panel button when one of its staff pressed a button of the
+        control row; otherwise the press is refused (:meth:`_refuse`) and None returned.
+
+        The one check of lock, unlock, save and delete, at the owner's request: v3 checked save
+        and delete only, and acknowledged anyone but staff on delete without a word.
+        """
+        found = await self._staff_entry(interaction, fields)
+        if isinstance(found, str):
+            await self._refuse(interaction, found)
+            return None
+        return found
+
     async def _refuse(self, interaction: discord.Interaction, key: str) -> None:
         """Answer a press of the control row that the ticket's staff did not make; ``key`` is
-        what ``_staff_entry`` refused it with."""
-        raise NotImplementedError
+        what :meth:`_staff_entry` refused it with.
+
+        A user who is no member gets v3's acknowledgement only (Discord sends the member with
+        every interaction in a guild, so this happens outside guilds only); anyone else the text
+        ``key``, not-found or admin-only, as the interaction's ephemeral response.
+        """
+        if key == "error.no-member":
+            await interaction.response.defer()  # v3's deferEdit
+            return
+        await tell(interaction, self.texts(interaction).get(key))
 
     async def _failed(self, interaction: discord.Interaction, key: str, error: Exception) -> None:
         """Tell the user, after the acknowledgement, the text ``key`` with ``error``."""

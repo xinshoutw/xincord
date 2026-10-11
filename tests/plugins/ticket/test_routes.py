@@ -110,7 +110,6 @@ async def test_v3_control_row(scene: Scene) -> None:
     assert button_ids(interaction.sent[2][1]["view"]) == row_ids("lock", "save", "delete")
 
 
-@pytest.mark.xfail(strict=True, reason="v3's panels and tickets keep working")
 async def test_v3_control_row_refused(scene: Scene) -> None:
     """Requirement: v3's panels and tickets keep working."""
     await stored(scene)

@@ -136,9 +136,6 @@ async def test_staff_role(scene: Scene) -> None:
     assert overwrites(scene) == [(MEMBER, 0, VIEW)]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The control row locks and unlocks the ticket"
-)
 @pytest.mark.parametrize("action", ["lock", "unlock"])
 @pytest.mark.parametrize(
     ("user", "locale", "text"),
@@ -164,9 +161,6 @@ async def test_not_the_tickets_staff(
     assert scene.channel.sent == []  # no overwrite changes
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The control row locks and unlocks the ticket"
-)
 @pytest.mark.parametrize(
     "fields",
     [{"msg_id": "501", "btn_index": "0"}, {"msg_id": PANEL, "btn_index": "1"}, {}],
@@ -185,9 +179,6 @@ async def test_no_entry(scene: Scene, fields: dict[str, str]) -> None:
     assert scene.channel.sent == []
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The control row locks and unlocks the ticket"
-)
 async def test_not_a_member(scene: Scene) -> None:
     """Requirement: The control row locks and unlocks the ticket."""
     await stored(scene)

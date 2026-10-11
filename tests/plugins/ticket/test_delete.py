@@ -51,9 +51,6 @@ async def test_deletion(scene: Scene, roles: tuple[int, ...], admin: bool) -> No
     assert scene.channel.sent == [DELETED]
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Administrators delete the ticket"
-)
 @pytest.mark.parametrize(
     ("user", "locale", "text"),
     [

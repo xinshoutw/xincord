@@ -5,7 +5,7 @@
       delete the ticket" (any other member refused) and "v3's panels and tickets keep working" (a
       v3 row pressed by the ticket's member), against a stub `_refuse` that the new cases reach;
       the tests that press lock as staff store the panel's entry
-- [ ] 1.2 Check staff in lock and unlock, and answer every refusal of the four buttons through one
+- [x] 1.2 Check staff in lock and unlock, and answer every refusal of the four buttons through one
       check (`_staff`, `_refuse`); remove the markers
 
 ## 2. Labels
