@@ -7,11 +7,13 @@ in channel 101 and the Language Center's recruitment board in channel 102), and 
 """
 
 import asyncio
+import errno
 import sys
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
+import aiohttp
 import pytest
 
 from discord_fakes import FakeChannel, Sent
@@ -27,6 +29,7 @@ if TYPE_CHECKING:
     from xincord.plugins.ntust_announcements.cog import NtustAnnouncements
 
 PACKAGE = "xincord.plugins.ntust_announcements"
+LOCAL_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
 PAGES = FIXTURES / "plugins" / "ntust_announcements"
 DORMITORY_URL = "https://student.ntust.edu.tw/p/403-1053-1436-1.php"
 RECRUITMENT_URL = "https://lc.ntust.edu.tw/p/403-1070-1626-1.php"
@@ -61,6 +64,26 @@ def plugin_modules() -> Iterator[None]:
     }
     yield
     sys.modules.update(kept)
+
+
+@pytest.fixture(autouse=True)
+def offline(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No test reaches the network: aiohttp refuses every host but this machine's.
+
+    The tests' local servers listen on 127.0.0.1; a plugin that a test failed to give its fake web
+    would otherwise fetch NTUST's real pages.
+    """
+    resolve = aiohttp.TCPConnector._resolve_host  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
+
+    async def local_only(
+        connector: aiohttp.TCPConnector, host: str, port: int, traces: object = None
+    ) -> object:
+        if host not in LOCAL_HOSTS:
+            msg = f"the tests do not reach the network: {host}"
+            raise OSError(errno.EHOSTUNREACH, msg)  # aiohttp's error shows its strerror
+        return await resolve(connector, host, port, cast("Any", traces))
+
+    monkeypatch.setattr(aiohttp.TCPConnector, "_resolve_host", local_only)
 
 
 @pytest.fixture(autouse=True)
@@ -173,7 +196,6 @@ class Scene:
     ready: Ready
     web: FakeWeb
     clock: Clock
-    sent: list[Sent] = field(default_factory=list[Sent])
     channels: dict[int, FakeChannel] = field(default_factory=dict[int, FakeChannel])
 
     @property
@@ -185,7 +207,7 @@ class Scene:
 
     def channel(self, channel_id: int, **_: object) -> FakeChannel:
         """Stands for ``bot.get_partial_messageable``: a channel that records its messages."""
-        return self.channels.setdefault(channel_id, FakeChannel(sent=self.sent, id=channel_id))
+        return self.channels.setdefault(channel_id, FakeChannel(sent=list[Sent](), id=channel_id))
 
     def posts(self, channel_id: int) -> list[str]:
         """The messages that ``channel_id`` got."""
