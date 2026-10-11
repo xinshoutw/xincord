@@ -95,6 +95,12 @@ Baseline: XsDiscordBotKt `main` at `3a59607` (v3.4). Decisions: `docs/porting/de
 | `ChannelCreateEvent` (every channel kind, threads too) | `on_guild_channel_create(channel)` and `on_thread_create(thread)`, which discord.py dispatches for newly created threads only (`on_thread_join` otherwise); a `runtime_checkable` Protocol with `send` keeps the channels that take messages (TicketAwayNotice's `watch`) | B3 |
 | `member.onlineStatus` with `GUILD_PRESENCES` and the `ONLINE_STATUS` cache flag | `member.status` with `discord.Intents(members=True, presences=True)`: the members intent keeps the members, the presences intent their statuses; a member from `fetch_member` has no presence and is `Status.offline`, as JDA's default (TicketAwayNotice) | B4 |
 | `RestAction.queueAfter(delay, unit)` (nothing cancels it) | a task per message, started by the listener and kept in a set on the cog, that awaits the cog's injected `sleep`, checks the state again and then sends; `cog_unload` cancels the tasks (TicketAwayNotice's notices) | |
+| Ksoup (jsoup) `Ksoup.parse(html).select(css)`, `Element.text()`, `outerHtml()` | `xincord.plugins.ntust_announcements.markup`: a tree over `html.parser` with HTML's omitted end tags in tables and lists and the implied `tbody`, `select` for tags, `#id`, `.class` (without case) and descendants, jsoup's `text()` and a serializer (NtustAnnouncements) | |
+| google-genai Java SDK `client.models.generateContent(model, content, config)` | `POST https://generativelanguage.googleapis.com/v1beta/models/<model>:generateContent` with the key in `x-goog-api-key` over the plugin's aiohttp session; the first candidate's text parts joined (NtustAnnouncements' `Web.generate`) | |
+| Embedded MongoDB `MemoryCacheDb` holding Core's `TypedListWrapper` (`{"items": [...], "itemTypeName": ...}`) | the wrapper's value in the store under the plugin's name and the document's `_id`; `itemTypeName` read and ignored (NtustAnnouncements' `store.py`) | B8, B11 |
+| `guild.getNewsChannelById(id)!!.sendMessage(...)` for a hard-coded channel | a channel ID in the config and `bot.get_partial_messageable(id).send(content=..., allowed_mentions=AllowedMentions.none())`; a missing or messageless channel is a warning at READY (NtustAnnouncements) | |
+| One `scheduleAtFixedRate` cycle over every board, five at a time through a `Semaphore` held for the whole board | a loop per board in an `asyncio.TaskGroup` (a pass, then `fetch-interval`), the semaphore held while fetching only (NtustAnnouncements' `Watcher`) | |
+| Java's `HttpClient` TLS (no strict X.509 profile) | aiohttp with Python's default context, whose `VERIFY_X509_STRICT` (Python 3.13+) refuses NTUST's certificate chains: pages use a context without that flag (`web.page_context`) | |
 | Ktor Web-Dashboard | not ported | B13 |
 
 ## Intents kept from the v4 attempt (A3)
@@ -136,7 +142,7 @@ prefixes keep the v3 names. The other plugins keep their names.
 | IntervalPusher | UptimeHeartbeat | `uptime_heartbeat` |
 | Feedbacker | Feedback | `feedback` |
 | TicketAddons | TicketAwayNotice | `ticket_away_notice` |
-| NtustManager | NtustAnnouncements | not ported yet |
+| NtustManager | NtustAnnouncements | `ntust_announcements` |
 | NtustCourse | NtustCourseWatch | not ported yet |
 
 `xincord.core.migrate_v3` (`RENAMED`) writes the new names in the `plugins` list and moves each
@@ -351,6 +357,20 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
 - A plugin that reads members' statuses declares `discord.Intents(members=True, presences=True)`:
   both are privileged, and the smoke checklist says to allow them in the developer portal
   (TicketAwayNotice).
+
+- A plugin that scrapes pages (NtustAnnouncements) parses them with the standard library
+  (`markup.py`'s tree, v3's selectors, jsoup's `text()`), keeps the pages it needs as trimmed and
+  anonymized copies of the live ones under `tests/fixtures/plugins/<package>/` (fetched once, the
+  date in a comment), and keeps v3's exact URL strings where they are an item's identity (v3's
+  stored lists). Its tests refuse every host but this machine's (an autouse `offline` fixture on
+  aiohttp's resolver), so a test that forgot a fake never reaches the site.
+- Calls to an LLM API go over its documented REST API with aiohttp (no SDK); keys are config,
+  validated with hidden input, named in logs by their position and removed from error texts, and
+  shared within a client-side rate limit (`gemini.KeyRing`) with v3's retry schedule on the
+  injected `sleep` (NtustAnnouncements).
+- Background work over several independent sources runs one loop per source in a `TaskGroup`
+  inside the plugin's single task, so that one source's long waits hold up no other; a shared
+  `asyncio.Semaphore` bounds the requests themselves (NtustAnnouncements' boards).
 
 ## Pitfalls
 
@@ -712,14 +732,36 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   author or footer as raw `<#...>` text; it renders mentions in the description and in field
   values (TicketAwayNotice's bundled notice moved v3's text into the description).
 
+- **Strict X.509 checks.** Python 3.13 made `VERIFY_X509_STRICT` part of
+  `ssl.create_default_context()`, which aiohttp uses: the certificate chains of NTUST's hosts
+  (`student`, `www.academic`, `lc` and `querycourse.ntust.edu.tw`, 2026-10-11) lack a Subject Key
+  Identifier and fail with `Missing Subject Key Identifier`, where Java and curl accept them.
+  Clear only that flag for such hosts, keeping the certificate and host name checks
+  (NtustAnnouncements' `page_context`).
+- **`min_length` on a list of invalid items.** pydantic checks a constrained list's length after
+  its items, counting the valid ones: 18 invalid boards also read as `Tuple should have at least 1
+  item`. Refuse an empty list in an after-validator, which runs only when the items are valid.
+- **Dotted `monkeypatch` targets.** `monkeypatch.setattr("pkg.module.name", ...)` walks the
+  attributes from the top package, and discord.py executes a plugin's package again on each load
+  without updating its parent's attribute: the target can be a stale module object. Patch
+  `importlib.import_module("pkg.module")` (the one in `sys.modules`, which the next load reuses).
+- **aiohttp's connection errors.** `ClientConnectorError` shows its `OSError`'s `strerror`, which
+  is None for `OSError(message)`: a fake that fails a connection raises `OSError(errno, message)`.
+- **jsoup's `text()`.** It collapses spaces, tabs, line breaks and no-break spaces, drops U+200B
+  and U+00AD, separates blocks and `br` with a space and leaves scripts and styles out; Kotlin's
+  `trim()` then removes Unicode spaces too, but not U+0085 (`pages.trim`).
+- **Java's regular expressions.** `\s` is ASCII-only (use `re.ASCII`), and in multiline mode `^`
+  and `$` also break lines at `\r`, U+0085, U+2028 and U+2029: normalize line breaks before porting
+  a line-based pass (v3's HTML minifier).
+
 v3 behaviors never to reproduce: loading plugins in reverse dependency order, non-atomic JSON
 writes that silently reset corrupt files, recursive placeholder expansion, shared mutable
 placeholder caches, `asTextChannel()` failures in threads, voice chat and announcement channels,
 allow-all mentions, naming the member of an event after the guild's newest audit log entry,
 keeping message content forever, rendering a builder through an expired interaction token,
 drawing a giveaway twice, pinging what a user typed into a ticket, losing an error thrown in a
-callback (Ticket's archive hung), a guild filter that never applied, and a delayed message that
-nothing could cancel or check again (TicketAddons).
+callback (Ticket's archive hung), a guild filter that never applied, a delayed message that
+nothing could cancel or check again (TicketAddons), and announcements skipped for good after one failure, posted again after they left a page, or doubled by a second scheduler after a reload (NtustManager).
 
 ## Differences from v3
 
@@ -941,3 +983,12 @@ Every deliberate difference, added by the change that introduces it.
 | TicketAwayNotice | an invalid config stopped the bot even while disabled (B4), unknown keys failed the load, and the IDs took any text | only the plugin is disabled, unknown keys warn, and both IDs must be positive integers | port-ticket-away-notice |
 | TicketAwayNotice | the bundled files held the shop's guild and owner IDs, its name and two channel IDs, and the text sat in the embed title, where channel mentions show as raw text | 0 for both IDs (the plugin waits for them), example values, the text in the description; operators' files keep theirs | port-ticket-away-notice |
 | TicketAwayNotice | a template that could not be sent (a component ID, more than ten embeds, an empty message) failed at each notice; a refused notice or a missing owner showed only as JDA's failure log | the template is checked at load, with the file named; warnings name the guild and the channel or the user | port-ticket-away-notice |
+| Plugin names | `NtustManager`, with its files in `plugins/NtustManager/` | `NtustAnnouncements` under `plugins:` and as `plugins/NtustAnnouncements/`; `migrate_v3` maps the name and moves the directory | rename-plugins, port-ntust-announcements |
+| NtustAnnouncements | the guild, the 18 boards' URLs and channels, the filter and the model were hard-coded; outside the owner's guild the bot did not start, and a channel that was not an announcement channel lost its posts | `boards` (name, URL, layout, channel, title prefix) and `model` in `config.yaml`, the bundled file with v3's boards and 0 for every channel; any channel that takes messages; a warning at READY names a missing one | port-ntust-announcements |
+| NtustAnnouncements | an announcement whose article, Gemini conversion or post failed was never posted, since the board's list was replaced at every cycle; it was stored before it was posted | a failed article page or a refused post is retried at the next pass; content that cannot be converted is posted as its title link; a link counts once posted | port-ntust-announcements |
+| NtustAnnouncements | an announcement that left a board's first page and came back (a partial page, a re-pinned article) was posted again; a link listed twice was posted twice | a board keeps up to 100 links that left its page; each link is posted once | port-ntust-announcements |
+| NtustAnnouncements | one scheduler checked every board five at a time, a Gemini backoff of up to hours holding a slot and the cycle; a reload added a second scheduler or failed, and kept the old keys, prompt and interval | a loop per board, five page fetches at a time; a reload replaces the cog and its loops with the new config | port-ntust-announcements |
+| NtustAnnouncements | redirects were not followed; `//host/x` and relative links were mangled; a title link's title was not escaped nor its length checked | redirects followed, links resolved against the page (v3's `https` and `/` strings kept), titles escaped and cut to fit with the URL whole | port-ntust-announcements |
+| NtustAnnouncements | prompt tokens in a title were replaced by later values; Gemini's text could ping `@everyone`; logs showed each key's last four characters | the prompt is filled in one pass; posts ping nobody; keys are named by position and removed from error texts | port-ntust-announcements |
+| NtustAnnouncements | every failure was logged at every cycle, entries without a title warned about "empty content", and a Gemini client was built per attempt and never closed | each kind of failure once per episode, a debug line for blank entries, one HTTP session for the plugin | port-ntust-announcements |
+| NtustAnnouncements | the stored lists and a write-only archive in the embedded MongoDB, written asynchronously; the config failed the bot even while disabled | v3's list documents in the store, awaited (the planned v3 data import copies them); no archive; only the plugin is disabled by an invalid config, unknown keys warn | port-ntust-announcements |

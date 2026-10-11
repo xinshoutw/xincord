@@ -14,11 +14,11 @@ Names: `<Plugin>` is the plugin's xincord name (`AutoRole`, `Example`), `<kebab>
 (`auto-role`, `example`) for the change, the capability `plugin-<kebab>` and the commit scope,
 `<package>` the Python package (`auto_role`, `example`). The owner renamed nine plugins
 (`docs/porting/decisions.md`, Amendment 1; the table in `docs/porting-guide.md`, "Plugin names"):
-the two not ported yet are NtustManager (NtustAnnouncements) and NtustCourse (NtustCourseWatch).
-Their inventories, Kotlin sources and legacy component ID prefixes keep the v3 name; everything
-else, the store namespace and the new ID namespace included, uses the new one, and
-`xincord.core.migrate_v3.RENAMED` already maps the v3 name (TicketAwayNotice, v3 TicketAddons, was
-the first port of a plugin renamed before its port).
+the one not ported yet is NtustCourse (NtustCourseWatch). Its inventory, Kotlin sources and
+legacy component ID prefixes keep the v3 name; everything else, the store namespace and the new ID
+namespace included, uses the new one, and `xincord.core.migrate_v3.RENAMED` already maps the v3
+name (TicketAwayNotice, v3 TicketAddons, and NtustAnnouncements, v3 NtustManager, were ported
+under their new names).
 
 ## Steps
 
@@ -80,7 +80,9 @@ the first port of a plugin renamed before its port).
    (Feedback's probe; it checked the modal's label payload and the core's legacy upgrade). A
    plugin that writes under `data/` is checked in the image too: `docker compose run --rm -T -v
    <probe>:/probe.py:ro --entrypoint python bot /probe.py` writes into the named volume as uid 1000
-   (ChatLogger's message files).
+   (ChatLogger's message files). A plugin that fetches a site checks it from the image once with
+   the same kind of probe, one request, since TLS depends on the image's OpenSSL
+   (NtustAnnouncements' `page_context` against NTUST's certificates).
    For voice and channel work, give `_add_guild_from_data` the category and voice channels
    (`parent_id`), feed `state.parse_voice_state_update(...)` with a `member` payload, and answer the
    recorded `POST /guilds/{id}/channels` with the body plus an `id` so that `clone()` returns a
@@ -405,8 +407,8 @@ async def setup(bot: Bot) -> None:
   `Exception` with its traceback. `asyncio.CancelledError` is no `Exception`, so cancellation stays
   quiet. A step that fails at every pass logs each kind of failure (status code, error type) once
   per episode, the rest at debug level, and one info line once it has worked three times in a row
-  (UptimeHeartbeat's `Failures`, one per step on the loop's object): steady, alternating and
-  flapping failures stay quiet.
+  (`xincord.plugins.failures.Failures`, from UptimeHeartbeat, one per step on the loop's object):
+  steady, alternating and flapping failures stay quiet.
 - A URL that carries a secret (a push token in its path or query) appears in logs as its origin
   (`xincord.plugins.redaction.origin`, moved there from UptimeHeartbeat's `logs.py` by
   port-ticket). Redact error texts too (`xincord.plugins.redaction.redact(text, *urls)`: URLs cut
@@ -434,6 +436,33 @@ async def setup(bot: Bot) -> None:
   `on_thread_create` too: skip them by `thread.owner_id` when they are not meant.
 - A Discord REST call that JDA made without a discord.py counterpart goes through
   `bot.http.request(discord.http.Route(method, path))` (UptimeHeartbeat's `rest_ping`).
+- Several independent sources (NtustAnnouncements' boards) run one loop each in an
+  `asyncio.TaskGroup` inside the cog's single task, which opens the session after READY: a source
+  that waits (hours of Gemini retries) holds up no other. A shared `asyncio.Semaphore` bounds the
+  requests themselves, held while fetching only. The effects are attributes of the cog
+  (`sleep`, `clock`, `now`, `open_web`) and callables of a per-source object (`watch.Watcher`), so
+  that tests drive the passes without HTTP or Discord.
+- Python 3.13+ verifies certificates with `VERIFY_X509_STRICT`, which refuses NTUST's chains
+  (no Subject Key Identifier; `querycourse.ntust.edu.tw` too): requests to such hosts take a
+  context without that flag, certificates and host names still verified
+  (`ntust_announcements.web.page_context`); other hosts (Gemini) keep Python's default. Move it into
+  a shared package when a second plugin needs it.
+- An LLM API is called over its documented REST API with aiohttp (Gemini's `generateContent`, the
+  key in a header, never in the URL); keys are config with hidden validation input, named in logs
+  by their position and removed from error texts (`Gemini.hide`).
+
+### Scraped pages
+
+- HTML is parsed with the standard library: `ntust_announcements.markup` builds a tree over
+  `html.parser` (void and raw-text elements, the end tags HTML lets pages omit in tables and lists,
+  the implied `tbody`) and reads it with v3's selectors (tags, `#id`, `.class`, descendants) and
+  jsoup's `text()`. Move it into a shared package when a second plugin needs it.
+- Fixtures are trimmed copies of the live pages, fetched once (the URL and the date in an HTML
+  comment), with shared-document links and personal contact details replaced by examples
+  (`tests/fixtures/plugins/ntust_announcements/`); golden data holds what v3's parser gives for
+  them.
+- When v3 used a URL as an item's identity (stored lists), keep v3's exact string for the links v3
+  built right, and fix only the ones it mangled, or the import makes every item new.
 
 ### Channels, overwrites and webhooks
 
@@ -665,6 +694,17 @@ async def setup(bot: Bot) -> None:
   and `button_rows(view)`.
 - Keep each xfail reason a literal string in its decorator: a script then strips the markers of
   one requirement at once.
+- A plugin that fetches sites refuses every host but this machine's in its tests: an autouse
+  `offline` fixture wraps `aiohttp.TCPConnector._resolve_host` and raises `OSError(errno,
+  message)` (NtustAnnouncements' conftest). Patch a plugin module's globals through
+  `importlib.import_module(...)`, never a dotted `monkeypatch` target: discord.py executes the
+  plugin's package again on each load, and the attribute path can reach a stale module object,
+  which once let a test reach NTUST.
+- NtustAnnouncements' `scene` replaces the loaded cog's `open_web` (`FakeWeb`: page copies, a fake
+  Gemini that can hold a prompt forever, fetches that can wait together and count how many run at
+  once) and `sleep` (a `Clock` whose `wake` ends the waits started so far, so loops pass again one
+  step at a time), and gives `bot.get_partial_messageable` a `FakeChannel` per ID; a `bot` fixture
+  that the `scene` fixture takes keeps both under five fixtures.
 - TicketAwayNotice's `scene` (`tests/plugins/ticket_away_notice/conftest.py`) feeds
   `CHANNEL_CREATE`, `THREAD_CREATE` (with `newly_created`), `PRESENCE_UPDATE`, `CHANNEL_DELETE`,
   `GUILD_DELETE` and `GUILD_MEMBER_REMOVE` to discord.py's parsers and lets `FakeRest` answer each
