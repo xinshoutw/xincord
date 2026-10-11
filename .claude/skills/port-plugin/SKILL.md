@@ -463,6 +463,11 @@ async def setup(bot: Bot) -> None:
   them.
 - When v3 used a URL as an item's identity (stored lists), keep v3's exact string for the links v3
   built right, and fix only the ones it mangled, or the import makes every item new.
+- Parse fetched pages in `asyncio.to_thread` and walk trees with a stack of your own (malformed
+  pages nest deeply); check regular expressions ported from v3 for backtracking on long runs.
+- Keep the result of a paid call (an LLM conversion) until the step after it (the post) works,
+  and the items posted until the store takes them, so that retries neither pay nor post twice
+  (NtustAnnouncements' `Watcher.ready` and `delivered`, found in its cross-review).
 
 ### Channels, overwrites and webhooks
 

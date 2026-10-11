@@ -754,6 +754,26 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   and `$` also break lines at `\r`, U+0085, U+2028 and U+2029: normalize line breaks before porting
   a line-based pass (v3's HTML minifier).
 
+- **Missing intermediates.** A server that leaves out its intermediate certificate
+  (`www.academic.ntust.edu.tw` sends its own twice and the root) fails OpenSSL's verification
+  (`unable to get local issuer certificate`), while browsers and macOS's curl fetch or cache the
+  intermediate. Ship the public intermediate and load it into the context
+  (`load_verify_locations(cadata=...)`; NtustAnnouncements' `twca-secure-ssl-ca.pem`).
+- **Recursion in tree walks.** Pages with unclosed elements nest deeply: a recursive walk of a
+  page about 1,000 levels deep exhausts Python's recursion limit (`RecursionError`). Walk trees
+  with a stack of your own (NtustAnnouncements' `markup.py`).
+- **Backtracking regular expressions.** `\s+$` in multiline mode tries every start inside a run
+  of whitespace that no line end follows, and backtracks through the run each time: quadratic
+  (40,000 spaces, 5 seconds). `(?<!\s)\s+$` removes the same text in linear time.
+- **CPU-bound parsing.** `html.parser` takes about 0.3 s per MB; parse fetched pages in
+  `asyncio.to_thread`, as Calculator runs its evaluations.
+- **jsoup's class names** split at Java's `Character.isWhitespace`, which leaves out the no-break
+  spaces that Python's `str.split` takes; jsoup ignores the slash of a non-void start tag
+  (`<a href=x />` stays open), where `html.parser`'s default `handle_startendtag` closes it.
+- **Work that costs money per retry.** When a step that follows a paid call fails (a post after a
+  Gemini conversion), keep the call's result until the step works, or every retry pays again
+  (NtustAnnouncements' `Watcher.ready`).
+
 v3 behaviors never to reproduce: loading plugins in reverse dependency order, non-atomic JSON
 writes that silently reset corrupt files, recursive placeholder expansion, shared mutable
 placeholder caches, `asTextChannel()` failures in threads, voice chat and announcement channels,
@@ -992,3 +1012,5 @@ Every deliberate difference, added by the change that introduces it.
 | NtustAnnouncements | prompt tokens in a title were replaced by later values; Gemini's text could ping `@everyone`; logs showed each key's last four characters | the prompt is filled in one pass; posts ping nobody; keys are named by position and removed from error texts | port-ntust-announcements |
 | NtustAnnouncements | every failure was logged at every cycle, entries without a title warned about "empty content", and a Gemini client was built per attempt and never closed | each kind of failure once per episode, a debug line for blank entries, one HTTP session for the plugin | port-ntust-announcements |
 | NtustAnnouncements | the stored lists and a write-only archive in the embedded MongoDB, written asynchronously; the config failed the bot even while disabled | v3's list documents in the store, awaited (the planned v3 data import copies them); no archive; only the plugin is disabled by an invalid config, unknown keys warn | port-ntust-announcements |
+| Config files | a YAML syntax error quoted the faulty line (kaml's message) | the line and the column only, so that a key or a token on that line stays out of the log | port-ntust-announcements |
+| NtustAnnouncements | a link that named `.ntust.edu.tw/p/<n>.php` in its path or query counted as an article whatever its host, and was sent to Gemini; a part of only whitespace could not be sent | only NTUST's hosts count; blank parts are left out | port-ntust-announcements |

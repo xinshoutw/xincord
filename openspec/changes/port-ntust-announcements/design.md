@@ -93,6 +93,10 @@ lists; crossposting; later board pages; commands; the v3 data import itself; the
   feed, form feed, carriage return and no-break space become one space, U+200B and U+00AD are
   dropped, `br` and block elements separate words, and the result is trimmed; v3 trimmed it again
   with Kotlin's `trim()`, which also removes Unicode spaces such as U+3000.
+- The tree's walks (selection, text, serialization) keep their own stacks, so no nesting depth
+  exhausts Python's recursion limit; a non-void start tag with a slash stays open and classes
+  split at Java's whitespace (no-break spaces left out), as in jsoup. Pages are parsed in a worker
+  thread (`asyncio.to_thread`), about 0.3 s per MB, so that no page holds up the event loop.
 - `pages.board_links(html, board, page_url)` ports `parseAnnouncementList`: `student-affairs` and
   `academic-affairs` take the first `table.listTB.table` (none: no entries, with v3's warning),
   its `tbody tr` rows, each row's `td` cells (fewer than two: skipped), cell 0 or cell 1, and its
@@ -121,9 +125,10 @@ lists; crossposting; later board pages; commands; the v3 data import itself; the
 
 ### Articles and minification
 
-- `pages.is_article(url)` is v3's `validateUrlType`: a full match of
-  `^https://.*\.ntust\.edu\.tw/p/[0-9\-,r]+\.php.*$`; v3's `RELATIVE_PATH` was unreachable and both
-  other types meant "not an article".
+- `pages.is_article(url)` is v3's `validateUrlType`, a full match of
+  `^https://[^/?#]*\.ntust\.edu\.tw/p/[0-9\-,r]+\.php.*$`: v3's `.*` before the host's
+  `.ntust.edu.tw` took any host (found in the cross-review); v3's `RELATIVE_PATH` was unreachable
+  and both other types meant "not an article".
 - `pages.article_html(html)` takes the first `div#Dyn_2_3.M23`, else the first `div.M23`, and
   minifies its outer HTML. The outer HTML is the tree serialized (attributes in their order, `"`
   quotes, text escaped, raw text as it is, comments dropped); v3 sent jsoup's pretty-printed
@@ -131,7 +136,9 @@ lists; crossposting; later board pages; commands; the v3 data import itself; the
 - `pages.minify(html)` is v3's regex sequence with `re.ASCII`, because Java's `\s` is ASCII:
   comments, whitespace between tags, leading and trailing whitespace of lines, runs of two or more
   whitespace characters, empty lines, then a trim. Line breaks are normalized to `\n` first, as an
-  HTML parser would have, so that Python's `^` and `$` see the lines that Java's saw.
+  HTML parser would have, so that Python's `^` and `$` see the lines that Java's saw. The trailing
+  step is `(?<!\s)\s+$`, which removes what v3's `\s+$` removed (checked on 200,000 random texts)
+  without backtracking through each run of whitespace (v3's took 5 s for 40,000 spaces).
 
 ### Gemini
 
@@ -166,7 +173,8 @@ lists; crossposting; later board pages; commands; the v3 data import itself; the
   `split(content, 1980)`, v3's `splitContentIntoSegments` in UTF-16 code units (Kotlin's
   `String.length`), the header and a line break before the first part only. The header is 15 U+FF3F
   (built with `chr` in Python). A cut without a line break never splits a character outside the
-  BMP, which Kotlin's `substring` could.
+  BMP, which Kotlin's `substring` could, and parts of only whitespace (a cut between line breaks
+  or spaces) are left out, since Discord refuses them.
 - `messages.link_message(title, url)`: `HEADER + "\n# [" + title + "](" + url + ")"`, as v3, with
   `\`, `[` and `]` escaped in the title, parentheses, angle brackets, backslashes and whitespace
   percent-encoded in the URL (they end a Markdown link), and the title cut with an ellipsis so that
@@ -196,7 +204,12 @@ lists; crossposting; later board pages; commands; the v3 data import itself; the
   for good, bug 1); else its Markdown is posted. The messages go out in order; when the first is
   refused nothing was posted and the announcement waits for the next pass (bug 2); when a later one
   is refused, the announcement counts as posted, with an error, since posting it again would
-  repeat its start.
+  repeat its start. Refused messages wait on the board (`Watcher.ready`) until they are posted or
+  leave the page, so that a refusing channel costs one conversion per article, not one per pass
+  (found in the cross-review). Links posted while the store refused to save them stay in memory
+  (`Watcher.delivered`) until a save takes them, so that none is posted twice. Each announcement is
+  guarded: an exception is logged with its traceback once per kind and episode, and the board's
+  later entries are still posted.
 - Fetches of NTUST pages (boards and articles) share one `asyncio.Semaphore(5)`, v3's
   `maxConcurrentRequests`; it is held for the fetch only, not while Gemini works or waits (bug 9).
 
@@ -259,6 +272,14 @@ lists; crossposting; later board pages; commands; the v3 data import itself; the
   logged. NTUST's URLs carry no secret and are logged whole; Gemini's URL holds no key.
 - Info lines: a pass that finds new announcements (`3 new announcements`) and each posted
   announcement (its URL); v3's per-step info lines are debug lines.
+
+### Core change
+
+- `xincord.core.config.load_config` drops the faulty line that PyYAML quotes in a YAML syntax
+  error (the marks' buffers), in the `ConfigError` and in the chained error; the line and the
+  column stay (a `core-config` delta). A key on a line with a syntax error reached the log
+  otherwise (found in the cross-review); UptimeHeartbeat's push tokens had the same gap, an open
+  question in the review queue.
 
 ### Ready check
 
@@ -334,6 +355,14 @@ lists; crossposting; later board pages; commands; the v3 data import itself; the
   only when `plugins` lists the plugin, an invalid one disables only it, and unknown keys warn.
 - v3 behaved differently: v3's write-only `announcement_data` archive (with a fetch date that was
   never shown) is not kept.
+- v3 behaved differently: a link whose path, query or fragment named `.ntust.edu.tw/p/<n>.php`
+  counted as an NTUST article, whatever its host, and was fetched and sent to Gemini; only NTUST's
+  hosts count now.
+- v3 behaved differently: a cut between line breaks or spaces gave a message part of only
+  whitespace, which cannot be sent; such parts are left out.
+- v3 behaved differently: an exception in one announcement was caught per announcement (v3) but its
+  item was then marked seen; it is tried again at the next pass, and the board's later entries are
+  posted meanwhile.
 
 Kept on purpose: the first pass at once, page-order posting (newest first on NTUST's boards), the
 first page only, v3's three layouts and container selectors, the minifier, the prompt, the model,
