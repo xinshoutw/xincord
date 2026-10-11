@@ -303,7 +303,6 @@ def test_long_whitespace() -> None:
     assert minified == "<p>a b</p><p>c\n</p>"
 
 
-@pytest.mark.xfail(strict=True, reason="Article pages give their content as minified HTML")
 @pytest.mark.parametrize(
     "url",
     [

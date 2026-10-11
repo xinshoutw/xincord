@@ -85,7 +85,7 @@
       review: the loop blocked for seconds)
 - [x] 9.16 Parse in a worker thread and make the minifier's step linear; remove the markers
 - [x] 9.17 xfail test for article URLs on other hosts (found in the review, as in v3)
-- [ ] 9.18 Require an NTUST host; remove the marker
+- [x] 9.18 Require an NTUST host; remove the marker
 - [ ] 9.19 Tests for the scenarios that no test checked (v3's document in a pass, a redirected page
       with relative links, empty pages logged once, a reload)
 

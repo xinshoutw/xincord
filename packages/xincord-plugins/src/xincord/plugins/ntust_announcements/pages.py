@@ -20,8 +20,9 @@ if TYPE_CHECKING:
 
 # The Language Center's title link in each row (AnnouncementParser.kt:117-121).
 TITLE_LINK = "div.d-item.d-title.col-sm-12 div.mbox div.d-txt div.mtitle a"
-# v3's validateUrlType, a full match (UrlUtils.kt:56): what Gemini converts.
-ARTICLE = re.compile(r"https://.*\.ntust\.edu\.tw/p/[0-9\-,r]+\.php.*")
+# v3's validateUrlType, a full match (UrlUtils.kt:56): what Gemini converts. v3's ".*" before the
+# host's ".ntust.edu.tw" took any host; the host's characters stop at "/", "?" and "#" now.
+ARTICLE = re.compile(r"https://[^/?#]*\.ntust\.edu\.tw/p/[0-9\-,r]+\.php.*")
 # An article page's content: v3's container, else its fallback (AnnouncementParser.kt:227-229).
 CONTAINERS = ("div#Dyn_2_3.M23", "div.M23")
 SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
