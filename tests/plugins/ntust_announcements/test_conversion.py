@@ -132,11 +132,11 @@ def test_base_url(url: str, base: str) -> None:
 
 
 async def test_keys_in_turn() -> None:
-    """Requirement: Gemini keys stay within the rate limit and failed attempts are retried."""
+    """Requirement: API keys stay within the rate limit and failed attempts are retried."""
     answers = Answers(Time())
-    gemini = converter(answers)
+    conversions = converter(answers)
 
-    texts = [await gemini.convert("<p>x</p>", LINK) for _ in range(3)]
+    texts = [await conversions.convert("<p>x</p>", LINK) for _ in range(3)]
 
     assert texts == ["Markdown"] * 3
     assert answers.keys() == ["key-one", "key-two", "key-one"]
@@ -144,15 +144,15 @@ async def test_keys_in_turn() -> None:
 
 
 async def test_rate_limit() -> None:
-    """Requirement: Gemini keys stay within the rate limit and failed attempts are retried."""
+    """Requirement: API keys stay within the rate limit and failed attempts are retried."""
     time = Time()
     answers = Answers(time)
-    gemini = converter(answers, keys=("key-one",))
+    conversions = converter(answers, keys=("key-one",))
     for _ in range(10):
-        await gemini.convert("<p>x</p>", LINK)
+        await conversions.convert("<p>x</p>", LINK)
         time.now += 1
 
-    assert await gemini.convert("<p>x</p>", LINK) == "Markdown"
+    assert await conversions.convert("<p>x</p>", LINK) == "Markdown"
 
     # The eleventh attempt waited until the first was 60 seconds old; the wait used no attempt.
     assert time.sleeps == [50]
@@ -160,7 +160,7 @@ async def test_rate_limit() -> None:
 
 
 def test_window() -> None:
-    """Requirement: Gemini keys stay within the rate limit and failed attempts are retried."""
+    """Requirement: API keys stay within the rate limit and failed attempts are retried."""
     ring = KeyRing(["key-one"])
     assert [ring.take(float(second)) for second in range(10)] == [0] * 10
 
@@ -170,7 +170,7 @@ def test_window() -> None:
 
 
 def test_a_key_listed_twice() -> None:
-    """Requirement: Gemini keys stay within the rate limit and failed attempts are retried."""
+    """Requirement: API keys stay within the rate limit and failed attempts are retried."""
     ring = KeyRing(["same-key", "same-key", "other-key"])
 
     taken = [ring.take(0.0) for _ in range(21)]
@@ -180,7 +180,7 @@ def test_a_key_listed_twice() -> None:
 
 
 async def test_retries() -> None:
-    """Requirement: Gemini keys stay within the rate limit and failed attempts are retried."""
+    """Requirement: API keys stay within the rate limit and failed attempts are retried."""
     time = Time()
     answers = Answers(time, [ApiError(500, "Internal error")] * MAX_ATTEMPTS)
 
@@ -191,7 +191,7 @@ async def test_retries() -> None:
 
 
 async def test_success_after_failures() -> None:
-    """Requirement: Gemini keys stay within the rate limit and failed attempts are retried."""
+    """Requirement: API keys stay within the rate limit and failed attempts are retried."""
     time = Time()
     # A blank answer and an unexpected error each fail an attempt, as in v3.
     answers = Answers(time, [" \n ", RuntimeError("unexpected"), "Markdown"])
@@ -203,7 +203,7 @@ async def test_success_after_failures() -> None:
 
 
 def test_backoff() -> None:
-    """Requirement: Gemini keys stay within the rate limit and failed attempts are retried."""
+    """Requirement: API keys stay within the rate limit and failed attempts are retried."""
     assert [backoff(failed) for failed in range(1, 10)] == [60, 300, 900] + [1800] * 6
 
 
@@ -233,21 +233,21 @@ async def test_keys_hidden(caplog: pytest.LogCaptureFixture) -> None:
     assert URL in warnings[0]
 
 
-async def test_gemini_failure_episode(caplog: pytest.LogCaptureFixture) -> None:
+async def test_failure_episode(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems are logged without flooding or showing the keys."""
     quota = ApiError(429, "Resource has been exhausted")
     answers = Answers(Time(), [quota, quota, quota])
-    gemini = converter(answers)
+    conversions = converter(answers)
 
     with caplog.at_level(logging.DEBUG, logger=LOGGER):
         for _ in range(3):  # the first converts after three failed attempts
-            assert await gemini.convert("<p>x</p>", LINK) == "Markdown"
+            assert await conversions.convert("<p>x</p>", LINK) == "Markdown"
 
     warnings = plugin_lines(caplog, logging.WARNING)
     assert len(warnings) == 1  # the second and third 429 are debug lines
     assert "code 429" in warnings[0]
     infos = plugin_lines(caplog, logging.INFO)
-    assert infos == ["NtustAnnouncements: Gemini works again after 3 failed attempts"]
+    assert infos == ["NtustAnnouncements: conversions work again after 3 failed attempts"]
 
 
 async def test_conversion_given_up(caplog: pytest.LogCaptureFixture) -> None:
@@ -258,16 +258,11 @@ async def test_conversion_given_up(caplog: pytest.LogCaptureFixture) -> None:
         assert await converter(answers).convert("<p>x</p>", LINK) is None
 
     assert plugin_lines(caplog, logging.ERROR) == [
-        f"NtustAnnouncements: Gemini failed {MAX_ATTEMPTS} attempts at {URL}"
+        f"NtustAnnouncements: gave up converting {URL} after {MAX_ATTEMPTS} attempts"
     ]
     assert len(plugin_lines(caplog, logging.WARNING)) == 1  # gave no text
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="API keys stay within the rate limit and failed attempts are retried",
-)
 def test_configured_window() -> None:
     """Requirement: API keys stay within the rate limit and failed attempts are retried."""
     ring = KeyRing(["key-one"], limit=2, window=30.0)
@@ -278,11 +273,6 @@ def test_configured_window() -> None:
     assert ring.take(30.0) == 0  # the first attempt left the window
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="API keys stay within the rate limit and failed attempts are retried",
-)
 async def test_configured_rate_limit(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: API keys stay within the rate limit and failed attempts are retried."""
     time = Time()
@@ -305,11 +295,6 @@ async def test_configured_rate_limit(caplog: pytest.LogCaptureFixture) -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="API keys stay within the rate limit and failed attempts are retried",
-)
 @pytest.mark.parametrize(
     ("waits", "sleeps"),
     [
@@ -343,21 +328,11 @@ async def test_configured_retries(
     ]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="API keys stay within the rate limit and failed attempts are retried",
-)
 def test_configured_backoff() -> None:
     """Requirement: API keys stay within the rate limit and failed attempts are retried."""
     assert [backoff(failed, (5, 7)) for failed in range(1, 5)] == [5, 7, 7, 7]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Problems are logged without flooding or showing the keys",
-)
 async def test_endpoint_hidden(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems are logged without flooding or showing the keys."""
     answers = Answers(
@@ -385,11 +360,6 @@ async def test_endpoint_hidden(caplog: pytest.LogCaptureFixture) -> None:
     assert warnings[2].endswith("RuntimeError: boom at https://proxy.example.com")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Problems are logged without flooding or showing the keys",
-)
 async def test_no_product_named(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems are logged without flooding or showing the keys."""
     endpoint = "https://api.openai.com/v1"
@@ -426,11 +396,6 @@ async def test_no_product_named(caplog: pytest.LogCaptureFixture) -> None:
         assert "gemini" not in f"{record.name} {record.getMessage()}".lower()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Problems are logged without flooding or showing the keys",
-)
 async def test_counts_of_one(caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems are logged without flooding or showing the keys."""
     answers = Answers(Time(), [" "])

@@ -15,7 +15,7 @@
 - [x] 3.1 xfail tests for "API keys stay within the rate limit and failed attempts are retried"
       (configured limits) and "Problems are logged without flooding or showing the keys" (the
       endpoint hidden, no product named), against stubs in `conversion.py`
-- [ ] 3.2 Take the limits, redact the endpoint from error texts and word the lines neutrally; remove
+- [x] 3.2 Take the limits, redact the endpoint from error texts and word the lines neutrally; remove
       the markers
 
 ## 4. Config

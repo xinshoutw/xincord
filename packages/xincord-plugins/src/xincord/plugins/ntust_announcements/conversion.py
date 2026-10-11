@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 import aiohttp
 
 from xincord.plugins.failures import Failures
+from xincord.plugins.redaction import redact
 
 from .api import ApiError
 from .pages import trim
@@ -38,7 +39,7 @@ TOKEN = re.compile(r"\{\{(page_title|page_url|base_url|now|html)\}\}")
 HOST = re.compile(r"https://([^/]+)")  # v3's extractDomainFromBaseUrl, its first match
 DEFAULT_HOST = "ntust.edu.tw"
 HIDDEN = "..."  # what stands for a key in a logged text
-# An attempt that did not reach Gemini: aiohttp's errors and OSError, timeouts included.
+# An attempt that did not reach the API: aiohttp's errors and OSError, timeouts included.
 NETWORK_ERRORS = (aiohttp.ClientError, OSError)
 BLANK = "blank"  # the kind of failure of an answer without text
 
@@ -74,35 +75,41 @@ class Limits:
 
 
 def backoff(failed: int, waits: Sequence[float] = BACKOFF) -> float:
-    """Seconds to wait after the ``failed``-th failed attempt: 60, 300, 900, then 1800."""
-    if tuple(waits) != BACKOFF:
-        raise NotImplementedError
-    return BACKOFF[min(failed, len(BACKOFF)) - 1]
+    """Seconds to wait after the ``failed``-th failed attempt: that wait, the last one repeating.
+
+    v3's waits are 60, 300, 900, then 1800 seconds.
+    """
+    return waits[min(failed, len(waits)) - 1]
+
+
+def counted(count: int, noun: str) -> str:
+    """``count`` and ``noun``, plural unless the count is one: ``1 attempt``, ``3 attempts``."""
+    return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
 
 
 class KeyRing:
-    """v3's client-side rate limit: each key's attempts in the last minute.
+    """v3's client-side rate limit: each key's attempts in a sliding window.
 
     Keys are counted by their text, so a key listed twice has one budget, as v3's map by key. An
-    attempt leaves the window when it is 60 seconds old; v3 kept it a moment longer and then slept
-    a second. Finding a key and counting its attempt is one step, which v3's two locked steps were
-    not.
+    attempt leaves the window when it is ``window`` seconds old; v3 kept it a moment longer and
+    then slept a second. Finding a key and counting its attempt is one step, which v3's two locked
+    steps were not.
     """
 
     def __init__(
         self, keys: Sequence[str], limit: int = PER_WINDOW, window: float = WINDOW
     ) -> None:
         """Start with no attempt counted, at the first key."""
-        if (limit, window) != (PER_WINDOW, WINDOW):
-            raise NotImplementedError
         self.keys = tuple(keys)
+        self.limit = limit  # attempts per key in the window (``rate-limit``)
+        self.window = window  # the window's seconds (``rate-window``)
         self.next = 0  # where the next search starts: after the last key used (v3's apiKeyIndex)
         self.attempts: dict[str, deque[float]] = {}  # each key's attempts in the window
 
     def _attempts(self, key: str, now: float) -> deque[float]:
         """``key``'s attempts in the window that ends at ``now``."""
         attempts = self.attempts.setdefault(key, deque())
-        while attempts and now - attempts[0] >= WINDOW:
+        while attempts and now - attempts[0] >= self.window:
             attempts.popleft()
         return attempts
 
@@ -111,7 +118,7 @@ class KeyRing:
         for offset in range(len(self.keys)):
             index = (self.next + offset) % len(self.keys)
             attempts = self._attempts(self.keys[index], now)
-            if len(attempts) < PER_WINDOW:
+            if len(attempts) < self.limit:
                 attempts.append(now)
                 self.next = (index + 1) % len(self.keys)
                 return index
@@ -122,7 +129,7 @@ class KeyRing:
 
         That is when the oldest attempt among the keys leaves the window.
         """
-        return min(self._attempts(key, now)[0] for key in self.keys) + WINDOW - now
+        return min(self._attempts(key, now)[0] for key in self.keys) + self.window - now
 
 
 def describe(error: BaseException) -> str:
@@ -153,30 +160,35 @@ class Converter:
     ring: KeyRing = field(init=False)
 
     def __post_init__(self) -> None:
-        if self.limits != Limits() or self.urls:
-            raise NotImplementedError
-        self.ring = KeyRing(self.keys)
+        self.ring = KeyRing(self.keys, self.limits.rate_limit, self.limits.rate_window)
 
     def hide(self, text: str) -> str:
-        """``text`` with every key replaced: the API's errors may quote one."""
+        """``text`` with no key and no private part of ``urls``: an error's text may quote them.
+
+        Every URL in it is cut to its origin and the user info, path and query of ``urls`` are
+        removed wherever they appear (a proxy's endpoint can hold a token), then every key.
+        """
+        text = redact(text, *self.urls)
         for key in sorted(set(self.keys), key=len, reverse=True):
             text = text.replace(key, HIDDEN)
         return text
 
     async def convert(self, html: str, link: Link) -> str | None:
-        """The model's Markdown for the article, or None after ``MAX_ATTEMPTS`` failed attempts.
+        """The model's Markdown for the article, or None after ``max_attempts`` failed ones.
 
         v3's ``processHtmlContentWithRetry``: when every key is at its limit, it waits until one
-        has room, which uses no attempt; after a failed attempt it waits 60, 300, 900, then 1800
-        seconds. Cancellation (an unload) ends the conversion at once.
+        has room, which uses no attempt; after a failed attempt it waits the next of
+        ``retry_waits`` (v3's 60, 300, 900, then 1800 seconds). Cancellation (an unload) ends the
+        conversion at once.
         """
+        limits = self.limits
         failed = 0
-        while failed < MAX_ATTEMPTS:
+        while failed < limits.max_attempts:
             index = self.ring.take(self.clock())
             if index is None:
                 wait = self.ring.wait(self.clock())
                 logger.debug(
-                    "NtustAnnouncements: every Gemini key is at its limit; waiting %.1f s", wait
+                    "NtustAnnouncements: every key is at its rate limit; waiting %.1f s", wait
                 )
                 await self.sleep(wait)
                 continue
@@ -184,9 +196,13 @@ class Converter:
             if text:
                 return text
             failed += 1
-            if failed < MAX_ATTEMPTS:
-                await self.sleep(backoff(failed))
-        logger.error("NtustAnnouncements: Gemini failed %d attempts at %s", MAX_ATTEMPTS, link.url)
+            if failed < limits.max_attempts:
+                await self.sleep(backoff(failed, limits.retry_waits))
+        logger.error(
+            "NtustAnnouncements: gave up converting %s after %s",
+            link.url,
+            counted(limits.max_attempts, "attempt"),
+        )
         return None
 
     async def _attempt(self, index: int, number: int, html: str, link: Link) -> str:
@@ -205,12 +221,15 @@ class Converter:
             self._failed(type(error), index, number, link, f"\n{format_traceback(error)}")
             return ""
         if not text:
-            self._failed(BLANK, index, number, link, "Gemini gave no text")
+            self._failed(BLANK, index, number, link, "the model gave no text")
             return ""
         if failed := self.failures.succeed():
-            logger.info("NtustAnnouncements: Gemini works again after %d failed attempts", failed)
+            logger.info(
+                "NtustAnnouncements: conversions work again after %s",
+                counted(failed, "failed attempt"),
+            )
         logger.debug(
-            "NtustAnnouncements: Gemini converted %s on attempt %d with key %d",
+            "NtustAnnouncements: converted %s on attempt %d with key %d",
             link.url,
             number,
             index + 1,
@@ -221,9 +240,9 @@ class Converter:
         """Log a failed attempt: as a warning when its kind is new in the episode, else debug."""
         logger.log(
             logging.WARNING if self.failures.fail(kind) else logging.DEBUG,
-            "NtustAnnouncements: Gemini attempt %d of %d at %s failed with key %d: %s",
+            "NtustAnnouncements: conversion attempt %d of %d at %s failed with key %d: %s",
             number,
-            MAX_ATTEMPTS,
+            self.limits.max_attempts,
             link.url,
             index + 1,
             self.hide(detail),
