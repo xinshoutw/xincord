@@ -251,7 +251,6 @@ async def test_reload(scene: Scene) -> None:
     assert len(scene.posts(101)) == 6
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The model settings are config")
 async def test_settings_reach_the_boards(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The model settings are config."""
     settings = parse_model(Path("config.yaml"), yaml.safe_load(PROXIED), Config)
@@ -291,7 +290,6 @@ async def test_settings_reach_the_boards(scene: Scene, caplog: pytest.LogCapture
         assert "gemini" not in f"{record.name} {record.getMessage()}".lower()
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The model settings are config")
 async def test_reload_applies_the_settings(scene: Scene, tmp_path: Path) -> None:
     """Requirement: The model settings are config."""
     await scene.ready.waiters(1)

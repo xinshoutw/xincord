@@ -73,7 +73,7 @@ def split(content: str, limit: int) -> list[str]:
 
 
 def content_messages(content: str) -> list[str]:
-    """The messages that post Gemini's ``content``, as v3's ``createDiscordMessages``.
+    """The messages that post the model's ``content``, as v3's ``createDiscordMessages``.
 
     The content is trimmed as Kotlin's ``trim()``; up to 1975 units it follows the header in one
     message, else it is split in parts of 1980 units, the header before the first.

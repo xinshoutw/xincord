@@ -51,7 +51,7 @@ def _describe(error: BaseException) -> str:
 
 @dataclass
 class Watcher:
-    """One board and its effects: its pages, Gemini, its channel and its posted list."""
+    """One board and its effects: its pages, the model, its channel and its posted list."""
 
     board: Board
     page: FetchPage
@@ -80,7 +80,7 @@ class Watcher:
         """Pass at once, then ``interval`` seconds after each pass, until cancelled.
 
         v3 ran every board at a fixed rate from one scheduler; a board now waits for nothing but
-        its own pass, so a long Gemini retry holds up no other board.
+        its own pass, so a long retry of the model holds up no other board.
         """
         while True:
             await self.check()
@@ -202,7 +202,7 @@ class Watcher:
         """Post one announcement; whether it counts as posted (v3's ``contentParser``).
 
         Messages that the channel refused wait in ``ready`` for the next pass, so that a refusing
-        channel (a wrong ID, a missing permission) costs no Gemini attempt at each pass.
+        channel (a wrong ID, a missing permission) costs no attempt of the model at each pass.
         """
         messages = self.ready.get(link.url)
         if messages is None:
@@ -218,9 +218,9 @@ class Watcher:
     async def _messages(self, link: Link) -> list[str] | None:
         """An announcement's messages, or None when its article page failed (logged).
 
-        An NTUST article goes through Gemini; any other link, or an article whose content cannot
-        be converted, is its title link. An article page that fails is left for the next pass,
-        which v3 never gave it.
+        An NTUST article goes through the model; any other link, or an article whose content
+        cannot be converted, is its title link. An article page that fails is left for the next
+        pass, which v3 never gave it.
         """
         if not is_article(link.url):
             return [link_message(link.title, link.url)]
@@ -243,7 +243,7 @@ class Watcher:
         content = await self.convert(html, link)
         if content is None:
             logger.warning(
-                "%s: posting %s as its title, since Gemini could not convert it",
+                "%s: posting %s as its title, since the model could not convert it",
                 self.name,
                 link.url,
             )

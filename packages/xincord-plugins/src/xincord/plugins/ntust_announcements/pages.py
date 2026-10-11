@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 # The Language Center's title link in each row (AnnouncementParser.kt:117-121).
 TITLE_LINK = "div.d-item.d-title.col-sm-12 div.mbox div.d-txt div.mtitle a"
-# v3's validateUrlType, a full match (UrlUtils.kt:56): what Gemini converts. v3's ".*" before the
+# v3's validateUrlType, a full match (UrlUtils.kt:56): what the model converts. v3's ".*" before the
 # host's ".ntust.edu.tw" took any host; the host's characters stop at "/", "?" and "#" now.
 ARTICLE = re.compile(r"https://[^/?#]*\.ntust\.edu\.tw/p/[0-9\-,r]+\.php.*")
 # An article page's content: v3's container, else its fallback (AnnouncementParser.kt:227-229).
@@ -107,7 +107,7 @@ def complete_url(href: str, page_url: str) -> str:
 
 
 def is_article(url: str) -> bool:
-    """Whether ``url`` is an NTUST article, whose content Gemini converts (``validateUrlType``).
+    """Whether ``url`` is an NTUST article, whose content the model converts (``validateUrlType``).
 
     Other links, NTUST's files and PDFs included, are posted as their title.
     """
@@ -118,7 +118,7 @@ def article_html(html: str) -> str | None:
     """The minified HTML of an article page's content container, if it has one.
 
     v3 sent jsoup's pretty-printed serialization of the container; this is the tree serialized,
-    which reads the same to Gemini.
+    which reads the same to the model.
     """
     document = parse(html)
     for selector in CONTAINERS:

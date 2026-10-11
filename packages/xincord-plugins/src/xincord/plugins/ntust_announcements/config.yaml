@@ -1,24 +1,54 @@
 # NtustAnnouncements (v3 NtustManager): list it under `plugins` in the core config.yaml to enable
 # it. Once the bot is ready, it reads the first page of each board below at once, then
 # `fetch-interval` seconds after each pass, and posts the board's entries that it has not posted
-# yet to the board's channel, in the page's order. Gemini turns each NTUST article into Discord
-# Markdown with `prompt`; other links (shared documents, other sites) are posted as their title.
-# The plugin does not load until `api-keys` holds Gemini API keys and every board names its
-# channel.
+# yet to the board's channel, in the page's order. A model (Gemini by default) turns each NTUST
+# article into Discord Markdown with `prompt`; other links (shared documents, other sites) are
+# posted as their title. The plugin does not load until `api-keys` holds your API keys and every
+# board names its channel. A reload applies changes to this file.
 
 # Seconds between a board's passes, from 60.
 fetch-interval: 3600
 
-# Gemini API keys, used in turn, each for at most 10 requests a minute. The log names a key by its
-# position in this list, never by its text. Replace these examples with your keys.
+# API keys for `endpoint`, used in turn. The log names a key by its position in this list, never by
+# its text. Replace these examples with your keys (an API without keys, such as Ollama's, takes
+# any text).
 api-keys:
   - "sk-thisisatestkey1234567890abcdef1234567890"
   - "sk-thisisatestkey1234567890abcdef1234567890"
 
-# The Gemini model that converts the articles.
+# The model's API. gemini: Gemini's generateContent at `endpoint`/models/`model`:generateContent,
+# the key in the x-goog-api-key header. openai: an OpenAI-compatible API at
+# `endpoint`/chat/completions, the key as a bearer token, such as https://api.openai.com/v1,
+# https://openrouter.ai/api/v1, Ollama's http://localhost:11434/v1 or Gemini's own
+# https://generativelanguage.googleapis.com/v1beta/openai. `endpoint` is an http or https URL
+# without user info, a query or a fragment; the log shows only its scheme, host and port.
+api-format: gemini
+endpoint: "https://generativelanguage.googleapis.com/v1beta"
+
+# The model that converts the articles, as the API names it.
 model: "gemini-2.5-flash"
 
-# What Gemini is asked for each article. It must hold {{page_url}}, {{base_url}}, {{now}} and
+# `temperature`, from 0 to 2, and `max-output-tokens`, the most tokens an answer may hold (sent as
+# max_tokens with openai). null sends none, leaving the API's default; OpenAI's reasoning models
+# take neither.
+temperature: 0.1
+max-output-tokens: null
+
+# Seconds that an attempt may take in all (up to 3600), and to connect.
+request-timeout: 300
+connect-timeout: 30
+
+# Each key takes at most `rate-limit` attempts in any `rate-window` seconds; when every key is at
+# its limit, a conversion waits for one.
+rate-limit: 10
+rate-window: 60
+
+# Attempts per article (up to 100), and the seconds to wait after the first, second, ... failed
+# attempt, the last wait repeating. An article that fails every attempt is posted as its title.
+max-attempts: 10
+retry-waits: [60, 300, 900, 1800]
+
+# What the model is asked for each article. It must hold {{page_url}}, {{base_url}}, {{now}} and
 # {{html}}; {{page_title}} is optional. Each token is replaced once: {{page_title}} with the
 # entry's title, {{page_url}} with its URL, {{base_url}} with https:// and the URL's host, {{now}}
 # with the host's local time (yyyy-MM-dd HH:mm:ss) and {{html}} with the article's content.

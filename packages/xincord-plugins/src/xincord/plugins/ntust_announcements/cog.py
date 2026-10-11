@@ -15,7 +15,8 @@ from typing import TYPE_CHECKING, Protocol, override, runtime_checkable
 import discord
 from discord.ext import commands
 
-from .api import Api
+from xincord.plugins.redaction import origin
+
 from .conversion import Converter
 from .store import Posted
 from .watch import Watcher
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
 
     from xincord.core.storage import Store
 
+    from .api import Api
     from .config import Config
     from .watch import Sleep
     from .web import Page, Requests
@@ -49,7 +51,7 @@ class Postable(Protocol):
         ...
 
 
-NO_MENTIONS = discord.AllowedMentions.none()  # Gemini's text pings nobody (v3: JDA's default)
+NO_MENTIONS = discord.AllowedMentions.none()  # the model's text pings nobody (v3: JDA's default)
 
 
 class NtustAnnouncements(commands.Cog):
@@ -59,7 +61,7 @@ class NtustAnnouncements(commands.Cog):
         """Keep the bot, the config and the store of the boards' posted lists.
 
         A reload builds a new cog from the new config: v3's reload kept the keys, the prompt and
-        the interval that it had read first.
+        the interval that it had read first, and the model's settings were constants.
         """
         self.bot = bot
         self.config = config
@@ -125,12 +127,20 @@ class NtustAnnouncements(commands.Cog):
         """Wait until the bot is ready, then run one loop per board over one session.
 
         Each board passes at once, then ``fetch-interval`` seconds after its own pass, so a board
-        whose announcement waits hours between Gemini attempts holds up no other; v3 ran all the
-        boards in one cycle, five at a time, each holding its slot through Gemini's waits.
+        whose announcement waits hours between conversion attempts holds up no other; v3 ran all
+        the boards in one cycle, five at a time, each holding its slot through the model's waits.
+        The model's settings are the config's; the log names the endpoint by its origin only.
         """
         await self.bot.wait_until_ready()
+        api = self.config.api
+        logger.info(
+            "NtustAnnouncements: converting articles with %s at %s (api-format %s)",
+            api.model,
+            origin(api.endpoint),
+            api.format,
+        )
         fetches = asyncio.Semaphore(FETCHES)
-        async with self.open_web(Api(model=self.config.model)) as web:
+        async with self.open_web(api) as web:
 
             async def page(url: str) -> Page:
                 async with fetches:  # held while fetching only
@@ -143,6 +153,8 @@ class NtustAnnouncements(commands.Cog):
                 self.sleep,
                 self.clock,
                 self.now,
+                self.config.limits,
+                (api.endpoint, api.url),
             )
             posted = Posted(self.store)
             async with asyncio.TaskGroup() as boards:

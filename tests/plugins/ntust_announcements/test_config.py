@@ -1,4 +1,4 @@
-"""The NtustAnnouncements config: v3's keys and the boards that v3 hard-coded.
+"""The NtustAnnouncements config: v3's keys, and the boards and model settings that v3 hard-coded.
 
 Kotlin:
     XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/config/ConfigSerializer.kt:6-26
@@ -114,7 +114,7 @@ def v3_file() -> str:
 async def test_v3_config_file(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Requirement: The config names the boards, the Gemini keys and the prompt."""
+    """Requirement: The config names the boards, the API keys and the prompt."""
     with caplog.at_level(logging.WARNING):
         bot = await load_plugin("NtustAnnouncements", tmp_path / "plugins", store, config=v3_file())
 
@@ -136,13 +136,13 @@ async def test_v3_config_file(
 async def test_bundled_config(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Requirement: The config names the boards, the Gemini keys and the prompt."""
+    """Requirement: The config names the boards, the API keys and the prompt."""
     bot = await load_plugin("NtustAnnouncements", tmp_path / "plugins", store)
 
     assert bot.loaded == ()
     for number in (0, 1):  # v3's two example keys
         assert (
-            f"api-keys.{number}: Value error, replace the example key with a Gemini API key"
+            f"api-keys.{number}: Value error, replace the example key with your API key"
             in caplog.text
         )
     for number in range(18):
@@ -177,7 +177,7 @@ async def test_bundled_config(
         ),
         pytest.param(
             ('  - "first-key"', f'  - "{EXAMPLE_KEY}"'),
-            "api-keys.0: Value error, replace the example key with a Gemini API key",
+            "api-keys.0: Value error, replace the example key with your API key",
             id="example key",
         ),
         pytest.param(
@@ -229,7 +229,7 @@ async def test_bundled_config(
         ),
         pytest.param(
             ('model: "gemini-2.5-flash"', 'model: "gemini/../flash"'),
-            "model: String should match pattern",
+            "model: Value error, the gemini format takes letters, digits, '.', '-' and '_'",
             id="model with a slash",
         ),
     ],
@@ -241,7 +241,7 @@ async def test_invalid_values(
     store: Store,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Requirement: The config names the boards, the Gemini keys and the prompt."""
+    """Requirement: The config names the boards, the API keys and the prompt."""
     old, new = change
     assert old in VALID
     config = VALID.replace(old, new, 1)
@@ -263,7 +263,7 @@ async def test_invalid_values(
 async def test_keys_stay_hidden(
     keys: str, tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Requirement: The config names the boards, the Gemini keys and the prompt."""
+    """Requirement: The config names the boards, the API keys and the prompt."""
     config = VALID.replace('api-keys:\n  - "first-key"', f"api-keys: {keys}")
 
     bot = await load_plugin("NtustAnnouncements", tmp_path / "plugins", store, config=config)
@@ -293,7 +293,7 @@ async def test_empty_lists(
     store: Store,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Requirement: The config names the boards, the Gemini keys and the prompt."""
+    """Requirement: The config names the boards, the API keys and the prompt."""
     old, new = change
     config = VALID.replace(old, new, 1)
 
@@ -306,7 +306,7 @@ async def test_empty_lists(
 async def test_errors_name_the_invalid_items(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Requirement: The config names the boards, the Gemini keys and the prompt."""
+    """Requirement: The config names the boards, the API keys and the prompt."""
     await load_plugin("NtustAnnouncements", tmp_path / "plugins", store)
 
     # pydantic's length check counts the items that validated: 18 invalid boards are no empty list.
@@ -314,7 +314,6 @@ async def test_errors_name_the_invalid_items(
     assert "boards.17.channel-id" in caplog.text
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The model settings are config")
 async def test_default_model_settings(tmp_path: Path, store: Store) -> None:
     """Requirement: The model settings are config."""
     bot = await load_plugin("NtustAnnouncements", tmp_path / "plugins", store, config=v3_file())
@@ -333,7 +332,6 @@ async def test_default_model_settings(tmp_path: Path, store: Store) -> None:
     assert config.limits == Limits(10, 60, 10, (60, 300, 900, 1800))
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The model settings are config")
 def test_bundled_model_settings() -> None:
     """Requirement: The model settings are config."""
     data = bundled()
@@ -348,7 +346,6 @@ def test_bundled_model_settings() -> None:
     assert {key: data.get(key, "missing") for key in DEFAULTS} == DEFAULTS
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The model settings are config")
 def test_model_settings_from_the_file() -> None:
     """Requirement: The model settings are config."""
     config = parse(with_settings(SETTINGS))
@@ -371,7 +368,6 @@ ENDPOINT_ERROR = (
 )
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The model settings are config")
 @pytest.mark.parametrize(
     ("change", "error"),
     [
@@ -552,10 +548,10 @@ def test_invalid_model_settings(change: tuple[str, str], error: str | None) -> N
     with pytest.raises(ConfigError) as raised:
         parse(text)
 
-    assert str(raised.value) == f"config.yaml: {error}"  # one problem, the key named
+    [line] = str(raised.value).splitlines()  # one problem, the key named
+    assert line.startswith(f"config.yaml: {error}")
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="The model settings are config")
 @pytest.mark.parametrize(
     "endpoint",
     [
@@ -579,11 +575,6 @@ def test_endpoint_stays_hidden(endpoint: str) -> None:
     assert "secret" not in str(raised.value.__cause__)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The config names the boards, the API keys and the prompt",
-)
 @pytest.mark.parametrize("api_format", ["gemini", "openai"])
 def test_example_key(api_format: str) -> None:
     """Requirement: The config names the boards, the API keys and the prompt."""
