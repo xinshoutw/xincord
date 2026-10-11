@@ -36,9 +36,6 @@ GOLDEN = golden("ntust_course_watch")
 NAME = GOLDEN["courses"]["CE162A001"]["name"]
 SEATS = Course("CE162A001", NAME, 25, 60)
 FULL = Course("CE162A001", NAME, 60, 60)
-LOOP = "Registered courses are checked in turn from READY"
-FAILURES = "Failures are logged without flooding"
-SEATS_REASON = "Channels hear about courses with seats"
 
 
 def mentions(*users: int) -> dict[str, object]:
@@ -77,7 +74,6 @@ def allowed(fields: dict[str, object]) -> dict[str, object]:
     return dict(value.to_dict())
 
 
-@pytest.mark.xfail(strict=True, reason=LOOP)
 async def test_start_at_ready(scene: Scene) -> None:
     """Requirement: Registered courses are checked in turn from READY."""
     assert scene.cog.tasks
@@ -95,7 +91,6 @@ async def test_start_at_ready(scene: Scene) -> None:
     assert scene.api.opened == 1
 
 
-@pytest.mark.xfail(strict=True, reason=LOOP)
 async def test_loaded_into_a_ready_bot(
     store: Store, tmp_path: Path, ready: Ready, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -123,7 +118,6 @@ async def test_loaded_into_a_ready_bot(
     assert asked[0] == "CE162A001"
 
 
-@pytest.mark.xfail(strict=True, reason=LOOP)
 async def test_before_the_start(scene: Scene) -> None:
     """Requirement: Registered courses are checked in turn from READY."""
     assert scene.cog.tasks
@@ -141,7 +135,6 @@ async def test_before_the_start(scene: Scene) -> None:
     assert scene.clock.waits == [1.5, 1.5, 1.5]
 
 
-@pytest.mark.xfail(strict=True, reason=LOOP)
 async def test_nothing_registered(scene: Scene) -> None:
     """Requirement: Registered courses are checked in turn from READY."""
     assert scene.cog.tasks
@@ -156,7 +149,6 @@ async def test_nothing_registered(scene: Scene) -> None:
     assert scene.api.asked == [("1151", "CE162A002")]
 
 
-@pytest.mark.xfail(strict=True, reason=LOOP)
 async def test_courses_in_turn(scene: Scene) -> None:
     """Requirement: Registered courses are checked in turn from READY."""
     assert scene.cog.tasks
@@ -172,7 +164,6 @@ async def test_courses_in_turn(scene: Scene) -> None:
     assert scene.clock.waits == [1.5, 1.5, 1.5]  # v3's interval from one start to the next
 
 
-@pytest.mark.xfail(strict=True, reason=LOOP)
 async def test_slow_answers(scene: Scene) -> None:
     """Requirement: Registered courses are checked in turn from READY."""
     assert scene.cog.tasks
@@ -187,7 +178,6 @@ async def test_slow_answers(scene: Scene) -> None:
     assert scene.clock.waits == [0.5, 0.1]  # v3's 100 ms at least after a slow answer
 
 
-@pytest.mark.xfail(strict=True, reason=LOOP)
 async def test_unload(scene: Scene) -> None:
     """Requirement: Registered courses are checked in turn from READY."""
     [task] = scene.cog.tasks
@@ -204,7 +194,6 @@ async def test_unload(scene: Scene) -> None:
     assert len(scene.api.asked) == 1
 
 
-@pytest.mark.xfail(strict=True, reason=LOOP)
 async def test_unload_before_ready(scene: Scene) -> None:
     """Requirement: Registered courses are checked in turn from READY."""
     [task] = scene.cog.tasks
@@ -216,7 +205,6 @@ async def test_unload_before_ready(scene: Scene) -> None:
     assert scene.api.opened == 0
 
 
-@pytest.mark.xfail(strict=True, reason=LOOP)
 async def test_unload_cancels_posts(scene: Scene) -> None:
     """Requirement: Registered courses are checked in turn from READY."""
     assert scene.cog.tasks
@@ -232,7 +220,6 @@ async def test_unload_cancels_posts(scene: Scene) -> None:
     assert post.cancelled()
 
 
-@pytest.mark.xfail(strict=True, reason=LOOP)
 async def test_reload(scene: Scene) -> None:
     """Requirement: Registered courses are checked in turn from READY."""
     [old] = scene.cog.tasks
@@ -254,7 +241,6 @@ async def test_tests_stay_offline() -> None:
             await api.course("1151", "CE162A001")
 
 
-@pytest.mark.xfail(strict=True, reason=SEATS_REASON)
 async def test_alerts_through_partial_messageables(scene: Scene) -> None:
     """Requirement: Channels hear about courses with seats."""
     assert scene.cog.tasks
@@ -273,7 +259,6 @@ async def test_alerts_through_partial_messageables(scene: Scene) -> None:
     assert allowed(full) == mentions()  # nobody
 
 
-@pytest.mark.xfail(strict=True, reason=FAILURES)
 async def test_deleted_channel(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Failures are logged without flooding."""
     assert scene.cog.tasks
@@ -292,7 +277,6 @@ async def test_deleted_channel(scene: Scene, caplog: pytest.LogCaptureFixture) -
     assert len(scene.posts(6)) == 1
 
 
-@pytest.mark.xfail(strict=True, reason=FAILURES)
 async def test_refused_posts(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Failures are logged without flooding."""
     assert scene.cog.tasks
@@ -312,7 +296,26 @@ async def test_refused_posts(scene: Scene, caplog: pytest.LogCaptureFixture) -> 
     assert await scene.cog.registrations.load() == {"CE162A001": {5: (1,)}}
 
 
-@pytest.mark.xfail(strict=True, reason=FAILURES)
+async def test_posts_work_again(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Failures are logged without flooding."""
+    assert scene.cog.tasks
+    await scene.cog.registrations.add("CE162A001", 5, 1)
+    scene.api.answers["CE162A001"] = [SEATS]
+    scene.channel(5).error = forbidden()
+    scene.ready.set()
+    await scene.steps(1)
+    scene.channel(5).error = None  # the permission is back
+
+    with caplog.at_level(logging.INFO):
+        for steps in range(2, 5):
+            scene.clock.advance(60)
+            await scene.wake(steps)
+
+    assert len(scene.posts(5)) == 3
+    [again] = [record for record in caplog.records if "takes the alerts again" in record.message]
+    assert "after 1 refusals" in again.message
+
+
 async def test_unexpected_post_error(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Failures are logged without flooding."""
     assert scene.cog.tasks

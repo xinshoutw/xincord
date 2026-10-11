@@ -154,9 +154,6 @@ async def test_full_after_another_channel_registered(cog: NtustCourseWatch, fake
     assert [channel for channel, _ in fakes.posts] == [5, 5]  # 6 heard nothing about the seats
 
 
-FAILURES = "Failures are logged without flooding"
-
-
 def lines(caplog: pytest.LogCaptureFixture, level: int, text: str) -> list[str]:
     """The log lines at ``level`` that hold ``text``."""
     return [
@@ -166,7 +163,6 @@ def lines(caplog: pytest.LogCaptureFixture, level: int, text: str) -> list[str]:
     ]
 
 
-@pytest.mark.xfail(strict=True, reason=FAILURES)
 async def test_failing_course_query(
     cog: NtustCourseWatch, fakes: Fakes, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -188,7 +184,6 @@ async def test_failing_course_query(
     assert len(fakes.asked) == 7
 
 
-@pytest.mark.xfail(strict=True, reason=FAILURES)
 async def test_kinds_of_failures(
     cog: NtustCourseWatch, fakes: Fakes, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -216,7 +211,6 @@ async def test_kinds_of_failures(
     assert "code 502" in warnings[3]
 
 
-@pytest.mark.xfail(strict=True, reason=FAILURES)
 async def test_failed_check_keeps_the_state(cog: NtustCourseWatch, fakes: Fakes) -> None:
     """Requirement: Failures are logged without flooding."""
     await cog.registrations.add("CE162A001", 5, 1)
@@ -233,7 +227,6 @@ async def test_failed_check_keeps_the_state(cog: NtustCourseWatch, fakes: Fakes)
     ]
 
 
-@pytest.mark.xfail(strict=True, reason=FAILURES)
 async def test_broken_document(
     cog: NtustCourseWatch, fakes: Fakes, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -254,7 +247,6 @@ async def test_broken_document(
     assert len(lines(caplog, logging.INFO, "registrations read again")) == 1
 
 
-@pytest.mark.xfail(strict=True, reason=FAILURES)
 async def test_unexpected_error(
     cog: NtustCourseWatch, fakes: Fakes, caplog: pytest.LogCaptureFixture
 ) -> None:

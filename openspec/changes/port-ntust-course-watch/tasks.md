@@ -42,7 +42,7 @@
 
 - [x] 7.1 xfail tests for "Registered courses are checked in turn from READY" and "Failures are
       logged without flooding"
-- [ ] 7.2 Run the loop from READY in the cog, post through partial messageables, log failures once
+- [x] 7.2 Run the loop from READY in the cog, post through partial messageables, log failures once
       per episode and forget deleted channels; remove the markers
 
 ## 8. Conventions and docs
