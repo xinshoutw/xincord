@@ -31,3 +31,7 @@ Alternative: ✅ when done, which the deletion of the old post would remove anyw
 On the test guild: ❌ on a post shows ⏳ on that message within a second; about a minute later the
 post is replaced. With the article page failing (or a refused new post), the ⏳ is gone again and
 the old post stays.
+
+Result on 2026-10-12 (the test guild, with the bot's own ID briefly among `reviewers`): four seconds
+after its ❌ the marked message showed ❌ and ⏳; 62 seconds later the reviewed post replaced it,
+the ⏳ going with the old message.

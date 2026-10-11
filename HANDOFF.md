@@ -564,8 +564,8 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 `chat-logger-split-storage`, `port-ticket`, `port-ticket-away-notice`,
 `port-ntust-announcements`, `port-ntust-course-watch`, `port-music-player`,
 `ntust-announcements-model-config`, `ticket-staff-controls`, `dependency-updates`, `release-pipeline`, `compose-run-fixes`, `reload-uploads-changes`,
-`timezone-from-env`, `chat-logger-keep-deleted`, `ntust-announcements-review`. Each one's
-`design.md` in
+`timezone-from-env`, `chat-logger-keep-deleted`, `ntust-announcements-review`,
+`ntust-announcements-redo-feedback`. Each one's `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
@@ -607,6 +607,34 @@ published version (Amendment 4 says 1.0.0; the owner may choose to publish earli
 the repository and the GHCR package public; (4) the cutover, with Claude operating the
 production host and migrating v3's data with one-off scripts. Work in the main session, without
 subagents.
+
+Progress on 2026-10-12: step (1) is under way. The core's run under compose and batches 1 and 2 of
+the Discord checks passed (section 6), and the owner's follow-ups of the walk-through are done
+(`compose-run-fixes`, `reload-uploads-changes`, `timezone-from-env`, `chat-logger-keep-deleted`,
+`ntust-announcements-review`, `ntust-announcements-redo-feedback`). Left for step (1), batch 3 on
+the test guild: Ticket with its control row (the second account as the ticket's member and
+`Staff` as the staff role), TicketAwayNotice (the owner invisible, a channel named `ticket-...`),
+DynamicVoiceChannel (the `Lobby`), VoiceLogger and ChatLogger (their listen channels
+`#logs-voice` and `#logs-chat`), NtustCourseWatch (`/course-add` in `#course-watch`), and
+MusicPlayer's rest (a move between channels, a moderator's disconnection, leaving after 10 idle
+minutes, the node stopped and started). Then the review queue's remaining items
+(`docs/porting/owner-review.md`), and steps (2) to (4).
+
+The test environment (2026-10-12): the owner's Mac runs compose in `~/IdeaProjects/xincord` with
+the owner's test application `xincord-test` (1558847245061849158) in the guild `xincord-test`
+(1558859846730776706): category `xincord` with `#commands`, `#welcome` (welcome and bye bound),
+`#logs-voice`, `#logs-chat`, `#giveaway`, `#tickets`, `#ticket-archive`, `#course-watch`, `#ntust`
+and `#reviews`; categories `Tickets` and `Dynamic Voice` (with the voice channel `Lobby`); roles
+`Member` (AutoRole) and `Staff`; the owner 810822763601461318, plus the owner's second account.
+`bot/config.yaml` enables all 18 plugins; `.env` holds `LAVALINK_PASSWORD` and `TZ=Asia/Taipei`;
+`bot/plugins/` holds the test configs (Economy's `admin_id`, AutoRole's role, TicketAwayNotice's
+IDs, UptimeHeartbeat pushing every 20 s to `http://host.docker.internal:8765/push`, a local
+endpoint that is gone after the session, CustomCommands' test command `rules`, NtustAnnouncements
+with the owner's key, `gemini-3.8-flash`, one board to `#ntust` and the owner as reviewer). The
+test application has MusicPlayer's emojis. Claude calls Discord's REST API as the bot from inside
+the container, so that the token never leaves it: `docker compose exec -T bot python - METHOD PATH
+[JSON] < dapi.py`, a script that reads the token from `/bot/config.yaml` (recreate it; never print
+the token), and drives the console with a pty (`docker compose attach bot`, Ctrl-P Ctrl-Q).
 
 The planned `xincord migrate` tool is dropped (the owner's decision of 2026-10-11,
 `decisions.md`, Amendment 6). At the cutover, when the owner asks, Claude operates the production
@@ -784,6 +812,14 @@ checks passed the same night: the bot's status and `/xincord reload`, Example, C
 CustomCommands' bundled command, Economy as administrator, and MusicPlayer's real voice with DAVE
 through Lavalink 4.2.2 (play, the panel with the application's emojis, suggestions, pause and
 resume, volume, stop).
+
+Batch 2 of the Discord checks passed on 2026-10-12 with the owner's second account: WelcomeGoodbye
+(binds, the welcome and bye embeds), AutoRole (`Member` at the join), BotInfo's member count,
+Economy for a member (`no-permission` for another member's wallet), a config-defined CustomCommands
+command for every member with a public reply, Feedback's form and review, a Giveaway drawn at its
+typed end time (`TZ=Asia/Taipei`), and NtustAnnouncements' redo by the owner's ❌ (the second
+account's ❌ ignored). The owner then asked for a sign while a redo runs: done in
+`ntust-announcements-redo-feedback` (⏳ on the marked message).
 
 1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
    (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script

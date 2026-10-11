@@ -14,90 +14,18 @@ with what the owner has not seen yet:
 When the owner answers an item, record the answer in `HANDOFF.md` section 6 and delete the item
 here; delete a section once it is empty.
 
-## AutoRole (`port-auto-role`)
-
-### User-visible changes
-- Roles are added one by one to the member's roles instead of replacing them all (v3 removed a role that another bot gave at the join if it landed first).
-- A role that cannot be given (missing, another guild's, managed, `@everyone`, not below the bot's highest role) is skipped with a log warning and the others are given (v3 gave none); without Manage Roles, one warning names the guild.
-- Roles created and guilds joined after startup work without a reload (v3 resolved the roles once, at the first join).
-- When the bot is ready, and after a reload, warnings name configured guilds the bot is not in, a missing Manage Roles and roles it cannot give (v3 logged nothing for unknown role IDs).
-- The bundled `plugins/AutoRole/config.yaml` lists no guilds and shows placeholder IDs in a comment (v3 shipped real guild and role IDs, disabled); a v3 file loads unchanged and warns `unknown key enabled`.
-### Manual checks
-- Smoke checklist in `openspec/changes/archive/2026-10-10-port-auto-role/design.md` (needs a token, a test guild and a second account).
-
-## BotInfo (`port-bot-info`)
-
-### User-visible changes
-- `/bot-info` shows a third embed field, `Source Code`, with `source_url` from `plugins/BotInfo/config.yaml` (decision C3; zh-TW name in the plugin's `lang/zh-TW/message/bot-info.yaml`).
-- An invalid `source_url` (not http or https, spaces, over 512 characters) disables BotInfo with an error that names the key; a v3 `config.yaml` (`enabled` only) loads with the default URL and warns `unknown key enabled`.
-- v3 lang files kept in `plugins/BotInfo/lang/` show v3's embed without the source field until renewed with `--force-renew-lang-resources` (which renews every enabled plugin's lang files) or edited.
-- The command always answers (v3 needed the core's auto-defer switch), and guilds that are unavailable during a Discord outage still count as guilds (JDA left them out).
-### Manual checks
-- Smoke checklist in `openspec/changes/archive/2026-10-10-port-bot-info/design.md` (needs a token and a test guild).
-
-## CustomCommands (v3 SimpleCommand, `port-simple-command`, `custom-commands-from-config`)
-
-### User-visible changes
-- When the bot cannot post in the channel (missing permissions, or a channel that takes no messages), the administrator gets the message as the ephemeral response and the log has a warning (v3: the "thinking" message vanished and nothing was posted).
-- The commands always answer (v3 needed the core's auto-defer switch).
-- Placeholders that other plugins left in v3's shared global substitutor no longer expand in these templates; `%bot_id%` and `%bot_name%` still do.
-- `custom-commands-from-config`: the commands are defined in `plugins/CustomCommands/config.yaml`; the bundled file lists v3's five (names, `generate message`, zh-TW names and descriptions, Administrator), so a fresh install and a migrated v3 install behave as before. Its comments, which explain every key, are new copy.
-- `custom-commands-from-config`: per command, `localizations` (name and description per Discord locale), `template` (default: the command's name), `permissions` (discord.py's names; default `[administrator]`, `[]` for every member), `reply` (`channel`, v3's post; `public`; `ephemeral`) and `guilds` (default: every guild); `/xincord reload CustomCommands` applies an edit and uploads the commands.
-- `custom-commands-from-config`: ephemeral replies use the user's locale, else zh-TW; posts and public replies stay zh-TW for everyone.
-- `custom-commands-from-config`: templates may use the user's and the channel's placeholders (`%user_mention%`, `%user_name%`, `%channel_name%`, ...), not only `%bot_id%` and `%bot_name%`; a mention in a post pings that member.
-- `custom-commands-from-config`: `lang/zh-TW/register.yaml` is no longer bundled or read; a v3 copy is ignored (the local v3 copy's equals v3's bundled file, so nothing is lost).
-- `custom-commands-from-config`: a config mistake disables the plugin with the file and the key in the log: Discord's name rules, description lengths, locales, permissions, guild IDs, names unique in every locale, the room left of Discord's 100 commands, a template missing from zh-TW or one that cannot render (a `uid` button or select, a `model_key`, a missing file, six rows).
-- `custom-commands-from-config`: a response that Discord refuses is deleted with a warning, so that no public "thinking" message stays in the channel.
-- `custom-commands-from-config`: an en-US template for some commands only logs the core's warning at each load that en-US lacks the others; they fall back to zh-TW.
-- `custom-commands-from-config`: `python -m xincord.core.migrate_v3` renames v3's `plugins/CustomCommands/config.yaml` (moved from SimpleCommand; only `enabled`) to `config.v3.yaml`, with a report line, so that the bundled commands are written.
-- `custom-commands-from-config`: every plugin: a reload whose `config.yaml`, lang files or templates are broken keeps the previous version running, and the summary names the file and the key (before: the plugin vanished while still listed as loaded, and only a restart brought it back); when even the previous version fails, the plugin and the plugins that depend on it are unloaded, the commands are uploaded without theirs, and the summary says to run a full reload.
-### Manual checks
-- Smoke checklist in `openspec/changes/archive/2026-10-10-port-simple-command/design.md` (needs a token, a test guild and a member without Administrator).
-- Smoke checklist in `openspec/changes/archive/2026-10-11-custom-commands-from-config/design.md` (needs a token, a test guild and a second guild, a member without Administrator, and zh-TW, en-US and Japanese clients).
-
-## WelcomeGoodbye (v3 WelcomeByeGuild, `port-welcome-bye-guild`)
-
-### User-visible changes
-- The four commands answer in threads, voice channel chats, stage and announcement channels (v3: no reply, and a bind chosen with the `channel` option there was saved silently); without the option there, the reply is `invalid-channel`.
-- `%...%` in member, guild and channel names is shown as written in replies and in the welcome and bye messages (v3 expanded it, and a self-reference stopped the message).
-- The bye message can use the `wbg@member_*` keys and v3's unprefixed member keys when discord.py still knew the member (v3: never; they stayed as written).
-- Bindings of guilds the bot left while it was offline or while the plugin was off are deleted when the bot is ready, with one log line per guild (v3 kept their files).
-- A welcome or bye message that Discord refuses logs a warning that names the guild and the channel (v3: JDA's exception log).
-- `invalid-channel`, `*-bind-already` and `*-unbind-empty` no longer create data; the commands always answer (v3 needed the core's auto-defer switch).
-- No `plugins/WelcomeGoodbye/config.yaml`: v3's only key, `enabled`, is the core's `plugins` list.
-### Manual checks
-- Smoke checklist in `openspec/changes/archive/2026-10-10-port-welcome-bye-guild/design.md` (needs a token, a test guild and a second account).
-
 ## Feedback (v3 Feedbacker, `port-feedbacker`)
 
-### User-visible changes
-- The form is deleted only after its review is posted.
-- The pressed star turns blue through an edit of the bot's own message after the modal opens (v3 queued it on the interaction hook before acknowledging the press).
-- Feedback text is shown as typed (v3 expanded `%...%` in it, and `%fb_content%` made the modal fail).
-- A star count outside 0 to 5 in an operator's template fails the press at once (v3: after the member typed a feedback).
-- A v3 `config.yaml` loads unchanged and warns `unknown key enabled`; there the two new replies are English (`Failed to create the form`, `Failed to submit the feedback`) until added; a blank reply or one over 2000 characters disables the plugin with the key named.
-- The command always answers (v3 needed the core's auto-defer switch).
-- Core, every plugin: embed field names and values are trimmed and an empty one becomes U+200E, as v3 did through JDA (xincord sent them as rendered, and Discord refuses an empty field).
+Verified on the test guild on 2026-10-12 (batches 1 and 2); left for the cutover:
+
 ### Manual checks
-- Smoke checklist in `openspec/changes/archive/2026-10-10-port-feedbacker/design.md` (needs a token, a test guild and a second account).
-- This is the first modal xincord sends (a label around the text input, as discord.py builds it): check that it opens in both languages.
 - At cutover, add `form_failure` and `form_submit_failure` to the existing `plugins/Feedback/config.yaml` for zh-TW texts, and press one star of a v3 form if any remains.
 
 ## Economy (`port-economy`)
 
-### User-visible changes
-- A user whom `admin_id` does not list and who names someone else in `/balance` gets `no-permission` (v3: their own wallet, without a word).
-- `/balance` and `economy@` buttons no longer create a zero wallet, so members appear on `/top-money` and `/top-cost` only once an administrator changed their wallet (v3 ranked everyone who had run `/balance`, at 0).
-- Board ties are ordered by user ID, the lowest first (v3: no defined order).
-- Amounts stay exact past 2147483647 (v3 wrapped them to negative numbers, and a `value` above that got no reply).
-- Every change reply has both `%economy_money_before%` and `%economy_cost_before%` (matters only for operators' templates).
-- The bundled `config.yaml` lists no administrator, so Economy stays disabled, with `admin_id` named in the log, until one is added (v3 shipped two real IDs); a v3 file loads unchanged and warns about `enabled` and the eight Google Sheets keys.
-- Economy no longer needs the GoogleSheetAPI plugin.
-- A `top-money` or `top-cost` template whose first embed has no description disables the plugin at load, naming the file (v3: no reply at each use).
-- The commands always answer (v3 needed the core's auto-defer switch).
-- An `economy@` button whose ID is not in v3's field format is logged as malformed instead of showing the wallet; no v3 template or production message has one.
+Verified on the test guild on 2026-10-12 (batches 1 and 2); left for the cutover:
+
 ### Manual checks
-- Smoke checklist in `openspec/changes/archive/2026-10-10-port-economy/design.md` (needs a token, a test guild and a second account).
 - At cutover, keep the existing `plugins/Economy/config.yaml` (it lists the administrators); its `enabled` and Google Sheets keys can be deleted to silence the warnings.
 
 ## DynamicVoiceChannel (`port-dynamic-voice-channel`)
@@ -176,29 +104,11 @@ here; delete a section once it is empty.
 
 ## Giveaway (`port-giveaway`)
 
-### User-visible changes
-- The builder keeps working after 15 minutes: each press and submission updates it (v3 edited through the command's token and silently stopped after 15 minutes).
-- Only the newest builder message of a draft works; an older one, or any after a reload or a restart, answers the session-expired text.
-- A second Confirm Create press while the giveaway is being posted answers the session-expired text (v3 posted two giveaways).
-- A post that cannot be made (a refusing channel, a channel without messages, a store failure) keeps the builder and the draft and sends `create-failed` with the error as an ephemeral message (v3 turned the builder into it, without buttons).
-- Long descriptions and prize lists end with `...` in the preview and the post, and the post's description shortens so that the embed fits Discord's 6000 characters (v3: the preview froze, or the post or its refresh failed).
-- Join / Leave, Draw Winners and Reroll are acknowledged at once, then update the post through the press; the joined, left, draw-result and refusal replies are ephemeral follow-ups, and any press repairs a post that shows an outdated state (v3 left a post whose refresh failed with Reroll disabled for good).
-- The automatic draw refreshes and announces giveaways in threads, announcement channels and voice channel chats too (v3 drew them silently).
-- The announcement pings the winners but no roles or @everyone named in a title (B19).
-- An uppercase `HTTPS://` thumbnail is shown (v3 accepted it but never showed it).
-- A user whose locale has no lang files (en-GB, ja) sees English texts and buttons, a zh-CN user zh-TW ones (v3 mixed English texts with zh-TW buttons).
-- Typed `%...%` in titles, descriptions and sponsors is shown as written (v3 expanded it).
-- Giveaways stay when the bot leaves a guild (v3 deleted them); due giveaways of a guild that the bot left wait until it is back.
-- New config key `timeZone` (an IANA zone, empty for the host's); an invalid `defaultLocale` stops only this plugin, with the key named (v3 aborted the bot).
-- New lang files `plugins/Giveaway/lang/<locale>/text.yaml` hold the texts that v3 wrote in code (field names, statuses, replies, errors); operators can edit them.
-- A post button without a giveaway ID answers `Giveaway not found.` in the user's language (v3: `Invalid giveaway id.` in English); a modal with an unknown sub-action gets no response.
-- End times after 9999 (`+12026-01-05 10:00`) and `9999-12-31 24:00` get the format error.
+Verified on the test guild on 2026-10-12 (batches 1 and 2); left for the cutover:
+
 ### Manual checks
-- Smoke checklist in `openspec/changes/archive/2026-10-10-port-giveaway/design.md` (needs a token, a test guild and a second account).
 - Before cutover, set `TZ=Asia/Taipei` in the production host's `.env` (`timezone-from-env`; or `timeZone` in `plugins/Giveaway/config.yaml`): without it the container's zone is UTC, so typed end times would be read 8 hours off.
 - The bot needs View Channel, Send Messages (in threads too) and Embed Links in giveaway channels; Read Message History only for the core's upgrade of v3 posts.
-- Unverified without Discord: that a type-7 response to a modal submission updates the ephemeral builder, and how a burst of joins looks (a response may show a count one behind until the next press).
-- Packaging was checked: the wheel's files, `xincord --no-online` from the built wheels, and the compose image (`docker compose run --rm -T bot --no-online` with `Giveaway` enabled), whose Python resolves `Asia/Taipei`.
 - After the one-off migration at cutover (B11), the core upgrades v3 posts' IDs with a fetch and an edit, which can briefly revert a concurrent edit of the post's buttons; the next press repairs it.
 
 ## Plugin renames (`rename-plugins`)
@@ -321,6 +231,7 @@ here; delete a section once it is empty.
 - New copy, zh-TW, in the bundled `config.yaml`: a shorter `prompt` (replacing v3's 140 lines, which asked for fenced code blocks) and the new `review-prompt`; English comments for `reject-texts`, `reviewers` and `review-prompt`. The test guild's `plugins/NtustAnnouncements/config.yaml` was rewritten from the new bundled file with your key, model and test board.
 - `reject-texts: ["```"]`: an answer that holds a code fence fails its attempt (`the answer holds ```` in the log) and the model is asked again after the next of `retry-waits` (60 s first).
 - `reviewers: [<user IDs>]`: a ❌ from one of them on a post converts the article again, has the model check it with `review-prompt` (`review attempt ...` lines), posts the result and deletes the old messages; log lines `user N marked <url>; converting it again` and `replaced the post of <url>`. When the article or the new post fails, the old post stays (`... was not posted again; its old post stays`).
+- `ntust-announcements-redo-feedback` (the owner's request of 2026-10-12): the bot adds ⏳ to the message a reviewer marked while the redo runs, and removes it when the old post stays.
 - Long posts are cut before a heading (or a line wholly in bold), at a blank line, before a list item, at a line break, in that order among the breaks past half of 1980 units; never right after a heading.
 ### Choices made without the owner
 - Refused answers wait like failed ones (`retry-waits`): at temperature 0.1 an immediate retry tends to repeat the answer; alternative: retry at once.
@@ -329,7 +240,6 @@ here; delete a section once it is empty.
 - Lines wholly in bold count as headings (the prompt's small headings); a break past half the limit wins over a better one in the first half, so a heading near the top makes no one-line message.
 - Each posted message is stored (namespace `NtustAnnouncements.posts`), never pruned: a few a day. Posts made before this change have no entry, so a ❌ on them does nothing.
 ### Manual checks
-- In the test guild, add ❌ to a post in `#ntust` (you are in `reviewers`): within about a minute a reviewed post replaces it. A ❌ from your second account does nothing.
 - At cutover: the migrated `plugins/NtustAnnouncements/config.yaml` keeps v3's prompt; replace `prompt` with the bundled one and add `reject-texts`, `reviewers` and (optionally) `review-prompt`, or start from the bundled file as on the test guild.
 
 ## NtustCourseWatch (v3 NtustCourse, `port-ntust-course-watch`)
