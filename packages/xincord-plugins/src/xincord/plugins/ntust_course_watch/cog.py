@@ -35,20 +35,20 @@ type Sleep = Callable[[float], Awaitable[object]]
 
 logger = logging.getLogger(__name__)
 
-MIN_PAUSE = 0.1  # v3's 100 ms at least between two requests
+MIN_PAUSE = 0.1  # 100 ms at least between two requests
 # A post that Discord refused or that did not reach it.
 POST_ERRORS = (discord.HTTPException, aiohttp.ClientError, OSError)
 
 
 class CommandSpec(NamedTuple):
-    """One of v3's commands: its ``register.yaml`` key and v3's texts."""
+    """One of the commands: its ``register.yaml`` key and its base texts."""
 
     key: str
     description: str
-    option: str | None = None  # the description of v3's ``id`` option, if the command has it
+    option: str | None = None  # the description of the ``id`` option, if the command has it
 
 
-# v3's commands, in v3's order.
+# The commands, in their order.
 COMMANDS = {
     "course-add": CommandSpec("course_add", "add a course", "the course code to add"),
     "course-remove": CommandSpec("course_remove", "remove a course", "the course code to remove"),
@@ -82,8 +82,7 @@ class NtustCourseWatch(commands.Cog):
         """Start the loop; it waits until the bot is ready.
 
         ``setup`` runs before the gateway connects, and ``--no-online`` never connects, so nothing
-        is asked before READY. In a ready bot, as after a reload, the loop starts at once: v3
-        started its monitor when it loaded, after JDA was ready.
+        is asked before READY. In a ready bot, as after a reload, the loop starts at once.
         """
         task = asyncio.create_task(self._run(), name="NtustCourseWatch")
         task.add_done_callback(_ended)
@@ -93,8 +92,7 @@ class NtustCourseWatch(commands.Cog):
     async def cog_unload(self) -> None:
         """Cancel the loop and the posts under way and wait for them, so that the session closes.
 
-        A reload builds a new cog with the new config; v3's reload added a second subscriber to
-        the monitor, which doubled every alert.
+        A reload builds a new cog with the new config, whose loop replaces this one.
         """
         running = (*self.tasks, *self.posting)
         for task in running:
@@ -105,7 +103,7 @@ class NtustCourseWatch(commands.Cog):
         """Wait until the bot is ready, then step every ``interval`` seconds over one session.
 
         A step starts ``interval`` seconds after the previous one started and at least 0.1 seconds
-        after it ended, v3's pacing (``CourseMonitorService.kt:34-36``).
+        after it ended.
         """
         await self.bot.wait_until_ready()
         async with self.open_api() as api:
@@ -125,7 +123,7 @@ class NtustCourseWatch(commands.Cog):
                 await self.sleep(max(MIN_PAUSE, self.config.interval - elapsed))
 
     def _post(self, channel_id: int, post: Post) -> None:
-        """Start a post to a channel, which holds up no step: v3 queued its posts too."""
+        """Start a post to a channel, which holds up no step."""
         task = asyncio.create_task(self._send(channel_id, post), name="NtustCourseWatch post")
         self.posting.add(task)
         task.add_done_callback(self.posting.discard)
@@ -140,9 +138,8 @@ class NtustCourseWatch(commands.Cog):
     async def _deliver(self, channel_id: int, post: Post) -> None:
         """Send ``post``, pinging its members only, to any kind of channel, cached or not.
 
-        v3 cast the channel to a text channel, which threw for threads, announcement and voice
-        channels and stopped its loop. A channel that Discord no longer knows has its
-        registrations forgotten; another refusal is logged once per kind and episode.
+        Threads, announcement and voice channels take it too. A channel that Discord no longer knows
+        has its registrations forgotten; another refusal is logged once per kind and episode.
         """
         channel = self.bot.get_partial_messageable(channel_id)
         failures = self.posts.setdefault(channel_id, Failures())
@@ -174,10 +171,10 @@ class NtustCourseWatch(commands.Cog):
         logger.debug("NtustCourseWatch: posted an alert to channel %d", channel_id)
 
     def command(self, name: str) -> app_commands.Command[Any, ..., None]:
-        """Build v3's command ``name``, described from ``register.yaml``, for every member.
+        """Build the command ``name``, described from ``register.yaml``, for every member.
 
-        A guild command, as in v3, without default permissions; the command tree defers it
-        ephemerally, as v3's core did. The names stay v3's in every locale; ``id`` is the option
+        A guild command without default permissions; the command tree defers it ephemerally. The
+        names stay the same in every locale; ``id`` is the option
         of ``course-add`` and ``course-remove``, whose parameter is ``code``.
         """
         lang, spec = self.lang, COMMANDS[name]
@@ -201,8 +198,7 @@ class NtustCourseWatch(commands.Cog):
     async def add_course(self, interaction: discord.Interaction, code: str) -> None:
         """``/course-add``: register the member for a course in the command's channel.
 
-        v3 stored the code as typed and the member as often as they ran the command; the code is
-        read as NTUST writes it, and a member is registered once.
+        The code is read as NTUST writes it, and a member is registered once.
         """
         course = course_code(code)
         if course is None:
@@ -214,8 +210,8 @@ class NtustCourseWatch(commands.Cog):
     async def remove_course(self, interaction: discord.Interaction, code: str) -> None:
         """``/course-remove``: unregister the member from a course in the command's channel.
 
-        v3 removed the channel's whole entry for the course, unregistering every member there. As
-        in v3, the reply is the same when the member was not registered.
+        Only the member's registration goes; the reply is the same when the member was not
+        registered.
         """
         course = course_code(code)
         if course is None:
@@ -225,10 +221,7 @@ class NtustCourseWatch(commands.Cog):
         await self._reply(interaction, "unregistered")
 
     async def list_courses(self, interaction: discord.Interaction) -> None:
-        """``/course-list``: the member's courses in the command's channel, sorted.
-
-        v3 matched the member's ID as a substring of each registered one and listed duplicates.
-        """
+        """``/course-list``: the member's courses in the command's channel, sorted, each once."""
         registered = await self.registrations.load()
         channel, user = _channel(interaction), interaction.user.id
         codes = sorted(
@@ -238,9 +231,9 @@ class NtustCourseWatch(commands.Cog):
         await interaction.edit_original_response(content=content)
 
     async def _reply(self, interaction: discord.Interaction, key: str) -> None:
-        """Edit the command tree's ephemeral deferral into the reply ``key``, as v3 did.
+        """Edit the command tree's ephemeral deferral into the reply ``key``.
 
-        The reply is in the member's locale, else in en-US: v3's English.
+        The reply is in the member's locale, else in en-US.
         """
         content = text(self.lang, f"reply.{key}", interaction.locale.value)
         await interaction.edit_original_response(content=content)

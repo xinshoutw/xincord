@@ -1,4 +1,4 @@
-# The texts that v3 wrote in its code (NtustCourse.kt), in English as v3 sent them.
+# The plugin's texts, in English.
 # The plugin fills the %ncw@...% placeholders; their values are inserted as written.
 
 # Replies to the member who ran a command, in the member's language.
@@ -7,7 +7,7 @@ reply:
   unregistered: "You have unregistered this course."
   # %ncw@courses%: the member's courses in this channel, separated by ", ".
   list: "Your registered courses: %ncw@courses%"
-  # Not in v3: a code that is not 9 to 20 letters and digits.
+  # A code that is not 9 to 20 letters and digits.
   invalid-code: "A course code is 9 to 20 letters and digits, such as CE162A001."
 
 # Posts in the channels that registered a course, in the plugin's default language (this one).

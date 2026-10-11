@@ -1,4 +1,4 @@
-"""The alerts: v3's texts, their mentions and how often a channel hears about a course."""
+"""The alerts: their texts and mentions, and how often a channel hears about a course."""
 
 import re
 from dataclasses import dataclass, field
@@ -39,8 +39,7 @@ class Alerts:
     def seats(self, code: str, channels: Iterable[int], now: float) -> list[int]:
         """The channels to tell that ``code`` has seats at ``now``, then owed a full alert.
 
-        A channel hears about a course at most once per ``interval``: v3 posted at every poll,
-        about every 1.5 seconds, beyond Discord's rate limit, and JDA's queue grew without end.
+        A channel hears about a course at most once per ``interval``, not at every check.
         """
         due = [
             channel
@@ -69,10 +68,7 @@ class Alerts:
 
 
 def escape(name: str) -> str:
-    """A course's name for a Markdown link's text: ``\\``, ``[`` and ``]`` escaped.
-
-    v3 inserted the name as it was, and a ``]`` ended the link's text.
-    """
+    """A course's name for a Markdown link's text: ``\\``, ``[`` and ``]`` escaped."""
     return LINK_TEXT.sub(lambda found: f"\\{found.group()}", name)
 
 
@@ -87,12 +83,12 @@ def _available(lang: Lang, course: Course, members: Sequence[int], second: int) 
 
 
 def available_posts(lang: Lang, course: Course, members: Sequence[int], second: int) -> list[Post]:
-    """v3's available alert about ``course`` for ``members``, in the default locale.
+    """The available alert about ``course`` for ``members``, in the default locale.
 
-    v3's text: ``second`` (v3's ``now.second``), the members' mentions in a spoiler, which still
+    The text: ``second`` (of the minute), the members' mentions in a spoiler, which still
     pings them, the course's name in a link to the course selection and its code in a code block.
     Mentions that do not fit in one message (2000 UTF-16 code units, 100 allowed users) go on in
-    further posts: JDA refused v3's message by throwing in its loop.
+    further posts.
     """
     posts: list[Post] = []
     group: tuple[int, ...] = ()
@@ -108,9 +104,6 @@ def available_posts(lang: Lang, course: Course, members: Sequence[int], second: 
 
 
 def full_post(lang: Lang, course: Course) -> Post:
-    """v3's full alert about ``course``, in the default locale; it pings nobody.
-
-    v3 passed the members to ``mentionUsers``, but its text mentioned none of them.
-    """
+    """The full alert about ``course``, in the default locale; it pings nobody."""
     values = {"ncw@course_name": escape(course.name), "ncw@course_id": course.code}
     return Post(text(lang, "alert.full", lang.default_locale, values))

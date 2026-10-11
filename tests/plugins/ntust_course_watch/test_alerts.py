@@ -31,7 +31,7 @@ def units(text: str) -> int:
 
 def test_available_text(cog: NtustCourseWatch) -> None:
     """Requirement: Channels hear about courses with seats."""
-    # v3's text: the second, the spoilered mentions, the masked course-selection link, the code.
+    # The text: the second, the spoilered mentions, the masked course-selection link, the code.
     assert available_posts(cog.lang, COURSE, (1, 2), 7) == [
         Post(GOLDEN["alerts"]["available"], (1, 2))
     ]
@@ -43,7 +43,7 @@ def test_many_members(cog: NtustCourseWatch) -> None:
 
     posts = available_posts(cog.lang, COURSE, members, 59)
 
-    # v3's one message exceeded 2000 characters, which JDA refused by throwing in its loop.
+    # One message would exceed 2000 characters.
     assert len(posts) > 1
     for post in posts:
         assert units(post.content) <= 2000
@@ -92,7 +92,7 @@ def test_throttle() -> None:
 
 def test_full_text(cog: NtustCourseWatch) -> None:
     """Requirement: Channels hear once when a course fills."""
-    # v3 passed the members to mentionUsers, but the text mentions nobody: it pinged nobody.
+    # The text mentions nobody: it pings nobody.
     assert full_post(cog.lang, COURSE) == Post(GOLDEN["alerts"]["full"], ())
 
 
@@ -118,7 +118,7 @@ def test_seats_come_and_go() -> None:
         else:
             told += ["full"] * len(alerts.filled("CE162A001", (5,)))
 
-    # v3 posted at each of them; each available alert is followed by one full alert at most.
+    # Each available alert is followed by one full alert at most.
     assert told == ["available", "full", "available", "full"]
 
 

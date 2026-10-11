@@ -1,4 +1,4 @@
-# v3's commands with zh-TW descriptions; the names stay v3's, so that members type the same
+# The commands with zh-TW descriptions; the names stay English, so that members type the same
 # commands in every language.
 course_add:
   name: "course-add"

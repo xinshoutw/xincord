@@ -1,4 +1,4 @@
-# NtustCourseWatch (v3 NtustCourse): list it under `plugins` in the core config.yaml to enable it.
+# NtustCourseWatch: list it under `plugins` in the core config.yaml to enable it.
 # Members register NTUST course codes in a channel with /course-add. From `start` on, while any
 # course is registered, the plugin asks NTUST's course query about one registered course every
 # `interval` seconds, the courses in turn, and posts in each channel that registered a course when

@@ -49,7 +49,7 @@ def listed(actual: dict[str, Any], expected: dict[str, Any]) -> dict[str, Any]:
 
 
 async def test_command_payload(bot: Bot) -> None:
-    """Requirement: Commands keep v3's names and answer in the member's locale."""
+    """Requirement: Commands answer in the member's locale."""
     global_payload, guild_payload = await cast("CommandTree", bot.tree).payloads()
     expected: list[dict[str, Any]] = GOLDEN["commands"]
     by_name = {entry["name"]: entry for entry in guild_payload}
@@ -61,12 +61,12 @@ async def test_command_payload(bot: Bot) -> None:
 
 @pytest.mark.parametrize("name", NAMES)
 async def test_command_binding(bot: Bot, cog: NtustCourseWatch, name: str) -> None:
-    """Requirement: Commands keep v3's names and answer in the member's locale."""
+    """Requirement: Commands answer in the member's locale."""
     command = bot.tree.get_command(name)
 
     assert isinstance(command, app_commands.Command)
     assert command.binding is cog
-    assert command.extras.get("defer", True)  # the tree's ephemeral deferral, as v3's core
+    assert command.extras.get("defer", True)  # the tree's ephemeral deferral
 
 
 async def test_register(cog: NtustCourseWatch, store: Store) -> None:
@@ -87,7 +87,7 @@ async def test_register_twice(cog: NtustCourseWatch) -> None:
     await cog.add_course(first.as_interaction(), "CE162A001")
     await cog.add_course(second.as_interaction(), "CE162A001")
 
-    assert await cog.registrations.load() == {"CE162A001": {5: (1,)}}  # v3 listed it twice
+    assert await cog.registrations.load() == {"CE162A001": {5: (1,)}}  # listed once
     assert replies(second) == [ENGLISH["registered"]]
 
 
@@ -105,7 +105,7 @@ async def test_typed_loosely(cog: NtustCourseWatch, typed: str) -> None:
 
     await cog.add_course(fake.as_interaction(), typed)
 
-    # v3 stored the code as typed, and a typo of case or spaces never matched NTUST's codes.
+    # The code is read as NTUST writes it: case and spaces do not matter.
     assert await cog.registrations.load() == {"CE162A001": {5: (1,)}}
     assert replies(fake) == [ENGLISH["registered"]]
 
@@ -168,7 +168,7 @@ async def test_unregister(cog: NtustCourseWatch) -> None:
 
     await cog.remove_course(fake.as_interaction(), "ce162a001")
 
-    # v3 removed the channel's whole entry for the course, every member's registration with it.
+    # Only the member's registration goes.
     assert await cog.registrations.load() == {"CE162A001": {5: (2,), 6: (1,)}}
     assert replies(fake) == [ENGLISH["unregistered"]]
 
@@ -181,7 +181,7 @@ async def test_not_registered(cog: NtustCourseWatch, store: Store) -> None:
     await cog.remove_course(fake.as_interaction(), "CE162A001")
 
     assert await store.get(NAMESPACE, KEY) == {"CE162A001": {"5": ["2"]}}
-    assert replies(fake) == [ENGLISH["unregistered"]]  # as v3, which always said so
+    assert replies(fake) == [ENGLISH["unregistered"]]  # the same reply
 
 
 async def test_last_registration(cog: NtustCourseWatch, store: Store) -> None:
@@ -221,7 +221,7 @@ async def test_similar_ids(cog: NtustCourseWatch) -> None:
     """Requirement: Members list their courses in the channel."""
     await cog.registrations.add("CE162A001", 5, 1)
     await cog.registrations.add("CE162A002", 5, 1)
-    await cog.registrations.add("CE162A003", 5, 11)  # "11" contains "1": v3 listed it for 1
+    await cog.registrations.add("CE162A003", 5, 11)  # "11" contains "1", but is another member
     fake = interaction(user=1, channel=5)
 
     await cog.list_courses(fake.as_interaction())
@@ -236,7 +236,7 @@ async def test_nothing_registered(cog: NtustCourseWatch) -> None:
 
     await cog.list_courses(fake.as_interaction())
 
-    assert replies(fake) == [ENGLISH["list-empty"]]  # v3's text with nothing after it
+    assert replies(fake) == [ENGLISH["list-empty"]]  # the text with nothing after it
 
 
 async def test_long_list(cog: NtustCourseWatch) -> None:
@@ -254,8 +254,8 @@ async def test_long_list(cog: NtustCourseWatch) -> None:
     assert reply.endswith(", ...")
 
 
-async def test_v3_document_listed_once(cog: NtustCourseWatch, store: Store) -> None:
-    """Requirement: Registrations are kept as v3's document."""
+async def test_duplicate_listed_once(cog: NtustCourseWatch, store: Store) -> None:
+    """Requirement: Registrations are kept in one document."""
     await store.put(NAMESPACE, KEY, {"CE162A001": {"5": ["1", "1"]}, "CE162A002": {"5": ["1"]}})
     fake = interaction(user=1, channel=5)
 
@@ -275,7 +275,7 @@ async def test_v3_document_listed_once(cog: NtustCourseWatch, store: Store) -> N
 async def test_replies_by_locale(
     cog: NtustCourseWatch, locale: discord.Locale, language: str
 ) -> None:
-    """Requirement: Commands keep v3's names and answer in the member's locale."""
+    """Requirement: Commands answer in the member's locale."""
     texts = GOLDEN["replies"][language]
     calls = [
         (cog.add_course, ("CE162A002",), "registered"),

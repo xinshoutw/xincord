@@ -1,7 +1,6 @@
-"""NTUST's course query: the request's body, the answer and v3's seats.
+"""NTUST's course query: the request's body, the answer and the seats.
 
-v3 asked for the whole catalogue of a semester (``CourseTeacher: " "``) and kept every course; the
-plugin asks about one registered code at a time, since NTUST no longer answers the whole catalogue
+The plugin asks about one registered code at a time: NTUST no longer answers the whole catalogue
 (no answer in 60 seconds, then a 500 after 120, on 2026-10-11).
 """
 
@@ -15,19 +14,19 @@ from typing import cast
 # The course query matches a code as a prefix, so a shorter one would ask about a whole department
 # or most of the catalogue at every round.
 CODE = re.compile(r"[0-9A-Z]{9,20}")
-# Kotlin's toIntOrNull(): an optional sign and decimal digits of any script, within an Int.
+# An integer: an optional sign and decimal digits of any script, within 32 bits.
 INT = re.compile(r"[+-]?\d+")
 INT_MIN, INT_MAX = -(2**31), 2**31 - 1
-BMP_END = 0xFFFF  # Kotlin's String is UTF-16: a character beyond it was two surrogates, no digit
-LANGUAGE = "zh"  # course names in Chinese, as v3 asked
+BMP_END = 0xFFFF  # a digit beyond it does not count: read as UTF-16, it is two surrogates
+LANGUAGE = "zh"  # course names in Chinese
 
 
 def course_code(text: str) -> str | None:
     """A course code as members type it, read as NTUST writes it; None when it cannot be one.
 
     NFKC turns full-width letters and digits (an input method's) into ASCII; surrounding
-    whitespace goes and letters are upper case. v3 stored the code as typed, so ``ce162a001`` never
-    matched NTUST's ``CE162A001``.
+    whitespace goes and letters are upper case, so ``ce162a001`` matches NTUST's
+    ``CE162A001``.
     """
     code = unicodedata.normalize("NFKC", text).strip().upper()
     return code if CODE.fullmatch(code) else None
@@ -42,20 +41,20 @@ class Course:
     """One course as the course query lists it."""
 
     code: str  # CourseNo
-    name: str  # CourseName, in Chinese: the plugin asks in zh, as v3
+    name: str  # CourseName, in Chinese: the plugin asks in zh
     chosen: int  # ChooseStudent: the members who chose it
-    limit: int  # Restrict2 as v3 read it
+    limit: int  # Restrict2, read as an integer
 
     @property
     def full(self) -> bool:
-        """v3's ``isFull``: no seats left, so a limit of 0 (or text) is always full."""
+        """No seats left: a limit of 0 (or text) is always full."""
         return self.chosen >= self.limit
 
 
 def to_int_or_none(text: str) -> int | None:
-    """Kotlin's ``String.toIntOrNull()``: a sign and decimal digits of any script within an Int.
+    """An integer: a sign and decimal digits of any script, within 32 bits; else None.
 
-    Digits outside the BMP were two surrogates in Kotlin's UTF-16 strings, which no digit is.
+    Digits outside the BMP do not count.
     Python refuses to convert more than 4,300 digits, far beyond an Int unless they are zeros.
     """
     if INT.fullmatch(text) is None or any(ord(char) > BMP_END for char in text):
@@ -71,7 +70,7 @@ def request_text(semester: str, code: str) -> str:
     """The JSON body that asks about the courses whose code starts with ``code``.
 
     The course query site's body (``app.cbe19373.js``, 2026-10-11), in its order, with the API's
-    own spelling ``OnleyNTUST``; v3 sent ``CourseTeacher: " "`` and no code to get every course.
+    own spelling ``OnleyNTUST``.
     """
     body: dict[str, object] = {
         "Semester": semester,
@@ -97,8 +96,8 @@ def read_course(answer: object, code: str) -> Course | None:
     """The course ``code`` in the course query's parsed answer, or None when it lists none.
 
     The course query matches codes as prefixes and lists a course once per room and time; the last
-    entry with the code wins, as v3's ``associateBy``. Only those entries are read: v3's Moshi
-    failed the whole answer for one malformed course.
+    entry with the code wins. Only those entries are read, so another malformed course fails
+    nothing.
 
     Raises:
         AnswerError: The answer is not a list, or an entry of the course lacks its name, a whole
@@ -127,9 +126,9 @@ def _course(code: str, fields: dict[str, object]) -> Course:
 
 
 def _limit(code: str, value: object) -> int:
-    """``Restrict2`` as v3 read it: text, or a number as its JSON text (Moshi's ``nextString``).
+    """``Restrict2``: text, or a number as its JSON text.
 
-    A limit that is not an Int (``""``, ``"abc"``, ``60.0``) is 0, as v3's ``?: 0``.
+    A limit that is not an integer (``""``, ``"abc"``, ``60.0``) is 0.
     """
     if isinstance(value, bool) or not isinstance(value, str | int | float):
         msg = f"{code}: Restrict2 is neither text nor a number"

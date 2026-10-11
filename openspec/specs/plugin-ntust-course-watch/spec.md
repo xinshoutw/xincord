@@ -22,14 +22,14 @@ and the `lang/` files of en-US, its default locale, and zh-TW to `plugins/NtustC
   and zh-TW lang files
 
 ### Requirement: The config names the semester, the start and the intervals
-`config.yaml` SHALL hold `semester` (letters and digits, v3's `1142` by default, numbers read as
-text), `start` (a time with its offset, v3's 2025-12-26 09:00 at +08:00 by default), `interval`
-(seconds between two requests, 1 to 86400, v3's 1.5 by default) and `alert-interval` (10 to 86400
-seconds, 60 by default). v3's file SHALL load with these defaults; invalid values SHALL keep the
+`config.yaml` SHALL hold `semester` (letters and digits, `1142` by default, numbers read as text),
+`start` (a time with its offset, 2025-12-26 09:00 at +08:00 by default), `interval` (seconds
+between two requests, 1 to 86400, 1.5 by default) and `alert-interval` (10 to 86400 seconds, 60 by
+default). A file with only `enabled` SHALL load with these defaults; invalid values SHALL keep the
 plugin from loading with the key named.
 
-#### Scenario: v3 config file
-- **WHEN** `config.yaml` is v3's (`enabled: false` only)
+#### Scenario: A file with only enabled
+- **WHEN** `config.yaml` holds `enabled: false` only
 - **THEN** the plugin loads with semester `1142`, start 2025-12-26 09:00 +08:00, interval 1.5 and
   alert interval 60, and logs a warning that names `enabled`
 
@@ -102,15 +102,15 @@ one message SHALL end with `...` within 2000 characters.
 
 #### Scenario: Nothing registered
 - **WHEN** the member registered nothing in the channel
-- **THEN** the reply is `list` with no courses, as v3's
+- **THEN** the reply is `list` with no courses
 
 #### Scenario: Long list
 - **WHEN** the member registered 100 courses in the channel
 - **THEN** the reply fits in 2000 characters and ends with `...`
 
-### Requirement: Commands keep v3's names and answer in the member's locale
+### Requirement: Commands answer in the member's locale
 The plugin SHALL register guild commands `course-add` and `course-remove`, each with a required
-string option `id`, and `course-list`, for every member, with v3's English descriptions and zh-TW
+string option `id`, and `course-list`, for every member, with English descriptions and zh-TW
 translations. The command tree's ephemeral deferral SHALL be edited into the reply, in the member's
 locale when the plugin has its files, else in en-US.
 
@@ -121,20 +121,20 @@ locale when the plugin has its files, else in en-US.
 
 #### Scenario: Replies by locale
 - **WHEN** a member whose locale is zh-TW, en-US or ja runs the commands
-- **THEN** the replies are the golden zh-TW texts, or v3's English ones for en-US and ja
+- **THEN** the replies are the golden zh-TW texts, or the English ones for en-US and ja
 
-### Requirement: Registrations are kept as v3's document
+### Requirement: Registrations are kept in one document
 Registrations SHALL be one document in the store (namespace `NtustCourseWatch`, key
-`user_record_map`): `{"<code>": {"<channel ID>": ["<user ID>", ...]}}`, IDs as decimal text, as
-v3's MongoDB value, read with v3's duplicates. A document of another shape SHALL raise and never be
+`user_record_map`): `{"<code>": {"<channel ID>": ["<user ID>", ...]}}`, IDs as decimal text, a member
+listed twice read once. A document of another shape SHALL raise and never be
 overwritten. Changes SHALL run under the document's lock and write only when they change it.
 
-#### Scenario: v3's document
-- **WHEN** the store holds v3's document with a member listed twice
+#### Scenario: A member listed twice
+- **WHEN** the store holds the document with a member listed twice
 - **THEN** the member is registered once, and `/course-list` lists the course once
 
 #### Scenario: Broken document
-- **WHEN** the document is not v3's shape (a list, a channel key that is not a number, a user that
+- **WHEN** the document is of another shape (a list, a channel key that is not a number, a user that
   is not text)
 - **THEN** reading it raises, a registration leaves it unchanged, and no course is checked
 
@@ -151,7 +151,7 @@ overwritten. Changes SHALL run under the document's lock and write only when the
 A course's state SHALL come from one `POST https://querycourse.ntust.edu.tw/QueryCourse/api//courses`
 with the semester and the code in the course query site's body, over TLS without Python's strict
 X.509 checks: the last entry of the answer whose `CourseNo` is the code. It has seats when
-`ChooseStudent` is below `Restrict2` read as v3's `toIntOrNull()`, a missing number counting as 0.
+`ChooseStudent` is below `Restrict2` read as a 32-bit integer, a missing number counting as 0.
 
 #### Scenario: Request
 - **WHEN** the plugin asks about `CE162A001` in semester `1151`
@@ -214,7 +214,7 @@ nothing is registered, no course SHALL be asked about. A reload SHALL replace th
 
 ### Requirement: Channels hear about courses with seats
 When a checked course has seats, each channel that registered it SHALL get the default locale's
-`alert.available`, with v3's second of the minute, its members' mentions and the course's name and
+`alert.available`, with the second of the minute, its members' mentions and the course's name and
 code, pinging those members only, at most once per `alert-interval` for the channel and the course.
 A post too long for 2000 characters SHALL be split between its mentions, at most 100 a post.
 

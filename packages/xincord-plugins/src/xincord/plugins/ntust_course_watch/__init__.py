@@ -13,9 +13,9 @@ if TYPE_CHECKING:
 DEPENDS: tuple[str, ...] = ()
 SOFT_DEPENDS: tuple[str, ...] = ()
 # Slash commands need no intent, and the alerts go through partial messageables, which need no
-# cache: v3's info.yaml requested nothing either.
+# cache.
 INTENTS = discord.Intents.none()
-# v3's texts were all English: the en-US files hold them, and zh-TW translates them.
+# The texts are English: the en-US files hold them, and zh-TW translates them.
 DEFAULT_LOCALE = "en-US"
 
 
@@ -26,6 +26,6 @@ async def setup(bot: Bot) -> None:
     lang = context.lang(DEFAULT_LOCALE)
     cog = NtustCourseWatch(bot, config, context.store, lang)
     await bot.add_cog(cog)
-    # Guild commands, as in v3. discord.py removes them when the plugin unloads.
+    # Guild commands; discord.py removes them when the plugin unloads.
     for name in COMMANDS:
         bot.tree.add_command(cog.command(name))

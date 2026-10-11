@@ -1,4 +1,4 @@
-"""The course query's request body and answer, and v3's seats."""
+"""The course query's request body and answer, and the seats."""
 
 import json
 from typing import Any
@@ -34,8 +34,7 @@ def with_entry(code: str, **fields: object) -> list[dict[str, Any]]:
 
 def test_request_body() -> None:
     """Requirement: Course seats come from NTUST's course query."""
-    # The course query site's body (2026-10-11): one code, OnleyNTUST as the API spells it; v3
-    # sent CourseTeacher " " and no code, which NTUST's server no longer answers.
+    # The course query site's body (2026-10-11): one code, OnleyNTUST as the API spells it.
     assert request_text("1151", "CE162A001") == GOLDEN["request"]
 
 
@@ -53,7 +52,7 @@ def test_answer(code: str) -> None:
 
 def test_last_entry_wins() -> None:
     """Requirement: Course seats come from NTUST's course query."""
-    # The course query lists a course once per room and time; v3's associateBy kept the last.
+    # The course query lists a course once per room and time; the last entry wins.
     course = read_course(with_entry("CE162A001", ChooseStudent=60), "CE162A001")
 
     assert course is not None
@@ -108,7 +107,7 @@ def test_digits_outside_the_bmp() -> None:
     """Requirement: Course seats come from NTUST's course query."""
     sixty = chr(0x1D7D4) + chr(0x1D7CE)  # MATHEMATICAL BOLD DIGIT SIX and ZERO
 
-    # Kotlin's String is UTF-16: each of these digits was two surrogates, which are no digits.
+    # Digits outside the BMP do not count.
     assert to_int_or_none(sixty) is None
     course = read_course(with_entry("CE162A001", Restrict2=sixty), "CE162A001")
     assert course is not None
@@ -131,7 +130,7 @@ def test_course_missing(entries: list[object]) -> None:
 
 def test_other_entries_are_not_read() -> None:
     """Requirement: Course seats come from NTUST's course query."""
-    # v3's Moshi failed the whole answer for one malformed course; only the checked one is read.
+    # Only the checked course is read: another malformed one fails nothing.
     entries: list[object] = [*with_entry("CE162A002", ChooseStudent=None), "junk", None]
 
     course = read_course(entries, "CE162A001")

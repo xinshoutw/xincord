@@ -1,4 +1,4 @@
-"""The NtustCourseWatch config: what v3 hard-coded, with v3's values as defaults."""
+"""The NtustCourseWatch config: the semester, the start and the intervals, with defaults."""
 
 import logging
 from datetime import datetime, timedelta, timezone
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from xincord.plugins.ntust_course_watch.config import Config
 
 TAIWAN = timezone(timedelta(hours=8))
-V3_START = datetime(2025, 12, 26, 9, 0, tzinfo=TAIWAN)  # v3's go-live time on the owner's host
+DEFAULT_START = datetime(2025, 12, 26, 9, 0, tzinfo=TAIWAN)
 VALID = """\
 semester: "1151"
 start: 2026-12-28T09:00:00+08:00
@@ -31,7 +31,7 @@ def config_of(bot: Bot) -> Config:
     return cast("NtustCourseWatch", bot.get_cog("NtustCourseWatch")).config
 
 
-async def test_v3_config_file(
+async def test_file_with_only_enabled(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: The config names the semester, the start and the intervals."""
@@ -43,9 +43,9 @@ async def test_v3_config_file(
     assert bot.loaded == ("NtustCourseWatch",)
     assert "unknown key enabled" in caplog.text
     config = config_of(bot)
-    assert config.semester == "1142"  # v3's hard-coded semester
-    assert config.start == V3_START
-    assert config.interval == 1.5  # v3's target cadence
+    assert config.semester == "1142"  # the default semester
+    assert config.start == DEFAULT_START
+    assert config.interval == 1.5  # the default interval
     assert config.alert_interval == 60
 
 
@@ -61,7 +61,7 @@ async def test_bundled_config(
     config = config_of(bot)
     assert (config.semester, config.start, config.interval, config.alert_interval) == (
         "1142",
-        V3_START,
+        DEFAULT_START,
         1.5,
         60,
     )

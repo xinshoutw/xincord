@@ -1,4 +1,4 @@
-# v3's commands (command/Register.kt), with v3's English names and descriptions.
+# The commands, with their English names and descriptions.
 course_add:
   name: "course-add"
   description: "add a course"

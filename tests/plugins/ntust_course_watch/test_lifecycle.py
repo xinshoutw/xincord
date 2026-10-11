@@ -80,7 +80,7 @@ async def test_start_at_ready(scene: Scene) -> None:
     scene.ready.set()
     await scene.steps(1)
 
-    assert scene.api.asked == [("1151", "CE162A001")]  # at once, as v3's first poll
+    assert scene.api.asked == [("1151", "CE162A001")]  # at once
     assert scene.api.opened == 1
 
 
@@ -121,7 +121,7 @@ async def test_before_the_start(scene: Scene) -> None:
     await scene.steps(1)
     await scene.wake(2)
 
-    # v3 polled the whole catalogue before its go-live time too.
+    # Nothing is asked before the start.
     assert scene.api.asked == []
     await scene.wake(3)  # the start has passed now
     assert scene.api.asked == [("1151", "CE162A001")]
@@ -135,7 +135,7 @@ async def test_nothing_registered(scene: Scene) -> None:
 
     await scene.steps(1)
     await scene.wake(2)
-    assert scene.api.asked == []  # v3 polled with nobody registered too
+    assert scene.api.asked == []  # nothing is asked with nobody registered
     await scene.cog.registrations.add("CE162A002", 5, 1)
     await scene.wake(3)
 
@@ -154,7 +154,7 @@ async def test_courses_in_turn(scene: Scene) -> None:
     await scene.wake(3)
 
     assert [code for _, code in scene.api.asked] == ["CE162A001", "CE162A002", "CE162A001"]
-    assert scene.clock.waits == [1.5, 1.5, 1.5]  # v3's interval from one start to the next
+    assert scene.clock.waits == [1.5, 1.5, 1.5]  # the interval from one start to the next
 
 
 async def test_slow_answers(scene: Scene) -> None:
@@ -168,7 +168,7 @@ async def test_slow_answers(scene: Scene) -> None:
     scene.api.delay = 2.0
     await scene.wake(2)
 
-    assert scene.clock.waits == [0.5, 0.1]  # v3's 100 ms at least after a slow answer
+    assert scene.clock.waits == [0.5, 0.1]  # 100 ms at least after a slow answer
 
 
 async def test_unload(scene: Scene) -> None:
@@ -221,7 +221,7 @@ async def test_reload(scene: Scene) -> None:
     summary = await scene.bot.reload("NtustCourseWatch")  # the console's and /xincord's reload
 
     assert "NtustCourseWatch" in summary
-    assert old.done()  # v3 added a second subscriber, doubling every alert
+    assert old.done()  # the old loop ends
     [new] = scene.cog.tasks  # the new version's
     assert not new.done()
 
@@ -264,7 +264,7 @@ async def test_deleted_channel(scene: Scene, caplog: pytest.LogCaptureFixture) -
     with caplog.at_level(logging.INFO):
         await scene.steps(1)
 
-    # v3 kept a deleted channel's registrations and skipped it at every poll.
+    # A deleted channel's registrations are forgotten.
     assert await scene.cog.registrations.load() == {"CE162A001": {6: (2,)}}
     assert "channel 5 is gone" in caplog.text
     assert len(scene.posts(6)) == 1

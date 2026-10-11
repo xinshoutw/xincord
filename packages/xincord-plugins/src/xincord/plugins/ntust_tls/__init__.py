@@ -16,8 +16,8 @@ def ntust_context() -> ssl.SSLContext:
 
     Python 3.13 made ``VERIFY_X509_STRICT`` a default, and the certificate chains of NTUST's hosts
     (``student``, ``www.academic``, ``lc`` and ``querycourse``) lack a Subject Key Identifier, which
-    those checks refuse (checked on 2026-10-11): no page would load. Java's ``HttpClient``, v3's,
-    accepted them. ``www.academic.ntust.edu.tw`` also leaves out TWCA's intermediate certificate,
+    those checks refuse (checked on 2026-10-11): no page would load. Clients without these checks
+    accept them. ``www.academic.ntust.edu.tw`` also leaves out TWCA's intermediate certificate,
     which OpenSSL needs to reach the root: the context holds that public certificate (valid until
     2030-10-16). Other hosts keep Python's default context.
     """

@@ -17,10 +17,10 @@ if TYPE_CHECKING:
 
     from .courses import Course
 
-API = "https://querycourse.ntust.edu.tw/QueryCourse/api//courses"  # v3's URL, with its //
-# v3's 5 seconds to connect; v3 set no limit for the answer, so a stalled one stopped its loop.
+API = "https://querycourse.ntust.edu.tw/QueryCourse/api//courses"  # with its //
+# 5 seconds to connect, 30 for the answer.
 TIMEOUT = aiohttp.ClientTimeout(total=30, connect=5)
-HEADERS = {"content-type": "application/json; charset=utf-8"}  # v3's header
+HEADERS = {"content-type": "application/json; charset=utf-8"}
 OK = 200
 
 
@@ -54,7 +54,7 @@ class Api:
     async def course(self, semester: str, code: str) -> Course | None:
         """Ask about ``code`` in ``semester``; None when the answer lists no such course.
 
-        No redirect is followed, as Java's ``HttpClient`` followed none.
+        No redirect is followed.
 
         Raises:
             QueryError: The course query answered with a status other than 200.

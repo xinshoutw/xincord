@@ -1,6 +1,4 @@
-# Golden data for the NtustCourseWatch tests. The en-US texts are v3's, from
-# XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/NtustCourse.kt:66-131 and
-# command/Register.kt:14-20; the zh-TW texts are the port's translations.
+# Golden data for the NtustCourseWatch tests: the bundled en-US texts and their zh-TW translations.
 # answer.json is a trimmed copy of NTUST's answer to the course code CE162A in semester 1151
 # (POST https://querycourse.ntust.edu.tw/QueryCourse/api//courses, fetched on 2026-10-11), with
 # the teachers' names replaced by an example: the course query matches codes as prefixes and lists

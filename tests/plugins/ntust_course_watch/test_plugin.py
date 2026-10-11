@@ -22,8 +22,7 @@ BUNDLED = (
 
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as NtustCourseWatch."""
-    # No intents beyond discord.py's defaults: v3's info.yaml requested none, and slash commands
-    # need none.
+    # No intents beyond discord.py's defaults: slash commands need none.
     assert discover(["NtustCourseWatch"]) == [
         PluginInfo("NtustCourseWatch", "xincord.plugins.ntust_course_watch")
     ]
@@ -34,7 +33,7 @@ async def test_first_load_writes_the_files(store: Store, tmp_path: Path) -> None
     bot = await load_plugin("NtustCourseWatch", tmp_path / "plugins", store)
     directory = tmp_path / "plugins" / "NtustCourseWatch"
 
-    assert bot.loaded == ("NtustCourseWatch",)  # the bundled config holds v3's values
+    assert bot.loaded == ("NtustCourseWatch",)  # the bundled config holds the defaults
     package = files("xincord.plugins.ntust_course_watch")
     for name in BUNDLED:
         written = (directory / name).read_text(encoding="utf-8")

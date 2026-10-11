@@ -27,7 +27,7 @@ GOLDEN = golden("ntust_course_watch")
 NAME = GOLDEN["courses"]["CE162A001"]["name"]
 SEATS = Course("CE162A001", NAME, 25, 60)
 FULL = Course("CE162A001", NAME, 60, 60)
-NOW = datetime(2026, 10, 11, 2, 0, 7, tzinfo=UTC)  # second 7, after v3's start
+NOW = datetime(2026, 10, 11, 2, 0, 7, tzinfo=UTC)  # second 7, after the start
 
 
 @dataclass
@@ -80,7 +80,7 @@ async def test_seats(cog: NtustCourseWatch, fakes: Fakes) -> None:
 
     await watcher.step()
 
-    assert fakes.asked == [("1142", "CE162A001")]  # the bundled semester, v3's
+    assert fakes.asked == [("1142", "CE162A001")]  # the bundled semester
     assert fakes.posts == [
         (5, Post(GOLDEN["alerts"]["available"], (1, 2))),
         (6, Post(GOLDEN["alerts"]["available"].replace("<@1> <@2>", "<@3>"), (3,))),
@@ -95,7 +95,7 @@ async def test_seats_again(cog: NtustCourseWatch, fakes: Fakes) -> None:
 
     await watcher.step()
     fakes.time += 59.0
-    await watcher.step()  # v3 posted at every poll, every 1.5 seconds
+    await watcher.step()  # not at every check
     assert len(fakes.posts) == 1
     fakes.time += 1.0
     await watcher.step()
@@ -139,7 +139,7 @@ async def test_full_at_the_first_check(
 
 
 async def test_stored_codes_asked(cog: NtustCourseWatch, fakes: Fakes, store: Store) -> None:
-    """Requirement: Registrations are kept as v3's document."""
+    """Requirement: Registrations are kept in one document."""
     await store.put(
         NAMESPACE, KEY, {"": {"5": ["1"]}, "C": {"5": ["1"]}, "ce162a001": {"5": ["1"]}}
     )
@@ -161,7 +161,7 @@ async def test_course_missing_from_one_answer(cog: NtustCourseWatch, fakes: Fake
     for _ in range(3):
         await watcher.step()
 
-    # v3 skipped an empty answer and kept its state; the course had seats when it was listed last.
+    # An empty answer is skipped and the state kept; the course had seats when it was listed last.
     assert [post.content for _, post in fakes.posts][1:] == [GOLDEN["alerts"]["full"]]
 
 
@@ -199,7 +199,7 @@ async def test_failing_course_query(
         for _ in range(7):
             await watcher.step()
 
-    # v3 printed every failure to stdout, about every 1.5 seconds.
+    # Each kind of failure is logged once per episode.
     [warning] = lines(caplog, logging.WARNING, "code 500")
     assert "CE162A001" in warning
     assert len(lines(caplog, logging.DEBUG, "code 500")) == 3  # the rest of the episode
@@ -255,7 +255,7 @@ async def test_broken_document(
     cog: NtustCourseWatch, fakes: Fakes, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: Failures are logged without flooding."""
-    await store.put(NAMESPACE, KEY, ["not", "v3's", "document"])
+    await store.put(NAMESPACE, KEY, ["not", "a", "document"])
     watcher = fakes.watcher(cog)
 
     with caplog.at_level(logging.INFO):
@@ -266,7 +266,7 @@ async def test_broken_document(
         for _ in range(3):
             await watcher.step()
 
-    assert len(lines(caplog, logging.ERROR, "not v3's document")) == 1
+    assert len(lines(caplog, logging.ERROR, "registrations document is broken")) == 1
     assert fakes.asked == [("1142", "CE162A001")] * 3  # nothing asked while it was broken
     assert len(lines(caplog, logging.INFO, "registrations read again")) == 1
 
@@ -279,7 +279,7 @@ async def test_unexpected_error(
     fakes.answers["CE162A001"] = [RuntimeError("broken"), SEATS]
     watcher = fakes.watcher(cog)
 
-    await watcher.step()  # v3's loop died at an exception until the next reload
+    await watcher.step()  # the loop goes on after an exception
     await watcher.step()
 
     [record] = [record for record in caplog.records if "the step failed" in record.getMessage()]

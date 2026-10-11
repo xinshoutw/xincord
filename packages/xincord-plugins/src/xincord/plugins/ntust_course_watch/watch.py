@@ -52,9 +52,9 @@ class Watcher:
     alerts: Alerts = field(init=False)
     courses: dict[str, Course] = field(default_factory=dict[str, "Course"])  # at their last check
     cursor: str | None = None  # the code asked about last
-    # Failure episodes: each kind of failure is logged once per episode (v3 printed every failure
-    # to stdout). One per code, since the other codes' answers end no code's episode; one for the
-    # registrations document and one for the unexpected errors.
+    # Failure episodes: each kind of failure is logged once per episode. One per code, since the
+    # other codes' answers end no code's episode; one for the registrations document and one for the
+    # unexpected errors.
     queries: dict[str, Failures] = field(default_factory=dict[str, Failures])
     document: Failures = field(default_factory=Failures)
     errors: Failures = field(default_factory=Failures)
@@ -64,14 +64,12 @@ class Watcher:
         self.alerts = Alerts(self.config.alert_interval)
 
     async def step(self) -> None:
-        """Ask about the next registered course and post its alerts: v3's poll, for one course.
+        """Ask about the next registered course and post its alerts.
 
         Before ``start``, or while nothing is registered, nothing is asked and the states are
-        forgotten, so that the first check afterwards alerts as v3's first poll did; v3 polled the
-        whole catalogue all the time. The codes are asked about in turn, in sorted order. Any
-        unexpected error is logged with its traceback, once per kind and episode, and the next step
-        comes as usual: v3's loop died at the first exception until the next reload. Cancellation
-        ends the step at once.
+        forgotten, so that the first check afterwards alerts. The codes are asked about in turn, in
+        sorted order. Any unexpected error is logged with its traceback, once per kind and episode,
+        and the next step comes as usual. Cancellation ends the step at once.
         """
         try:
             await self._step()
@@ -113,7 +111,7 @@ class Watcher:
                 failed,
             )
         self._keep(registered)
-        if course is None:  # NTUST lists no such course this time: as v3 skipped an empty answer,
+        if course is None:  # NTUST lists no such course this time: an empty answer is skipped,
             return  # the course keeps the state of its last listing
         previous = self.courses.get(code)
         self.courses[code] = course
@@ -130,7 +128,7 @@ class Watcher:
         except DataError as error:
             logger.log(
                 logging.ERROR if self.document.fail(DataError) else logging.DEBUG,
-                "NtustCourseWatch: the registrations are not v3's document, so no course is "
+                "NtustCourseWatch: the registrations document is broken, so no course is "
                 "checked until it is fixed or deleted: %s",
                 error,
             )
@@ -155,14 +153,14 @@ class Watcher:
         )
 
     def _seats(self, course: Course, channels: Mapping[int, tuple[int, ...]]) -> None:
-        """v3's available alert to the channels that have not heard about it lately."""
+        """The available alert to the channels that have not heard about it lately."""
         second = self.now().second
         for channel in self.alerts.seats(course.code, channels, self.clock()):
             for post in available_posts(self.lang, course, channels[channel], second):
                 self.send(channel, post)
 
     def _filled(self, course: Course, channels: Mapping[int, tuple[int, ...]]) -> None:
-        """v3's full alert to the channels that heard about its seats."""
+        """The full alert to the channels that heard about its seats."""
         for channel in self.alerts.filled(course.code, channels):
             self.send(channel, full_post(self.lang, course))
 

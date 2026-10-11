@@ -1,4 +1,4 @@
-"""The registrations: v3's document in the store, changed under its lock."""
+"""The registrations: one document in the store, changed under its lock."""
 
 import asyncio
 from typing import TYPE_CHECKING
@@ -16,33 +16,32 @@ from xincord.plugins.ntust_course_watch.store import (
 if TYPE_CHECKING:
     from xincord.core.storage import JSON, Store
 
-# v3's document as its MemoryCacheDb wrote it: a member listed twice (v3's /course-add allowed it),
-# a course whose only channel v3's /course-remove dropped, and an empty member list.
-V3_DOCUMENT: JSON = {
+# A document with a member listed twice, a course without channels and an empty member list.
+OLD_DOCUMENT: JSON = {
     "CE162A001": {"5": ["1", "2", "1"], "6": ["3"]},
     "CE162A002": {},
     "CE162A003": {"5": []},
 }
 
 
-def test_v3_document() -> None:
-    """Requirement: Registrations are kept as v3's document."""
-    assert parse_registrations(V3_DOCUMENT) == {"CE162A001": {5: (1, 2), 6: (3,)}}
+def test_old_document() -> None:
+    """Requirement: Registrations are kept in one document."""
+    assert parse_registrations(OLD_DOCUMENT) == {"CE162A001": {5: (1, 2), 6: (3,)}}
 
 
 async def test_load(store: Store) -> None:
-    """Requirement: Registrations are kept as v3's document."""
+    """Requirement: Registrations are kept in one document."""
     registrations = Registrations(store)
     assert await registrations.load() == {}  # no document: nothing registered, nothing written
     assert await store.get(NAMESPACE, KEY) is None
 
-    await store.put(NAMESPACE, KEY, V3_DOCUMENT)
+    await store.put(NAMESPACE, KEY, OLD_DOCUMENT)
 
     assert await registrations.load() == {"CE162A001": {5: (1, 2), 6: (3,)}}
 
 
-async def test_written_as_v3(store: Store) -> None:
-    """Requirement: Registrations are kept as v3's document."""
+async def test_written_document(store: Store) -> None:
+    """Requirement: Registrations are kept in one document."""
     registrations = Registrations(store)
 
     assert await registrations.add("CE162A001", 5, 1)
@@ -56,29 +55,29 @@ async def test_written_as_v3(store: Store) -> None:
 
 
 async def test_add_twice(store: Store) -> None:
-    """Requirement: Registrations are kept as v3's document."""
-    await store.put(NAMESPACE, KEY, V3_DOCUMENT)
+    """Requirement: Registrations are kept in one document."""
+    await store.put(NAMESPACE, KEY, OLD_DOCUMENT)
     registrations = Registrations(store)
 
     assert not await registrations.add("CE162A001", 5, 2)
 
-    assert await store.get(NAMESPACE, KEY) == V3_DOCUMENT  # nothing written: v3's duplicate stays
+    assert await store.get(NAMESPACE, KEY) == OLD_DOCUMENT  # nothing written: the duplicate stays
 
 
 async def test_remove(store: Store) -> None:
-    """Requirement: Registrations are kept as v3's document."""
-    await store.put(NAMESPACE, KEY, V3_DOCUMENT)
+    """Requirement: Registrations are kept in one document."""
+    await store.put(NAMESPACE, KEY, OLD_DOCUMENT)
     registrations = Registrations(store)
 
     assert not await registrations.remove("CE162A001", 5, 4)  # not registered: nothing written
-    assert await store.get(NAMESPACE, KEY) == V3_DOCUMENT
-    assert await registrations.remove("CE162A001", 5, 1)  # both of v3's entries go
+    assert await store.get(NAMESPACE, KEY) == OLD_DOCUMENT
+    assert await registrations.remove("CE162A001", 5, 1)  # both entries go
 
     assert await store.get(NAMESPACE, KEY) == {"CE162A001": {"5": ["2"], "6": ["3"]}}
 
 
 async def test_last_registration(store: Store) -> None:
-    """Requirement: Registrations are kept as v3's document."""
+    """Requirement: Registrations are kept in one document."""
     registrations = Registrations(store)
     await registrations.add("CE162A001", 5, 1)
     await registrations.add("CE162A001", 6, 1)
@@ -92,12 +91,12 @@ async def test_last_registration(store: Store) -> None:
 
 
 async def test_forget_a_channel(store: Store) -> None:
-    """Requirement: Registrations are kept as v3's document."""
-    await store.put(NAMESPACE, KEY, V3_DOCUMENT)
+    """Requirement: Registrations are kept in one document."""
+    await store.put(NAMESPACE, KEY, OLD_DOCUMENT)
     registrations = Registrations(store)
 
     assert not await registrations.forget(7)
-    assert await store.get(NAMESPACE, KEY) == V3_DOCUMENT
+    assert await store.get(NAMESPACE, KEY) == OLD_DOCUMENT
     assert await registrations.forget(5)
 
     assert await store.get(NAMESPACE, KEY) == {"CE162A001": {"6": ["3"]}}
@@ -117,7 +116,7 @@ async def test_forget_a_channel(store: Store) -> None:
     ],
 )
 async def test_broken_document(store: Store, document: JSON) -> None:
-    """Requirement: Registrations are kept as v3's document."""
+    """Requirement: Registrations are kept in one document."""
     await store.put(NAMESPACE, KEY, document)
     registrations = Registrations(store)
 
@@ -134,11 +133,11 @@ async def test_broken_document(store: Store, document: JSON) -> None:
 
 
 async def test_stored_codes(store: Store) -> None:
-    """Requirement: Registrations are kept as v3's document."""
-    name = chr(0x5FAE) + chr(0x7A4D) + chr(0x5206)  # a course's name typed as its code in v3
+    """Requirement: Registrations are kept in one document."""
+    name = chr(0x5FAE) + chr(0x7A4D) + chr(0x5206)  # a course's name typed as its code
     document: JSON = {
         "": {"5": ["1"]},
-        "ce162a001 ": {"5": ["2"]},  # v3 stored codes as typed
+        "ce162a001 ": {"5": ["2"]},  # a code as typed
         "CE162A001": {"5": ["1", "2"], "6": ["3"]},
         name: {"6": ["3"]},
         "C": {"5": ["4"]},
@@ -157,7 +156,7 @@ async def test_stored_codes(store: Store) -> None:
 
 
 async def test_concurrent_registrations(store: Store) -> None:
-    """Requirement: Registrations are kept as v3's document."""
+    """Requirement: Registrations are kept in one document."""
     registrations = Registrations(store)
 
     # discord.py runs the commands of two members as concurrent tasks.

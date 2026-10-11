@@ -1,4 +1,4 @@
-"""The texts that v3 wrote in its code, from ``text.yaml``."""
+"""The plugin's texts, from ``text.yaml``."""
 
 from typing import TYPE_CHECKING
 
@@ -17,13 +17,13 @@ ELLIPSIS = "..."
 def text(lang: Lang, key: str, locale: str, values: Mapping[str, str] | None = None) -> str:
     """The text ``key`` of ``text.yaml`` in ``locale``, with its ``%ncw@...%`` values as written.
 
-    A key missing in ``locale`` falls back to the default locale, en-US: v3's English.
+    A key missing in ``locale`` falls back to the default locale, en-US.
     """
     return render(lang.text(f"{TEXT}.{key}", locale), values or {})
 
 
 def units(content: str) -> int:
-    """The length of ``content`` in UTF-16 code units, as Discord and Java count it."""
+    """The length of ``content`` in UTF-16 code units, as Discord counts it."""
     return len(content.encode("utf-16-le")) // 2
 
 

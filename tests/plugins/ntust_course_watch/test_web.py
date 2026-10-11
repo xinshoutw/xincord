@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 GOLDEN = golden("ntust_course_watch")
 ANSWER = (FIXTURES / "plugins" / "ntust_course_watch" / "answer.json").read_text("utf-8")
-PATH = "/QueryCourse/api//courses"  # v3's path, with its //
+PATH = "/QueryCourse/api//courses"  # with its //
 
 
 @dataclass(frozen=True)
@@ -140,8 +140,8 @@ async def test_refused_answers(server: Server, text: str, message: str) -> None:
 
 async def test_defaults() -> None:
     """Requirement: Course seats come from NTUST's course query."""
-    assert API == "https://querycourse.ntust.edu.tw/QueryCourse/api//courses"  # v3's URL
-    # v3's 5 seconds to connect; v3 waited for the answer without a limit.
+    assert API == "https://querycourse.ntust.edu.tw/QueryCourse/api//courses"
+    # 5 seconds to connect, 30 for the answer.
     assert (TIMEOUT.connect, TIMEOUT.total) == (5, 30)
     async with open_api() as api:
         assert api.url == API

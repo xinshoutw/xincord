@@ -1,10 +1,7 @@
-"""The registrations, in the store as v3's document.
+"""The registrations, in the store as one document.
 
-v3 kept them in MongoDB (database ``NtustCourse``, collection ``generated_cache``, ``_id``
-``user_record_map``), the value ``{"<code>": {"<channel ID>": ["<user ID>", ...]}}``: Moshi wrote
-the channels' ``Long`` keys as JSON names and the users as strings. The store keeps that value under
-the same key, so that the planned v3 data import copies it unchanged. v3 never read it back after a
-restart (``getTyped`` found no adapter for its ``HashMap``) and overwrote it at the next change.
+Under the key ``user_record_map``, the value ``{"<code>": {"<channel ID>": ["<user ID>", ...]}}``:
+the channels' IDs as JSON names and the users' as strings.
 """
 
 import re
@@ -20,9 +17,9 @@ if TYPE_CHECKING:
     from xincord.core.storage import JSON, Store
 
 NAMESPACE = "NtustCourseWatch"
-KEY = "user_record_map"  # v3's document _id
+KEY = "user_record_map"  # the document's key
 LOCK = f"{NAMESPACE}:{KEY}"  # every change of the document holds it
-DECIMAL = re.compile(r"[0-9]+")  # a snowflake as v3 wrote it
+DECIMAL = re.compile(r"[0-9]+")  # a snowflake in decimal
 
 # The registered members of each course code in each channel, in registration order.
 type Registered = Mapping[str, Mapping[int, tuple[int, ...]]]
@@ -30,16 +27,15 @@ type Change = Callable[[Registered], Registered | None]  # None: nothing to chan
 
 
 class DataError(Exception):
-    """The registrations document is not v3's shape; it is left as it is."""
+    """The registrations document is of another shape; it is left as it is."""
 
 
 def parse_registrations(document: object) -> Registered:
-    """The registrations of v3's document; none for no document.
+    """The registrations of the document; none for no document.
 
-    A member listed twice (v3's ``/course-add`` allowed it) counts once, and channels and courses
-    without members (v3's ``/course-remove`` left the latter) are left out. Codes are read as
-    ``/course-add`` reads them, since v3 stored them as typed: the registrations of codes that read
-    as one are merged, and codes that are no course code (an empty one would ask for the whole
+    A member listed twice counts once, and channels and courses without members are left out.
+    Codes are read as ``/course-add`` reads them: the registrations of codes that read as one are
+    merged, and codes that are no course code (an empty one would ask for the whole
     semester) are left out; the next change writes the document without them.
 
     Raises:
@@ -49,7 +45,7 @@ def parse_registrations(document: object) -> Registered:
     if document is None:
         return {}
     if not isinstance(document, dict):
-        msg = "the registrations are not v3's document: expected an object of courses"
+        msg = "the registrations document is not an object of courses"
         raise DataError(msg)
     registered: dict[str, Mapping[int, tuple[int, ...]]] = {}
     for stored, channels in cast("dict[str, object]", document).items():
@@ -94,7 +90,7 @@ def _channels(code: str, channels: object) -> dict[int, tuple[int, ...]]:
 
 
 def registrations_document(registered: Registered) -> dict[str, JSON]:
-    """v3's document of the registrations: IDs as text, channels keyed by theirs."""
+    """The document of the registrations: IDs as text, channels keyed by theirs."""
     return {
         code: {str(channel): [str(user) for user in users] for channel, users in channels.items()}
         for code, channels in registered.items()
@@ -165,7 +161,7 @@ class Registrations:
         """The registrations; none when there is no document.
 
         Raises:
-            DataError: The document is not v3's shape.
+            DataError: The document is not of the registrations' shape.
         """
         return parse_registrations(await self.store.get(NAMESPACE, KEY))
 
@@ -173,7 +169,7 @@ class Registrations:
         """Register ``user`` for ``code`` in ``channel``; whether it was not registered yet.
 
         Raises:
-            DataError: The document is not v3's shape; it is left as it is.
+            DataError: The document is not of the registrations' shape; it is left as it is.
         """
         return await self._change(_with(code, channel, user))
 
@@ -181,7 +177,7 @@ class Registrations:
         """Unregister ``user`` from ``code`` in ``channel``; whether it was registered.
 
         Raises:
-            DataError: The document is not v3's shape; it is left as it is.
+            DataError: The document is not of the registrations' shape; it is left as it is.
         """
         return await self._change(_without(code, channel, user))
 
@@ -189,7 +185,7 @@ class Registrations:
         """Drop every registration in ``channel``; whether it had any.
 
         Raises:
-            DataError: The document is not v3's shape; it is left as it is.
+            DataError: The document is not of the registrations' shape; it is left as it is.
         """
         return await self._change(_forgotten(channel))
 
