@@ -1,5 +1,6 @@
 """Releases: a signed `v*` tag builds the distributions and the image and creates the Release."""
 
+import json
 import re
 import tomllib
 from pathlib import Path
@@ -38,9 +39,7 @@ def projects(root: Path, core: str, plugins: str, requires: tuple[str, ...] | No
     (root / "pyproject.toml").write_text(f'[project]\nversion = "{core}"\n', encoding="utf-8")
     dependencies = ("aiohttp>=3", f"xincord=={plugins}") if requires is None else requires
     (root / "packages" / "xincord-plugins" / "pyproject.toml").write_text(
-        f'[project]\nversion = "{plugins}"\ndependencies = {list(dependencies)!r}\n'.replace(
-            "'", '"'
-        ),
+        f'[project]\nversion = "{plugins}"\ndependencies = {json.dumps(list(dependencies))}\n',
         encoding="utf-8",
     )
     return root
@@ -65,7 +64,6 @@ def test_mismatched_versions(tmp_path: Path) -> None:
         release_version(same, "v1.2.4")
 
 
-@pytest.mark.xfail(strict=True, reason="Signed release tags")
 @pytest.mark.parametrize(
     "requires",
     [(), ("aiohttp>=3",), ("xincord",), ("xincord==1.2.2",), ("xincord >= 1.2.3",)],

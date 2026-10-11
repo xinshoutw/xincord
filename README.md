@@ -66,7 +66,7 @@ scripts/gate.sh
 ```
 
 Specifications live in `openspec/`; project rules for contributors and coding agents are in
-`AGENTS.md`. Renovate opens version updates and Dependabot security updates
+`AGENTS.md`; what a plugin may use of the core is in `docs/plugin-api.md`. Renovate opens version updates and Dependabot security updates
 (`.github/renovate.json`, `.github/dependabot.yml`).
 
 ## Releasing
@@ -74,7 +74,8 @@ Specifications live in `openspec/`; project rules for contributors and coding ag
 A GPG-signed `v*` tag releases xincord:
 
 ```sh
-# Set the same version in pyproject.toml and packages/xincord-plugins/pyproject.toml.
+# Set the same version in pyproject.toml and packages/xincord-plugins/pyproject.toml, and in
+# the latter's requirement xincord==<version>.
 uv lock
 git commit -S -am "build: release 0.2.0"
 git push origin main

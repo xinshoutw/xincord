@@ -1,7 +1,7 @@
 ## 1. Pin and document
 
-- [ ] 1.1 xfail test (the release check of the plugins' pin)
-- [ ] 1.2 The pin, `uv lock`, the check, README's "Releasing" and `docs/plugin-api.md`; remove the
+- [x] 1.1 xfail test (the release check of the plugins' pin)
+- [x] 1.2 The pin, `uv lock`, the check, README's "Releasing" and `docs/plugin-api.md`; remove the
       marker
 
 ## 2. Close
