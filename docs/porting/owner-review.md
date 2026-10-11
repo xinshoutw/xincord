@@ -53,9 +53,9 @@ runs Economy, UptimeHeartbeat and TicketAwayNotice. Before enabling another plug
 
 - PyPI's first release is 1.0.0: the trusted publishers (environments `pypi` and `pypi-plugins`)
   and LICENSE (in both distributions since `license-files`) are in place; the owner picks the time.
-- Renovate has not run since its config reached `main` (no Dependency Dashboard issue by
-  2026-10-12, 05:00 Asia/Taipei): the onboarding PR #1 was closed before the config file landed,
-  and Renovate disabled itself. Check the repository at developer.mend.io and start a run there;
-  then check that its first patch PR merges itself after CI.
+- Renovate runs since 2026-10-12 (retitling the closed onboarding PR #1 woke it; Dependency
+  Dashboard #6). Its first PRs wait for the owner: #4 (uv's image 0.13.0, minor) and #5 (the
+  runners to Ubuntu 26.04, major); they predate CI's image job, so rebase them first (the
+  checkbox in each PR). Check that the first patch PR merges itself after CI.
 - If a Dependabot uv security PR fails on the lock file (GitHub documents uv 0.11; `uv.lock` comes
   from uv 0.12), turn on Renovate's `vulnerabilityAlerts` instead.

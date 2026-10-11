@@ -3,8 +3,8 @@
 xincord is a modular Discord bot built on [discord.py](https://github.com/Rapptz/discord.py). It is
 a Python port of [XsDiscordBotKt](https://github.com/xinshoutw/XsDiscordBotKt) (Kotlin, JDA).
 
-Status: in development (0.x). The port follows `docs/porting/decisions.md`; the Kotlin bot stays in
-service until every in-scope plugin passes its scenarios.
+Status: 0.x. Every in-scope plugin is ported (`docs/porting/decisions.md`), and xincord runs the
+owner's bots since 2026-10-12.
 
 ## Packages
 

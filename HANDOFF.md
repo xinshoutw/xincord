@@ -93,4 +93,4 @@ repository root (gitignored), with the owner's test application and guild `xinco
 3. Issues: #3 (youtube-source back to a release that holds its TV client fix), #2 (CustomCommands'
    features left out).
 4. The follow-ups in `docs/porting/owner-review.md`: the plugins not enabled in production,
-   Renovate not running yet, cleaning up the migration's copies after a few days, what to watch.
+   Renovate's first PRs, cleaning up the migration's copies after a few days, what to watch.
