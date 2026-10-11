@@ -381,6 +381,52 @@ ellipsis, and the operator's log lines (English).
 - `gemini-2.5-flash` may be retired by Google (its previews were shut down in 2026); `model`
   switches it without a code change.
 
+## Cross-review (a subagent, 2026-10-11)
+
+A review of the pushed work (other paths into a pass, repeated or concurrent passes, state left
+behind), with scratch probes through the loaded plugin, a local board server, discord.py's own
+objects and jsoup 1.23.1 on 46 malformed pages, found no lifecycle bug (reloads, failed reloads,
+`--no-online` and a second READY never ran two loops for one board) and these problems, fixed in
+this change (tasks 9.3 to 9.19):
+
+1. (medium) A channel that refuses posts made Gemini convert every new article again at every
+   pass, which a wrong channel ID or a missing permission turns into a spent daily quota and
+   articles posted for good as title links. A board now keeps an article's messages until they
+   are posted.
+2. (medium, rare) A part of only whitespace (`"a" * 1980 + "\n\n\n" + ...`) is a message that
+   Discord refuses, and a refused later part counted as posted, so the rest was lost. Such parts
+   are dropped.
+3. (low) An exception in one announcement (a page nested about 1,000 levels deep overflowed the
+   recursive serializer) stopped the board's later entries at every pass, with a traceback each
+   time. Each announcement is guarded and logged once per kind and episode, and the tree's text
+   and serialization walk without recursion.
+4. (low) A store write that failed after a post made the next pass post the announcement again.
+   A board keeps the links it posted in memory too.
+5. (low) A YAML syntax error on a key's line logged the line (PyYAML's snippet, in the core's
+   `ConfigError` and its chained error), so a key could reach the log. The core's YAML errors now
+   give the line and the column without the file's text (a `core-config` delta; UptimeHeartbeat's
+   open question about the same snippets, in the review queue, is settled the same way).
+6. (low) The tree differed from jsoup where pages are malformed: `<a href=... />Title` closed the
+   link (jsoup keeps the title in it) and classes split at no-break spaces. Both follow jsoup now;
+   the remaining differences (a `form` between a table and its rows, links misnested across
+   blocks, links inside `option`) are accepted, since NTUST's pages are well formed.
+7. (low) Parsing and minifying ran on the event loop (about 0.3 s per MB, more for deep nesting),
+   and the minifier's trailing-whitespace step was quadratic in a run of whitespace (40,000 spaces:
+   5 s). Pages are parsed in a worker thread, and the step uses an equivalent pattern that cannot
+   backtrack inside a run.
+8. (low, as v3) The article pattern's `.*` took any host (`https://example.com/x.ntust.edu.tw/p/1.php`
+   was fetched and sent to Gemini). The host must end in `.ntust.edu.tw` now.
+9. Tests added for what the scenarios say and no test checked: a pass over v3's document with
+   `itemTypeName`, a redirected page whose relative links resolve against it, empty pages logged
+   once per episode, and a reload that replaces the loops.
+
+The review also found sound: reloads during a post (one send in flight at most, sent again after,
+the documented risk), failed reloads, `--no-online`, a second READY, `cog_unload` racing the
+start, the store's worker thread ordering writes across a reload, `remember` with duplicates,
+renamed titles, links that come back and v3 documents with other boards' items, Discord's limits,
+keys in headers only, bounded failure kinds, entity decoding in attributes, odd markup without
+exceptions, and the largest `fetch-interval`.
+
 ## Checks
 
 - Package: the `xincord-plugins` wheel holds `ntust_announcements/config.yaml`, its modules,

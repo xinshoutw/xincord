@@ -62,9 +62,32 @@
 
 ## 9. Review
 
-- [ ] 9.1 Gate passes, push, CI green (before the review)
-- [ ] 9.2 Cross-review the change (other paths into a pass, repeated or concurrent passes, state
-      left behind) and fix its findings xfail-first
+- [x] 9.1 Gate passes, push, CI green (before the review)
+- [x] 9.2 Cross-review the change (other paths into a pass, repeated or concurrent passes, state
+      left behind) and fix its findings xfail-first (9.3 to 9.19; design, "Cross-review")
+- [ ] 9.3 xfail test for a channel that refuses posts (found in the review: every pass converted
+      the articles again)
+- [ ] 9.4 Keep an article's messages until they are posted; remove the marker
+- [ ] 9.5 xfail test for a message part of only whitespace (found in the review: the rest was lost)
+- [ ] 9.6 Drop blank parts; remove the marker
+- [ ] 9.7 xfail tests for an announcement that raises and for deeply nested pages (found in the
+      review: the board's later entries waited forever)
+- [ ] 9.8 Guard each announcement and walk the tree without recursion; remove the markers
+- [ ] 9.9 xfail test for a store write that fails after a post (found in the review: posted again)
+- [ ] 9.10 Keep the posted links in memory too; remove the marker
+- [ ] 9.11 xfail test for a YAML syntax error on a key's line (found in the review: the key was
+      logged), with a `core-config` delta
+- [ ] 9.12 Give YAML errors the line and column without the text; remove the marker
+- [ ] 9.13 xfail tests for self-closing links and classes split at no-break spaces (found in the
+      review: jsoup differs)
+- [ ] 9.14 Follow jsoup there; remove the markers
+- [ ] 9.15 xfail tests for parsing off the event loop and a long run of whitespace (found in the
+      review: the loop blocked for seconds)
+- [ ] 9.16 Parse in a worker thread and make the minifier's step linear; remove the markers
+- [ ] 9.17 xfail test for article URLs on other hosts (found in the review, as in v3)
+- [ ] 9.18 Require an NTUST host; remove the marker
+- [ ] 9.19 Tests for the scenarios that no test checked (v3's document in a pass, a redirected page
+      with relative links, empty pages logged once, a reload)
 
 ## 10. Close
 
