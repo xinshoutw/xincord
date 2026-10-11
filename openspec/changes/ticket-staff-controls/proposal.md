@@ -2,11 +2,11 @@
 
 On 2026-10-11 the owner asked that the member who opened a ticket no longer be able to use the
 ticket channel's control row, and for clearer labels on it. `port-ticket` kept v3's rules: lock and
-unlock check nobody, so the ticket's member can lock themselves out or unlock a ticket that its
-staff locked (`Ticket.kt:148-179`); delete answers anyone but staff with a silent acknowledgement
-(`Ticket.kt:181-196`); only save refuses them with the admin-only text (`Ticket.kt:198-242`). The
-labels are v3's Kotlin strings (`Ticket.kt:783-821`), whose words for lock and unlock read as
-"close" and "open".
+unlock check nobody, so the ticket's member can lock themselves out, and any member who sees the
+channel can lock or unlock it (`Ticket.kt:148-179`); delete answers anyone but staff with a silent
+acknowledgement (`Ticket.kt:181-196`); only save refuses them with the admin-only text
+(`Ticket.kt:198-242`). The labels are v3's Kotlin strings (`Ticket.kt:783-821`), whose words for
+lock and unlock read as "close" and "open".
 
 ## What Changes
 
@@ -21,6 +21,9 @@ labels are v3's Kotlin strings (`Ticket.kt:783-821`), whose words for lock and u
   do.
 - Delete answers anyone but staff with `error.admin-only` instead of v3's silent acknowledgement.
   Save behaves as before.
+- @everyone never counts as a staff role (found in the cross-review): discord.py lists it among
+  every member's roles, where JDA's `getRoles` left it out, so an entry naming it made every member
+  staff on save and delete.
 - The control row's labels (`control.*` in `lang/zh-TW/text.yaml` and `lang/en-US/text.yaml`) are
   the owner's: `Click to lock`, `Click to unlock`, `Save conversation` and `Delete` in en-US, and
   the owner's zh-TW words. The row stays in the default locale (zh-TW) for everyone. Rows already
@@ -58,6 +61,7 @@ None.
 ## Impact
 
 `packages/xincord-plugins/src/xincord/plugins/ticket/`: `controls.py` (one check for the four
-buttons), `tickets.py` (a docstring) and both `lang/*/text.yaml`; the Ticket tests and their golden
-data. No core change, no new dependency and no stored data change. Operators see the new labels on
-rebuilt rows once their exported `text.yaml` is renewed or edited.
+buttons, a member's roles without @everyone), `tickets.py` (a docstring) and both
+`lang/*/text.yaml`; the Ticket tests and their golden data. No core change, no new dependency and
+no stored data change. Operators see the new labels on rebuilt rows once their exported
+`text.yaml` is renewed or edited.

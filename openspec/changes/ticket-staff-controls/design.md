@@ -54,6 +54,11 @@ anyone, as v3 threw before answering; `delete` and `save` call it first. The sav
 (`select_target`) keeps its own checks, which answer a user who is no member with
 `error.no-member`, in v3's order.
 
+A member's role IDs (`_role_ids`, which `_staff_entry` reads for the four buttons and the select)
+leave out @everyone, whose ID is the guild's: discord.py lists it among every member's roles, where
+JDA's `getRoles` left it out, so an entry naming it would make every member staff (found in the
+cross-review).
+
 ### The acknowledgement
 
 Lock and unlock acknowledged first; they now read the store first (`Panels.entry`: one
@@ -96,8 +101,9 @@ check. The label commit changes both `text.yaml` files and the golden data: v3's
 ## v3 behaved differently
 
 - v3 behaved differently: lock and unlock had no permission check (`Ticket.kt:148-179`), so the
-  ticket's member could lock themselves out or unlock a ticket that its staff had locked; they act
-  for staff only and answer anyone else with the admin-only text (the owner's request).
+  ticket's member could lock themselves out, and any member who saw the channel (through a copied
+  category overwrite, say) could lock or unlock it; they act for staff only and answer anyone else
+  with the admin-only text (the owner's request).
 - v3 behaved differently: delete by anyone but staff was acknowledged and did nothing
   (`Ticket.kt:181-196`); it answers the admin-only text (the owner's request).
 - v3 behaved differently: the row's labels were v3's Kotlin strings (`Ticket.kt:783-821`), whose
@@ -110,6 +116,9 @@ check. The label commit changes both `text.yaml` files and the golden data: v3's
   Before, lock and unlock worked for anyone and delete did nothing silently. Save is unchanged.
 - Lock and unlock on a row whose panel button's entry is gone answer the not-found text, as save
   and delete did; before, they worked without it.
+- @everyone never counts as a staff role: a panel whose staff roles hold it (an edited or imported
+  document) no longer makes every member staff on the row and the save select (found in the
+  cross-review).
 - New labels: lock `Click to lock`, unlock `Click to unlock`, save `Save conversation`, delete
   `Delete` (en-US) and the owner's zh-TW words, which every reader sees since the row is zh-TW.
 - Rows already posted keep their labels until their next lock or unlock. Exported lang files keep
@@ -125,6 +134,9 @@ check. The label commit changes both `text.yaml` files and the golden data: v3's
   let Administrators act without the entry.
 - A row whose member is no user ID still gets no response from anyone, checked before staff, as v3
   threw; alternative: answer non-staff first.
+- @everyone in an entry's staff roles counts for no one, as in v3 (JDA's roles left it out);
+  alternative: count it, as `port-ticket` did for save and delete, letting every member use such a
+  panel's rows.
 
 ## Risks / Trade-offs
 
@@ -135,6 +147,9 @@ check. The label commit changes both `text.yaml` files and the golden data: v3's
   not-found text to lock and unlock too. The import comes before cutover.
 - A staff member whose role is removed loses the row at their next press, as for save and delete.
 - Lock and unlock pressed together still race as before: the last overwrite and row win.
+- An entry whose staff roles hold @everyone (an edited or imported document) also opens the ticket
+  channel to everyone, since its overwrite allows View Channel after @everyone's deny, as in v3;
+  the row stays for real staff only.
 
 ## Manual smoke checklist
 
@@ -155,11 +170,31 @@ Needs a token, a test guild, a second account, a staff role and a panel posted w
 
 - The `xincord-plugins` wheel (`uv build --package xincord-plugins`) holds both `text.yaml` files
   with the owner's labels under `control.*`.
-- No new probe: a refusal is `response.send_message(..., ephemeral=True)` and a staff press
-  `response.defer()` then `edit_original_response(view=...)`, the calls that `port-ticket`'s probe
-  recorded through discord.py's own objects for save's admin-only reply and for lock (archived
-  design, "Checks"); the tests drive the four buttons through the plugin's route handler and v3's
-  rows through `bot.on_interaction`.
+- No new probe: a refusal is `response.send_message(content, ephemeral=True)`, the call of every
+  ephemeral reply of the plugin, which `port-ticket`'s probe recorded through discord.py's own
+  objects for the save select; a staff press of lock is `response.defer()` then
+  `edit_original_response(view=...)`, which it recorded for lock and unlock (archived design,
+  "Checks"). The tests drive the four buttons through the plugin's route handler and v3's rows
+  through `bot.on_interaction`.
+
+## Cross-review (a subagent, 2026-10-11)
+
+A fresh subagent reviewed `7e7b9bd..7e13afb`: other paths into the buttons (v3's rows through the
+core, the save select, the opener's row), repeated and concurrent presses, state left behind, the
+acknowledgement order, the delta against the tests, and the docs. It found no high or medium
+defect; its three low findings:
+
+- discord.py's `Member.roles` lists @everyone (the guild's ID), which JDA's `getRoles` left out, so
+  an entry naming it made every member staff on all four buttons and the save select (save and
+  delete since `port-ticket`). Fixed xfail-first (tasks 3.5 and 3.6): `_role_ids` leaves it out;
+  the delta names @everyone, with a scenario and tests for each button and the select.
+- The docs said that the ticket's member could unlock a ticket that its staff had locked, which the
+  member's own overwrite prevents (it hides the channel); reworded, and this design's checks no
+  longer cite a probe of save's admin-only reply, which `port-ticket`'s probe did not list.
+- The delta's lock requirement had lost "with the same fields"; it is back.
+
+Nothing else: refusals are each press's first response, nothing is refused after an
+acknowledgement, a refusal stores nothing, and no test passes for the wrong reason.
 
 ## Scenario audit
 
@@ -171,6 +206,7 @@ Needs a token, a test guild, a second account, a staff role and a panel posted w
 | The control row locks and unlocks the ticket | Lock and unlock | `test_lock.py::test_lock_and_unlock`, `test_staff_role`, `test_cached_member` |
 | The control row locks and unlocks the ticket | Not the ticket's staff | `test_lock.py::test_not_the_tickets_staff` |
 | The control row locks and unlocks the ticket | No entry | `test_lock.py::test_no_entry` |
+| The control row locks and unlocks the ticket | @everyone among the staff roles | `test_lock.py::test_everyone_among_the_staff_roles`, `test_staff_role_beside_everyone`; also `test_delete.py` and `test_save.py::test_everyone_among_the_staff_roles` |
 | The control row locks and unlocks the ticket | A member who left | `test_lock.py::test_member_who_left` |
 | Administrators delete the ticket | Deletion | `test_delete.py::test_deletion` |
 | Administrators delete the ticket | Not a staff member | `test_delete.py::test_not_a_staff_member` |
