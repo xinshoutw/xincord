@@ -72,6 +72,20 @@ def test_failed_backup_leaves_nothing(tmp_path: Path, monkeypatch: pytest.Monkey
     assert list((tmp_path / "backups").iterdir()) == []
 
 
+@pytest.mark.xfail(strict=True, raises=OSError, reason="Online backup")
+def test_two_backups_in_one_second(tmp_path: Path) -> None:
+    """Requirement: Online backup, scenario Two backups in one second."""
+    data = tmp_path / "data"
+    database(data / "xincord.db", "first").close()
+    first = backup(data, tmp_path / "backups", now=TAKEN)
+    database(data / "ChatLogger" / "messages-20240829T023137Z.db", "later").close()
+
+    with pytest.raises(FileExistsError, match=NAME):
+        backup(data, tmp_path / "backups", now=TAKEN)
+    assert sorted(path.name for path in first.rglob("*")) == ["xincord.db"]
+    assert [path.name for path in (tmp_path / "backups").iterdir()] == [NAME]
+
+
 def test_the_oldest_backups_go(tmp_path: Path) -> None:
     """Requirement: Backup retention, scenario The oldest go."""
     data = tmp_path / "data"
