@@ -868,6 +868,20 @@ Production runs v3 3.2.x, whose plugin configs have no `enabled` key, so the `pl
 written by hand. Claude first rehearses the one-off migration on a copy of the production data while
 v3 keeps running; then the owner sets the cutover's time.
 
+Rehearsed on 2026-10-12 (night), v3 running: the one-off scripts and the runbook live on the
+production host, outside the repository (`~/selfhost/Discord/xincord-migration/`, `CUTOVER.md`).
+They export v3's Mongo collections through a `mongo:7` container, copy v3's directory without its
+jars, start script and Mongo files, run `migrate_v3` and a script that writes the `plugins` list and
+the configs of NtustAnnouncements (v3's keys, the 18 boards' channels read from v3's jar,
+`gemini-3.8-flash`, the owner as reviewer), MusicPlayer (the node's password from `.env`), Economy
+and ChatLogger from the bundled files, and drops the enabled plugins' v3 lang files (v3's defaults
+with the defects that the bundled files fix). The import, in the xincord image, puts 4 ChatLogger
+and 4 VoiceLogger settings, 2 DynamicVoiceChannel binding documents, 5 Ticket documents (12
+buttons), Economy's legacy wallets (322) under one guild and 18 board lists (221 links) into the
+store, reads each back through the plugin's own reader, and merges v3's 59 ChatLogger files
+(121,370 messages, none older than 5 years) into one message file; v3's one leftover room is
+reported for deletion by hand. The whole run took 6 seconds, and the 11 plugins loaded offline.
+
 1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
    (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script
    fills that list; plugins that are not enabled no longer create files under `plugins/<Name>/`;
