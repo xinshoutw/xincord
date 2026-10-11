@@ -50,10 +50,8 @@ runs Economy, UptimeHeartbeat and TicketAwayNotice. Before enabling another plug
 
 ## Releases and dependencies
 
-- Before the 1.0.0 tag: pending trusted publishers on PyPI for `xincord` (environment `pypi`,
-  registered on 2026-10-12) and `xincord-plugins` (environment `pypi-plugins`), both with owner
-  `xinshoutw`, repository `xincord` and workflow `release.yml`; and LICENSE, which the owner adds
-  (the repository is public without it), then Claude checks that both distributions carry it.
+- PyPI's first release is 1.0.0: the trusted publishers (environments `pypi` and `pypi-plugins`)
+  and LICENSE (in both distributions since `license-files`) are in place; the owner picks the time.
 - Renovate: its first run opens the Dependency Dashboard issue (not seen by 2026-10-12, 02:00
   Asia/Taipei); check that its first patch PR merges itself after CI.
 - If a Dependabot uv security PR fails on the lock file (GitHub documents uv 0.11; `uv.lock` comes
