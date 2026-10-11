@@ -16,6 +16,11 @@ SHALL get its name only once the copy is complete; a failed backup SHALL leave n
 - **WHEN** a copy fails during a backup
 - **THEN** the error ends the backup and `backups/` holds no part of it
 
+#### Scenario: Two backups in one second
+- **WHEN** a backup runs in the same second as the previous one
+- **THEN** it fails before copying anything, naming the backup of that second, which stays as it
+  was
+
 ### Requirement: Backup retention
 A backup SHALL keep the newest `--keep` backups, 7 by default, its own included, and delete the
 older ones. Nothing else in `backups/` SHALL be touched.
