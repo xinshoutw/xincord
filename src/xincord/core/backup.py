@@ -32,6 +32,9 @@ def backup(data: Path, backups: Path, keep: int = KEEP, now: datetime | None = N
     """
     taken = (now or datetime.now(UTC)).strftime("%Y%m%dT%H%M%SZ")
     target = backups / taken
+    if target.exists():
+        msg = f"{target} exists: one backup per second"
+        raise FileExistsError(msg)
     partial = backups / f".{taken}.partial"
     partial.mkdir(parents=True)
     try:

@@ -72,7 +72,6 @@ def test_failed_backup_leaves_nothing(tmp_path: Path, monkeypatch: pytest.Monkey
     assert list((tmp_path / "backups").iterdir()) == []
 
 
-@pytest.mark.xfail(strict=True, raises=OSError, reason="Online backup")
 def test_two_backups_in_one_second(tmp_path: Path) -> None:
     """Requirement: Online backup, scenario Two backups in one second."""
     data = tmp_path / "data"
