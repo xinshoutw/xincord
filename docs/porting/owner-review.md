@@ -339,7 +339,7 @@ here; delete a section once it is empty.
 `chat-logger-split-storage`: unload during traffic: implemented closing the files after the work already queued; a listener of the unloaded version that stores later fails, and discord.py logs it; alternative: waiting for the listeners still running.
 `chat-logger-split-storage`: a new file that keeps failing (a full disk): implemented a retry with every message stored in the full file, logged once per episode; alternative: retrying at most once a minute.
 `chat-logger-split-storage`: the old table: implemented `DROP TABLE IF EXISTS ChatLogger_messages` at every load; alternative: a one-off step in a migration.
-`chat-logger-split-storage`: the v3 import plan (`design.md`, "Migration"): implemented an import that refuses a `data/ChatLogger/` holding files and brings back v3's rows of deleted messages until the retention (v3 kept them); alternative: merging into existing files, or dropping v3's rows that could be deleted messages (they cannot be told apart).
+`chat-logger-split-storage`: the v3 import plan (`design.md`, "Migration"), which the one-off migration at cutover follows: planned an import that refuses a `data/ChatLogger/` holding files and brings back v3's rows of deleted messages until the retention (v3 kept them); alternative: merging into existing files, or dropping v3's rows that could be deleted messages (they cannot be told apart).
 - Operator templates that put text around `%cl_msg_before%` or `%cl_msg_after%` (or move them into a title or the content) can exceed Discord's limits, and the log is then refused with a warning: implemented fitting the bare values only, as the shipped templates show them; alternative: clamping every rendered text in the core's renderer, for every plugin.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-10-port-chat-logger/design.md` (needs a token, a test guild and a second account); its steps 1 and 13, which look for `ChatLogger_messages` in `data/xincord.db`, are replaced by the checklist below.
@@ -388,7 +388,7 @@ here; delete a section once it is empty.
 - The bot needs View Channel, Send Messages (in threads too) and Embed Links in giveaway channels; Read Message History only for the core's upgrade of v3 posts.
 - Unverified without Discord: that a type-7 response to a modal submission updates the ephemeral builder, and how a burst of joins looks (a response may show a count one behind until the next press).
 - Packaging was checked: the wheel's files, `xincord --no-online` from the built wheels, and the compose image (`docker compose run --rm -T bot --no-online` with `Giveaway` enabled), whose Python resolves `Asia/Taipei`.
-- After the deferred migration (B11), the core upgrades v3 posts' IDs with a fetch and an edit, which can briefly revert a concurrent edit of the post's buttons; the next press repairs it.
+- After the one-off migration at cutover (B11), the core upgrades v3 posts' IDs with a fetch and an edit, which can briefly revert a concurrent edit of the post's buttons; the next press repairs it.
 
 ## Plugin renames (`rename-plugins`)
 
@@ -445,14 +445,14 @@ here; delete a section once it is empty.
 - `confirm-add.yaml`, which v3 never used, ships unchanged; v3's `plugins/Ticket/config.yaml` is left unread.
 - An opener that fails without a Discord refusal (a lost connection, an unload) leaves the channel without its control row and the member's reply "thinking"; only Discord's refusals delete the channel and answer, as in the other plugins; alternative: clean up after any failure.
 - The archive holds one message's files in memory (up to about 1 GB for ten files at boost level 3), where JDA streamed them; alternative: stream the files.
-- `/add-ticket` on a v3 panel before the v3 data import gives the new button index 0, the v3 button's, so both open the new entry and the core's ID upgrade fails at each press; implemented nothing special (the import comes first); alternative: refuse `/add-ticket` on messages with v3 Ticket buttons.
+- `/add-ticket` on a v3 panel before the one-off migration of v3's panels at cutover gives the new button index 0, the v3 button's, so both open the new entry and the core's ID upgrade fails at each press; implemented nothing special (the migration comes first); alternative: refuse `/add-ticket` on messages with v3 Ticket buttons.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-11-port-ticket/design.md`.
 - The archive copies other members' messages only with the Message Content intent enabled in the developer portal (as in v3; the plugin does not request it, so the bot connects without it).
 - The bot needs Manage Channels and Manage Roles where tickets open, and View Channel, Send Messages, Send Messages in Threads, Create Public Threads and Manage Webhooks in the archive channel; Read Message History in the ticket.
 - Before cutover, set `TZ` in `compose.yaml` (for example `Asia/Taipei`) so that the archive's times match v3's host.
-- After the v3 data import, press a v3 panel and a v3 control row: they work and their IDs are rewritten. Deleting a ticket from a v3 control row logs the core's failed upgrade once, since the message is gone.
-- Run the v3 data import before anyone uses `/add-ticket` on a v3 panel (see the choice above).
+- After the one-off migration of v3's panels at cutover, press a v3 panel and a v3 control row: they work and their IDs are rewritten. Deleting a ticket from a v3 control row logs the core's failed upgrade once, since the message is gone.
+- Migrate v3's panels (the one-off migration at cutover) before anyone uses `/add-ticket` on a v3 panel (see the choice above).
 - Unverified without Discord: Discord's exact webhook username rules, and how a long archive behaves near Discord's rate limits.
 - Packaging was checked: the wheel's lang files, `xincord --no-online` from the built wheels, and the compose image with the fourteen ported plugins; a discord.py probe walked every flow with HTTP recorded (archived design, "Checks").
 
@@ -460,7 +460,7 @@ here; delete a section once it is empty.
 
 ### User-visible changes
 - Lock, unlock, save and delete work for the ticket's staff only: a member with one of the panel button's staff roles, or Administrator. Anyone else, the ticket's member included, gets the existing admin-only text (`error.admin-only`, en-US "Only administrators can use this.") as an ephemeral reply in their language, and nothing changes. Before, lock and unlock worked for anyone who saw the channel (the member could lock themselves out), and delete did nothing without a word; save already answered so.
-- Lock and unlock on a row whose panel button is no longer stored answer the not-found text, as save and delete already did; before, they worked without it. This covers v3's ticket channels until the v3 data import stores v3's panels, and tickets whose panels were deleted when the bot left their guild.
+- Lock and unlock on a row whose panel button is no longer stored answer the not-found text, as save and delete already did; before, they worked without it. This covers v3's ticket channels until the one-off migration at cutover stores v3's panels, and tickets whose panels were deleted when the bot left their guild.
 - New labels (`control.*` in both `text.yaml` files): `Click to lock`, `Click to unlock`, `Save conversation` and `Delete` in en-US, and the zh-TW words the owner gave. The row is a public message in the default locale (zh-TW), so every reader sees the zh-TW labels; the en-US ones show nowhere today.
 - Rows already posted keep their labels until they are rebuilt, which the next lock or unlock does; save and delete leave the row as it is, and the core's upgrade of v3's IDs keeps a v3 row's labels.
 - Exported lang files (`plugins/Ticket/lang/<locale>/text.yaml`) keep the old labels until renewed with `--force-renew-lang-resources` (which renews every enabled plugin's lang files, edits included) or edited by hand (the four `control.*` lines).
@@ -470,7 +470,7 @@ here; delete a section once it is empty.
 - Lock and unlock need the panel button's stored entry, which names the staff roles, as save and delete do: a ticket whose entry is gone (above) can no longer be locked, unlocked, saved or deleted from its row, and staff change or delete such a channel by hand; alternative: let Administrators use the row without the entry.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-11-ticket-staff-controls/design.md`: the ticket's member presses each button (the admin-only text, nothing changes); a member with the staff role and an Administrator lock, unlock, save and delete; a row posted before the change takes the new labels at its next lock or unlock.
-- After the v3 data import, staff lock and unlock a v3 ticket (until then they answer the not-found text).
+- After the one-off migration at cutover, staff lock and unlock a v3 ticket (until then they answer the not-found text).
 - Done: the wheel holds both `text.yaml` files with the new labels; the tests press every button as staff, as the ticket's member, as another member, on a row without its entry and with @everyone among the staff roles, and a v3 row as the ticket's member; a cross-review found no high or medium defect, and its three low findings are fixed (archived design, "Cross-review").
 
 ## TicketAwayNotice (v3 TicketAddons, `port-ticket-away-notice`)
@@ -537,7 +537,7 @@ here; delete a section once it is empty.
 - Core: the YAML snippets are dropped for every config file, which also closes UptimeHeartbeat's open item above; alternative: keep them and accept that a secret on a faulty line is logged.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-11-port-ntust-announcements/design.md` (a Gemini API key and a test guild).
-- At cutover: run the v3 data import before enabling the plugin, or the first pass posts every board's first page; add `boards` with the 18 channel IDs to the migrated `plugins/NtustAnnouncements/config.yaml`.
+- At cutover: migrate v3's stored lists (a one-off script) before enabling the plugin, or the first pass posts every board's first page; add `boards` with the 18 channel IDs to the migrated `plugins/NtustAnnouncements/config.yaml`.
 - The bot needs View Channel and Send Messages in each board's channel.
 - An image check with every plugin enabled needs example values in `plugins/NtustAnnouncements/config.yaml` (keys other than v3's example, channel IDs), as Economy's and TicketAwayNotice's.
 - If Google retires `gemini-2.5-flash`, set `model`.
@@ -599,7 +599,7 @@ here; delete a section once it is empty.
 ### Manual checks
 - Smoke checklist in `openspec/changes/archive/2026-10-11-port-ntust-course-watch/design.md`.
 - Before each course selection: set `semester` and `start` in `plugins/NtustCourseWatch/config.yaml`; during the first selection, check in the log that NTUST answers the per-code requests under load.
-- At cutover: v3 lost its registrations at each restart; the planned v3 data import can bring back those of v3's MongoDB document (archived design, "Registrations and the v3 data import").
+- At cutover: v3 lost its registrations at each restart; the one-off migration at cutover can bring back those of v3's MongoDB document (archived design, "Registrations and the v3 data import").
 - The bot needs View Channel and Send Messages where members register.
 - Done: the wheel, `xincord --no-online`, the image with the seventeen ported plugins, NTUST's TLS and one course request from the image, and a probe through discord.py's own objects, again after the cross-review's fixes (archived design, "Checks" and "Cross-review").
 

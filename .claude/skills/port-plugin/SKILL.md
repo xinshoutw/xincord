@@ -207,8 +207,8 @@ async def setup(bot: Bot) -> None:
   context); `plugin_fakes.load_plugin` puts it beside the plugins root, under `tmp_path`.
 - Per-guild data (v3's `JsonGuildFileManager`, `plugins/<Name>/data/<guildId>.json`) is one
   document per guild in the key-value table: namespace = the plugin's name, key = the guild ID in
-  decimal, value = v3's JSON document unchanged (its camelCase keys included), so that the v3 data
-  import (B11, built before cutover) can copy v3's files. A missing document or field reads as
+  decimal, value = v3's JSON document unchanged (its camelCase keys included), so that the one-off
+  migration at cutover (B11) can copy v3's files. A missing document or field reads as
   v3's default (Moshi's); read-only paths never write (v3 created files there); read-modify-write
   runs under
   `store.lock(f"{NAMESPACE}:{guild_id}")` (WelcomeGoodbye), because discord.py runs handlers

@@ -50,7 +50,7 @@ starting with Core. Motivation: easier maintenance and faster iteration.
 | Calculator golden data | `docs/porting/analysis/inventory/fixtures/*.jsonl` |
 | Research (versions, v4 branch, Core brief) | `docs/porting/analysis/research/*.md` |
 | Kotlin v4 design spec (summarized in the porting guide) | `XsDiscordBotKt/docs/specs/2026-04-07-v4-core-refactor-design.md` |
-| Local data copy for a future migration test (B11, deferred) | `XsDiscordBotKt/Server/` |
+| Local copy of v3's data (B11; the one-off migration at cutover reads the production host's) | `XsDiscordBotKt/Server/` |
 
 ## 3. Rules
 
@@ -377,12 +377,13 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
   failed commit), starts a new file after the newest stored ID once the newest file's page count
   reaches the limit (built as `.tmp` and renamed closed; one error per failing episode), and
   `prune` deletes expired files whole, then older rows in batches; `setup` drops the old
-  `ChatLogger_messages` table of `data/xincord.db`. The design of that change plans the import of
-  v3's message files (`xincord migrate`: an empty directory, copies of v3's files, a merge of
-  sorted cursors). `text.py` (`message_text`: the content and the rich embeds; `fit`: 1024 UTF-16
-  code units; a member's embeds are previews and left out); `created.py` (`parse_created`: a new
-  message from the `MESSAGE_CREATE` payload that `setup` relays, because `on_message`'s cached
-  `Message` takes later edits in place); `logs.py` (`Place.of`, `author_values`, `unknown_author`,
+  `ChatLogger_messages` table of `data/xincord.db`. The design of that change describes how to
+  import v3's message files (an empty directory, copies of v3's files, a merge of sorted cursors),
+  which the one-off migration at cutover follows (section 5). `text.py` (`message_text`: the
+  content and the rich embeds; `fit`: 1024 UTF-16 code units; a member's embeds are previews and
+  left out); `created.py` (`parse_created`: a new message from the `MESSAGE_CREATE` payload that
+  `setup` relays, because `on_message`'s cached `Message` takes later edits in place); `logs.py`
+  (`Place.of`, `author_values`, `unknown_author`,
   `message_url`); `cog.py`: `on_gateway_message_create` (its insert registers in `inserting`, and
   the edits and deletions of that message wait for it), `on_raw_message_edit`,
   `on_raw_message_delete`, `on_raw_bulk_message_delete` (a gone or refusing listen channel is tried
@@ -566,17 +567,18 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
-### Next: the data import, then the cutover
+### Next: the cutover, with a one-off migration of v3's data
 
 Core is complete and every in-scope plugin of C1 is ported: Example (the template), Calculator,
 AutoRole, BotInfo, CustomCommands, WelcomeGoodbye, UptimeHeartbeat, Feedback, Economy,
 DynamicVoiceChannel, VoiceLogger, ChatLogger, Giveaway, Ticket, TicketAwayNotice,
 NtustAnnouncements, NtustCourseWatch and MusicPlayer (`port-music-player`, with the `lavalink`
 service in `compose.yaml`). The owner renamed nine plugins (`docs/porting/decisions.md`,
-Amendment 1); MusicPlayer kept its name. Next: the owner's follow-up change below (the v3 data
-import), then the cutover of decision C2 (every in-scope plugin's scenarios pass), which needs the
-owner: a run with a real token under compose (section 6) and the manual smoke checklists of the
-archived changes, MusicPlayer's real voice test with DAVE first.
+Amendment 1); MusicPlayer kept its name. Next: the cutover of decision C2 (every in-scope plugin's
+scenarios pass), which needs the owner: a run with a real token under compose (section 6) and the
+manual smoke checklists of the archived changes, MusicPlayer's real voice test with DAVE first.
+v3's data moves at the cutover, when the owner asks, by one-off scripts that Claude writes outside
+the repository (below).
 
 The owner also asked for follow-up changes (section 6). Done: UptimeHeartbeat logs URLs as origins
 only and never stops a listener (`uptime-heartbeat-keep-pushing`); CustomCommands defines its
@@ -584,11 +586,18 @@ commands in its config file (`custom-commands-from-config`); ChatLogger keeps 5 
 its own files, starting a new file when one grows too large (`chat-logger-split-storage`);
 NtustAnnouncements takes every model setting from its config, with an OpenAI-compatible format
 (`ntust-announcements-model-config`); Ticket's control row is for the ticket's staff only, with
-the owner's labels (`ticket-staff-controls`). Not started yet: the v3 data import
-(`xincord migrate`) before cutover, which must read a renamed plugin's v3 data from
-`plugins/<new name>/` once `migrate_v3` moved it (or from both places), write
-the new store namespaces (`WelcomeGoodbye`), and import ChatLogger's message files as
-`chat-logger-split-storage`'s design plans ("Migration").
+the owner's labels (`ticket-staff-controls`).
+
+The planned `xincord migrate` tool is dropped (the owner's decision of 2026-10-11,
+`decisions.md`, Amendment 6). At the cutover, when the owner asks, Claude operates the production
+host, inspects the real v3 data there and writes one-off migration scripts outside the repository.
+Nothing in the repository waits for it; `migrate_v3`, the config conversion, stays and runs first.
+The scripts must read a renamed plugin's v3 data from `plugins/<new name>/` once `migrate_v3`
+moved it (or from both places), write the new store namespaces (`WelcomeGoodbye`), store v3's
+documents unchanged where the ports kept v3's JSON shape (porting guide, "Plugin conventions"),
+copy ChatLogger's message files as `chat-logger-split-storage`'s design describes ("Migration"),
+and cover what section 6 lists per plugin (Economy's wallets, Ticket's panels,
+NtustAnnouncements' lists, NtustCourseWatch's registrations, running giveaways).
 
 ### Working tips from this session
 
@@ -661,7 +670,7 @@ Answered on 2026-10-10 (afternoon), from the review queue (the answered items we
 - **Data:** a v3 data import (`xincord migrate`, with a dry run and per-plugin counts) is built
   before cutover, covering Economy's wallets and the other data worth keeping, such as channel
   bindings. This reverses the deferral of Resolution 3 and B11 (`docs/porting/decisions.md`,
-  "Amendments").
+  "Amendments"). Superseded on 2026-10-11: the tool is dropped for one-off scripts (below).
 - **Plugin names:** _Example becomes Example, BasicCalculator Calculator, SimpleCommand
   CustomCommands, WelcomeByeGuild WelcomeGoodbye, IntervalPusher UptimeHeartbeat, Feedbacker
   Feedback, TicketAddons TicketAwayNotice, NtustManager NtustAnnouncements and NtustCourse
@@ -686,16 +695,35 @@ to Discord kept; and the row gets the owner's labels in both languages. Done in
 only) and "Delete by a non-staff member" (the admin-only text), deleted there, and the change's own
 choices are in the review queue ("Ticket control row").
 
+Decided on 2026-10-11 (`docs/porting/decisions.md`, Amendments 4 to 6):
+
+- **Releases:** a release starts from a GPG-signed `v*` tag that the owner pushes; Claude pushes one
+  only with the owner's approval. PyPI publishing starts at 1.0.0, after cutover and once the
+  repository is public; until then releases are dry runs only, and TestPyPI is not used either,
+  since it is public too. Container images go to GHCR, multi-arch (amd64 and arm64), private until
+  the repository is public. Nothing of this is built yet.
+- **Dependency updates:** Dependabot handles security updates only. Renovate handles version
+  updates and automerges patch updates and lock-file maintenance after CI passes; minor and major
+  updates wait for the owner.
+- **Done by the owner, or on request:** the owner installed the Renovate app (its onboarding PR #1
+  was closed on request; Renovate waits for its config on `main`) and enabled the dependency graph,
+  Dependabot alerts and Dependabot security updates. The repository description and 12 topics were
+  set on request.
+- **Data:** the planned `xincord migrate` tool is dropped. At cutover, when the owner asks, Claude
+  operates the production host, inspects the real v3 data and writes one-off migration scripts
+  outside the repository (section 5). `migrate_v3`, the config conversion, stays.
+
 1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
    (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script
    fills that list; plugins that are not enabled no longer create files under `plugins/<Name>/`;
    the privileged members intent is requested only when an enabled plugin needs it.
-2. **Production version (F1)** is unknown. The v3 data import must handle the local copy
-   (`XsDiscordBotKt/Server/`), which runs Economy 3.2.1: its wallets are the legacy single
-   `plugins/Economy/data/data.json`, which v3.4 would have moved into the only guild's file, and
-   the import must do the same. Economy reads no v3 file until the import exists. `migrate_v3`
-   counts a plugin as enabled only with `enabled: true`, a key v3 added in 3.3.0 (`ea14fbf`), so
-   on a 3.2.x directory its `plugins` list is almost empty (found in `rename-plugins`' review).
+2. **Production version (F1)** is unknown; the one-off migration at cutover reads the production
+   host's real data. The local copy (`XsDiscordBotKt/Server/`) runs Economy 3.2.1: its wallets are
+   the legacy single `plugins/Economy/data/data.json`, which v3.4 would have moved into the only
+   guild's file, and the migration must do the same if production has it too. Economy reads no v3
+   file: its wallets come with the migration. `migrate_v3` counts a plugin as enabled only with
+   `enabled: true`, a key v3 added in 3.3.0 (`ea14fbf`), so on a 3.2.x directory its `plugins`
+   list is almost empty (found in `rename-plugins`' review).
 3. **ChatLogger** needs the Message Content intent turned on in the developer portal before the
    operator enables it, or Discord refuses the bot's connection.
 4. **Lavalink image:** verified in port-music-player: `ghcr.io/lavalink-devs/lavalink:4.2.2`
@@ -705,32 +733,33 @@ choices are in the review queue ("Ticket control row").
    event; the audit log is read raw); what needs a real guild is in `docs/porting/owner-review.md`.
 5. **Giveaway's time zone:** before cutover, set `timeZone: "Asia/Taipei"` in
    `plugins/Giveaway/config.yaml` (or `TZ` in `compose.yaml`): the container's zone is UTC, so typed
-   end times would be read 8 hours off. Whether v3's running giveaways come along is up to the v3
-   data import.
+   end times would be read 8 hours off. Whether v3's running giveaways come along is up to the
+   one-off migration at cutover.
 6. **Ticket** (review queue, "Ticket"): whether ticket channels should take a `ticket-` prefix so
    that TicketAwayNotice's default prefixes match them; the Message Content intent for the archive;
-   `TZ` for the archive's times; the v3 data import before anyone uses `/add-ticket` on v3 panels
-   (until then a new button takes index 0, the v3 button's, and both open the new entry) and
-   before staff need the control rows of v3's ticket channels (until then, since
-   `ticket-staff-controls`, their lock and unlock answer the not-found text, as save and delete
-   always did); exported `text.yaml` files keep the old labels until renewed or edited.
+   `TZ` for the archive's times; the one-off migration of v3's panels at cutover before anyone uses
+   `/add-ticket` on v3 panels (until then a new button takes index 0, the v3 button's, and both
+   open the new entry) and before staff need the control rows of v3's ticket channels (until then,
+   since `ticket-staff-controls`, their lock and unlock answer the not-found text, as save and
+   delete always did); exported `text.yaml` files keep the old labels until renewed or edited.
 7. **TicketAwayNotice** (review queue, "TicketAwayNotice"): the Presence intent must be allowed in
    the developer portal before the plugin is enabled, or Discord refuses the bot's connection; at
    cutover, `guild_id` must be the shop's guild, since the guild filter now applies (the READY check
    names a wrong one).
 
-8. **NtustAnnouncements** (review queue, "NtustAnnouncements"): at cutover, run the v3 data
-   import (`current_announcement_lists` from v3's MongoDB, design "Storage and the v3 data
-   import") before enabling the plugin, or its first pass posts every board's first page; add
-   `boards` with the 18 channel IDs to the migrated `plugins/NtustAnnouncements/config.yaml`;
-   `{{now}}` is UTC in the container unless `TZ` is set. The model settings (review queue,
-   "NtustAnnouncements model settings") keep v3's values unless the file sets them.
+8. **NtustAnnouncements** (review queue, "NtustAnnouncements"): at cutover, migrate
+   `current_announcement_lists` from v3's MongoDB (a one-off script; archived design "Storage and
+   the v3 data import") before enabling the plugin, or its first pass posts every board's first
+   page; add `boards` with the 18 channel IDs to the migrated
+   `plugins/NtustAnnouncements/config.yaml`; `{{now}}` is UTC in the container unless `TZ` is set.
+   The model settings (review queue, "NtustAnnouncements model settings") keep v3's values unless
+   the file sets them.
 9. **NtustCourseWatch** (review queue, "NtustCourseWatch"): before each course selection, set
    `semester` and `start` in `plugins/NtustCourseWatch/config.yaml` (the defaults are v3's 1142
    and 2025-12-26 09:00); during the first selection, check in the log that NTUST answers the
-   per-code requests under load. v3 lost its registrations at each restart; the v3 data import
-   can restore those of v3's MongoDB document (archived design, "Registrations and the v3 data
-   import").
+   per-code requests under load. v3 lost its registrations at each restart; the one-off migration
+   at cutover can restore those of v3's MongoDB document (archived design, "Registrations and the
+   v3 data import").
 10. **MusicPlayer** (review queue, "MusicPlayer"): before the first `docker compose up`, copy
    `.env.example` to `.env` and set `LAVALINK_PASSWORD` (every compose command needs it now) and
    the same `lavalink.password` in `bot/plugins/MusicPlayer/config.yaml`; Spotify, if wanted, in

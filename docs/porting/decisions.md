@@ -1,8 +1,8 @@
 # xincord porting decisions
 
 Status: **accepted**. The owner submitted these through the Phase 1 decision page on 2026-10-10
-(Asia/Taipei). Two conflicts were resolved in chat the same day (see "Resolutions"), and three
-decisions were amended that afternoon (see "Amendments").
+(Asia/Taipei). Two conflicts were resolved in chat the same day (see "Resolutions"), three
+decisions were amended that afternoon, and three more on 2026-10-11 (see "Amendments").
 
 - Raw submission (labels and notes in Traditional Chinese): `submissions/s1791569618147.json`
 - Decision page: https://claude.ai/artifact/E6CCEYRv6XA7nKc5rYCwDv
@@ -27,7 +27,7 @@ deviation from it; **[fact]** a factual answer.
    under their own top-level package anyway.
 3. **Data migration is deferred** (derived from the F1 note, B11 note). The `xincord migrate` tool
    is built only if needed, after parity. The config migration script (B6) is in scope. Reversed
-   on 2026-10-10 (afternoon): see Amendment 2.
+   on 2026-10-10 (afternoon): see Amendment 2; the tool was dropped on 2026-10-11 (Amendment 6).
 4. **Component IDs follow the B9 note**, not the literal option label: new format, permanent
    legacy decoder, lazy upgrade on interaction, never a mass re-send.
 
@@ -48,12 +48,32 @@ The owner answered the review queue (`owner-review.md`) and changed three decisi
    import, `xincord migrate` with a dry run and per-plugin counts, is built before cutover. It
    covers Economy's wallets and the other data worth keeping, such as channel bindings. B11's test
    plan stands: test against the local copy in `XsDiscordBotKt/Server/`; where it disagrees with
-   the GitHub source, the source wins.
+   the GitHub source, the source wins. Amended on 2026-10-11: no tool, one-off scripts at cutover
+   (Amendment 6).
 3. **B8, ChatLogger's message log.** The log keeps messages for 5 years by default and lives in the
    plugin's own SQLite files under its data directory inside the `data/` volume, a new file
    starting automatically when the current one grows too large. This replaces `port-chat-logger`'s
    answer to B8's open question (one table in the shared store, 30 days by default); built in
    `chat-logger-split-storage` (2026-10-11).
+
+## Amendments (2026-10-11)
+
+The owner decided how releases and dependency updates work, and dropped the data import tool:
+
+4. **A1, B2 and B16, releases.** A release starts from a GPG-signed `v*` tag that the owner
+   pushes; Claude pushes one only with the owner's approval. PyPI publishing starts at 1.0.0,
+   after cutover and once the repository is public; until then releases are dry runs only, and
+   TestPyPI is not used either, since it is public too. Container images go to GHCR, multi-arch
+   (amd64 and arm64), private until the repository is public.
+5. **A8, dependency updates.** Dependabot opens security updates only. Renovate opens version
+   updates and automerges patch updates and lock-file maintenance after CI passes; minor and major
+   updates wait for the owner. The owner installed the Renovate app (its onboarding PR #1 was
+   closed on request: Renovate waits for its config on `main`) and enabled the dependency graph,
+   Dependabot alerts and Dependabot security updates.
+6. **B11, Resolution 3 and Amendment 2, data import.** The planned `xincord migrate` tool is
+   dropped. At cutover, when the owner asks, Claude operates the production host, inspects the real
+   v3 data and writes one-off migration scripts outside the repository. `migrate_v3`, the config
+   conversion of B6, stays.
 
 ## F. Facts
 
@@ -71,7 +91,8 @@ The owner answered the review queue (`owner-review.md`) and changed three decisi
 
 - **A1 Branching and pushing** [rec]: commit directly on `main`. Normal pushes to xincord are
   pre-authorized. Still ask first for: force push, deleting branches, tags, releases, PyPI
-  publishing, repository settings. Switch to a PR flow after cutover (C2).
+  publishing, repository settings. Switch to a PR flow after cutover (C2). Releases: Amendment 4
+  (2026-10-11).
 - **A2 Kotlin source references** [rec]: cite `XsDiscordBotKt@3a59607:<path>:<line>`. A local tag
   `port-baseline` may be created in the old repo; pushing it needs approval.
 - **A3 v4 design spec** [rec]: stays in the old repo (`docs/specs/2026-04-07-v4-core-refactor-design.md`).
@@ -93,7 +114,7 @@ The owner answered the review queue (`owner-review.md`) and changed three decisi
   check, commit-msg ASCII + Conventional Commits; pytest on pre-push); Claude Code hooks
   (PostToolUse: ruff format/fix on edited `.py`; Stop: full gate); GitHub Actions with
   `astral-sh/setup-uv` pinned to an exact version, `uv sync --locked`, and
-  `openspec validate --all --strict`.
+  `openspec validate --all --strict`. Dependency updates: Amendment 5 (2026-10-11).
 - **A9 Name** [rec]: `xincord`. License AGPLv3; the owner creates LICENSE (do not generate it).
   The owner chose `AGPL-3.0-or-later` on 2026-10-10.
 - **A10 OpenSpec init** [rec]: `--tools claude` only; telemetry off.
@@ -108,7 +129,7 @@ The owner answered the review queue (`owner-review.md`) and changed three decisi
 - **B1 Discord library** [rec]: discord.py (2.7.1 at analysis time).
 - **B2 Project structure** [owner]: core publishable to PyPI, plugins through entry points. See
   Resolution 2 for the two-distribution layout. The core API becomes public: keep it small and
-  version it with semver.
+  version it with semver. PyPI publishing starts at 1.0.0 (Amendment 4, 2026-10-11).
 - **B3 Plugin contract** [rec]: one discord.py extension + Cog per plugin; metadata as module
   constants; stdlib `graphlib` orders by dependency; a failing plugin disables only itself;
   config and lang stay under `plugins/<Name>/`; hot reload via `reload_extension`, reloading
@@ -141,7 +162,8 @@ The owner answered the review queue (`owner-review.md`) and changed three decisi
 - **B11 Data compatibility** [rec + Resolution 3]: approach is a one-time `xincord migrate` tool
   with dry-run and per-plugin counts, **deferred**. When built, test against the local copy in
   `XsDiscordBotKt/Server/`; where it disagrees with the GitHub source, the source wins. Amended
-  on 2026-10-10 (afternoon): built before cutover (Amendment 2).
+  on 2026-10-10 (afternoon): built before cutover (Amendment 2). Amended on 2026-10-11: no tool;
+  one-off scripts that Claude writes at cutover from the production host's data (Amendment 6).
 - **B12 API plugins** [rec]: none survive. SQLiteAPI is replaced by the storage layer;
   GoogleSheetAPI is dropped (Economy's dead `SheetImpl` path and its hard dependency go too);
   AudioAPI folds into MusicPlayer's declared requirements.
@@ -156,7 +178,8 @@ The owner answered the review queue (`owner-review.md`) and changed three decisi
   (`docker compose attach`).
 - **B16 Versioning and deployment** [owner]: one semver (0.x until cutover, 1.0.0 at cutover);
   Docker image (arm64 at least) + docker compose (bot, later Lavalink) on the macOS host.
-  Keep the SQLite file in a named volume, not a host bind mount.
+  Keep the SQLite file in a named volume, not a host bind mount. Releases and GHCR images:
+  Amendment 4 (2026-10-11).
 - **B17 Testing** [rec]: pure logic without discord.py; Cogs and Views depend on narrow Protocols
   with hand-written fakes; SQLite `:memory:` for storage tests; pytest + pytest-asyncio (auto
   mode); a manual smoke checklist per plugin for a test guild; golden fixtures for BasicCalculator.
