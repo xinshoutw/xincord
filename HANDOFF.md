@@ -1,6 +1,10 @@
 # HANDOFF: xincord Phase 2 (implementation)
 
-Updated 2026-10-11 after `port-music-player`, the eighteenth and last plugin port of C1 (v3
+Updated 2026-10-11 after `ntust-announcements-model-config`, the owner's fourth follow-up change:
+every setting of the model that NtustAnnouncements uses (endpoint, `gemini` or OpenAI-compatible
+`openai` format, model, temperature, output limit, timeouts, rate limit, retries) is a key of its
+`config.yaml` with v3's values as defaults, applied by a reload, and its logs name no product. It
+followed `port-music-player`, the eighteenth and last plugin port of C1 (v3
 MusicPlayer: eleven guild commands, a self-refreshing ephemeral panel with five buttons, and the
 audio on a Lavalink 4.2 node in compose driven by lavalink.py; the first plugin with a second
 service in compose and the first that plays audio). Every in-scope plugin is ported. It followed
@@ -450,31 +454,43 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
   and TicketAwayNotice, NtustAnnouncements and NtustCourseWatch were ported under their new names.
   Reuse: the capability rename recipe and the image check with every plugin (section 7).
 - **NtustAnnouncements** (v3 NtustManager; `xincord.plugins.ntust_announcements`, no intents, no
-  lang, config `fetch-interval`, `api-keys`, `prompt` (v3's keys), `boards` and `model`; the bundled
-  file holds v3's prompt, v3's example key and v3's 18 boards with 0 for every channel, so the
-  plugin waits for the operator): the first plugin that scrapes pages and calls an LLM. Pure
-  modules: `markup.py` (a tree over `html.parser`: omitted end tags in tables and lists, the
-  implied `tbody`, v3's selectors, jsoup's `text()`, a serializer), `pages.py` (v3's three layouts,
-  `complete_url` keeping v3's exact URL strings, `is_article`, the container, v3's minifier with
-  `re.ASCII`, Kotlin's `trim`), `messages.py` (v3's header and split in UTF-16 code units, title
-  links escaped and cut), `gemini.py` (`fill_prompt` in one pass, `KeyRing`, `backoff`,
-  `Gemini.convert` with v3's ten attempts), `store.py` (v3's `TypedListWrapper` per board under
-  namespace `NtustAnnouncements`, `remember` keeping up to 100 links that left the page).
-  `web.py`: aiohttp, pages through `xincord.plugins.ntust_tls.ntust_context` (Python 3.13+'s
-  `VERIFY_X509_STRICT` refuses NTUST's certificates; `web.page_context` until
-  port-ntust-course-watch moved it), Gemini's REST `generateContent` with the key in a header.
-  `watch.py`:
+  lang, config `fetch-interval`, `api-keys`, `prompt` (v3's keys), `boards`, `model` and, since
+  `ntust-announcements-model-config` (the owner's request), every model setting: `api-format`
+  (`gemini` or an OpenAI-compatible `openai`), `endpoint`, `temperature`, `max-output-tokens`,
+  `request-timeout`, `connect-timeout`, `rate-limit`, `rate-window`, `max-attempts` and
+  `retry-waits`, v3's values by default, applied by a reload; the bundled file holds v3's prompt,
+  v3's example key and v3's 18 boards with 0 for every channel, so the plugin waits for the
+  operator): the first plugin that scrapes pages and calls an LLM. Pure modules: `markup.py` (a
+  tree over `html.parser`: omitted end tags in tables and lists, the implied `tbody`, v3's
+  selectors, jsoup's `text()`, a serializer), `pages.py` (v3's three layouts, `complete_url`
+  keeping v3's exact URL strings, `is_article`, the container, v3's minifier with `re.ASCII`),
+  `strings.py` (Kotlin's `trim`, importing nothing of the plugin), `messages.py` (v3's header and
+  split in UTF-16 code units, title links escaped and cut), `api.py` (`ApiFormat`, `Api`: each
+  format's URL, key header and body from the settings, null settings left out; `answer_text`,
+  `error_message`), `conversion.py` (was `gemini.py`: `fill_prompt` in one pass, `Limits`,
+  `KeyRing`, `backoff`, `Converter.convert` with the configured attempts and waits, `hide`
+  cutting URLs to their origins and removing the endpoint's path and the keys), `store.py` (v3's
+  `TypedListWrapper` per board under namespace `NtustAnnouncements`, `remember` keeping up to 100
+  links that left the page). `config.py` builds `Config.api` and `Config.limits`; validators that
+  read another key are field validators declared after it, the numbers are strict (YAML's `yes` is
+  no 1) and the endpoint is read with yarl, as aiohttp reads it. `web.py`: aiohttp, pages through
+  `xincord.plugins.ntust_tls.ntust_context` (Python 3.13+'s `VERIFY_X509_STRICT` refuses NTUST's
+  certificates; `web.page_context` until port-ntust-course-watch moved it), the model's request
+  from the `Api` with its timeouts. Log lines name no product; a READY line names the format, the
+  model and the endpoint's origin. `watch.py`:
   `Watcher`, one board's passes (posted links stored after each post, failures retried at the next
   pass, unconvertible articles posted as title links, `Failures` per step; since the cross-review,
-  refused messages wait in `ready` so that Gemini converts an article once, links posted while
+  refused messages wait in `ready` so that the model converts an article once, links posted while
   the store refused them wait in `delivered`, each announcement is guarded, and pages are parsed
   in `asyncio.to_thread` with walks that need no recursion). `cog.py`: one task that
   waits for READY and runs a loop per board in a `TaskGroup`, five fetches at a time, posts through
   partial messageables without mentions, the ready check. Reuse: `xincord.plugins.failures`
   (`Failures`, moved from UptimeHeartbeat), `markup.py` (move it into a shared package when
   another plugin parses HTML), the conftest's `offline` guard (aiohttp refuses every host but this
-  machine's), `FakeWeb`, the `Clock` whose `wake` ends the waits started so far, and trimmed copies
-  of live pages as fixtures.
+  machine's), `FakeWeb` (its `apis` record the settings of each session, `error` fails every
+  attempt), the `Clock` whose `wake` ends the waits started so far, trimmed copies of live pages
+  as fixtures, and `BeforeValidator` stubs for new config keys (porting guide, "Validators that
+  read other keys").
 - **NtustCourseWatch** (v3 NtustCourse; `xincord.plugins.ntust_course_watch`, no intents, en-US
   default locale holding v3's English with zh-TW translations, config `semester`, `start`,
   `interval` and `alert-interval` with v3's values as defaults, so v3's file loads): the first
@@ -537,8 +553,8 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 `port-dynamic-voice-channel`, `port-voice-logger`, `port-chat-logger`, `port-giveaway`,
 `rename-plugins`, `uptime-heartbeat-keep-pushing`, `custom-commands-from-config`,
 `chat-logger-split-storage`, `port-ticket`, `port-ticket-away-notice`,
-`port-ntust-announcements`, `port-ntust-course-watch`, `port-music-player`. Each one's
-`design.md` in
+`port-ntust-announcements`, `port-ntust-course-watch`, `port-music-player`,
+`ntust-announcements-model-config`. Each one's `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
@@ -557,9 +573,11 @@ archived changes, MusicPlayer's real voice test with DAVE first.
 The owner also asked for follow-up changes (section 6). Done: UptimeHeartbeat logs URLs as origins
 only and never stops a listener (`uptime-heartbeat-keep-pushing`); CustomCommands defines its
 commands in its config file (`custom-commands-from-config`); ChatLogger keeps 5 years by default in
-its own files, starting a new file when one grows too large (`chat-logger-split-storage`). Not
-started yet: the v3 data import (`xincord migrate`) before cutover, which must read a renamed
-plugin's v3 data from `plugins/<new name>/` once `migrate_v3` moved it (or from both places), write
+its own files, starting a new file when one grows too large (`chat-logger-split-storage`);
+NtustAnnouncements takes every model setting from its config, with an OpenAI-compatible format
+(`ntust-announcements-model-config`). Not started yet: the v3 data import (`xincord migrate`)
+before cutover, which must read a renamed plugin's v3 data from `plugins/<new name>/` once
+`migrate_v3` moved it (or from both places), write
 the new store namespaces (`WelcomeGoodbye`), and import ChatLogger's message files as
 `chat-logger-split-storage`'s design plans ("Migration").
 
@@ -642,6 +660,14 @@ Answered on 2026-10-10 (afternoon), from the review queue (the answered items we
   names" for these plugins (`docs/porting/decisions.md`, "Amendments").
 - **Pushes** go on without prior review; everything the owner should see goes to the review queue.
 
+Requested on 2026-10-11, while the owner was away: every setting of the model that
+NtustAnnouncements calls moves into its `config.yaml` (v3's values as defaults, applied by a
+reload), with an OpenAI-compatible format, validation at load, the endpoint logged as its origin
+and no product named where the format makes it wrong. Done in `ntust-announcements-model-config`;
+this answers the review queue's NtustAnnouncements choice "Config surface" for the model (the
+pages' fetch limit and timeouts and the message split stay constants), and the change's own
+choices are in the review queue.
+
 1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
    (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script
    fills that list; plugins that are not enabled no longer create files under `plugins/<Name>/`;
@@ -676,7 +702,8 @@ Answered on 2026-10-10 (afternoon), from the review queue (the answered items we
    import (`current_announcement_lists` from v3's MongoDB, design "Storage and the v3 data
    import") before enabling the plugin, or its first pass posts every board's first page; add
    `boards` with the 18 channel IDs to the migrated `plugins/NtustAnnouncements/config.yaml`;
-   `{{now}}` is UTC in the container unless `TZ` is set.
+   `{{now}}` is UTC in the container unless `TZ` is set. The model settings (review queue,
+   "NtustAnnouncements model settings") keep v3's values unless the file sets them.
 9. **NtustCourseWatch** (review queue, "NtustCourseWatch"): before each course selection, set
    `semester` and `start` in `plugins/NtustCourseWatch/config.yaml` (the defaults are v3's 1142
    and 2025-12-26 09:00); during the first selection, check in the log that NTUST answers the
@@ -1119,6 +1146,26 @@ setup-uv v10.2.0, setup-node v7.1.0.
   imports with the code that uses them, or check after the fix. A text replacement anchored on a
   line that the formatter reflowed silently matches nothing: assert the anchor (a script with
   `assert old in text`).
+
+- pydantic passes exceptions other than `ValueError` and `AssertionError` out of validators
+  unchanged: a `BeforeValidator` that raises `NotImplementedError` stubs a new config key for
+  xfail-first while files without the key still load. A `field_validator` reads the fields declared
+  before it (defaults included, failed ones left out) in `ValidationInfo.data` and names its own
+  key; a model validator's error reads `<root>` in the core's messages.
+- discord.py's log format prints each record's logger name, the module's path: a module named
+  after a product names it on every line (NtustAnnouncements' `gemini.py` became `conversion.py`).
+- pydantic's lax numbers read YAML's `yes`, `on` and `true` as 1; `Field(strict=True)` refuses them
+  (a strict float still takes an integer; make a tuple's items strict, since a strict tuple
+  refuses YAML's lists). Check URLs that aiohttp requests with yarl: `urlsplit` takes a backslash
+  in the host that yarl refuses, and yarl takes port 0. Read a clock once per decision: a limiter
+  that reads it again to compute a wait can find the oldest attempt gone.
+- A module that `config.py` imports must not import one that imports `config.py`
+  (NtustAnnouncements' `pages.py` imports `Layout`): put such helpers in a module that imports
+  nothing of the plugin (`strings.trim`).
+- OpenAI's reasoning models refuse a temperature other than their default and `max_tokens`;
+  Ollama's OpenAI-compatible endpoint takes `max_tokens` (no `max_completion_tokens`) and ignores
+  the key; Gemini's is `https://generativelanguage.googleapis.com/v1beta/openai/` with a bearer key;
+  aiohttp refuses an `Authorization` header together with credentials in the URL (`ValueError`).
 
 **v3 behaviors never to reproduce:** loading plugins in reverse dependency order, non-atomic JSON
 writes that reset corrupt files, recursive placeholder expansion, shared mutable placeholder
