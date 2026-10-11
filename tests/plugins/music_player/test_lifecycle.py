@@ -59,7 +59,6 @@ async def started() -> None:
     await asyncio.sleep(0)
 
 
-@pytest.mark.xfail(strict=True, reason="The bot leaves when idle, disconnected or removed")
 async def test_idle_timeout(scene: Scene) -> None:
     """Requirement: The bot leaves when idle, disconnected or removed."""
     await scene.playing(1)
@@ -74,7 +73,6 @@ async def test_idle_timeout(scene: Scene) -> None:
     assert scene.cog.sessions[10].player is None
 
 
-@pytest.mark.xfail(strict=True, reason="The bot leaves when idle, disconnected or removed")
 async def test_a_song_starts_before(scene: Scene) -> None:
     """Requirement: The bot leaves when idle, disconnected or removed."""
     await scene.connect()  # idle from the connection, as after /join
@@ -120,7 +118,6 @@ async def test_disconnected_by_someone_else(scene: Scene) -> None:
     assert scene.cog.panels.panels == {}
 
 
-@pytest.mark.xfail(strict=True, reason="The bot leaves when idle, disconnected or removed")
 async def test_guild_removed(scene: Scene) -> None:
     """Requirement: The bot leaves when idle, disconnected or removed."""
     await scene.playing(1)
@@ -136,10 +133,6 @@ async def test_guild_removed(scene: Scene) -> None:
     assert scene.cog.panels.panels == {}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="The node and the emojis load from READY, and unloading leaves voice",
-)
 async def test_offline_load(bot: Bot) -> None:
     """Requirement: The node and the emojis load from READY, and unloading leaves voice."""
     cog = cast("MusicPlayer", bot.get_cog("MusicPlayer"))
@@ -159,11 +152,6 @@ async def test_offline_load(bot: Bot) -> None:
     assert opened == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The node and the emojis load from READY, and unloading leaves voice",
-)
 async def test_emojis(
     bot: Bot, ready: Ready, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -205,11 +193,6 @@ async def test_emojis(
     assert "music_player__media_play," not in warnings[0].getMessage()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="The node and the emojis load from READY, and unloading leaves voice",
-)
 async def test_emojis_unreadable(
     bot: Bot, ready: Ready, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -232,10 +215,6 @@ async def test_emojis_unreadable(
     assert "emojis" in caplog.text
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="The node and the emojis load from READY, and unloading leaves voice",
-)
 async def test_unload(scene: Scene) -> None:
     """Requirement: The node and the emojis load from READY, and unloading leaves voice."""
     await scene.playing(1)
@@ -249,3 +228,35 @@ async def test_unload(scene: Scene) -> None:
     assert DELETED in command.sent
     assert scene.link.closed is True
     assert cog.panels.panels == {}
+
+
+async def test_all_the_emojis(bot: Bot, ready: Ready, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Requirement: The node and the emojis load from READY, and unloading leaves voice."""
+    cog = cast("MusicPlayer", bot.get_cog("MusicPlayer"))
+    names = cog.config.emojis.model_dump()
+
+    async def emojis(_bot: Bot) -> list[FakeEmoji]:
+        return [FakeEmoji(name, 1395593807352954900 + n) for n, name in enumerate(names.values())]
+
+    monkeypatch.setattr(Bot, "user", property(lambda _bot: BOT_USER))
+    monkeypatch.setattr(Bot, "fetch_application_emojis", emojis)
+    cog.open_link = cast("Any", fake_link)
+    assert cog.starting is not None
+
+    ready.set()
+    await cog.starting
+
+    assert all(mention.startswith("<:music_player__") for mention in cog.emojis.values())
+
+
+async def test_guild_removed_without_voice(scene: Scene) -> None:
+    """Requirement: The bot leaves when idle, disconnected or removed."""
+    await scene.cog.session(10).set_volume(70)  # a volume panel, without voice
+    command = scene.who()
+    await scene.cog.change_volume(command.as_interaction(), 60)
+
+    await dispatch(scene.bot, "guild_remove", scene.guild)
+
+    assert 10 not in scene.cog.sessions
+    assert DELETED in command.sent
+    assert scene.link.disconnects == []

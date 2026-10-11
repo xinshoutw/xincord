@@ -105,6 +105,7 @@ class FakeLink:
     available: bool = True
     gate: asyncio.Event | None = None
     closed: bool = False
+    voices: dict[int, FakeVoice] = field(default_factory=dict[int, "FakeVoice"])  # by guild
 
     async def load(self, identifier: str) -> Loaded:
         """Record the load, then answer it, or raise as an absent node."""
@@ -121,7 +122,9 @@ class FakeLink:
         return FakeVoice(self, channel)
 
     async def close(self) -> None:
-        """Record the close."""
+        """Leave voice in every guild, as the plugin's link does, then record the close."""
+        for voice in list(self.voices.values()):
+            await voice.disconnect(force=True)
         self.closed = True
 
 
@@ -148,6 +151,7 @@ class FakeVoice:
         player = FakePlayer()
         self.link.players[guild.id] = player
         self.link.connects.append((guild.id, self.channel.id))
+        self.link.voices[guild.id] = self
         assert self.link.listener is not None
         self.link.listener.joined(guild.id, player)
         guild.voice_client = self
@@ -163,6 +167,7 @@ class FakeVoice:
         guild = self.channel.guild
         guild.voice_client = None
         self.link.players.pop(guild.id, None)
+        self.link.voices.pop(guild.id, None)
         assert self.link.listener is not None
         self.link.listener.left(guild.id)
 

@@ -348,3 +348,23 @@ async def test_a_node_that_went_away() -> None:
     finally:
         await link.close()
         await client.close()
+
+
+async def test_close_leaves_voice(scene: Scene) -> None:
+    """Requirement: Songs load and play through a Lavalink node."""
+    node = scene.node
+    voice = await scene.voice()
+    channel = cast("Channel", voice.channel)
+    unconnected = scene.link.voice(
+        scene.client, cast("discord.abc.Connectable", Channel(30, Guild(11)))
+    )
+    await unconnected.on_voice_state_update(  # never connected: nothing to release
+        cast("Any", {"guild_id": "11", "user_id": "99", "channel_id": None})
+    )
+
+    await scene.link.close()
+    await node.until(lambda: node.closed == 1)
+
+    assert channel.guild.states == [(20, False, False), (None, False, False)]
+    assert node.deleted == ["11", str(GUILD)]  # lavalink.py asks the node about any guild
+    assert scene.recorder.left == [11, GUILD]

@@ -35,4 +35,13 @@ FALLBACKS = {
 def resolve(names: Emojis, available: Mapping[str, str]) -> tuple[dict[str, str], list[str]]:
     """The emojis by config key: the application's (``available``, by name), else Unicode ones,
     and the configured names that the application lacks."""
-    raise NotImplementedError
+    resolved: dict[str, str] = {}
+    missing: list[str] = []
+    configured: dict[str, str] = names.model_dump()
+    for key, name in configured.items():
+        if (mention := available.get(name)) is None:
+            resolved[key] = FALLBACKS[key]
+            missing.append(name)
+        else:
+            resolved[key] = mention
+    return resolved, missing

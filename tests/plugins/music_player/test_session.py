@@ -8,6 +8,7 @@ Kotlin:
 
 import logging
 import random
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -15,6 +16,9 @@ from music_fakes import FakePlayer
 from xincord.plugins.music_player.audio import EndReason, Track
 from xincord.plugins.music_player.history import Entry, LoopMode, Requester
 from xincord.plugins.music_player.session import Session
+
+if TYPE_CHECKING:
+    from conftest import Scene
 
 ALICE = Requester(7, "Alice", "alice", "https://cdn.example/alice.png")
 VOLUME = 40
@@ -271,3 +275,19 @@ def test_no_current_song() -> None:
 
     with pytest.raises(LookupError, match="guild 10 has no song"):
         session.current()
+
+
+async def test_the_node_reaches_the_session(scene: Scene) -> None:
+    """Requirement: Playback follows the node's events."""
+    player = await scene.playing(1, 2, 3)
+
+    await scene.cog.ended(10, 1, EndReason.FINISHED)
+    await scene.cog.stuck(10, 2)
+    await scene.cog.ended(11, 1, EndReason.FINISHED)  # a guild without music
+    await scene.cog.stuck(11, 1)
+
+    assert [title for title, _, _ in cast("list[tuple[str, int, int]]", player.played())] == [
+        "Song 1",
+        "Song 2",
+        "Song 3",
+    ]

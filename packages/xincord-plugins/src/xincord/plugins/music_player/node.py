@@ -179,6 +179,7 @@ class NodeLink:
         self.client = client
         self.listener = listener
         self.closed = False
+        self.voices: dict[int, LavalinkVoice] = {}  # the bot's connections, by guild
 
     @property
     def available(self) -> bool:
@@ -204,10 +205,13 @@ class NodeLink:
         return LavalinkVoice(client, channel, self)
 
     async def close(self) -> None:
-        """Close the node's connection and the client's session; again does nothing."""
+        """Leave voice in every guild, then close the node's connection and the client's
+        session; again does nothing."""
         if self.closed:
             return
         self.closed = True
+        for voice in list(self.voices.values()):
+            await voice.disconnect(force=True)
         await self.client.close()
 
 
@@ -245,6 +249,7 @@ class LavalinkVoice(discord.VoiceProtocol):
         except lavalink.ClientError as error:
             self.cleanup()
             raise NodeUnavailableError from error
+        self.link.voices[self.guild_id] = self
         self.link.listener.joined(self.guild_id, GuildPlayer(player))
         guild = cast("discord.VoiceChannel", self.channel).guild
         await guild.change_voice_state(
@@ -285,17 +290,21 @@ class LavalinkVoice(discord.VoiceProtocol):
 
     @override
     async def disconnect(self, *, force: bool) -> None:
-        """Leave voice and destroy the guild's player."""
+        """Leave voice and destroy the guild's player, even when the gateway refuses the leave."""
         del force
         guild = cast("discord.VoiceChannel", self.channel).guild
-        await guild.change_voice_state(channel=None)
-        await self._release()
+        try:
+            await guild.change_voice_state(channel=None)
+        finally:
+            await self._release()
 
     async def _release(self) -> None:
         """Forget the connection once: discord.py's record, the node's player, the plugin's."""
         if self.released:
             return
         self.released = True
+        if self.link.voices.get(self.guild_id) is self:
+            del self.link.voices[self.guild_id]
         self.cleanup()
         try:
             await self.link.client.player_manager.destroy(self.guild_id)

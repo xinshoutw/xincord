@@ -9,16 +9,18 @@ import asyncio
 import logging
 import random
 from collections import OrderedDict
-from typing import TYPE_CHECKING, override
+from functools import partial
+from typing import TYPE_CHECKING, cast, override
 
 import discord
 from discord.ext import commands
 
 from .buttons import Buttons
 from .commands import SEARCH_DEADLINE, Commands
-from .emojis import FALLBACKS
+from .emojis import FALLBACKS, resolve
 from .node import open_link
 from .panels import Panels
+from .texts import describe
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Coroutine, Mapping
@@ -28,7 +30,7 @@ if TYPE_CHECKING:
     from xincord.core.i18n import Lang
     from xincord.core.templates import Templates
 
-    from .audio import Link, Listener, Player
+    from .audio import EndReason, Link, Listener, Player
     from .config import Config, Node
     from .panels import Panel
 
@@ -65,6 +67,7 @@ class MusicPlayer(Commands, Buttons, commands.Cog):
         self.open_link: OpenLink = open_link  # tests give a fake node
         self.sleep: Sleep = asyncio.sleep  # the idle leave's wait; tests replace it
         self.idle: dict[int, asyncio.Task[None]] = {}  # each idle guild's leave, by guild
+        self.closed = False  # set by the unload, after which nothing starts
 
     @override
     async def cog_load(self) -> None:
@@ -76,10 +79,97 @@ class MusicPlayer(Commands, Buttons, commands.Cog):
         self.starting = asyncio.create_task(self.start(), name="MusicPlayer startup")
         self.starting.add_done_callback(_failed)
 
+    @override
+    async def cog_unload(self) -> None:
+        """Leave voice in every guild, delete the panels and close the node's client.
+
+        v3's unload left its players, connections and threads running (bug B23): a reload stops
+        the music now. Work under way ends first, so that nothing starts after the unload.
+        """
+        self.closed = True
+        waiting = [cast("asyncio.Task[None]", self.starting), *self.idle.values()]
+        for task in waiting:
+            task.cancel()
+        await asyncio.gather(*waiting, return_exceptions=True)
+        if self.link is not None:
+            await self.link.close()
+        await asyncio.gather(*self.tasks, return_exceptions=True)
+        await self.panels.close()
+
     async def start(self) -> None:
-        """At READY: the link to the node and the application's emojis."""
+        """At READY: the link to the node, then the application's emojis (v3 read them at first
+        use, blocking an event thread, and broke every panel when one was missing)."""
         await self.bot.wait_until_ready()
-        raise NotImplementedError
+        user = cast("discord.ClientUser", self.bot.user)
+        self.link = self.open_link(user.id, self.config.lavalink, self)
+        try:
+            found = await self.bot.fetch_application_emojis()
+        except discord.HTTPException as error:
+            logger.warning(
+                "MusicPlayer: the application's emojis could not be read (%s); Unicode emojis "
+                "stand for them",
+                describe(error),
+            )
+            return
+        self.emojis, missing = resolve(
+            self.config.emojis, {emoji.name: str(emoji) for emoji in found}
+        )
+        if missing:
+            logger.warning(
+                "MusicPlayer: the application has no emoji named %s; Unicode emojis stand for them",
+                ", ".join(missing),
+            )
+
+    @override
+    def changed(self, session: Session) -> None:
+        """A session started or stopped playing, or connected or left: start or end its wait.
+
+        A connected session with nothing playing leaves voice after ``auto_leave_timeout`` (0:
+        never); a song that starts, or a disconnection, ends the wait. v3 declared the timeout and
+        never left (bug B10).
+        """
+        guild_id = session.guild_id
+        if session.player is not None and not session.playing:
+            timeout = self.config.player.auto_leave_timeout
+            if timeout and not self.closed and guild_id not in self.idle:
+                task = asyncio.create_task(
+                    self.leave_when_idle(session, timeout / 1000), name="MusicPlayer idle"
+                )
+                self.idle[guild_id] = task
+                task.add_done_callback(partial(self._idle_ended, guild_id))
+            return
+        if (
+            task := self.idle.pop(guild_id, None)
+        ) is not None and task is not asyncio.current_task():
+            task.cancel()
+
+    async def leave_when_idle(self, session: Session, seconds: float) -> None:
+        """Wait ``seconds``, then leave voice: nothing started meanwhile, or the wait was ended."""
+        await self.sleep(seconds)
+        guild = cast("discord.Guild", self.bot.get_guild(session.guild_id))
+        logger.info(
+            "MusicPlayer: guild %d: nothing played for %g seconds; leaving voice",
+            session.guild_id,
+            seconds,
+        )
+        await cast("discord.VoiceProtocol", guild.voice_client).disconnect(force=True)
+
+    def _idle_ended(self, guild_id: int, task: asyncio.Task[None]) -> None:
+        """Forget a finished wait, and log the error that ended it."""
+        if self.idle.get(guild_id) is task:
+            del self.idle[guild_id]
+        _failed(task)
+
+    @commands.Cog.listener()
+    async def on_guild_remove(self, guild: discord.Guild) -> None:
+        """The bot left a guild: leave its voice and forget its player, songs, volume and panels.
+
+        v3 kept its managers forever (bug B16).
+        """
+        if (voice := guild.voice_client) is not None:
+            await voice.disconnect(force=True)
+        self.sessions.pop(guild.id, None)
+        await self.panels.close_guild(guild.id)
 
     async def refresh_panel(self, panel: Panel) -> bool:
         """Edit ``panel`` with the guild's current song; False once Discord refused the edit.
@@ -110,6 +200,16 @@ class MusicPlayer(Commands, Buttons, commands.Cog):
     def joined(self, guild_id: int, player: Player) -> None:
         """The bot is connecting in the guild: its session plays on ``player``."""
         self.session(guild_id).attach(player)
+
+    async def ended(self, guild_id: int, number: int, reason: EndReason) -> None:
+        """The node ended the guild's song started as ``number``: its session follows."""
+        if (session := self.sessions.get(guild_id)) is not None:
+            await session.ended(number, reason)
+
+    async def stuck(self, guild_id: int, number: int) -> None:
+        """The node reported the guild's song started as ``number`` stuck."""
+        if (session := self.sessions.get(guild_id)) is not None:
+            await session.stuck(number)
 
     def left(self, guild_id: int) -> None:
         """The bot left voice in the guild: its session forgets the songs, its panels go."""
