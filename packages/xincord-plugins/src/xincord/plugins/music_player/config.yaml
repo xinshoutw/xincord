@@ -1,7 +1,8 @@
 # MusicPlayer: list it under `plugins` in the core config.yaml to enable it.
 # Members bring the bot into their voice channel with /join or /play and control the songs with
 # commands and the buttons of the ephemeral player panel. A Lavalink node plays the audio: compose
-# runs it as the `lavalink` service, with its config inline in compose.yaml.
+# runs it as the `lavalink` service when .env sets COMPOSE_PROFILES=music, with its config inline
+# in compose.yaml.
 
 # The Lavalink node. `password` is LAVALINK_PASSWORD of the .env file next to compose.yaml; the
 # plugin does not load until it is set.

@@ -37,9 +37,9 @@ bot keeps `config.yaml` and `plugins/` next to them.
 ```sh
 curl -fsSLO https://raw.githubusercontent.com/xinshoutw/xincord/main/compose.yaml
 curl -fsSL -o .env https://raw.githubusercontent.com/xinshoutw/xincord/main/.env.example
-# in .env: LAVALINK_PASSWORD, and XINCORD_VERSION, TZ, Spotify or YouTube's settings if wanted
+# in .env: LAVALINK_PASSWORD, and XINCORD_VERSION, TZ, COMPOSE_PROFILES=music (MusicPlayer's
+# node), Spotify or YouTube's settings if wanted
 docker compose up -d             # start; the bot writes config.yaml and plugins/ on the first start
-docker compose attach bot        # the console (Ctrl-P Ctrl-Q detaches)
 docker compose kill -s HUP bot   # reload the config and the plugins
 docker compose logs -f bot       # logs, rotated at 10 MB
 docker compose pull              # update to XINCORD_VERSION, then docker compose up -d
@@ -48,8 +48,8 @@ docker compose stop              # stop
 
 The image runs `xincord` as a non-root user; the database stays in the `<directory>_data` volume
 (the empty `data/` beside `compose.yaml` is only its mount point).
-The `lavalink` service plays MusicPlayer's audio with the config inline in `compose.yaml`; its
-password is `LAVALINK_PASSWORD` in `.env`, and `lavalink.password` in
+The `lavalink` service plays MusicPlayer's audio with the config inline in `compose.yaml`; it runs
+when `.env` sets `COMPOSE_PROFILES=music`. Its password is `LAVALINK_PASSWORD` in `.env`, and `lavalink.password` in
 `plugins/MusicPlayer/config.yaml` is the same. Videos that YouTube plays only to a signed-in client
 need its OAuth on a spare Google account; YouTube's signatures are solved by a remote yt-cipher
 server, the public one by default (`.env.example`). In a clone, `docker compose -f compose.yaml -f

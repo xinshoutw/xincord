@@ -112,15 +112,17 @@ How xincord is built: the core, the plugin conventions and each port, as recorde
     interactions; the core will route them (Core change `command-tree`).
 - **Deployment (`container`):** `Dockerfile` (two stages on `python:3.14.8-slim-trixie`, uv 0.12.24,
   `uv sync --locked --no-dev --all-packages --no-editable`, user `xincord` in `/bot`, entry point
-  `xincord`), `.dockerignore`, and `compose.yaml` (service `bot`: `./bot` bind-mounted at `/bot`,
-  named volume `data` = `xincord_data` at `/bot/data`, `stdin_open`, `tty`, `init`,
-  `restart: unless-stopped`, 30 s stop grace, json-file logs 10 MB x 3). Since port-music-player,
-  service `lavalink` (`ghcr.io/lavalink-devs/lavalink:4.2.2`, `lavalink/application.yml`
-  read-only with youtube-source 1.18.2 and LavaSrc 4.8.3 pinned, `LAVALINK_SERVER_PASSWORD` from
+  `xincord`), `.dockerignore`, and `compose.yaml` (service `bot`: the published image tagged
+  `XINCORD_VERSION`, its own directory bind-mounted at `/bot`, named volume `data` =
+  `<directory>_data` at `/bot/data`, `init` without a TTY (`compose-no-tty-music-profile`),
+  `restart: unless-stopped`, 30 s stop grace, json-file logs 10 MB x 3; `compose.build.yaml`
+  builds from a clone). Service `lavalink` in the profile `music`
+  (`ghcr.io/lavalink-devs/lavalink:4.2.2`, its config inline as the compose config `lavalink`
+  with a youtube-source snapshot and LavaSrc 4.8.3 pinned, `LAVALINK_SERVER_PASSWORD` from
   `LAVALINK_PASSWORD` in an untracked `.env` (`.env.example` holds an example; `${VAR:?}` makes
   every compose command need it), Spotify from `.env`, a `curl` healthcheck of `/version`, no
   published port, no member's query in its logs); the bot `depends_on` it with
-  `condition: service_started`.
+  `condition: service_started` and `required: false`.
 - **Plugins (`packages/xincord-plugins`):** `xincord.plugins.example` (entry point `Example`, v3's
   _Example), the template: `__init__.py` (metadata constants, `setup`), `config.py`, `cog.py`
   (commands built in `setup` from the Lang with the cog's bound method as callback, `IDS =

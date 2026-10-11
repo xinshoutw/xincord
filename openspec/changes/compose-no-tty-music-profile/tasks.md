@@ -1,7 +1,7 @@
 ## 1. Compose
 
-- [ ] 1.1 xfail tests (no TTY, the `music` profile, the optional dependency, `.env.example`)
-- [ ] 1.2 `compose.yaml`, `.env.example`, README and MusicPlayer's config comment; update the old
+- [x] 1.1 xfail tests (no TTY, the `music` profile, the optional dependency, `.env.example`)
+- [x] 1.2 `compose.yaml`, `.env.example`, README and MusicPlayer's config comment; update the old
       tests; remove the markers
 
 ## 2. Close

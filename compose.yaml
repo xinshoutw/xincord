@@ -1,19 +1,17 @@
 # xincord with docker compose, no clone needed: put this file and .env.example in an empty
 # directory, copy .env.example to .env and set LAVALINK_PASSWORD (see README, "Docker"), then:
 #   docker compose up -d             start; the bot writes config.yaml and plugins/ here
-#   docker compose attach bot        open the console (Ctrl-P Ctrl-Q detaches)
+#   docker compose logs -f bot       follow the log
 #   docker compose kill -s HUP bot   reload the config and the plugins
 #   docker compose pull              update to XINCORD_VERSION, then up -d again
 #   docker compose stop              stop
+# MusicPlayer's Lavalink node runs only with COMPOSE_PROFILES=music in .env.
 # A clone builds the image instead: docker compose -f compose.yaml -f compose.build.yaml up -d --build
 services:
   bot:
     image: ghcr.io/xinshoutw/xincord:${XINCORD_VERSION:-latest}
     restart: unless-stopped
-    init: true
-    # The console needs a terminal on stdin and stdout.
-    stdin_open: true
-    tty: true
+    init: true  # no TTY: the console stays off and the log holds log lines only
     stop_grace_period: 30s
     environment:
       # The bot's time zone, an IANA name from .env (see .env.example); UTC when unset.
@@ -26,16 +24,20 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    # Started, not healthy: the other plugins run while MusicPlayer's node starts or fails.
+    # Started, not healthy: the other plugins run while MusicPlayer's node starts or fails;
+    # not required: without the music profile there is no node.
     depends_on:
       lavalink:
         condition: service_started
+        required: false
 
   # The Lavalink node that plays MusicPlayer's audio (decision B14): Lavalink 4.2 with DAVE, the
   # end-to-end encryption that Discord requires for voice, and the config below. The Ubuntu image:
   # the Alpine one lacks the glibc that DAVE needs.
   lavalink:
     image: ghcr.io/lavalink-devs/lavalink:4.2.2
+    # Only with COMPOSE_PROFILES=music in .env: a bot without MusicPlayer runs no node.
+    profiles: [music]
     restart: unless-stopped
     environment:
       # Set in .env (see .env.example); MusicPlayer's lavalink.password is the same.

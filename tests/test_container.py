@@ -4,7 +4,6 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
-import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -65,7 +64,7 @@ def test_service_definition() -> None:
     bot = compose["services"]["bot"]
 
     assert bot["volumes"] == [".:/bot", "data:/bot/data"]
-    assert (bot["stdin_open"], bot["tty"], bot["init"]) == (True, True, True)
+    assert bot["init"] is True
     assert bot["restart"] == "unless-stopped"
     assert bot["stop_grace_period"] == "30s"
     assert bot["logging"] == {
@@ -96,16 +95,6 @@ def test_build_context_leaves_out_the_secrets() -> None:
     ignored = {line.strip() for line in lines if line.strip() and not line.startswith("#")}
 
     assert ".env" in ignored
-
-
-def test_bot_starts_after_the_node() -> None:
-    """Requirement: Compose service."""
-    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
-
-    # Started, not healthy: the other plugins run while the node starts or fails.
-    assert compose["services"]["bot"]["depends_on"] == {
-        "lavalink": {"condition": "service_started"}
-    }
 
 
 def test_lavalink_service() -> None:
@@ -243,7 +232,6 @@ def test_image_turns_off_cpr() -> None:
     )
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="Compose service")
 def test_bot_runs_without_a_terminal() -> None:
     """Requirement: Compose service.
 
@@ -256,7 +244,6 @@ def test_bot_runs_without_a_terminal() -> None:
     assert "stdin_open" not in bot
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="Compose service")
 def test_bot_starts_after_the_node_when_it_runs() -> None:
     """Requirement: Compose service."""
     compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
@@ -267,7 +254,6 @@ def test_bot_starts_after_the_node_when_it_runs() -> None:
     }
 
 
-@pytest.mark.xfail(strict=True, raises=KeyError, reason="Lavalink service")
 def test_node_only_with_the_music_profile() -> None:
     """Requirement: Lavalink service, scenario Only with the music profile."""
     compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
