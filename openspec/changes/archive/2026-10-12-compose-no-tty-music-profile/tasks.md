@@ -7,6 +7,7 @@
 
 ## 2. Close
 
-- [ ] 2.1 Gate passes, push, CI green; production: `COMPOSE_PROFILES=music` in the main bot's
-      `.env`, the new `compose.yaml` for both bots, the shop bot's node stopped
-- [ ] 2.2 Archive the change and run `openspec validate --all --strict`; update `HANDOFF.md`
+- [x] 2.1 Gate passes, push, CI green; production: `COMPOSE_PROFILES=music` in the main bot's
+      `.env`, the new `compose.yaml` for both bots, the shop bot's node stopped (the plain log
+      lines reach production with the next release)
+- [x] 2.2 Archive the change and run `openspec validate --all --strict`; update `HANDOFF.md`

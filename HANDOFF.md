@@ -67,13 +67,15 @@ repository root (gitignored), with the owner's test application and guild `xinco
 - Host: SSH alias `xs-mac` (an Apple M4 Pro Mac with OrbStack). Its SSH config runs a remote
   command with a TTY: use `ssh -o RemoteCommand=none -o RequestTTY=no xs-mac '...'`, with
   `/usr/local/bin` on `PATH` for docker.
-- Main bot: `~/selfhost/Discord/xincord`, a clone at `v0.2.2`, compose project `xincord`, volume
-  `xincord_data`; plugins AutoRole, Calculator, BotInfo, ChatLogger, DynamicVoiceChannel, Economy,
+- Main bot: `~/selfhost/Discord/xincord`, `compose.yaml` from `main` with the image `0.2.2`
+  (`XINCORD_VERSION`), compose project `xincord`, volume `xincord_data`; plugins AutoRole, Calculator, BotInfo, ChatLogger, DynamicVoiceChannel, Economy,
   UptimeHeartbeat, MusicPlayer, NtustAnnouncements, Ticket and VoiceLogger. `.env` holds the node's
-  password, `TZ=Asia/Taipei` and YouTube's OAuth refresh token (a spare account).
-- Shop bot (`shirotsuki`): `~/selfhost/Discord/xincord-shirotsuki`, a clone at `v0.2.0`; Economy,
-  UptimeHeartbeat and TicketAwayNotice.
-- Both still use the layout of their tag (`bot/`, `lavalink/application.yml`).
+  password, `TZ=Asia/Taipei`, YouTube's OAuth refresh token (a spare account) and
+  `COMPOSE_PROFILES=music`.
+- Shop bot (`shirotsuki`): `~/selfhost/Discord/xincord-shirotsuki`, the same layout and image
+  without the node; Economy, UptimeHeartbeat and TicketAwayNotice.
+- Both moved to this layout on 2026-10-12; their former clones are `<directory>.clone`, the
+  rollback (`xincord-migration/scripts/relayout.sh <name> --rollback`).
 - v3's directories (`~/selfhost/Discord/MainServer`, `~/selfhost/Discord/shirotsuki`) stay untouched
   for a rollback. The one-off migration's scripts, its runbook `CUTOVER.md` and copies of the data
   are in `~/selfhost/Discord/xincord-migration/`, outside the repository.
@@ -82,12 +84,10 @@ repository root (gitignored), with the owner's test application and guild `xinco
 
 ## Next steps
 
-1. Move both production deployments to the new layout, at a time the owner sets (a short downtime
-   each): `docker compose down`; `mv <dir> <dir>.clone`; a new `<dir>` with `compose.yaml` from
-   `main`, the old `.env` plus `XINCORD_VERSION=0.2.2`, and `config.yaml` and `plugins/` from
-   `<dir>.clone/bot/`; `docker compose up -d`; check the log. The volume keeps its name with the
-   directory's. `xincord-migration/scripts/relayout.sh <name> 0.2.2 [--apply | --rollback]` on
-   the host does it, keeping the directory itself (its dry run passed for both on 2026-10-12).
+1. The owner's review items of 2026-10-12, in progress: compose without a TTY and the node in
+   the `music` profile (done, deployed), the image built in CI, the plugins pinned to their
+   core, the token from `XINCORD_TOKEN`, an online backup. Code changes reach production with
+   the next release (the owner approves it), the plain log lines included.
 2. PyPI's first release, 1.0.0, when the owner says so.
 3. Issues: #3 (youtube-source back to a release that holds its TV client fix), #2 (CustomCommands'
    features left out).

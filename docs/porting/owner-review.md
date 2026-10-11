@@ -29,8 +29,9 @@ runs Economy, UptimeHeartbeat and TicketAwayNotice. Before enabling another plug
   the TV client's fix (#233); it depends on the public yt-cipher unless `YOUTUBE_CIPHER_URL` names
   a server of your own.
 - After a few days: delete the migration's copies on the production host (`CUTOVER.md`,
-  "Afterwards") and the rehearsal volumes `xincord-rehearsal-data` and
-  `xincord-shirotsuki-rehearsal`.
+  "Afterwards"), the rehearsal volumes `xincord-rehearsal-data` and
+  `xincord-shirotsuki-rehearsal`, the former clones `xincord.clone` and
+  `xincord-shirotsuki.clone`, and the image `xincord:local`.
 
 ## After cutover
 
