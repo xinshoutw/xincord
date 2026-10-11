@@ -13,7 +13,7 @@ def rich(**fields: object) -> discord.Embed:
 def test_plain_message() -> None:
     """Requirement: A message's text is its content and its rich embeds."""
     assert message_text("hello", []) == "hello"
-    assert message_text("", []) == ""  # an attachment alone: v3 stored the empty content too
+    assert message_text("", []) == ""  # an attachment alone: an empty text
 
 
 def test_content_and_embeds() -> None:
@@ -25,14 +25,13 @@ def test_content_and_embeds() -> None:
         fields=[{"name": "n", "value": "v"}, {"name": "m", "value": "w"}],
     )
 
-    # v3 left the content out when the message had embeds, and put no line between the
-    # description and the first field.
+    # The content comes first, and a blank line separates the description and the first field.
     assert message_text("see", [embed]) == "see\n\nA\nT\n\nD\n\nn\nv\n\nm\nw"
 
 
 def test_missing_parts() -> None:
     """Requirement: A message's text is its content and its rich embeds."""
-    # v3 appended "null" for a missing title or description.
+    # A missing title or description is left out.
     assert message_text("", [rich(fields=[{"name": "n", "value": "v"}])]) == "n\nv"
     assert message_text("", [rich(title="T"), rich(description="D")]) == "T\n\nD"
     assert message_text("", [rich(author={"name": "A"}, description="D")]) == "A\n\nD"
@@ -60,9 +59,9 @@ def test_short_text() -> None:
 
 def test_long_text() -> None:
     """Requirement: Logged texts are shown as written and fit an embed field."""
-    # v3 threw for a field over 1024 characters, so the log was lost.
+    # A field over 1024 characters ends with ...
     assert fit("a" * 2000) == "a" * 1021 + "..."
-    # Counted in UTF-16 code units, as JDA did: a character outside the BMP takes two.
+    # Counted in UTF-16 code units: a character outside the BMP takes two.
     wide = chr(0x1F50A)
     assert fit(wide * 600) == wide * 510 + "..."
     assert fit("a" + wide * 600) == "a" + wide * 510 + "..."

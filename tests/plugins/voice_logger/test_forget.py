@@ -53,7 +53,7 @@ async def test_the_bot_leaves(bot: Bot, store: Store) -> None:
 
     await dispatch(bot, "guild_remove", FakeGuild(10).as_guild())
 
-    # v3 handled no leave: the file stayed until the next start.
+    # The other guilds keep their settings.
     assert await store.keys(NAMESPACE) == ["20", "30"]
 
 

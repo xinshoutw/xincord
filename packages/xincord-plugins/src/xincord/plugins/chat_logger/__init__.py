@@ -14,12 +14,12 @@ from .messages import DROP_OLD_TABLE
 if TYPE_CHECKING:
     from xincord.core.bot import Bot
 
-DEPENDS: tuple[str, ...] = ()  # v3's SQLiteAPI is the core's store
+DEPENDS: tuple[str, ...] = ()
 SOFT_DEPENDS: tuple[str, ...] = ()
-# v3's GUILD_MESSAGES and MESSAGE_CONTENT. The message content intent is privileged: Discord refuses
+# Guild messages and their content. The message content intent is privileged: Discord refuses
 # the connection unless the developer portal allows it, and messages carry no text without it.
 INTENTS = discord.Intents(guild_messages=True, message_content=True)
-# The menu uses the user's locale and the logs the guild's; both fall back to this one, as in v3.
+# The menu uses the user's locale and the logs the guild's; both fall back to this one.
 DEFAULT_LOCALE = "zh-TW"
 
 
@@ -36,10 +36,10 @@ async def setup(bot: Bot) -> None:
     # Earlier builds' table of messages in the shared store goes, without its rows.
     await context.store.run(lambda db: db.execute(DROP_OLD_TABLE))
     await bot.add_cog(cog)
-    # A guild command, as in v3. discord.py removes it when the plugin unloads.
+    # A guild command; discord.py removes it when the plugin unloads.
     bot.tree.add_command(cog.command())
-    # The menu's buttons and select menus with IDS's IDs, v3's too, reach cog.handle; the core
-    # drops the route when the plugin unloads.
+    # The menu's buttons and select menus with IDS's IDs, legacy ones too, reach cog.handle; the
+    # core drops the route when the plugin unloads.
     bot.route(__name__, IDS, cog.handle)
     # New messages reach cog.on_gateway_message_create as Discord sent them: discord.py's cached
     # message, which on_message gets, takes later edits in place.

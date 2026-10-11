@@ -33,7 +33,7 @@ LANG_FILES = tuple(
 
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as ChatLogger."""
-    # v3's GUILD_MESSAGES and MESSAGE_CONTENT; v3's SQLiteAPI dependency is the core's store.
+    # Guild messages and their content; no dependency.
     assert discover(["ChatLogger"]) == [
         PluginInfo(
             "ChatLogger",

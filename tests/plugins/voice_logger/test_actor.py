@@ -1,7 +1,4 @@
-"""The audit log entry that names the member of a voice channel status change.
-
-v3 took the user of the guild's newest type-192 entry, whatever its channel or age.
-"""
+"""The audit log entry that names the member of a voice channel status change."""
 
 from datetime import UTC, datetime, timedelta
 from typing import cast
@@ -39,7 +36,7 @@ def entry(
 
 
 def targeted(found: dict[str, object]) -> dict[str, object]:
-    """``found`` with its channel in ``target_id`` instead, as JDA read type 192's target."""
+    """``found`` with its channel in ``target_id`` instead."""
     options = dict(cast("dict[str, object]", found["options"]))
     return found | {"target_id": options.pop("channel_id"), "options": options}
 

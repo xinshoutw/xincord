@@ -1,8 +1,4 @@
-"""The message files' names and the ranges of message IDs that they hold.
-
-v3 kept one file per guild, ``plugins/ChatLogger/data/<guildId>.db``, with one table per channel;
-there is no Kotlin counterpart to the ranges.
-"""
+"""The message files' names and the ranges of message IDs that they hold."""
 
 from datetime import UTC, datetime, timedelta
 

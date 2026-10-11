@@ -59,7 +59,7 @@ async def test_locale_without_templates(
 
     await join(bot, discord.Locale.french)
 
-    assert titles(channels[5]) == [GOLDEN["voice"]["zh-TW"]["join"]["title"]]  # v3's default
+    assert titles(channels[5]) == [GOLDEN["voice"]["zh-TW"]["join"]["title"]]  # the default locale
 
 
 async def test_deleted_listen_channel(
@@ -73,7 +73,7 @@ async def test_deleted_listen_channel(
 
     await join(bot)
 
-    # v3 returned at the first listen channel it did not find, skipping the others.
+    # The other listen channels still get the log.
     assert await settings(store).read_settings(10) == {6: Setting(allow=(30,))}
     assert "VoiceLogger forgot the listen channel 5 of guild (10)" in caplog.text
     assert titles(channels[6]) == [GOLDEN["voice"]["en-US"]["join"]["title"]]

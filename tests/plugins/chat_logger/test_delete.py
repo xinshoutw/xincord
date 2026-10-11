@@ -45,8 +45,8 @@ async def test_delete(scene: Scene, locale: str) -> None:
     await scene.delete(100, 30)
 
     assert scene.posts(5)[1:] == [GOLDEN["deletion"][locale]]
-    assert fetched(scene) == [MEMBER_REQUEST]  # v3's retrieveMemberById
-    assert await scene.rows() == []  # v3 kept the text of deleted messages
+    assert fetched(scene) == [MEMBER_REQUEST]  # the member, fetched
+    assert await scene.rows() == []  # the deleted message leaves the store
 
 
 async def test_author_gone(scene: Scene) -> None:
@@ -57,7 +57,7 @@ async def test_author_gone(scene: Scene) -> None:
 
     await scene.delete(100, 30)
 
-    # v3 posted nothing: its fallback for an unknown member was dead code.
+    # An unknown member shows as the stored ID's mention.
     [post] = scene.posts(5)
     assert values(post) == ["<@7>", "<#20>", "<#30>", "0", "hello"]
     assert "thumbnail" not in post
@@ -95,7 +95,7 @@ async def test_bulk_deletion(scene: Scene) -> None:
 
     await scene.delete_all([101, 103, 102, 100], 41)  # 103 is not stored
 
-    # v3 never logged a bulk deletion: JDA's splitting was off and the plugin ignored them.
+    # Each message of a bulk deletion is logged, oldest first.
     assert [values(post)[1:] for post in scene.posts(5)] == [
         ["<#20>", "<#41>", "0", "first"],
         ["<#20>", "<#41>", "0", "second"],
@@ -114,7 +114,7 @@ async def test_long_text(scene: Scene) -> None:
 
     await scene.delete(100, 30)
 
-    # v3 threw for a field over 1024 characters, so the deletion was not logged.
+    # A field over 1024 characters ends with ...
     [post] = scene.posts(5)
     content = str(values(post)[4])
     assert len(content) == 1024

@@ -1,9 +1,8 @@
-# Golden data for the ChatLogger tests. The text is v3's, from
-# XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/resources/lang/.
+# Golden data for the ChatLogger tests: the bundled texts.
 
 # The settings menu of channel chat-log (5) per locale, in the block mode with the allow list [30]
 # and an empty block list, as Embed.to_dict() without "type" and "flags", and its buttons as
-# (label, style, custom ID). The core trims the list's final newline, as JDA did.
+# (label, style, custom ID). The core trims the list's final newline.
 menu:
   en-US:
     embed:
@@ -35,7 +34,7 @@ menu:
       - ["刪除", 4, "chat_logger:1:a=delete_btn"]
 
 # The select menu that replaces the menu when a list's button is pressed (the message keeps no
-# embed): its placeholder per locale, its limits and v3's channel types in v3's order (text, voice,
+# embed): its placeholder per locale, its limits and its channel types in order (text, voice,
 # category, announcement, stage, forum, media, and the three thread types).
 select:
   en-US: "choose channels, categories or search here"
@@ -61,8 +60,8 @@ delete:
     color: 65535
 
 # The translated payload of the guild command; keys that are not listed here are not compared. 8 is
-# the Administrator permission and option type 1 a subcommand. The texts come from v3's
-# Register.kt and register.yaml.
+# the Administrator permission and option type 1 a subcommand. The texts come from
+# register.yaml.
 commands:
   - type: 1
     name: "chat-logger"
@@ -80,7 +79,7 @@ commands:
 
 # The update embed per locale: member 7 (no avatar: discord.py's default one) edits message 100
 # in channel 30 of category 20, guild 10, from "hello" to "hi". The core trims the change count's
-# newlines, as JDA did; #D0D000 is 13684736.
+# newlines; #D0D000 is 13684736.
 update:
   en-US:
     title: "☛ Message Updated"

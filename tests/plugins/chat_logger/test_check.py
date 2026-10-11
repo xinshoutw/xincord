@@ -30,7 +30,7 @@ async def test_deleted_channels(scene: Scene, caplog: pytest.LogCaptureFixture) 
     with caplog.at_level(logging.INFO):
         await dispatch(scene.bot, "ready")
 
-    # A thread that discord.py caches stays, as JDA's lookup found cached threads.
+    # A thread that discord.py caches stays.
     assert await settings.read_settings(10) == {
         5: Setting(allow=(30, 41)),
         6: Setting(allow=(20,)),
@@ -56,7 +56,7 @@ async def test_archived_threads(scene: Scene) -> None:
 
     await dispatch(scene.bot, "ready")
 
-    # v3 never logged threads, so dropping the uncached ones changed nothing there.
+    # Uncached threads are dropped once Discord confirms them gone.
     assert await settings.read_settings(10) == {
         5: Setting(allow=(30, 42, 44)),
         6: Setting(block=(42,)),

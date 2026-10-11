@@ -70,7 +70,7 @@ async def test_command_callback(bot: Bot, cog: VoiceLogger) -> None:
 
 async def test_outside_a_guild(cog: VoiceLogger, store: Store) -> None:
     """Requirement: The command is a localized administrator guild command."""
-    # Guild commands and their menus never run outside a guild; v3's handlers assumed a guild too.
+    # Guild commands and their menus never run outside a guild.
     command = FakeInteraction({"type": 1, "name": NAME}, channel=FakeChannel(id=5))
     pressed = FakeInteraction(
         {"component_type": 2, "custom_id": "voice_logger:1:a=toggle_btn"},

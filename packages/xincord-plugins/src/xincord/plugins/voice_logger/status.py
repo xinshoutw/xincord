@@ -11,14 +11,14 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Mapping
     from datetime import datetime
 
-SET = 192  # the audit log type of a set or changed status (JDA's VOICE_CHANNEL_STATUS_UPDATE)
+SET = 192  # the audit log type of a set or changed status (VOICE_CHANNEL_STATUS_UPDATE)
 CLEARED = 193  # the audit log type of a cleared status (VOICE_CHANNEL_STATUS_DELETE)
 WINDOW = timedelta(seconds=30)  # how far from the event an entry may be, Discord's clock or ours
 RETRY_DELAY = 2.0  # seconds before the audit log is read again for an entry that came late
 ATTEMPTS = 2  # reads of the audit log per status change
 DIGITS = re.compile(r"[0-9]+")
 
-ENTRIES = 10  # entries per read of the audit log, newest first (v3 read one)
+ENTRIES = 10  # entries per read of the audit log, newest first
 STATUS_EVENT = "VOICE_CHANNEL_STATUS_UPDATE"  # Discord's gateway event, which discord.py drops
 
 type Fetch = Callable[[int], Awaitable[object | None]]  # reads the audit log of one type
@@ -37,7 +37,7 @@ class StatusUpdate:
 def parse_update(payload: Mapping[str, object]) -> StatusUpdate | None:
     """The fields of Discord's payload, or None when it lacks the channel or the guild.
 
-    Discord sends null for a cleared status; JDA read a missing or null status as empty.
+    Discord sends null for a cleared status, read as empty, as a missing one.
     """
     channel_id, guild_id = _snowflake(payload.get("id")), _snowflake(payload.get("guild_id"))
     if channel_id is None or guild_id is None:
@@ -47,10 +47,7 @@ def parse_update(payload: Mapping[str, object]) -> StatusUpdate | None:
 
 
 def classify(old: str, new: str) -> str | None:
-    """The template of a change from status ``old`` to ``new``, or None if it is no change.
-
-    JDA fired its event only for a different status. v3 checked an empty new status first.
-    """
+    """The template of a change from status ``old`` to ``new``, or None if it is no change."""
     if new == old:
         return None
     if not new:
@@ -62,11 +59,10 @@ def match(log: object, kind: int, channel_id: int, status: str, at: datetime) ->
     """The user of the audit log entry of a status change, from an audit log response.
 
     The entry must be of type ``kind`` (192 for a set status, 193 for a cleared one), name the
-    channel in ``options.channel_id`` (Discord's documentation) or ``target_id`` (JDA's target),
+    channel in ``options.channel_id`` (Discord's documentation) or ``target_id``,
     and be made within 30 seconds of ``at``. A type-192 entry names its status in
     ``options.status``: one with another status belongs to an earlier change, and does not count.
-    Of the others, the newest one with the new status wins, else the newest one. v3 took the
-    guild's newest type-192 entry, whatever its channel or age.
+    Of the others, the newest one with the new status wins, else the newest one.
     """
     response = cast("dict[str, object]", log) if isinstance(log, dict) else {}
     entries = response.get("audit_log_entries")

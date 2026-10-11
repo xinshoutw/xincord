@@ -1,4 +1,4 @@
-"""Each guild's listen channel settings, kept in the shared store as v3's documents."""
+"""Each guild's listen channel settings, kept in the shared store."""
 
 import logging
 import re
@@ -22,14 +22,14 @@ type Entries = dict[int, tuple[JSON, Setting]]  # each stored entry with the set
 
 
 class DataError(Exception):
-    """A stored document is not of v3's shape; it is left as it is."""
+    """A stored document is not of the settings' shape; it is left as it is."""
 
 
 @dataclass(frozen=True)
 class ListenSettings:
     """One plugin's listen channel settings in ``store``, under the plugin's name.
 
-    Each guild has one document, under ``namespace`` and the guild's ID, holding v3's entries by
+    Each guild has one document, under ``namespace`` and the guild's ID, holding the entries by
     listen channel ID. Every change reads and writes the document under the guild's lock.
     """
 
@@ -40,18 +40,18 @@ class ListenSettings:
         """Return the guild's settings by listen channel ID, in stored order, and write nothing.
 
         Raises:
-            DataError: The document or one of its entries is not v3's.
+            DataError: The document or one of its entries is not valid.
         """
         return {channel: setting for channel, (_, setting) in (await self._read(guild_id)).items()}
 
     async def read_setting(self, guild_id: int, channel_id: int) -> Setting:
         """Return the settings of listen channel ``channel_id``, and write nothing.
 
-        A channel without an entry is in the allow mode with empty lists: v3's ``computeIfAbsent``
-        default, which v3 kept in memory only.
+        A channel without an entry is in the allow mode with empty lists, which
+        is not written.
 
         Raises:
-            DataError: The document or one of its entries is not v3's.
+            DataError: The document or one of its entries is not valid.
         """
         found = (await self._read(guild_id)).get(channel_id)
         return Setting() if found is None else found[1]
@@ -60,7 +60,7 @@ class ListenSettings:
         """Switch the listen channel between the allow and the block mode; return its settings.
 
         Raises:
-            DataError: The document or one of its entries is not v3's; nothing is written.
+            DataError: The document or one of its entries is not valid; nothing is written.
         """
         return await self._change(
             guild_id,
@@ -74,10 +74,10 @@ class ListenSettings:
         """Add ``ids`` after the listen channel's ``kind`` list; return its settings.
 
         IDs that are listed already are skipped. A new entry starts in the allow mode, as the menu
-        showed it: v3 saved it with ``allow_mode`` false.
+        shows it.
 
         Raises:
-            DataError: The document or one of its entries is not v3's; nothing is written.
+            DataError: The document or one of its entries is not valid; nothing is written.
         """
         added = tuple(ids)
 
@@ -90,11 +90,11 @@ class ListenSettings:
     async def remove(self, guild_id: int, channel_id: int) -> bool:
         """Delete the listen channel's settings; return whether it had some.
 
-        The other listen channels keep theirs (v3 deleted the guild's whole file), and the document
+        The other listen channels keep theirs, and the document
         goes with its last entry.
 
         Raises:
-            DataError: The document or one of its entries is not v3's; nothing is written.
+            DataError: The document or one of its entries is not valid; nothing is written.
         """
         async with self._lock(guild_id):
             entries = await self._read(guild_id)
@@ -135,12 +135,11 @@ class ListenSettings:
     async def prune(self, guild_id: int, gone: Container[int]) -> list[int]:
         """Drop the IDs of ``gone`` from every list; return the ones dropped, each once, in order.
 
-        v3 filtered the lists to the guild's channels when it loaded them. Nothing is written when
-        nothing is dropped; a changed entry is written in v3's shape, and the others stay as they
-        were.
+        Nothing is written when nothing is dropped; a changed entry is written in the settings'
+        shape, and the others stay as they were.
 
         Raises:
-            DataError: The document or one of its entries is not v3's; nothing is written.
+            DataError: The document or one of its entries is not valid; nothing is written.
         """
         async with self._lock(guild_id):
             entries = await self._read(guild_id)
@@ -164,8 +163,8 @@ class ListenSettings:
     ) -> Setting:
         """Apply ``change`` to the listen channel's settings and store them if they changed.
 
-        The changed entry is written in v3's shape, in place or after the others; the other entries
-        stay as they were.
+        The changed entry is written in the settings' shape, in place or after the others; the other
+        entries stay as they were.
         """
         async with self._lock(guild_id):
             entries = await self._read(guild_id)
@@ -183,7 +182,7 @@ class ListenSettings:
     def _lock(self, guild_id: int) -> asyncio.Lock:
         """The lock of the guild's document: every change reads and writes it under it.
 
-        discord.py runs handlers concurrently; v3 kept its settings in one shared map.
+        discord.py runs handlers concurrently.
         """
         return self.store.lock(f"{self.namespace}:{guild_id}")
 
@@ -205,22 +204,18 @@ class ListenSettings:
 
 
 def _setting(entry: JSON, guild_id: int, key: str) -> Setting:
-    """The settings of v3's entry; other fields are ignored, as Moshi ignored them.
-
-    Moshi required ``allow_mode``, ``allow`` and ``block``, and Core then replaced the guild's whole
-    file with an empty object.
-    """
+    """An entry's ``allow_mode``, ``allow`` and ``block``; other fields are ignored."""
     fields = entry if isinstance(entry, dict) else {}
     mode = fields.get("allow_mode")
     allow, block = _ids(fields.get("allow")), _ids(fields.get("block"))
     if not isinstance(mode, bool) or allow is None or block is None:
-        msg = f"guild {guild_id}: the settings of channel {key} are not v3's: {entry!r}"
+        msg = f"guild {guild_id}: the settings of channel {key} are not valid: {entry!r}"
         raise DataError(msg)
     return Setting(allow_mode=mode, allow=allow, block=block)
 
 
 def _ids(value: JSON) -> tuple[int, ...] | None:
-    """The IDs of a stored list, each once in order (v3's sets), or None if it is not one."""
+    """The IDs of a stored list, each once in order, or None if it is not one."""
     if not isinstance(value, list):
         return None
     ids = [item for item in value if type(item) is int]  # booleans are not IDs
@@ -228,7 +223,7 @@ def _ids(value: JSON) -> tuple[int, ...] | None:
 
 
 def _entry(setting: Setting) -> dict[str, JSON]:
-    """v3's entry for ``setting``, in Moshi's field order, which a migration can copy as it is."""
+    """The entry for ``setting``."""
     return {
         "allow_mode": setting.allow_mode,
         "allow": [*setting.allow],

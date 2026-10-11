@@ -95,7 +95,7 @@ async def test_unavailable_or_unreadable(
 ) -> None:
     """Requirement: Settings are checked when the bot is ready."""
     await listed(store, 10)
-    await store.put(NAMESPACE, "20", [])  # not v3's document
+    await store.put(NAMESPACE, "20", [])  # not a settings document
     await listed(store, 30)
     guilds = {10: FakeGuild(10, unavailable=True), 20: available(20), 30: available(30)}
     monkeypatch.setattr(bot, "get_guild", guilds.get)

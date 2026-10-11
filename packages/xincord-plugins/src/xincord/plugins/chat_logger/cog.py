@@ -35,9 +35,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 NAMESPACE = "ChatLogger"  # the plugin's name: its settings in the store
-# v3's only field, in v3's prefix, so that v3's menus keep working.
+# The legacy field and prefix, so that legacy menus keep working.
 IDS = ComponentIds("chat_logger", ("action",), legacy_prefix="chat-logger@")
-ROOT = "chat-logger"  # v3's command, and the root of its register.yaml keys
+ROOT = "chat-logger"  # the command, and the root of its register.yaml keys
 MENU = "chat-logger@setting"  # the settings menu's template
 HOUR = 3600  # seconds between the deletions of the messages older than the retention
 MIB = 1024 * 1024  # the unit of max_file_size_mb
@@ -109,7 +109,7 @@ class ChatLogger(commands.Cog):
     async def _retain(self) -> None:
         """Delete the old messages when the bot is ready, then every hour.
 
-        v3 kept every message forever; the retention keeps the files from growing without limit.
+        The retention keeps the files from growing without limit.
         """
         await self.bot.wait_until_ready()
         while True:
@@ -132,9 +132,9 @@ class ChatLogger(commands.Cog):
         logger.debug("ChatLogger deleted %s messages older than %s days", deleted, days)
 
     def command(self) -> app_commands.Group:
-        """Build v3's ``/chat-logger`` with its subcommand ``setting``, from ``register.yaml``.
+        """Build ``/chat-logger`` with its subcommand ``setting``, from ``register.yaml``.
 
-        As in v3, only administrators see it by default; there is no other check. The group is
+        Only administrators see it by default; there is no other check. The group is
         built here, so its module is the plugin's and unloading the plugin removes it.
         """
         lang = self.lang
@@ -153,7 +153,7 @@ class ChatLogger(commands.Cog):
         return group
 
     async def show_settings(self, interaction: discord.Interaction) -> None:
-        """Edit the deferred response into the channel's settings menu (v3's ``setting``)."""
+        """Edit the deferred response into the channel's settings menu."""
         await self.listen.show(interaction)
 
     async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
@@ -165,10 +165,10 @@ class ChatLogger(commands.Cog):
         """Store a guild message that the bot did not send, other bots' and webhooks' included.
 
         ``setup`` relays ``MESSAGE_CREATE``: discord.py hands ``on_message`` its cached message,
-        which an edit parsed before the listener runs changes in place, while the payload keeps
-        the text that the message was sent with. With ``log_all`` false, only when a listen
-        channel of the guild detects its channel; v3 stored only the channels that had a table
-        already. The message's edits and deletions wait for this insert (``inserting``).
+        which an edit parsed before the listener runs changes in place, while the payload keeps the
+        text that the message was sent with. With ``log_all`` false, only when a listen channel of
+        the guild detects its channel. The message's edits and deletions wait for this insert
+        (``inserting``).
         """
         created = parse_created(payload)
         if created is None or self._own(created.author_id):
@@ -190,10 +190,10 @@ class ChatLogger(commands.Cog):
     async def on_raw_message_edit(self, payload: discord.RawMessageUpdateEvent) -> None:
         """Log a stored message's new text to the listen channels that detect its channel.
 
-        Every ``MESSAGE_UPDATE`` arrives, the message cached or not, as JDA's event did, with the
+        Every ``MESSAGE_UPDATE`` arrives, the message cached or not, with the
         updated message that discord.py builds from it. Only a stored message whose text changed
-        counts: v3 counted every update, a pin or a link preview too. The author is the message's,
-        the member from the update (v3's ``Placeholder.get(event.member)``).
+        counts, not a pin or a link preview. The author is the message's, the member from the
+        update.
         """
         message, guild_id = payload.message, payload.guild_id
         if guild_id is None or self._own(message.author.id):
@@ -224,8 +224,7 @@ class ChatLogger(commands.Cog):
     async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent) -> None:
         """Log a deleted stored message to the listen channels that detect its channel.
 
-        The message leaves the store either way unless ``keep_deleted`` keeps it, as v3 kept the
-        text of deleted messages.
+        The message leaves the store either way unless ``keep_deleted`` keeps it.
         """
         if payload.guild_id is None:
             return
@@ -236,11 +235,7 @@ class ChatLogger(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_bulk_message_delete(self, payload: discord.RawBulkMessageDeleteEvent) -> None:
-        """Log each stored message of a bulk deletion, oldest first, as a deletion of its own.
-
-        v3 never logged them: its core turned JDA's splitting of bulk deletions off, and the
-        plugin ignored ``MessageBulkDeleteEvent``.
-        """
+        """Log each stored message of a bulk deletion, oldest first, as a deletion of its own."""
         if payload.guild_id is None:
             return
         place = self._place(payload.guild_id, payload.channel_id)
@@ -255,7 +250,7 @@ class ChatLogger(commands.Cog):
         return Place.of(channel_id, channel)
 
     async def _log_deletions(self, guild_id: int, place: Place, deleted: list[Stored]) -> None:
-        """Post v3's deletion embed of each message of ``deleted`` to the detecting channels.
+        """Post the deletion embed of each message of ``deleted`` to the detecting channels.
 
         The members are fetched only when a listen channel detects the channel, once per author.
         A listen channel that is gone or forbids the bot is not tried again for the other
@@ -280,10 +275,9 @@ class ChatLogger(commands.Cog):
             listen = [channel for channel in listen if channel not in failed]
 
     async def _author(self, guild: discord.Guild, user_id: int) -> dict[str, str]:
-        """The keys of a stored author, fetched as the guild's member (v3's ``retrieveMemberById``).
+        """The keys of a stored author, fetched as the guild's member.
 
-        A user who left, a webhook or a refusal gives the stored ID's mention and ``-``: v3 posted
-        nothing then.
+        A user who left, a webhook or a refusal gives the stored ID's mention and ``-``.
         """
         bot = self.bot.user
         try:
@@ -301,9 +295,8 @@ class ChatLogger(commands.Cog):
     async def on_guild_remove(self, guild: discord.Guild) -> None:
         """Delete the data of a guild that the bot left or was removed from.
 
-        The settings go at once (v3 deleted them at its next start), and the stored messages with
-        ``log_all`` false, as v3 meant to: its deletion used a key without the ``CL:`` prefix and
-        deleted nothing. With ``log_all`` true, v3 kept them; the retention deletes them now.
+        The settings go at once, and the stored messages with ``log_all`` false; with ``log_all``
+        true, the retention deletes them.
         discord.py does not fire this during an outage.
         """
         await self.settings.forget(guild.id)
@@ -322,8 +315,7 @@ class ChatLogger(commands.Cog):
         """Delete the stored messages of the guilds that the bot left, with ``log_all`` false.
 
         By ``on_ready``, discord.py knows every guild of the session, unavailable ones included.
-        v3 deleted such guilds' database files at its start with ``log_all`` false, and kept them
-        with true.
+        Their messages go with ``log_all`` false; with true, the retention deletes them.
         """
         if self.config.log_all:
             return
@@ -347,7 +339,7 @@ class ChatLogger(commands.Cog):
                 await inserting.wait()
 
     def _own(self, user_id: int) -> bool:
-        """Whether ``user_id`` is the bot's, whose messages v3 did not store."""
+        """Whether ``user_id`` is the bot's, whose messages are not stored."""
         bot = self.bot.user
         return bot is not None and user_id == bot.id
 

@@ -1,8 +1,4 @@
-"""The stored messages: one row per message in the plugin's own files, ``data/ChatLogger/``.
-
-v3 kept one SQLite file per guild under ``plugins/ChatLogger/data/``, with one table per channel,
-and never closed its connections.
-"""
+"""The stored messages: one row per message in the plugin's own files, ``data/ChatLogger/``."""
 
 import asyncio
 import logging
@@ -28,8 +24,8 @@ BUSY_TIMEOUT = 5.0  # seconds a statement waits for another program's lock (sqli
 # had no deployed data, so the table is dropped without its rows (its index goes with it).
 DROP_OLD_TABLE = "DROP TABLE IF EXISTS ChatLogger_messages"
 
-# Each message file holds one table with v3's columns, plus the guild and the channel, which v3
-# took from its file and table names, so that the import of v3's files can copy v3's rows.
+# Each message file holds one table: a message's ID, its guild, channel and author, its text and
+# how many times it changed.
 SCHEMA = (
     """
     CREATE TABLE IF NOT EXISTS messages (
@@ -203,24 +199,23 @@ class MessageFiles:
     ) -> None:
         """Store a new message, with no change counted, in the file that holds its ID.
 
-        A message stored already keeps its row: a replayed gateway event changes nothing (v3's
-        insert threw there). A message stored in the newest file can start the next one.
+        A message stored already keeps its row: a replayed gateway event changes nothing. A message
+        stored in the newest file can start the next one.
         """
         await self._run(self._add, (message_id, guild_id, channel_id, user_id, text))
 
     async def edit(self, message_id: int, text: str) -> Edit | None:
         """Store a message's new text and count the change; return what the log shows.
 
-        None when the message is not stored, as v3 ignored the edits of messages it had not
-        stored, or when its text is the same: v3 counted every update, a pin or a link preview
-        too.
+        None when the message is not stored, or when its text is the same, as after a pin or a
+        link preview.
         """
         return await self._run(self._edit, message_id, text)
 
     async def pop(self, message_id: int, *, keep: bool = False) -> Stored | None:
         """Take a deleted message out of its file and return it, or None if it is not stored.
 
-        With ``keep`` it stays in its file until the retention removes it, as v3 kept it.
+        With ``keep`` it stays in its file until the retention removes it.
         """
         taken = await self.pop_all([message_id], keep=keep)
         return taken[0][1] if taken else None

@@ -56,8 +56,8 @@ class Menu:
 
     lang: Lang
     templates: Templates
-    ids: ComponentIds  # the components' IDs, which also read v3's
-    key: str  # the prefix of the menu's values in v3's templates: vl or cl
+    ids: ComponentIds  # the components' IDs, which also read the legacy ones
+    key: str  # the prefix of the menu's values in the templates: vl or cl
     template: str  # the menu's template, such as voice-logger@setting
 
 
@@ -74,17 +74,16 @@ class ListenChannels:
         self.menu = menu
 
     async def show(self, interaction: discord.Interaction) -> None:
-        """Edit the deferred response into the current channel's settings menu (v3's ``setting``).
+        """Edit the deferred response into the current channel's settings menu.
 
-        Nothing is written: a channel without settings shows v3's default, the allow mode with
-        empty lists. The command works in every channel; v3's ``Placeholder.get(event)`` threw
-        outside text channels.
+        Nothing is written: a channel without settings shows the default, the allow mode with
+        empty lists. The command works in every channel.
         """
         where = _where(interaction)
-        if where is None:  # guild commands run in guilds only, as v3's handler assumed
+        if where is None:  # guild commands run in guilds only
             return
         message = self._menu(interaction, await self.settings.read_setting(*where))
-        # The command tree deferred the response ephemerally, as v3's core did.
+        # The command tree deferred the response ephemerally.
         await interaction.edit_original_response(
             content=message.content,
             embeds=message.embeds,
@@ -95,10 +94,9 @@ class ListenChannels:
     async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
         """Send a press or a choice in the settings menu to its handler.
 
-        As v3's two handlers, buttons take the button actions and entity select menus the select
-        actions, in v3's ID format too; anything else gets no response (v3 threw for an unknown
-        select action). Each answer replaces the menu's whole message, as JDA's
-        ``MessageEditData.fromCreateData`` did; v3's ``deferEdit`` and edit became one request.
+        Buttons take the button actions and entity select menus the select actions, in the legacy
+        ID format too; anything else gets no response. Each answer replaces the menu's whole
+        message, in one request.
         """
         where = _where(interaction)
         if where is None:  # the menu exists in guilds only
@@ -117,11 +115,10 @@ class ListenChannels:
     ) -> set[int]:
         """Send template ``name`` to each listen channel of ``listen``, in the guild's locale.
 
-        v3 used ``guild.locale``; the templates fall back to zh-TW. Each channel gets its own
+        The templates fall back to zh-TW. Each channel gets its own
         render, because discord.py closes a message's files once sent, and is reached without
         the cache. A channel that Discord no longer has loses its settings; a refusal is a
-        warning; the other channels still get the log. v3 stopped at the first missing channel
-        and threw for channels other than text and voice channels. Return the channels that are
+        warning; the other channels still get the log. Return the channels that are
         gone or forbid the bot, which further logs of the same event need not try.
         """
         template = self.menu.templates.message(name, guild.preferred_locale.value)
@@ -165,8 +162,7 @@ class ListenChannels:
         """Delete the settings of the guilds that the bot left, and check the others' lists.
 
         By ``on_ready``, discord.py knows every guild of the session, unavailable ones included.
-        v3's ``JsonManager`` deleted the files of the guilds it did not know at its first use,
-        inside a loop that then threw. An unavailable guild (an outage) is left alone: discord.py
+        An unavailable guild (an outage) is left alone: discord.py
         knows it without its channels.
         """
         for guild_id in await self.settings.guild_ids():
@@ -182,7 +178,7 @@ class ListenChannels:
                 await self._check(guild)
 
     async def _check(self, guild: discord.Guild) -> None:
-        """Drop the channels that Discord no longer has from the guild's lists, as v3's start did.
+        """Drop the channels that Discord no longer has from the guild's lists.
 
         discord.py caches the guild's channels and its active threads; a listed ID that it has
         not cached, such as an archived thread, is asked of Discord, and dropped only when Discord
@@ -226,7 +222,7 @@ class ListenChannels:
     async def _press(
         self, interaction: discord.Interaction, where: tuple[int, int], action: str | None
     ) -> None:
-        """Toggle the mode, show a list's select menu, or delete the settings, as v3's buttons."""
+        """Toggle the mode, show a list's select menu, or delete the settings."""
         if action == "toggle_btn":
             await _edit(interaction, self._menu(interaction, await self.settings.toggle(*where)))
         elif action in SELECTS:
@@ -236,16 +232,16 @@ class ListenChannels:
             await _edit(interaction, self._render(interaction, "delete"))
 
     def _render(self, interaction: discord.Interaction, name: str) -> Message:
-        """Template ``name`` in the user's locale with v3's ``Placeholder.get(event)``."""
+        """Template ``name`` in the user's locale with the interaction's values."""
         template = self.menu.templates.message(name, interaction.locale.value)
         return render_message(
             template, placeholder_values(interaction), build_id=self.menu.ids.build
         )
 
     def _menu(self, interaction: discord.Interaction, setting: Setting) -> Message:
-        """v3's settings menu for ``setting``, in the user's locale.
+        """The settings menu for ``setting``, in the user's locale.
 
-        The values are v3's ``Placeholder.get(event)``, the mode and both lists, each in the
+        The values are the interaction's, the mode and both lists, each in the
         locale's line format from ``placeholder.yaml``.
         """
         menu, locale = self.menu, interaction.locale.value

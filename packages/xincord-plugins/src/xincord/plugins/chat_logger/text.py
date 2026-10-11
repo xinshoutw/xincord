@@ -70,18 +70,16 @@ def message_text(content: str, embeds: Iterable[EmbedLike]) -> str:
     """The text of a message with ``content`` and ``embeds``, as the plugin stores and logs it.
 
     The content, then each rich embed's text, separated by blank lines; empty parts are left out.
-    v3 left the content out when the message had embeds, appended ``null`` for a missing title or
-    description, and took every embed, link previews included.
+    Link previews are not rich embeds and are left out.
     """
     parts = [content, *(_embed_text(embed) for embed in embeds if embed.type in RICH)]
     return "\n\n".join(part for part in parts if part)
 
 
 def fit(text: str) -> str:
-    """``text`` cut to fit an embed field's value, 1024 UTF-16 code units as JDA counted them.
+    """``text`` cut to fit an embed field's value, 1024 UTF-16 code units.
 
-    A longer text keeps the characters that fit before ``...``: v3 threw there, and the log was
-    lost.
+    A longer text keeps the characters that fit before ``...``.
     """
     if units(text) <= FIELD_MAX:
         return text
@@ -95,7 +93,7 @@ def _embed_text(embed: EmbedLike) -> str:
     """An embed's text: its author's name and title, its description and its fields.
 
     The name and the title are on two lines, as each field's name and value; the parts are
-    separated by blank lines, as in v3.
+    separated by blank lines.
     """
     head = "\n".join(part for part in (embed.author.name, embed.title) if part)
     fields = [f"{field.name or ''}\n{field.value or ''}" for field in embed.fields]

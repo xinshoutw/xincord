@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 async def test_stored_message(scene: Scene) -> None:
     """Requirement: Guild messages are stored."""
     await scene.send(100, 30, "hello")
-    await scene.send(101, 41, "in a thread")  # threads too, as in v3
+    await scene.send(101, 41, "in a thread")  # threads too
     await scene.send(102, 99, "uncached")  # a channel that discord.py has not cached
 
     assert await scene.rows() == [
@@ -35,7 +35,7 @@ async def test_bots_and_webhooks(scene: Scene) -> None:
         "MESSAGE_CREATE", payloads.message(101, 30, 10, webhook, "hi", webhook_id=500)
     )
 
-    # v3 stored other bots' and webhooks' messages; a webhook's author is the webhook. Their rich
+    # Other bots' and webhooks' messages are stored; a webhook's author is the webhook. Their rich
     # embeds are part of the text.
     assert await scene.rows() == [(100, 10, 30, 8, "beep\n\nT", 0), (101, 10, 30, 500, "hi", 0)]
 
@@ -56,7 +56,7 @@ async def test_only_detected_channels(scene: Scene) -> None:
     await scene.send(101, 41, "in a thread of 30")
     await scene.send(102, 32, "not detected")
 
-    # v3 stored only the channels that had a table already, which no setting changed.
+    # With log_all false, only detected channels are stored.
     assert [row[0] for row in await scene.rows()] == [100, 101]
 
 

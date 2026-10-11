@@ -33,9 +33,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 NAMESPACE = "VoiceLogger"  # the plugin's name: its settings in the store and its locks
-# v3's only field, in v3's prefix, so that v3's menus keep working.
+# The legacy field and prefix, so that legacy menus keep working.
 IDS = ComponentIds("voice_logger", ("action",), legacy_prefix="voice-logger@")
-ROOT = "voice-logger"  # v3's command, and the root of its register.yaml keys
+ROOT = "voice-logger"  # the command, and the root of its register.yaml keys
 MENU = "voice-logger@setting"  # the settings menu's template
 
 
@@ -50,15 +50,15 @@ class VoiceLogger(commands.Cog):
         self.settings = ListenSettings(store, NAMESPACE)
         # The menu, its components, the posts and the checks at READY, shared with ChatLogger.
         self.listen = ListenChannels(bot, self.settings, Menu(lang, templates, IDS, "vl", MENU))
-        # Each guild's voice channel statuses from Discord's updates in this session, as JDA's
-        # cache kept them; empty ones are left out.
+        # Each guild's voice channel statuses from Discord's updates in this session; empty ones
+        # are left out.
         self.statuses: dict[int, dict[int, str]] = {}
         self.sleep: Sleep = asyncio.sleep  # before the audit log is read again
 
     def command(self) -> app_commands.Group:
-        """Build v3's ``/voice-logger`` with its subcommand ``setting``, from ``register.yaml``.
+        """Build ``/voice-logger`` with its subcommand ``setting``, from ``register.yaml``.
 
-        As in v3, only administrators see it by default; there is no other check. The group is
+        Only administrators see it by default; there is no other check. The group is
         built here, so its module is the plugin's and unloading the plugin removes it.
         """
         lang = self.lang
@@ -77,7 +77,7 @@ class VoiceLogger(commands.Cog):
         return group
 
     async def show_settings(self, interaction: discord.Interaction) -> None:
-        """Edit the deferred response into the channel's settings menu (v3's ``setting``)."""
+        """Edit the deferred response into the channel's settings menu."""
         await self.listen.show(interaction)
 
     async def handle(self, interaction: discord.Interaction, parsed: ParsedId) -> None:
@@ -92,7 +92,7 @@ class VoiceLogger(commands.Cog):
 
         The channels are read at once, before anything awaits: discord.py runs listeners as tasks,
         and later events change its cache meanwhile. The member is the one whose state changed,
-        bots included, also when a moderator moved them (v3's ``Placeholder.get(member)``).
+        bots included, also when a moderator moved them.
         """
         joined, left = _place(after.channel), _place(before.channel)
         change = voice_change(joined, left)
@@ -111,10 +111,10 @@ class VoiceLogger(commands.Cog):
         """Post a voice channel's status change to the listen channels that detect the channel.
 
         ``setup`` relays the gateway event, which discord.py does not parse. Statuses are tracked
-        from these events, as JDA's channel cache did: Discord sends them in no channel object, so
-        a status not seen in this session is empty. Only cached voice channels count, as JDA's
-        ``VoiceChannel`` lookup. The cache is read before anything awaits, and one channel's
-        changes are posted in the order they arrive, also when one waits for its audit log entry.
+        from these events: Discord sends them in no channel object, so a status not seen in this
+        session is empty. Only cached voice channels count. The cache is read before anything
+        awaits, and one channel's changes are posted in the order they arrive, also when one waits
+        for its audit log entry.
         """
         update = parse_update(payload)
         if update is None:
@@ -143,8 +143,7 @@ class VoiceLogger(commands.Cog):
     ) -> None:
         """Post template ``name`` of a status change from ``change[0]`` to ``change[1]``.
 
-        The audit log and the member are read only when a listen channel detects the channel; v3
-        read them first, for nothing.
+        The audit log and the member are read only when a listen channel detects the channel.
         """
         listen = targets(
             await self.settings.read_settings(guild.id), [(place.id, place.category_id)]
@@ -173,7 +172,7 @@ class VoiceLogger(commands.Cog):
     ) -> discord.Member | None:
         """The member who set ``status`` on the channel, from the audit log, if it tells.
 
-        v3's ``retrieveMemberById``: the member is fetched from Discord. A user who left the
+        The member is fetched from Discord. A user who left the
         guild, or an audit log without the entry, gives no member.
         """
         fetch = partial(self._audit_log, guild)
@@ -212,7 +211,7 @@ class VoiceLogger(commands.Cog):
     async def on_ready(self) -> None:
         """Forget the statuses and check the guilds when the bot is ready, for each session.
 
-        A new session's channels hold no status, so JDA's cache started empty again.
+        A new session's channels hold no status.
         """
         self.statuses.clear()
         await self.listen.check_guilds()
@@ -221,7 +220,7 @@ class VoiceLogger(commands.Cog):
     async def on_guild_remove(self, guild: discord.Guild) -> None:
         """Delete the settings of a guild that the bot left or was removed from.
 
-        v3 handled no leave and deleted the guild's file at its next start. discord.py does not
+        discord.py does not
         fire this during an outage (``on_guild_unavailable``).
         """
         self.statuses.pop(guild.id, None)

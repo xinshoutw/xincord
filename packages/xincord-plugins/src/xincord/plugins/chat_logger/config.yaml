@@ -12,7 +12,7 @@ log_all: true
 retention_days: 1826
 
 # false: a deleted message's text leaves the store once its deletion is logged. true: it stays
-# until retention_days removes it, as in v3.
+# until retention_days removes it.
 keep_deleted: false
 
 # The stored messages are kept in files under data/ChatLogger/, in the bot's data directory (the

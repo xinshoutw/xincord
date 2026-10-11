@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 GOLDEN = golden("voice_logger")
 LOCALES = {"en-US": discord.Locale.american_english, "zh-TW": discord.Locale.taiwan_chinese}
-LINE = "%allowlist_channel_mention% (`%allowlist_channel_id%`)\n"  # v3's allow_list_format
+LINE = "%allowlist_channel_mention% (`%allowlist_channel_id%`)\n"  # the allow list's line format
 LONG = [1290000000000000000 + index for index in range(40)]  # 19-digit IDs
 
 
@@ -69,12 +69,12 @@ async def test_channel_without_settings(cog: VoiceLogger, store: Store) -> None:
 
     embed, _ = edited(interaction)
     assert [field["value"] for field in embed["fields"]] == ["<ALLOW>", "Empty", "Empty"]
-    assert await store.keys(NAMESPACE) == []  # v3 kept the default in memory only
+    assert await store.keys(NAMESPACE) == []  # the default is not written
 
 
 async def test_long_list_in_the_menu(cog: VoiceLogger, store: Store) -> None:
     """Requirement: The settings menu shows the channel's settings."""
-    # v3 threw for a field over 1024 characters, after saving, so the menu never opened again.
+    # A field over 1024 characters ends with ...
     document: dict[str, JSON] = {"5": {"allow_mode": True, "allow": [*LONG], "block": []}}
     await store.put(NAMESPACE, "10", document)
     interaction = command(FakeChannel(id=5, name="voice-log"))
@@ -89,7 +89,7 @@ async def test_long_list_in_the_menu(cog: VoiceLogger, store: Store) -> None:
 
 def test_list_text() -> None:
     """Requirement: The settings menu shows the channel's settings."""
-    # v3 replaced the line's own keys, then expanded the others with the interaction's values.
+    # The line's own keys and the interaction's values are rendered in one pass.
     line = "%allowlist_channel_mention% (`%allowlist_channel_id%`) by %user_name%\n"
     values = {"user_name": "admin", "allowlist_channel_id": "ignored"}
 
@@ -108,7 +108,7 @@ def test_long_list() -> None:
     lines = text.split("\n")
     assert lines == [f"<#{channel}> (`{channel}`)" for channel in LONG[:21]] + ["..."]
     assert len(text) == 21 * 47 + 3
-    # Counted in UTF-16 code units, as JDA did, a character outside the BMP takes two: with 20
+    # Counted in UTF-16 code units, a character outside the BMP takes two: with 20
     # loudspeakers, a line takes 87 of them (67 characters), so 11 lines fit, not 15.
     wide = list_text(LONG, chr(0x1F50A) * 20 + LINE, "Empty", {}, "allowlist")
     assert wide.split("\n")[-1] == "..."

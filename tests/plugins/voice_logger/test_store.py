@@ -1,4 +1,4 @@
-"""Each guild's listen channel settings in the store, in v3's documents."""
+"""Each guild's listen channel settings in the store, one document per guild."""
 
 import asyncio
 from typing import TYPE_CHECKING
@@ -39,10 +39,10 @@ def writes(store: Store, monkeypatch: pytest.MonkeyPatch) -> list[str]:
 
 
 async def test_first_selection(store: Store) -> None:
-    """Requirement: Settings are kept per guild in v3's documents."""
+    """Requirement: Settings are kept per guild."""
     setting = await settings(store).add_channels(10, 5, "allow", [30, 40])
 
-    # v3 saved a first selection with allow_mode false while its menu showed the allow mode.
+    # A first selection starts in the allow mode, as the menu shows it.
     assert setting == Setting(allow_mode=True, allow=(30, 40), block=())
     document = await store.get(NAMESPACE, "10")
     assert document == {"5": {"allow_mode": True, "allow": [30, 40], "block": []}}
@@ -54,15 +54,15 @@ async def test_first_selection(store: Store) -> None:
 
 
 async def test_listen_channel_without_settings(store: Store) -> None:
-    """Requirement: Settings are kept per guild in v3's documents."""
+    """Requirement: Settings are kept per guild."""
     assert await settings(store).read_setting(10, 5) == Setting(allow_mode=True, allow=(), block=())
     assert await settings(store).read_settings(10) == {}
     assert await store.keys(NAMESPACE) == []
 
 
 async def test_toggling_and_adding(store: Store) -> None:
-    """Requirement: Settings are kept per guild in v3's documents."""
-    # v3's lists were sets: a duplicate reads once. Moshi ignored unknown fields.
+    """Requirement: Settings are kept per guild."""
+    # A duplicate reads once; unknown fields are ignored.
     other: dict[str, JSON] = {"allow_mode": False, "allow": [], "block": [31], "note": "kept"}
     await store.put(
         NAMESPACE, "10", {"5": {"allow_mode": True, "allow": [30, 40, 30], "block": []}, "6": other}
@@ -88,7 +88,7 @@ async def test_toggling_and_adding(store: Store) -> None:
 
 
 async def test_toggling_a_channel_without_settings(store: Store) -> None:
-    """Requirement: Settings are kept per guild in v3's documents."""
+    """Requirement: Settings are kept per guild."""
     assert await settings(store).toggle(10, 5) == Setting(allow_mode=False)
 
     assert await store.get(NAMESPACE, "10") == {
@@ -97,7 +97,7 @@ async def test_toggling_a_channel_without_settings(store: Store) -> None:
 
 
 async def test_nothing_to_change(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Requirement: Settings are kept per guild in v3's documents."""
+    """Requirement: Settings are kept per guild."""
     await settings(store).add_channels(10, 5, "allow", [30, 40])
     written = writes(store, monkeypatch)
 
@@ -109,7 +109,7 @@ async def test_nothing_to_change(store: Store, monkeypatch: pytest.MonkeyPatch) 
 
 
 async def test_removing(store: Store) -> None:
-    """Requirement: Settings are kept per guild in v3's documents."""
+    """Requirement: Settings are kept per guild."""
     await settings(store).add_channels(10, 5, "allow", [30])
     await settings(store).add_channels(10, 6, "block", [31])
 
@@ -122,7 +122,7 @@ async def test_removing(store: Store) -> None:
 
 
 async def test_concurrent_changes(store: Store) -> None:
-    """Requirement: Settings are kept per guild in v3's documents."""
+    """Requirement: Settings are kept per guild."""
     await asyncio.gather(
         *(settings(store).add_channels(10, channel, "allow", [30]) for channel in range(1, 21))
     )
@@ -144,7 +144,7 @@ async def test_concurrent_changes(store: Store) -> None:
     ],
 )
 async def test_unreadable_settings(store: Store, document: JSON) -> None:
-    """Requirement: Settings are kept per guild in v3's documents."""
+    """Requirement: Settings are kept per guild."""
     await store.put(NAMESPACE, "10", document)
     calls: list[Callable[[], Awaitable[object]]] = [
         lambda: settings(store).read_settings(10),

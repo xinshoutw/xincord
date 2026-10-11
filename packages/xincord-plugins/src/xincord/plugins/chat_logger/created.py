@@ -2,8 +2,7 @@
 
 discord.py hands ``on_message`` its cached ``Message``, which a ``MESSAGE_UPDATE`` parsed before the
 listener runs changes in place: discord.py parses the frames that arrived together without
-yielding. The payload keeps the text that the message was sent with, as JDA's
-``MessageReceivedEvent`` did.
+yielding. The payload keeps the text that the message was sent with.
 """
 
 import re

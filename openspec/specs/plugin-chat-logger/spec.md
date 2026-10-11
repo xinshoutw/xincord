@@ -10,7 +10,7 @@ channel up through an ephemeral menu.
 ### Requirement: The plugin installs as ChatLogger
 The `xincord-plugins` distribution SHALL register the plugin in the `xincord.plugins` entry-point
 group as `ChatLogger`, pointing to `xincord.plugins.chat_logger`, with no dependencies and the
-guild messages and message content intents. It SHALL bundle v3's en-US and zh-TW lang files and a
+guild messages and message content intents. It SHALL bundle en-US and zh-TW lang files and a
 `config.yaml`, which its first load writes to `plugins/ChatLogger/`.
 
 #### Scenario: Discovered by name
@@ -23,14 +23,14 @@ guild messages and message content intents. It SHALL bundle v3's en-US and zh-TW
 - **THEN** `config.yaml` and the en-US and zh-TW `register.yaml`, `placeholder.yaml` and six message
   templates of each exist under `plugins/ChatLogger/`
 
-### Requirement: The config keeps v3's key and bounds the stored messages
-`config.yaml` SHALL hold v3's `log_all`, true by default; `retention_days`, the days a message's text
+### Requirement: The config sets the logging and bounds the stored messages
+`config.yaml` SHALL hold `log_all`, true by default; `retention_days`, the days a message's text
 is kept, 1826 (5 years) by default and from 1 to 3650; and `max_file_size_mb`, the size in MiB from
-which a new message file starts, 256 by default and from 1 to 65536. v3's files SHALL load, their
-`enabled` key only warning; any other value SHALL stop the plugin from loading, with the key named.
+which a new message file starts, 256 by default and from 1 to 65536. Files with an `enabled` key SHALL
+load, the key only warning; any other value SHALL stop the plugin from loading, with the key named.
 
-#### Scenario: v3's file
-- **WHEN** `plugins/ChatLogger/config.yaml` is v3's, with `enabled: false` and `log_all: false`
+#### Scenario: A file with an enabled key
+- **WHEN** `plugins/ChatLogger/config.yaml` holds `enabled: false` and `log_all: false`
 - **THEN** the plugin loads with `log_all` false, 1826 days and 256 MiB, and a warning names
   `enabled`
 
@@ -63,8 +63,8 @@ channel of the guild that detects the message's channel.
 - **THEN** thread 42 is detected and its channel 32 is not
 
 ### Requirement: The settings menu shows the channel's settings
-`/chat-logger setting` SHALL edit the deferred response into v3's `chat-logger@setting` template
-for the current channel, in the user's locale, with v3's values of the interaction,
+`/chat-logger setting` SHALL edit the deferred response into the `chat-logger@setting` template
+for the current channel, in the user's locale, with the interaction's placeholder values,
 `cl_channel_mode` (`ALLOW` or `BLOCK`) and each list in the locale's line format, or `empty` when it
 has none. A list longer than 1024 characters SHALL end with `...` after the lines that fit. Nothing
 SHALL be written.
@@ -72,8 +72,8 @@ SHALL be written.
 #### Scenario: Menu
 - **WHEN** an administrator with an en-US or a zh-TW client runs the command in channel 5, whose
   settings are the block mode, the allow list `[30]` and an empty block list
-- **THEN** the response is v3's settings embed in that locale with `<BLOCK>`, the line of channel 30
-  and the `empty` text, and v3's four buttons
+- **THEN** the response is the settings embed in that locale with `<BLOCK>`, the line of channel 30
+  and the `empty` text, and the four buttons
 
 #### Scenario: Channel without settings
 - **WHEN** the command runs in a channel without settings
@@ -84,11 +84,11 @@ SHALL be written.
 - **THEN** the field holds at most 1024 characters, made of whole lines and `...`
 
 ### Requirement: The settings components change the settings
-The menu's buttons and select menus SHALL reach the plugin, in v3's `chat-logger@` format too:
+The menu's buttons and select menus SHALL reach the plugin, in the legacy `chat-logger@` format too:
 `toggle_btn` flips the mode; `modify_allow_btn` and `modify_block_btn` show the list's select menu,
 whose choice adds the channels to the list; these show the updated menu, and `delete_btn` deletes
-the channel's settings and shows `delete`. Settings SHALL be kept under `ChatLogger` as v3's
-documents. Other actions SHALL get no response.
+the channel's settings and shows `delete`. Settings SHALL be kept under `ChatLogger`, one
+document per guild. Other actions SHALL get no response.
 
 #### Scenario: Toggle
 - **WHEN** an administrator presses the toggle button of channel 5's menu
@@ -97,18 +97,18 @@ documents. Other actions SHALL get no response.
 #### Scenario: Modify a list
 - **WHEN** an administrator with an en-US or a zh-TW client presses the allow list button, then
   chooses channel 30 and category 20 in the select menu
-- **THEN** the message becomes v3's select menu alone, for v3's ten channel types, 1 to 25 of them,
+- **THEN** the message becomes the select menu alone, for ten channel types, 1 to 25 of them,
   and then the menu listing 30 and 20, stored as `{"5": {"allow_mode": true, "allow": [30, 20],
   "block": []}}` under `ChatLogger` and the guild's ID
 
 #### Scenario: Delete
 - **WHEN** an administrator presses the delete button of channel 5's menu while channel 6 has
   settings too
-- **THEN** channel 5's settings are deleted, channel 6's stay, and the message becomes v3's `delete`
+- **THEN** channel 5's settings are deleted, channel 6's stay, and the message becomes the `delete`
   embed without components
 
-#### Scenario: v3 IDs
-- **WHEN** a button with v3's ID `chat-logger@a:toggle_btn` is pressed
+#### Scenario: Legacy IDs
+- **WHEN** a button with the legacy ID `chat-logger@a:toggle_btn` is pressed
 - **THEN** it toggles the mode as the new ID `chat_logger:1:a=toggle_btn` does
 
 #### Scenario: Other actions
@@ -116,13 +116,13 @@ documents. Other actions SHALL get no response.
 - **THEN** there is no response and nothing is written
 
 ### Requirement: The command is a localized administrator guild command
-The plugin SHALL register v3's guild command `chat-logger` with the subcommand `setting`, without
-options, with v3's names, descriptions and en-US and zh-TW localizations, visible to administrators
+The plugin SHALL register the guild command `chat-logger` with the subcommand `setting`, without
+options, with its names, descriptions and en-US and zh-TW localizations, visible to administrators
 by default. The tree SHALL defer it ephemerally.
 
 #### Scenario: Command payload
 - **WHEN** the guild command payload is built
-- **THEN** the command has v3's texts, localizations and subcommand, and the default member
+- **THEN** the command has its texts, localizations and subcommand, and the default member
   permissions are Administrator
 
 #### Scenario: Command callback
@@ -191,7 +191,7 @@ message that is not stored, SHALL change and post nothing.
 #### Scenario: Edit
 - **WHEN** member 7 edits the stored `hello` in channel 30 of category 20 into `hi`, in an en-US or
   a zh-TW guild where listen channel 5 detects channel 30
-- **THEN** listen channel 5 gets v3's update embed in that locale with the member, the category, the
+- **THEN** listen channel 5 gets the update embed in that locale with the member, the category, the
   channel, 1 change, `hello` before, `hi` after and the message's URL
 
 #### Scenario: Second edit
@@ -237,7 +237,7 @@ of the stored ID, with `-` for the names and no thumbnail.
 #### Scenario: Delete
 - **WHEN** the stored `hi`, edited once, by member 7 in channel 30 of category 20 is deleted, in an
   en-US or a zh-TW guild where listen channel 5 detects channel 30
-- **THEN** listen channel 5 gets v3's delete embed in that locale with the member, the category, the
+- **THEN** listen channel 5 gets the delete embed in that locale with the member, the category, the
   channel, 1 change and `hi`, and the message is no longer stored
 
 #### Scenario: Author gone
@@ -353,8 +353,8 @@ do the same for every guild the bot is no longer in.
 
 ### Requirement: Settings are checked when the bot is ready
 When the bot is ready, and when the plugin loads into a ready bot, the plugin SHALL remove from the
-allow and block lists of each available guild the channels that Discord no longer has, as v3's
-startup did, and write nothing when none is gone. A listed channel or thread that discord.py has
+allow and block lists of each available guild the channels that Discord no longer has, and
+write nothing when none is gone. A listed channel or thread that discord.py has
 not cached, such as an archived thread, SHALL be removed only when Discord answers that it does not
 exist.
 
@@ -466,7 +466,7 @@ Store work that comes once they are closed SHALL fail and leave the files unchan
 ### Requirement: Deleted texts can be kept
 `config.yaml` SHALL take `keep_deleted`, false by default. With it true, a deleted message, alone
 or in a bulk deletion, SHALL stay stored after its deletion is logged, until the retention period
-removes it, as v3 kept it. A value that is not a boolean SHALL stop the plugin from loading, with
+removes it. A value that is not a boolean SHALL stop the plugin from loading, with
 the key named.
 
 #### Scenario: Kept

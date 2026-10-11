@@ -24,8 +24,7 @@ def test_allow_mode() -> None:
     """Requirement: Listen channels detect message channels."""
     setting = Setting(allow_mode=True, allow=(30, 20), block=(31, 32))  # the block list is unused
 
-    # A thread counts as its parent channel and that channel's category; v3 never forwarded a
-    # thread's edits and deletions.
+    # A thread counts as its parent channel and that channel's category.
     assert detected(setting) == [30, 31, 40, 41]
 
 
@@ -33,13 +32,13 @@ def test_block_mode() -> None:
     """Requirement: Listen channels detect message channels."""
     setting = Setting(allow_mode=False, allow=(32,), block=(30, 20))  # the allow list is unused
 
-    # v3's block mode took the guild's channels, which leave threads out.
+    # The block mode detects the channels that it does not block.
     assert detected(setting) == [32, 33, 42]
 
 
 def test_a_thread_on_its_own() -> None:
     """Requirement: Listen channels detect message channels."""
-    # v3's select menus offered threads; the allow list can hold one.
+    # The select menus offer threads; the allow list can hold one.
     assert detected(Setting(allow=(42,))) == [42]
     assert detected(Setting(allow_mode=False, block=(42,))) == [30, 31, 32, 33, 40, 41]
 

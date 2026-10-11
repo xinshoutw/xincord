@@ -1,4 +1,4 @@
-"""The settings menu's buttons and select menus, in v3's ID format too."""
+"""The settings menu's buttons and select menus, in the legacy ID format too."""
 
 from typing import TYPE_CHECKING, Any, cast
 
@@ -93,7 +93,7 @@ async def test_toggle(cog: VoiceLogger, store: Store) -> None:
     edited = edit(interaction)
     assert fields_of(edited) == ["<BLOCK>", "<#30> (`30`)", "Empty"]
     assert isinstance(edited["view"], discord.ui.View)
-    assert len(edited["view"].children) == 4  # v3's buttons again
+    assert len(edited["view"].children) == 4  # the four buttons again
 
 
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
@@ -105,7 +105,7 @@ async def test_modify_a_list(cog: VoiceLogger, store: Store, locale: str, kind: 
     await use(cog, pressed)
 
     edited = edit(pressed)
-    assert edited["embeds"] == ()  # v3 replaced the whole message with the select menu
+    assert edited["embeds"] == ()  # the select menu replaces the whole message
     view = edited["view"]
     assert isinstance(view, discord.ui.View)
     [select] = view.children
@@ -138,7 +138,7 @@ async def test_delete(cog: VoiceLogger, store: Store, locale: str) -> None:
 
     await use(cog, interaction)
 
-    # v3 deleted the guild's whole file, so channel 6 lost its settings at the next start.
+    # Channel 6 keeps its settings.
     assert await settings(store).read_settings(10) == {6: Setting(block=(31,))}
     edited = edit(interaction)
     [embed] = cast("tuple[discord.Embed, ...]", edited["embeds"])
@@ -146,7 +146,7 @@ async def test_delete(cog: VoiceLogger, store: Store, locale: str) -> None:
     assert edited["view"] is None  # no components left
 
 
-async def test_v3_ids(bot: Bot, store: Store) -> None:
+async def test_legacy_ids(bot: Bot, store: Store) -> None:
     """Requirement: The settings components change the settings."""
     old, new = component("voice-logger@a:toggle_btn"), component("voice_logger:1:a=toggle_btn")
 

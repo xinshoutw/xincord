@@ -1,9 +1,8 @@
-# Golden data for the VoiceLogger tests. The text is v3's, from
-# XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/resources/lang/.
+# Golden data for the VoiceLogger tests: the bundled texts.
 
 # The settings menu of channel voice-log (5) per locale, in the block mode with the allow list [30]
 # and an empty block list, as Embed.to_dict() without "type" and "flags", and its buttons as
-# (label, style, custom ID). The core trims the list's final newline, as JDA did.
+# (label, style, custom ID). The core trims the list's final newline.
 menu:
   en-US:
     embed:
@@ -57,8 +56,8 @@ delete:
     color: 65535
 
 # The translated payload of the guild command; keys that are not listed here are not compared. 8 is
-# the Administrator permission and option type 1 a subcommand. The texts come from v3's
-# Register.kt and register.yaml.
+# the Administrator permission and option type 1 a subcommand. The texts come from
+# register.yaml.
 commands:
   - type: 1
     name: "voice-logger"
@@ -76,7 +75,7 @@ commands:
 
 # The voice logs per locale for member 7 (no avatar: discord.py's default one) in guild 10: a join
 # of Room A (30, category 20), a leave of Loose (33, outside categories: "-") and a switch from
-# Room A to Room B (32, category 21). The core trims the member field's newlines, as JDA did.
+# Room A to Room B (32, category 21). The core trims the member field's newlines.
 voice:
   en-US:
     join:

@@ -25,7 +25,7 @@ def values(post: dict[str, object]) -> list[object]:
 @pytest.mark.parametrize("locale", ["en-US", "zh-TW"])
 async def test_edit(scene: Scene, locale: str) -> None:
     """Requirement: Edits of stored messages are logged."""
-    scene.guild.preferred_locale = discord.Locale(locale)  # v3 used the guild's locale
+    scene.guild.preferred_locale = discord.Locale(locale)  # the guild's locale
     await scene.listen(5, [30])
     await scene.send(100, 30, "hello")
 
@@ -59,7 +59,7 @@ async def test_same_text(scene: Scene) -> None:
     await scene.parse("MESSAGE_UPDATE", update)  # Discord's link preview
     await scene.edit(100, 30, "see https://example.com")  # a pin, or suppressed embeds
 
-    # v3 counted and posted every update, and stored a preview's text instead of the content.
+    # An update that keeps the text posts nothing and keeps the stored text.
     assert scene.posts(5) == []
     assert await scene.rows() == [(100, 10, 30, 7, "see https://example.com", 0)]
 
@@ -71,7 +71,7 @@ async def test_not_stored(scene: Scene) -> None:
     await scene.edit(100, 30, "hi")  # sent before it could be stored
 
     assert scene.posts(5) == []
-    assert await scene.rows() == []  # v3 did not store it on an edit either
+    assert await scene.rows() == []  # an edit stores nothing new
 
 
 async def test_not_detected(scene: Scene) -> None:
@@ -92,7 +92,7 @@ async def test_thread(scene: Scene) -> None:
 
     await scene.edit(100, 41, "hi")
 
-    # v3 threw for threads (asStandardGuildChannel), so their edits were never posted.
+    # A thread's edits are posted.
     [post] = scene.posts(5)
     assert values(post)[:3] == ["<@7>", "<#20>", "<#41>"]
     assert post["url"] == "https://discord.com/channels/10/41/100"
@@ -105,7 +105,7 @@ async def test_channel_without_a_category(scene: Scene) -> None:
 
     await scene.edit(100, 33, "hi")
 
-    # v3 left the category unset there: an earlier event's category or the placeholder showed.
+    # Outside categories, the category shows -.
     [post] = scene.posts(5)
     assert values(post)[:3] == ["<@7>", "-", "<#33>"]
 
@@ -117,7 +117,7 @@ async def test_webhook(scene: Scene) -> None:
     for event, text in (("MESSAGE_CREATE", "hello"), ("MESSAGE_UPDATE", "hi")):
         await scene.parse(event, payloads.message(100, 30, 10, webhook, text, webhook_id=500))
 
-    # v3 rendered a webhook's edit with the global substitutor, which left the keys as written.
+    # A webhook's edit names the webhook.
     [post] = scene.posts(5)
     assert values(post)[0] == "<@500>"
     assert "thumbnail" not in post
@@ -139,7 +139,7 @@ async def test_typed_placeholders(scene: Scene) -> None:
 
     await scene.edit(100, 30, "%user_mention%")
 
-    # v3 expanded them, and a text naming cl_msg_after or cl_msg_before made the log throw.
+    # Placeholders in a message's text are shown as written.
     [post] = scene.posts(5)
     assert values(post)[4:] == ["%bot_id% %cl_msg_after%", "%user_mention%"]
 

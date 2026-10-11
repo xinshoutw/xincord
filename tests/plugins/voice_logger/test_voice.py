@@ -69,7 +69,7 @@ async def test_join(
     """Requirement: Voice channel changes are logged."""
     await settings(store).add_channels(10, 5, "allow", [20])  # the category of Room A
     guild = voice_guild(LOCALES[locale])
-    member = FakeMember(guild, id=7, bot=who == "bot")  # bots are logged too, as in v3
+    member = FakeMember(guild, id=7, bot=who == "bot")  # bots are logged too
 
     await move(bot, member, None, room(guild, 30))
 
@@ -86,7 +86,7 @@ async def test_leave_without_a_category(
 
     await move(bot, FakeMember(guild, id=7), room(guild, 33), None)
 
-    # v3 left the category key unset: an earlier event's category, or the placeholder itself.
+    # Outside categories, the category shows -.
     assert posts(channels[5]) == [GOLDEN["voice"][locale]["left"]]
 
 
@@ -102,7 +102,7 @@ async def test_switch(
 
     await move(bot, FakeMember(guild, id=7), room(guild, 30), room(guild, 32))
 
-    # v3 never set the joined channel's mention for a switch.
+    # A switch has both channels' mentions.
     expected = GOLDEN["voice"][locale]["switch"]
     assert posts(channels[5]) == posts(channels[6]) == [expected]
     assert 7 not in channels  # it detects neither side

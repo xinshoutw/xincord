@@ -1,4 +1,4 @@
-"""The ChatLogger config: v3's ``log_all`` and the retention of the stored messages."""
+"""The ChatLogger config: ``log_all`` and the retention of the stored messages."""
 
 import logging
 from typing import TYPE_CHECKING, cast
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from xincord.plugins.chat_logger.cog import ChatLogger
     from xincord.plugins.chat_logger.config import Config
 
-V3_CONFIG = "enabled: false\nlog_all: false\n"  # v3's keys; its shipped file had log_all true
+ENABLED_CONFIG = "enabled: false\nlog_all: false\n"  # an enabled key, which only warns
 FIVE_YEARS = 1826  # 5 x 365.25 days, rounded down
 
 
@@ -33,10 +33,10 @@ def warned_keys(caplog: pytest.LogCaptureFixture) -> set[str]:
     return {message.split(marker)[-1] for message in caplog.messages if marker in message}
 
 
-async def test_v3_file(load: Loader, caplog: pytest.LogCaptureFixture) -> None:
-    """Requirement: The config keeps v3's key and bounds the stored messages."""
+async def test_file_with_enabled_key(load: Loader, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: The config sets the logging and bounds the stored messages."""
     with caplog.at_level(logging.WARNING):
-        bot = await load(V3_CONFIG)
+        bot = await load(ENABLED_CONFIG)
 
     assert warned_keys(caplog) == {"enabled"}
     config = loaded_config(bot)
@@ -46,7 +46,7 @@ async def test_v3_file(load: Loader, caplog: pytest.LogCaptureFixture) -> None:
 
 
 async def test_bundled_file(load: Loader, caplog: pytest.LogCaptureFixture) -> None:
-    """Requirement: The config keeps v3's key and bounds the stored messages."""
+    """Requirement: The config sets the logging and bounds the stored messages."""
     with caplog.at_level(logging.WARNING):
         bot = await load()
 
@@ -59,7 +59,7 @@ async def test_bundled_file(load: Loader, caplog: pytest.LogCaptureFixture) -> N
 
 @pytest.mark.parametrize("days", [1, 3650])
 async def test_retention_range(days: int, load: Loader) -> None:
-    """Requirement: The config keeps v3's key and bounds the stored messages."""
+    """Requirement: The config sets the logging and bounds the stored messages."""
     config = f"retention_days: {days}\n"
 
     bot = await load(config)
@@ -79,7 +79,7 @@ async def test_retention_range(days: int, load: Loader) -> None:
 async def test_invalid_retention(
     text: str, error: str, load: Loader, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Requirement: The config keeps v3's key and bounds the stored messages."""
+    """Requirement: The config sets the logging and bounds the stored messages."""
     bot = await load(text)
 
     assert bot.loaded == ()
@@ -88,7 +88,7 @@ async def test_invalid_retention(
 
 @pytest.mark.parametrize("size", [1, 65536])
 async def test_file_size_range(size: int, load: Loader) -> None:
-    """Requirement: The config keeps v3's key and bounds the stored messages."""
+    """Requirement: The config sets the logging and bounds the stored messages."""
     config = f"max_file_size_mb: {size}\n"
 
     bot = await load(config)
@@ -111,7 +111,7 @@ async def test_file_size_range(size: int, load: Loader) -> None:
 async def test_invalid_file_size(
     text: str, error: str, load: Loader, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Requirement: The config keeps v3's key and bounds the stored messages."""
+    """Requirement: The config sets the logging and bounds the stored messages."""
     bot = await load(text)
 
     assert bot.loaded == ()
@@ -119,7 +119,7 @@ async def test_invalid_file_size(
 
 
 async def test_invalid_log_all(load: Loader, caplog: pytest.LogCaptureFixture) -> None:
-    """Requirement: The config keeps v3's key and bounds the stored messages."""
+    """Requirement: The config sets the logging and bounds the stored messages."""
     bot = await load("log_all: maybe\n")
 
     assert bot.loaded == ()

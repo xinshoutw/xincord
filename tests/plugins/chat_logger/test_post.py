@@ -28,7 +28,7 @@ async def test_locale_without_templates(scene: Scene) -> None:
 
     await scene.edit(100, 30, "hi")
 
-    assert scene.posts(5) == [GOLDEN["update"]["zh-TW"]]  # v3's fallback locale
+    assert scene.posts(5) == [GOLDEN["update"]["zh-TW"]]  # the fallback locale
 
 
 async def test_deleted_listen_channel(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
@@ -41,7 +41,7 @@ async def test_deleted_listen_channel(scene: Scene, caplog: pytest.LogCaptureFix
     with caplog.at_level(logging.INFO):
         await scene.edit(100, 30, "hi")
 
-    # v3 stopped at the first missing listen channel, so the others got nothing.
+    # The other listen channels still get the log.
     assert len(scene.posts(6)) == 1
     settings = ListenSettings(scene.store, NAMESPACE)
     assert await settings.read_settings(10) == {6: Setting(allow=(30,))}

@@ -67,12 +67,12 @@ async def test_channel_without_settings(cog: ChatLogger, store: Store) -> None:
 
     embed, _ = edited(interaction)
     assert [field["value"] for field in embed["fields"]] == ["<ALLOW>", "Empty", "Empty"]
-    assert await store.keys(NAMESPACE) == []  # v3 kept the default in memory only
+    assert await store.keys(NAMESPACE) == []  # the default is not written
 
 
 async def test_long_list(cog: ChatLogger, store: Store) -> None:
     """Requirement: The settings menu shows the channel's settings."""
-    # v3 threw for a field over 1024 characters, after saving, so the menu never opened again.
+    # A field over 1024 characters ends with ...
     document: dict[str, JSON] = {"5": {"allow_mode": True, "allow": [*LONG], "block": []}}
     await store.put(NAMESPACE, "10", document)
     interaction = command(FakeChannel(id=5, name="chat-log"))

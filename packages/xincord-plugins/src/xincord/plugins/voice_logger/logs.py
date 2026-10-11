@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Protocol, Self
 
 NONE = "-"  # stands for a missing category or member, as the core's values do for missing names
-# v3's member keys when no member is known: texts show "-", and the avatar URLs are empty, so the
+# The member keys when no member is known: texts show "-", and the avatar URLs are empty, so the
 # templates' thumbnails are left out.
 UNKNOWN_MEMBER = {
     "user_id": "0",
@@ -37,7 +37,7 @@ class VoiceChannelLike(Protocol):
 
     @property
     def jump_url(self) -> str:
-        """The channel's URL, as JDA's ``jumpUrl``."""
+        """The channel's URL."""
         ...
 
     @property
@@ -63,15 +63,15 @@ class Place:
 
     @property
     def category_mention(self) -> str:
-        """The category's mention, or ``-`` outside categories (v3 left the key unset)."""
+        """The category's mention, or ``-`` outside categories."""
         return NONE if self.category_id is None else f"<#{self.category_id}>"
 
 
 def voice_change(joined: Place | None, left: Place | None) -> tuple[str, dict[str, str]] | None:
     """The template and the values of a voice change, or None when the channel stays.
 
-    discord.py also reports mutes, deafens and streams, which keep the channel; JDA's voice update
-    did not. A switch has both sides' values: v3 never set the joined channel's mention there.
+    discord.py also reports mutes, deafens and streams, which keep the channel. A switch has both
+    sides' values.
     """
     if joined is None:
         return None if left is None else ("on-channel-left", _side(left, "left"))
@@ -83,7 +83,7 @@ def voice_change(joined: Place | None, left: Place | None) -> tuple[str, dict[st
 
 
 def _side(place: Place, side: str) -> dict[str, str]:
-    """v3's ``vl_channel_<side>_*`` and ``vl_category_<side>_mention`` values of ``place``."""
+    """The ``vl_channel_<side>_*`` and ``vl_category_<side>_mention`` values of ``place``."""
     return {
         f"vl_channel_{side}_mention": place.mention,
         f"vl_channel_{side}_name": place.name,

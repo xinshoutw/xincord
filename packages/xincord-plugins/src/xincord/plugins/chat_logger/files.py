@@ -1,8 +1,7 @@
 """The message files' names and the ranges of message IDs that they hold.
 
 ``data/ChatLogger/messages-<start>.db`` holds the messages created from ``<start>``, a UTC second,
-up to the next file's start; the oldest file also holds the older ones. v3 kept one file per guild
-with one table per channel instead.
+up to the next file's start; the oldest file also holds the older ones.
 """
 
 import re

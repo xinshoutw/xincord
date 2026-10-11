@@ -19,8 +19,7 @@ if TYPE_CHECKING:
     from conftest import Loader, Scene
     from xincord.core.storage import Store
 
-# log_all true keeps the messages of a left guild until the retention, as v3 kept them; false
-# deletes them, as v3 meant to (its deletion at the leave used the wrong key).
+# log_all true keeps the messages of a left guild until the retention; false deletes them.
 KEPT = [("log_all: true\n", [100, 200]), ("log_all: false\n", [200])]
 LEFT = [("log_all: true\n", [100, 200]), ("log_all: false\n", [100])]
 

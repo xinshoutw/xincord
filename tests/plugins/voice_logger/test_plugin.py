@@ -36,7 +36,7 @@ LANG_FILES = tuple(
 
 def test_discovered_by_name() -> None:
     """Requirement: The plugin installs as VoiceLogger."""
-    # The voice states intent is v3's GUILD_VOICE_STATES; discord.py's defaults hold it too, and
+    # The voice states intent; discord.py's defaults hold it too, and
     # the guilds intent, which carries the voice channel status updates.
     assert discover(["VoiceLogger"]) == [
         PluginInfo(
@@ -62,4 +62,4 @@ async def test_first_load_creates_the_lang_files(bot: Bot, tmp_path: Path) -> No
     assert len(LANG_FILES) == 24
     for name in LANG_FILES:
         assert (directory / "lang" / name).is_file()
-    assert not (directory / "config.yaml").exists()  # v3's only key, enabled, is gone
+    assert not (directory / "config.yaml").exists()  # the plugin has no config

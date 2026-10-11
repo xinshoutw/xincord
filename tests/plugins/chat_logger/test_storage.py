@@ -1,8 +1,4 @@
-"""Where the plugin keeps the stored messages: its own files under ``data/ChatLogger/``.
-
-v3 kept one file per guild, ``plugins/ChatLogger/data/<guildId>.db``, with one table per channel,
-through SQLiteAPI's connections, which it never closed.
-"""
+"""Where the plugin keeps the stored messages: its own files under ``data/ChatLogger/``."""
 
 import asyncio
 import sqlite3

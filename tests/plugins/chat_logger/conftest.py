@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from xincord.core.storage import Store
     from xincord.plugins.chat_logger.cog import ChatLogger
 
-type Row = tuple[int, int, int, int, str, int]  # a stored message: v3's columns and the places
+type Row = tuple[int, int, int, int, str, int]  # a stored message's columns
 
 PACKAGE = "xincord.plugins.chat_logger"
 
@@ -61,7 +61,7 @@ def rest(monkeypatch: pytest.MonkeyPatch) -> FakeRest:
 
 @pytest.fixture(autouse=True)
 def logged_in(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The bot's user, which discord.py sets at the login, for v3's ``bot_*`` values."""
+    """The bot's user, which discord.py sets at the login, for the ``bot_*`` values."""
     monkeypatch.setattr(Bot, "user", property(lambda _bot: BOT_USER))
 
 

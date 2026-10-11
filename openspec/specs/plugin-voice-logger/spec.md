@@ -10,8 +10,8 @@ ephemeral menu.
 ### Requirement: The plugin installs as VoiceLogger
 The `xincord-plugins` distribution SHALL register the plugin in the `xincord.plugins` entry-point
 group as `VoiceLogger`, pointing to `xincord.plugins.voice_logger`, with no dependencies and the
-voice states intent. It SHALL bundle v3's en-US and zh-TW lang files, which its first load writes
-to `plugins/VoiceLogger/lang/`, and no `config.yaml`: v3's only key was `enabled`.
+voice states intent. It SHALL bundle en-US and zh-TW lang files, which its first load writes to
+`plugins/VoiceLogger/lang/`, and no `config.yaml`.
 
 #### Scenario: Discovered by name
 - **WHEN** discovery runs with `VoiceLogger` enabled
@@ -23,12 +23,12 @@ to `plugins/VoiceLogger/lang/`, and no `config.yaml`: v3's only key was `enabled
 - **THEN** the en-US and zh-TW `register.yaml`, `placeholder.yaml` and the ten message templates of
   each exist under `plugins/VoiceLogger/lang/`, and no `config.yaml` is written
 
-### Requirement: Settings are kept per guild in v3's documents
-The plugin SHALL keep a guild's settings under `VoiceLogger` and the guild's ID as v3's object of
+### Requirement: Settings are kept per guild
+The plugin SHALL keep a guild's settings under `VoiceLogger` and the guild's ID as an object of
 listen channel IDs to `{"allow_mode", "allow", "block"}`. A missing entry SHALL read as the allow
 mode with empty lists, without a write; new entries SHALL start in the allow mode. A change that
 changes nothing SHALL write nothing, the last removal SHALL delete the document, and concurrent
-changes SHALL never lose one another. A document not of v3's shape SHALL raise and stay.
+changes SHALL never lose one another. A document of another shape SHALL raise and stay.
 
 #### Scenario: First selection
 - **WHEN** the channels 30 and 40 are added to the allow list of listen channel 5 in guild 10
@@ -84,16 +84,16 @@ channels: either side of a switch.
 - **THEN** the event goes to listen channels 5 and 6
 
 ### Requirement: The settings menu shows the channel's settings
-`/voice-logger setting` SHALL edit the deferred response into v3's `voice-logger@setting` template
-for the current channel, in the user's locale, with v3's values of the interaction, `vl_channel_mode`
+`/voice-logger setting` SHALL edit the deferred response into the `voice-logger@setting` template
+for the current channel, in the user's locale, with the interaction's placeholder values, `vl_channel_mode`
 (`ALLOW` or `BLOCK`) and each list in the locale's line format, or `empty` when it has none. A list
 longer than 1024 characters SHALL end with `...` after the lines that fit. Nothing SHALL be written.
 
 #### Scenario: Menu
 - **WHEN** an administrator with an en-US or a zh-TW client runs the command in channel 5, whose
   settings are the block mode, the allow list `[30]` and an empty block list
-- **THEN** the response is v3's settings embed in that locale with `<BLOCK>`, the line of channel 30
-  and the `empty` text, and v3's four buttons
+- **THEN** the response is the settings embed in that locale with `<BLOCK>`, the line of channel 30
+  and the `empty` text, and the four buttons
 
 #### Scenario: Channel without settings
 - **WHEN** the command runs in a channel without settings
@@ -104,7 +104,7 @@ longer than 1024 characters SHALL end with `...` after the lines that fit. Nothi
 - **THEN** the field holds at most 1024 characters, made of whole lines and `...`
 
 ### Requirement: The settings components change the settings
-The menu's buttons and select menus SHALL reach the plugin, in v3's `voice-logger@` format too:
+The menu's buttons and select menus SHALL reach the plugin, in the legacy `voice-logger@` format too:
 `toggle_btn` flips the mode; `modify_allow_btn` and `modify_block_btn` replace the message with the
 list's select menu, whose choice adds the channels to the list; these show the updated menu, and
 `delete_btn` deletes the channel's settings and shows `delete`. Other actions and component types
@@ -117,17 +117,17 @@ SHALL get no response.
 #### Scenario: Modify a list
 - **WHEN** an administrator with an en-US or a zh-TW client presses the allow list button, then
   chooses channel 30 and category 20 in the select menu
-- **THEN** the message becomes v3's select menu alone, for voice channels and categories, 1 to 25
+- **THEN** the message becomes the select menu alone, for voice channels and categories, 1 to 25
   of them, and then the menu listing 30 and 20, which are stored
 
 #### Scenario: Delete
 - **WHEN** an administrator presses the delete button of channel 5's menu while channel 6 has
   settings too
-- **THEN** channel 5's settings are deleted, channel 6's stay, and the message becomes v3's `delete`
+- **THEN** channel 5's settings are deleted, channel 6's stay, and the message becomes the `delete`
   embed without components
 
-#### Scenario: v3 IDs
-- **WHEN** a button with v3's ID `voice-logger@a:toggle_btn` is pressed
+#### Scenario: Legacy IDs
+- **WHEN** a button with the legacy ID `voice-logger@a:toggle_btn` is pressed
 - **THEN** it toggles the mode as the new ID `voice_logger:1:a=toggle_btn` does
 
 #### Scenario: Other actions
@@ -135,13 +135,13 @@ SHALL get no response.
 - **THEN** there is no response and nothing is written
 
 ### Requirement: The command is a localized administrator guild command
-The plugin SHALL register v3's guild command `voice-logger` with the subcommand `setting`, without
-options, with v3's names, descriptions and en-US and zh-TW localizations, visible to administrators
+The plugin SHALL register the guild command `voice-logger` with the subcommand `setting`, without
+options, with its names, descriptions and en-US and zh-TW localizations, visible to administrators
 by default. The tree SHALL defer it ephemerally.
 
 #### Scenario: Command payload
 - **WHEN** the guild command payload is built
-- **THEN** the command has v3's texts, localizations and subcommand, and the default member
+- **THEN** the command has its texts, localizations and subcommand, and the default member
   permissions are Administrator
 
 #### Scenario: Command callback
@@ -150,14 +150,14 @@ by default. The tree SHALL defer it ephemerally.
 
 ### Requirement: Voice channel changes are logged
 When a member joins, leaves or switches voice channels, the plugin SHALL post `on-channel-join`,
-`on-channel-left` or `on-channel-switch` to the detecting listen channels with v3's member values
+`on-channel-left` or `on-channel-switch` to the detecting listen channels with the member's placeholder values
 and the `vl_channel_*` and `vl_category_*` values of each channel: the category's mention, or `-`
 without one. Updates that keep the channel, such as mutes, deafens and streams, SHALL post nothing.
 
 #### Scenario: Join
 - **WHEN** a member or a bot joins voice channel 30 of category 20, which listen channel 5 detects,
   in an en-US or a zh-TW guild
-- **THEN** listen channel 5 gets v3's join embed in that locale with the member and the channel
+- **THEN** listen channel 5 gets the join embed in that locale with the member and the channel
 
 #### Scenario: Leave without a category
 - **WHEN** a member leaves voice channel 33, which has no category
@@ -204,7 +204,7 @@ status, or a channel that is not a cached voice channel, SHALL post nothing.
 #### Scenario: New status
 - **WHEN** voice channel 30, whose status is unknown, gets the status `Gaming` in an en-US or a
   zh-TW guild
-- **THEN** the detecting listen channels get v3's new status embed in that locale with `Gaming`
+- **THEN** the detecting listen channels get the new status embed in that locale with `Gaming`
 
 #### Scenario: Changed status
 - **WHEN** the status of channel 30 changes from `Gaming` to `Chill`
@@ -262,8 +262,7 @@ without an entry, an audit log or the member.
 ### Requirement: Status changes are posted in order from the current session
 The plugin SHALL post a voice channel's status changes in the order they arrive, also when one
 waits for its audit log entry. It SHALL forget the tracked statuses when a new gateway session
-starts, and a guild's when the bot leaves the guild or the guild becomes unavailable, as JDA rebuilt
-its cache then.
+starts, and a guild's when the bot leaves the guild or the guild becomes unavailable.
 
 #### Scenario: A change waits for its entry
 - **WHEN** a cleared status waits for its audit log entry and the channel gets a new status meanwhile
@@ -294,8 +293,8 @@ no longer in.
 
 ### Requirement: Settings are checked when the bot is ready
 When the bot is ready, and when the plugin loads into a ready bot, the plugin SHALL remove from the
-allow and block lists of each available guild the channels that the guild no longer has, as v3's
-startup did, and write nothing when none is gone. Unavailable guilds SHALL be skipped, and a guild
+allow and block lists of each available guild the channels that the guild no longer has, and
+write nothing when none is gone. Unavailable guilds SHALL be skipped, and a guild
 whose settings cannot be read SHALL be skipped with an error, and a stored key that is not a guild
 ID with a warning.
 

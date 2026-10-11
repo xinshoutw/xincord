@@ -165,7 +165,11 @@ async def test_changed_and_cleared_status(scene: Scene, locale: str) -> None:
 
     expected = GOLDEN["status"][locale]
     assert scene.posts(5) == [expected["new"], expected["update"], expected["delete"]]
-    assert scene.rest.sent == [read(SET), read(SET), read(CLEARED)]  # v3 read type 192 each time
+    assert scene.rest.sent == [
+        read(SET),
+        read(SET),
+        read(CLEARED),
+    ]  # each change reads its own type
 
 
 async def test_nothing_to_log(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
@@ -212,7 +216,7 @@ async def test_late_entry(scene: Scene, sleeps: list[float]) -> None:
 
 async def test_no_entry(scene: Scene, sleeps: list[float]) -> None:
     """Requirement: Status changes name their member from the audit log."""
-    # As for a status that Discord clears by itself: v3 named whoever last set any status.
+    # As for a status that Discord clears by itself: nobody is named.
     await scene.listen(5, [30])
     scene.answer([], [entry(7, status="Gaming", channel_id=33)])
 
@@ -226,7 +230,7 @@ async def test_audit_log_refused(
     scene: Scene, sleeps: list[float], caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: Status changes name their member from the audit log."""
-    # v3 posted nothing without View Audit Log.
+    # The log is posted without View Audit Log too.
     await scene.listen(5, [30])
     scene.rest.errors[AUDIT] = forbidden()
 
@@ -255,7 +259,7 @@ async def test_member_gone(scene: Scene) -> None:
 
 async def test_not_detected(scene: Scene) -> None:
     """Requirement: Status changes name their member from the audit log."""
-    # v3 read the audit log and fetched the member before it looked for listen channels.
+    # The audit log is read only for a detected channel.
     await scene.listen(5, [99])
 
     await scene.update("Gaming")
@@ -266,7 +270,7 @@ async def test_not_detected(scene: Scene) -> None:
 
 async def test_typed_text_stays(scene: Scene) -> None:
     """Requirement: Voice channel status changes are logged."""
-    # v3 expanded placeholders in statuses, and a status naming its own key made the log throw.
+    # A status is shown as typed, placeholders included.
     typed = "%vl_status_after% %user_mention%"
     await scene.listen(5, [30])
     scene.answer([entry(7, status=typed)])
@@ -311,7 +315,7 @@ async def test_a_change_waits_for_its_entry(
 
 async def test_a_new_session_or_an_outage(scene: Scene) -> None:
     """Requirement: Status changes are posted in order from the current session."""
-    # JDA rebuilt its cache from the new session's channels, which hold no status.
+    # A new session's channels hold no status.
     await scene.listen(5, [30])
     scene.answer(*[[entry(7, status="Gaming")]] * 3)
 

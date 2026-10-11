@@ -1,7 +1,6 @@
 """The retention: messages older than ``retention_days`` leave their files, at READY and hourly.
 
-Files whose messages all expired are deleted. v3 kept every message forever; there is no Kotlin
-counterpart.
+Files whose messages all expired are deleted.
 """
 
 import asyncio

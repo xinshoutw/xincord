@@ -1,8 +1,4 @@
-"""The stored messages in the plugin's own files: their ranges, new files and closing.
-
-v3 kept one file per guild with one table per channel, through SQLiteAPI's connections, which it
-never closed; the files of time ranges and their thread are new.
-"""
+"""The stored messages in the plugin's own files: their ranges, new files and closing."""
 
 import asyncio
 import logging
@@ -26,7 +22,7 @@ if TYPE_CHECKING:
 
     type WriteFile = Callable[[datetime, Sequence[int]], str]
 
-type Row = tuple[int, int, int, int, str, int]  # v3's columns, with the guild and the channel
+type Row = tuple[int, int, int, int, str, int]  # a stored message's columns
 
 NOON = datetime(2026, 10, 11, 12, 0, 0, tzinfo=UTC)
 MIB = 1024 * 1024
@@ -235,7 +231,7 @@ async def test_pop(open_files: Opener, directory: Path) -> None:
     await files.edit(at(5), "hi")
 
     assert await files.pop(at(5)) == Stored(text="hi", user_id=7, count=1)
-    assert await files.pop(at(5)) is None  # v3 kept the text of deleted messages
+    assert await files.pop(at(5)) is None  # a deleted message leaves its file
     assert rows(directory) == {FIRST: []}
 
 
