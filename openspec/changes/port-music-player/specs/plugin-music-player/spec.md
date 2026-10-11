@@ -264,6 +264,10 @@ skip that many songs and show the `skip` panel, end the list when it skips past 
 - **THEN** the replies are the `pause` panel, `already-paused`, the `resume` panel and
   `already-playing`
 
+#### Scenario: Songs gone during a command
+- **WHEN** `/pause` and `/resume` wait for the player while the bot leaves voice
+- **THEN** both replies are `nothing-playing`
+
 #### Scenario: Stop
 - **WHEN** `/stop` runs while a paused song plays, then while nothing plays
 - **THEN** the history is cleared, the player unpaused, the bot leaves and the response is deleted,

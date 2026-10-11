@@ -5,6 +5,7 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:473-731
 """
 
+import asyncio
 import random
 from typing import TYPE_CHECKING, Any, cast
 
@@ -65,6 +66,25 @@ async def test_pause_and_resume(scene: Scene) -> None:
         ("pause", True),
         ("pause", False),
     ]
+
+
+@pytest.mark.xfail(strict=True, reason="Members control playback with v3's replies")
+async def test_pause_and_resume_while_the_songs_go(scene: Scene) -> None:
+    """Requirement: Members control playback with v3's replies."""
+    await scene.playing(1)
+    session = scene.cog.sessions[10]
+    paused, resumed = scene.who(VOICE), scene.who(VOICE)
+    async with session.lock:  # the player is busy, as with another member's /stop
+        tasks = [
+            asyncio.create_task(scene.cog.pause_song(paused.as_interaction())),
+            asyncio.create_task(scene.cog.resume_song(resumed.as_interaction())),
+        ]
+        await asyncio.sleep(0)  # both commands wait for the player
+        session.detach()  # the bot left voice meanwhile
+    await asyncio.gather(*tasks)
+
+    assert told(paused, "nothing-playing")
+    assert told(resumed, "nothing-playing")
 
 
 @pytest.mark.parametrize("handler", ["pause_song", "resume_song", "now_playing"])
