@@ -565,8 +565,8 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 `port-ntust-announcements`, `port-ntust-course-watch`, `port-music-player`,
 `ntust-announcements-model-config`, `ticket-staff-controls`, `dependency-updates`, `release-pipeline`, `compose-run-fixes`, `reload-uploads-changes`,
 `timezone-from-env`, `chat-logger-keep-deleted`, `ntust-announcements-review`,
-`ntust-announcements-redo-feedback`, `pypi-per-package`, `dvc-one-name-format`, `youtube-oauth`.
-Each one's
+`ntust-announcements-redo-feedback`, `pypi-per-package`, `dvc-one-name-format`, `youtube-oauth`,
+`youtube-remote-cipher`. Each one's
 `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
@@ -906,6 +906,16 @@ Done in `youtube-oauth` (the owner's choice for the music videos that ask for a 
 lists youtube-source's default clients and then TV, and takes its OAuth switch and refresh token
 from `YOUTUBE_OAUTH_ENABLED` and `YOUTUBE_OAUTH_REFRESH_TOKEN` in `.env`. Checked on the owner's
 Mac: with the switch on, the node starts its device login and initialises the five clients.
+Released as `v0.2.1` on the owner's approval; on the production host the owner linked a spare
+account through the device login, and Claude moved the logged refresh token into `.env` unseen and
+recreated the node, which then refreshed its access token. The music videos still failed: the TV
+client got "The page needs to be reloaded" (youtube-source #226, fixed after 1.18.2), then, on a
+snapshot with the fix, could not find the player script's signature function, which the plugin's
+maintainers leave to a remote cipher server (#240). Done in `youtube-remote-cipher`: youtube-source
+pinned to the snapshot of commit `2be8e542`, signatures solved by `YOUTUBE_CIPHER_URL` (the public
+yt-cipher at `https://cipher.kikkia.dev/` by default), and a Renovate rule that leaves the snapshot
+pin alone. Tried first by hand on the production node, where the owner heard a music video that
+every client had failed.
 
 1. **Review (pushed in core-plugin-loading):** plugins are enabled in the core `config.yaml`
    (`plugins: [AutoRole, ...]`) instead of each plugin's `enabled` key, and the migration script

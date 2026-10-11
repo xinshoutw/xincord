@@ -24,9 +24,10 @@ runs Economy, UptimeHeartbeat and TicketAwayNotice. Before enabling another plug
 
 ## Production follow-ups
 
-- MusicPlayer: some official music videos ask for a login; `youtube-oauth` is released, and the
-  node needs the spare account's device login on the production host (`.env.example`); check the
-  panel's emojis on the production application (v3's names).
+- MusicPlayer: check the panel's emojis on the production application (v3's names). The node
+  uses a youtube-source snapshot (`youtube-remote-cipher`): move back to a release once one holds
+  the TV client's fix (#233); it depends on the public yt-cipher unless `YOUTUBE_CIPHER_URL` names
+  a server of your own.
 - NtustAnnouncements: v3's first Gemini key is invalid; delete it from `api-keys`.
 - After a few days: delete the migration's copies on the production host (`CUTOVER.md`,
   "Afterwards") and the rehearsal volumes `xincord-rehearsal-data` and

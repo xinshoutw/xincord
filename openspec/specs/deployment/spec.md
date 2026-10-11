@@ -50,9 +50,9 @@ sources off, and log no member's query.
 
 #### Scenario: Node config
 - **WHEN** `lavalink/application.yml` is read
-- **THEN** youtube-source and LavaSrc have exact versions, the HTTP, local and built-in YouTube
-  sources are off, request logging is off, and LavaSrc's Spotify source follows `SPOTIFY_ENABLED`,
-  off by default
+- **THEN** LavaSrc has an exact release and youtube-source an exact release or a snapshot's
+  40-character commit, the HTTP, local and built-in YouTube sources are off, request logging is
+  off, and LavaSrc's Spotify source follows `SPOTIFY_ENABLED`, off by default
 
 #### Scenario: No queries in the node's logs
 - **WHEN** `lavalink/application.yml` is read
@@ -100,3 +100,18 @@ default) and `YOUTUBE_OAUTH_REFRESH_TOKEN` (empty by default), which compose pas
 #### Scenario: Example
 - **WHEN** `.env.example` is read
 - **THEN** it holds `YOUTUBE_OAUTH_ENABLED` and `YOUTUBE_OAUTH_REFRESH_TOKEN` as comments only
+
+### Requirement: Remote cipher for the node
+The node SHALL send youtube-source's signature work to the remote cipher server at
+`YOUTUBE_CIPHER_URL`, by default the public `https://cipher.kikkia.dev/`, with the password
+`YOUTUBE_CIPHER_PASSWORD`, empty by default, which compose passes from `.env`. `.env.example` SHALL
+show both commented.
+
+#### Scenario: Node config and compose
+- **WHEN** `lavalink/application.yml` and `compose.yaml` are read
+- **THEN** youtube-source's `remoteCipher` takes its URL and password from the two variables, with
+  those defaults, and the `lavalink` service passes both from `.env`
+
+#### Scenario: Example
+- **WHEN** `.env.example` is read
+- **THEN** it holds `YOUTUBE_CIPHER_URL` and `YOUTUBE_CIPHER_PASSWORD` as comments only
