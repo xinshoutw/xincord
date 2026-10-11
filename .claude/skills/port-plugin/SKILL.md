@@ -453,7 +453,10 @@ async def setup(bot: Bot) -> None:
   seconds from one step's start to the next (a config key with a minimum, 0.1 seconds at least
   after a slow answer), only from a configured start and while anything is registered. Ask for the
   registered items, not a whole catalogue: NTUST's course query no longer answers v3's catalogue
-  request, and a client timeout under the server's would pile queries up there. Repeated alerts
+  request, and a client timeout under the server's would pile queries up there. Take only whole
+  items from members (nine-character codes): a query that matches prefixes widens with a short one.
+  Keep one failure episode per item (`Failures` per code): the others' successes would end a
+  failing item's episode at every round. Repeated alerts
   are throttled per channel and item (`alerts.Alerts`), and posts are tasks kept in a set on the
   cog (`posting`), so that a rate-limited channel holds up no step; `cog_unload` cancels them with
   the loop.

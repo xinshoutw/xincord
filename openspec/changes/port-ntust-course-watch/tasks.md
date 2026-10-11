@@ -72,7 +72,7 @@
 - [x] 9.7 xfail tests for limits written with digits outside the BMP and a course missing from one
       answer (found in the review: v3 read both differently)
 - [x] 9.8 Read BMP digits only and keep a course's state when an answer lacks it; remove the markers
-- [ ] 9.9 Test the 100-user cap; record the review in the design (v3's lenient counts, reloads that
+- [x] 9.9 Test the 100-user cap; record the review in the design (v3's lenient counts, reloads that
       alert again)
 
 ## 10. Close

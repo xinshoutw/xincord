@@ -217,7 +217,7 @@ nothing is registered, no course SHALL be asked about. A reload SHALL replace th
 When a checked course has seats, each channel that registered it SHALL get the default locale's
 `alert.available`, with v3's second of the minute, its members' mentions and the course's name and
 code, pinging those members only, at most once per `alert-interval` for the channel and the course.
-A post too long for 2000 characters SHALL be split between its mentions.
+A post too long for 2000 characters SHALL be split between its mentions, at most 100 a post.
 
 #### Scenario: Seats
 - **WHEN** `CE162A001` has seats and two members registered it in channel 5
@@ -232,6 +232,10 @@ A post too long for 2000 characters SHALL be split between its mentions.
 - **WHEN** 120 members registered the course in the channel
 - **THEN** the alert comes in several posts of at most 2000 characters, each pinging its own
   members, every member once
+
+#### Scenario: Many short IDs
+- **WHEN** 150 members whose IDs are short registered the course in the channel
+- **THEN** the alert comes in posts of 100 and 50 members, Discord's limit of allowed users
 
 #### Scenario: Brackets in a name
 - **WHEN** the course's name holds `[`, `]` or `\`

@@ -59,6 +59,17 @@ def test_many_members(cog: NtustCourseWatch) -> None:
     assert tuple(user for post in posts for user in post.users) == members
 
 
+def test_hundred_users_a_post(cog: NtustCourseWatch) -> None:
+    """Requirement: Channels hear about courses with seats."""
+    members = tuple(range(1, 151))  # short IDs: the length allows them all in one message
+
+    posts = available_posts(cog.lang, COURSE, members, 0)
+
+    # Discord takes at most 100 users in a message's allowed mentions.
+    assert [len(post.users) for post in posts] == [100, 50]
+    assert tuple(user for post in posts for user in post.users) == members
+
+
 @pytest.mark.parametrize(
     ("name", "escaped"),
     [

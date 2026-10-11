@@ -792,7 +792,9 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   on 2026-10-11, no answer in 60 seconds, then a 500 after 120. It matches `CourseNo` as a prefix
   and lists a course once per room and time, all with the same counts; a code's request answers in
   under a second. A client timeout shorter than a server's slow query would let a loop pile up
-  queries on the server: ask for less instead (NtustCourseWatch).
+  queries on the server: ask for less instead, and take only whole codes (nine characters), since
+  a short one is a prefix that asks about a department or most of the catalogue (NtustCourseWatch,
+  found in its cross-review).
 - **Times in YAML.** PyYAML reads `2025-12-26T09:00:00+08:00` as an aware `datetime` and the same
   time without its offset as a naive one, which a container would take as UTC: require the offset
   (pydantic's `AwareDatetime`). YAML 1.1 also reads `0115` as the octal 77, which
@@ -1043,7 +1045,7 @@ Every deliberate difference, added by the change that introduces it.
 | NtustAnnouncements | a link that named `.ntust.edu.tw/p/<n>.php` in its path or query counted as an article whatever its host, and was sent to Gemini; a part of only whitespace could not be sent | only NTUST's hosts count; blank parts are left out | port-ntust-announcements |
 | Plugin names | `NtustCourse`, with its files in `plugins/NtustCourse/` | `NtustCourseWatch` under `plugins:` and as `plugins/NtustCourseWatch/`; `migrate_v3` maps the name and moves the directory | rename-plugins, port-ntust-course-watch |
 | NtustCourseWatch | registrations never loaded after a restart, and the next change overwrote the stored ones | v3's document in the store, read at each use (the planned v3 data import copies it) | port-ntust-course-watch |
-| NtustCourseWatch | `/course-remove` unregistered every member of the channel; `/course-list` matched IDs as substrings and listed duplicates; codes were stored as typed | only the member; exact, once each, sorted; codes NFKC, trimmed and upper-cased, other than 1 to 20 letters and digits refused with the new `invalid-code` | port-ntust-course-watch |
+| NtustCourseWatch | `/course-remove` unregistered every member of the channel; `/course-list` matched IDs as substrings and listed duplicates; codes were stored as typed | only the member; exact, once each, sorted; codes NFKC, trimmed and upper-cased, other than 9 to 20 letters and digits (NTUST matches codes as prefixes) refused with the new `invalid-code`, stored ones read the same way | port-ntust-course-watch |
 | NtustCourseWatch | a course with seats was posted at every poll (about every 1.5 seconds), beyond Discord's rate limit; mentions over 2000 characters and any other exception stopped the loop until a reload; a reload doubled every alert | at most once per `alert-interval` (60 seconds) per channel and course, a full alert once after an available one, long mentions split, every step and post guarded, a reload replaces the loop | port-ntust-course-watch |
 | NtustCourseWatch | the semester (`1142`) and the go-live time were hard-coded; the whole catalogue was asked for every 1.5 seconds, before the go-live time and with nobody registered, without a timeout | `semester`, `start` (with its offset), `interval` (1.5, at least 1) and `alert-interval` in config with v3's values; one registered code per request, in turn, from `start` while anything is registered, 30-second timeout, since NTUST no longer answers the whole catalogue | port-ntust-course-watch |
 | NtustCourseWatch | English replies and descriptions for everyone; failures printed to stdout; a deleted channel's registrations kept forever; a `]` in a course's name broke the alert's link | zh-TW translations (the alerts stay English); English log lines once per kind and episode; a 404 forgets the channel; names escaped | port-ntust-course-watch |

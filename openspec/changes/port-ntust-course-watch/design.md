@@ -158,9 +158,11 @@ the Web Dashboard (B13).
   answer: the course's previous state (from its previous check) and the new one decide the alerts.
   A failed request, or an answer without the course, keeps the previous state, as v3 skipped an
   empty answer. States of codes no longer registered are dropped.
-- Any unexpected `Exception` in a step is logged with its traceback and the loop goes on;
-  cancellation stays quiet. `cog_unload` sets `closed`, cancels the loop and the posts under way and
-  awaits them, so the session closes before the bot's HTTP client; a reload builds a new cog (v3
+- Any unexpected `Exception` in a step is logged, once per kind and episode with its traceback,
+  and the loop goes on; cancellation stays quiet. An error that ends the loop (a session that cannot
+  open) is logged by the task's done callback. `cog_unload` cancels the loop and the posts under way
+  and awaits them, so the session closes before the bot's HTTP client; the cog has no listeners and
+  starts posts only from the loop, so it needs no `closed` flag. A reload builds a new cog (v3
   added a second subscriber at every reload while enabled, doubling every alert).
 
 ### Alerts
@@ -231,7 +233,9 @@ the Web Dashboard (B13).
   (no answer in 60 seconds, then a 500 after 120, on 2026-10-11); the plugin asks about one
   registered code per step.
 - v3 behaved differently: one malformed course in the answer failed the whole poll; only the
-  checked course's entry is read.
+  checked course's entry is read. Moshi also read a count (`ChooseStudent`) given as text (`"25"`)
+  or as a whole decimal number (`25.0`); the port refuses such an entry as an unreadable answer,
+  logged once per episode, since NTUST sends integers.
 - v3 behaved differently: an available alert with mentions over 2000 characters made JDA throw,
   which stopped the loop; it is split into several posts.
 - v3 behaved differently: a course name with `]` broke the alert's link; brackets and backslashes
@@ -285,8 +289,47 @@ operator's log lines (English).
   `interval`, and only the detection slows down.
 - The registrations are read at the start of a step; a member who unregisters while the course is
   being asked about may get that step's alert.
-- The throttle and the course states live in memory: after a restart or a reload, the first check of
-  a course with seats alerts again, as v3's first poll did.
+- The throttle and the course states live in memory: after a restart or any reload of the plugin
+  (`/xincord reload` with or without its name, SIGHUP, the console's `reload`), the first check of
+  a course with seats alerts again at once, as v3's first poll did, and a full alert owed before it
+  is not posted (found in the cross-review; keeping them in the store was left out as not worth
+  its weight).
+
+## Cross-review (a subagent, 2026-10-11)
+
+A review of the pushed work (other paths into a step or a command, repeated or concurrent steps
+and commands, state left behind), with scratch probes through the loaded plugin, a real reload and
+the steps with fakes, found no lifecycle bug (reloads, failed reloads, `--no-online`, a second
+READY and a load into a ready bot never ran two loops; cancellation never starts a post) and these
+problems, fixed in this change (tasks 9.3 to 9.9):
+
+1. (medium) Codes of one to eight characters were accepted, and NTUST matches a code as a prefix:
+   `/course-add id:C` asked about most of the catalogue at every round, each request running into
+   the 30-second timeout and slowing every other course. Codes are 9 to 20 letters and digits.
+2. (medium) One failure episode for every code: with four codes, the others' answers ended a
+   failing code's episode at every round, which then warned and said "works again" every round,
+   and a second code failing alike was never warned about. Each code has its own episode.
+3. (low) An unexpected error at every step (a locked database) logged a traceback at every step.
+   Unexpected errors are logged once per kind and episode.
+4. (low) An error that ended the loop (the TLS certificate missing) was logged nowhere.
+   The task's done callback logs it.
+5. (low) Stored codes were used as they were: a v3 import or a hand edit could leave an empty code,
+   which asks for the whole semester, codes as typed, which never match, and codes that
+   `/course-remove` refuses. They are read as `/course-add` reads them; the others are left out.
+6. (low) A deleted channel's alert of two posts logged it as gone twice, and its failure record
+   stayed. Logged once, and the record goes.
+7. (low) Digits outside the BMP read as a number, where Kotlin's UTF-16 strings gave none; an answer
+   without the course dropped its state, where v3 skipped an empty answer and kept it. Both follow
+   v3 now; Moshi's lenient counts are recorded above as a difference.
+8. (low) Reloads alert again at once and drop owed full alerts: recorded under Risks.
+9. A test for the 100 allowed users per post, which the other test never reached.
+
+The review also found sound: one loop at a time across every path; posts never started after
+cancellation; commands and the 404 forget serialized under the store's lock with whole-document
+reads; the throttle, the owed full alerts and flapping seats; pacing and the time gate across
+offsets; the alert texts against v3's Kotlin; the request body, the header and no redirects; the
+exact code match and the last entry; `toIntOrNull` for signs, the Int range and the 4,300-digit
+guard; Discord's limits; and no error text leaking anything.
 
 ## Checks
 
