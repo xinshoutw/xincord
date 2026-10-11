@@ -5,7 +5,6 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
-import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -157,11 +156,11 @@ def test_lavalink_plugins_are_managed() -> None:
     """Requirement: Renovate updates the versions that no manager reads."""
     manager = custom(renovate(), "maven")
     (match,) = (pattern(item) for item in manager["matchStrings"])
-    text = (ROOT / "lavalink" / "application.yml").read_text(encoding="utf-8")
+    text = (ROOT / "compose.yaml").read_text(encoding="utf-8")
     found = {item["depName"]: item["currentValue"] for item in match.finditer(text)}
 
     files = cast("list[str]", manager["managerFilePatterns"])
-    assert any(pattern(item).search("lavalink/application.yml") for item in files)
+    assert any(pattern(item).search("compose.yaml") for item in files)
     assert set(found) == {
         "dev.lavalink.youtube:youtube-plugin",
         "com.github.topi314.lavasrc:lavasrc-plugin",
@@ -181,7 +180,6 @@ def test_snapshot_pins_stay() -> None:
     assert snapshot[0]["enabled"] is False
 
 
-@pytest.mark.xfail(strict=True, reason="Renovate updates the versions that no manager reads")
 def test_node_plugins_in_compose() -> None:
     """Requirement: Renovate updates the versions that no manager reads."""
     manager = custom(renovate(), "maven")

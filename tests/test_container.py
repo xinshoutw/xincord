@@ -2,8 +2,8 @@
 
 import re
 from pathlib import Path
+from typing import Any, cast
 
-import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -22,6 +22,12 @@ def instructions() -> list[tuple[str, str]]:
         keyword, _, arguments = line.strip().partition(" ")
         steps.append((keyword.upper(), " ".join(arguments.split())))
     return steps
+
+
+def node_config() -> dict[str, Any]:
+    """Return the Lavalink node's config, inline in `compose.yaml`, as compose leaves it."""
+    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
+    return cast("dict[str, Any]", yaml.safe_load(compose["configs"]["lavalink"]["content"]))
 
 
 def test_image_definition() -> None:
@@ -48,7 +54,8 @@ def test_build_context() -> None:
     lines = (ROOT / ".dockerignore").read_text(encoding="utf-8").splitlines()
     ignored = {line.strip() for line in lines if line.strip() and not line.startswith("#")}
 
-    assert {".git", ".venv", "**/__pycache__", ".pytest_cache", ".ruff_cache", "bot"} <= ignored
+    assert {".git", ".venv", "**/__pycache__", ".pytest_cache", ".ruff_cache"} <= ignored
+    assert {"config.yaml", "plugins", "data"} <= ignored  # the bot's files in a clone
 
 
 def test_service_definition() -> None:
@@ -56,8 +63,7 @@ def test_service_definition() -> None:
     compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
     bot = compose["services"]["bot"]
 
-    assert bot["build"] == "."
-    assert bot["volumes"] == ["./bot:/bot", "data:/bot/data"]
+    assert bot["volumes"] == [".:/bot", "data:/bot/data"]
     assert (bot["stdin_open"], bot["tty"], bot["init"]) == (True, True, True)
     assert bot["restart"] == "unless-stopped"
     assert bot["stop_grace_period"] == "30s"
@@ -88,7 +94,7 @@ def test_build_context_leaves_out_the_secrets() -> None:
     lines = (ROOT / ".dockerignore").read_text(encoding="utf-8").splitlines()
     ignored = {line.strip() for line in lines if line.strip() and not line.startswith("#")}
 
-    assert {".env", "lavalink"} <= ignored
+    assert ".env" in ignored
 
 
 def test_bot_starts_after_the_node() -> None:
@@ -107,7 +113,9 @@ def test_lavalink_service() -> None:
     lavalink = compose["services"]["lavalink"]
 
     assert LAVALINK_IMAGE.fullmatch(lavalink["image"])  # Ubuntu (glibc for DAVE), arm64 too
-    assert lavalink["volumes"] == ["./lavalink/application.yml:/opt/Lavalink/application.yml:ro"]
+    assert lavalink["configs"] == [
+        {"source": "lavalink", "target": "/opt/Lavalink/application.yml"}
+    ]
     password = lavalink["environment"]["LAVALINK_SERVER_PASSWORD"]
     assert password.startswith("${LAVALINK_PASSWORD:?")  # from .env, required
     health = " ".join(lavalink["healthcheck"]["test"])
@@ -124,7 +132,7 @@ def test_lavalink_service() -> None:
 
 def test_node_config() -> None:
     """Requirement: Lavalink service."""
-    config = yaml.safe_load((ROOT / "lavalink" / "application.yml").read_text(encoding="utf-8"))
+    config = node_config()
 
     dependencies = [plugin["dependency"] for plugin in config["lavalink"]["plugins"]]
     assert [dependency.rsplit(":", 1)[0] for dependency in dependencies] == [
@@ -140,7 +148,7 @@ def test_node_config() -> None:
     sources = config["lavalink"]["server"]["sources"]
     assert (sources["youtube"], sources["http"], sources["local"]) == (False, False, False)
     assert config["logging"]["request"]["enabled"] is False  # it would log every search
-    assert config["plugins"]["lavasrc"]["sources"]["spotify"] == "${SPOTIFY_ENABLED:false}"
+    assert config["plugins"]["lavasrc"]["sources"]["spotify"] == "${SPOTIFY_ENABLED:-false}"
     assert config["plugins"]["youtube"]["enabled"] is True
 
 
@@ -160,7 +168,7 @@ def test_secrets_stay_untracked() -> None:
 
 def test_node_logs_no_queries() -> None:
     """Requirement: Lavalink service."""
-    config = yaml.safe_load((ROOT / "lavalink" / "application.yml").read_text(encoding="utf-8"))
+    config = node_config()
 
     # Lavalink 4.2.2's load handler names each identifier at INFO (checked with the image).
     assert config["logging"]["level"]["lavalink.server.player.AudioLoaderRestHandler"] == "WARN"
@@ -168,18 +176,13 @@ def test_node_logs_no_queries() -> None:
 
 def test_youtube_oauth() -> None:
     """Requirement: YouTube OAuth for the node."""
-    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
-    environment = compose["services"]["lavalink"]["environment"]
-    config = yaml.safe_load((ROOT / "lavalink" / "application.yml").read_text(encoding="utf-8"))
-    youtube = config["plugins"]["youtube"]
+    youtube = node_config()["plugins"]["youtube"]
     example = (ROOT / ".env.example").read_text(encoding="utf-8").splitlines()
 
-    assert environment["YOUTUBE_OAUTH_ENABLED"] == "${YOUTUBE_OAUTH_ENABLED:-false}"
-    assert environment["YOUTUBE_OAUTH_REFRESH_TOKEN"] == "${YOUTUBE_OAUTH_REFRESH_TOKEN:-}"
     assert youtube["clients"] == ["MUSIC", "ANDROID_VR", "WEB", "WEBEMBEDDED", "TV"]
-    assert youtube["oauth"] == {
-        "enabled": "${YOUTUBE_OAUTH_ENABLED:false}",
-        "refreshToken": "${YOUTUBE_OAUTH_REFRESH_TOKEN:}",
+    assert youtube["oauth"] == {  # compose fills them in from .env
+        "enabled": "${YOUTUBE_OAUTH_ENABLED:-false}",
+        "refreshToken": "${YOUTUBE_OAUTH_REFRESH_TOKEN:-}",
     }
     assert "# YOUTUBE_OAUTH_ENABLED=true" in example
     assert "# YOUTUBE_OAUTH_REFRESH_TOKEN=" in example
@@ -187,22 +190,16 @@ def test_youtube_oauth() -> None:
 
 def test_remote_cipher() -> None:
     """Requirement: Remote cipher for the node."""
-    compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
-    environment = compose["services"]["lavalink"]["environment"]
-    config = yaml.safe_load((ROOT / "lavalink" / "application.yml").read_text(encoding="utf-8"))
     example = (ROOT / ".env.example").read_text(encoding="utf-8").splitlines()
 
-    assert config["plugins"]["youtube"]["remoteCipher"] == {
-        "url": "${YOUTUBE_CIPHER_URL:https://cipher.kikkia.dev/}",
-        "password": "${YOUTUBE_CIPHER_PASSWORD:}",
+    assert node_config()["plugins"]["youtube"]["remoteCipher"] == {  # compose fills them in
+        "url": "${YOUTUBE_CIPHER_URL:-https://cipher.kikkia.dev/}",
+        "password": "${YOUTUBE_CIPHER_PASSWORD:-}",
     }
-    assert environment["YOUTUBE_CIPHER_URL"] == "${YOUTUBE_CIPHER_URL:-https://cipher.kikkia.dev/}"
-    assert environment["YOUTUBE_CIPHER_PASSWORD"] == "${YOUTUBE_CIPHER_PASSWORD:-}"
     assert any(line.startswith("# YOUTUBE_CIPHER_URL=") for line in example)
     assert "# YOUTUBE_CIPHER_PASSWORD=" in example
 
 
-@pytest.mark.xfail(strict=True, reason="Compose service")
 def test_published_image_in_its_own_directory() -> None:
     """Requirement: Compose service."""
     compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
@@ -213,7 +210,6 @@ def test_published_image_in_its_own_directory() -> None:
     assert bot["volumes"] == [".:/bot", "data:/bot/data"]
 
 
-@pytest.mark.xfail(strict=True, reason="Compose service")
 def test_building_from_a_clone() -> None:
     """Requirement: Compose service."""
     override = yaml.safe_load((ROOT / "compose.build.yaml").read_text(encoding="utf-8"))
@@ -221,7 +217,6 @@ def test_building_from_a_clone() -> None:
     assert override["services"]["bot"] == {"build": ".", "image": "xincord:local"}
 
 
-@pytest.mark.xfail(strict=True, reason="Lavalink service")
 def test_node_config_inline() -> None:
     """Requirement: Lavalink service."""
     compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))

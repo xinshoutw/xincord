@@ -1,11 +1,14 @@
-# docker compose up -d --build     start; config.yaml and plugins/ are in ./bot, secrets in .env
-# docker compose attach bot        open the console (Ctrl-P Ctrl-Q detaches)
-# docker compose kill -s HUP bot   reload the config and the plugins
-# docker compose stop              stop
+# xincord with docker compose, no clone needed: put this file and .env.example in an empty
+# directory, copy .env.example to .env and set LAVALINK_PASSWORD (see README, "Docker"), then:
+#   docker compose up -d             start; the bot writes config.yaml and plugins/ here
+#   docker compose attach bot        open the console (Ctrl-P Ctrl-Q detaches)
+#   docker compose kill -s HUP bot   reload the config and the plugins
+#   docker compose pull              update to XINCORD_VERSION, then up -d again
+#   docker compose stop              stop
+# A clone builds the image instead: docker compose -f compose.yaml -f compose.build.yaml up -d --build
 services:
   bot:
-    build: .
-    image: xincord:local
+    image: ghcr.io/xinshoutw/xincord:${XINCORD_VERSION:-latest}
     restart: unless-stopped
     init: true
     # The console needs a terminal on stdin and stdout.
@@ -16,7 +19,7 @@ services:
       # The bot's time zone, an IANA name from .env (see .env.example); UTC when unset.
       TZ: ${TZ:-UTC}
     volumes:
-      - ./bot:/bot
+      - .:/bot  # config.yaml and plugins/ sit next to this file
       - data:/bot/data  # the database and the plugins' data files stay in a named volume
     logging:
       driver: json-file
@@ -29,26 +32,17 @@ services:
         condition: service_started
 
   # The Lavalink node that plays MusicPlayer's audio (decision B14): Lavalink 4.2 with DAVE, the
-  # end-to-end encryption that Discord requires for voice, and the plugins of
-  # lavalink/application.yml. The Ubuntu image: the Alpine one lacks the glibc that DAVE needs.
+  # end-to-end encryption that Discord requires for voice, and the config below. The Ubuntu image:
+  # the Alpine one lacks the glibc that DAVE needs.
   lavalink:
     image: ghcr.io/lavalink-devs/lavalink:4.2.2
     restart: unless-stopped
     environment:
       # Set in .env (see .env.example); MusicPlayer's lavalink.password is the same.
       LAVALINK_SERVER_PASSWORD: ${LAVALINK_PASSWORD:?Set LAVALINK_PASSWORD in .env (see .env.example)}
-      SPOTIFY_ENABLED: ${SPOTIFY_ENABLED:-false}
-      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
-      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
-      SPOTIFY_COUNTRY_CODE: ${SPOTIFY_COUNTRY_CODE:-TW}
-      # YouTube's sign-in for videos that ask for one (see .env.example).
-      YOUTUBE_OAUTH_ENABLED: ${YOUTUBE_OAUTH_ENABLED:-false}
-      YOUTUBE_OAUTH_REFRESH_TOKEN: ${YOUTUBE_OAUTH_REFRESH_TOKEN:-}
-      # The server that solves YouTube's signatures (see .env.example).
-      YOUTUBE_CIPHER_URL: ${YOUTUBE_CIPHER_URL:-https://cipher.kikkia.dev/}
-      YOUTUBE_CIPHER_PASSWORD: ${YOUTUBE_CIPHER_PASSWORD:-}
-    volumes:
-      - ./lavalink/application.yml:/opt/Lavalink/application.yml:ro
+    configs:
+      - source: lavalink
+        target: /opt/Lavalink/application.yml
     # Only the bot reaches it, over compose's network: no port is published on the host.
     expose:
       - "2333"
@@ -66,6 +60,77 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+# The node's application.yml (https://lavalink.dev/configuration/). Compose fills in each ${...}
+# from .env; a literal dollar sign would be $$. The node downloads its plugins when it starts.
+configs:
+  lavalink:
+    content: |
+      server:
+        port: 2333
+        address: 0.0.0.0
+        http2:
+          enabled: false
+
+      lavalink:
+        plugins:
+          # YouTube: search, videos and playlists (lavaplayer's own YouTube source is deprecated). A
+          # snapshot of master (2026-09-17), from Lavalink's snapshot repository: 1.18.2's TV client is
+          # refused by YouTube (youtube-source #226, fixed in #233). Back to a release that holds it.
+          - dependency: "dev.lavalink.youtube:youtube-plugin:2be8e542d3f6f178e048dca565892684c2e40177"
+            snapshot: true
+          # Spotify links, played from YouTube; its source is off unless SPOTIFY_ENABLED is true.
+          - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.8.3"
+            snapshot: false
+        server:
+          sources:
+            youtube: false # deprecated: the youtube plugin replaces it
+            bandcamp: true
+            soundcloud: true
+            twitch: true
+            vimeo: true
+            nico: true
+            http: false # any URL: members could make the node fetch addresses on the host's network
+            local: false # the node's own files
+          youtubeSearchEnabled: true
+          soundcloudSearchEnabled: true
+
+      plugins:
+        youtube:
+          enabled: true
+          allowSearch: true # ytsearch:, which MusicPlayer sends for anything that is no link
+          allowDirectVideoIds: true
+          allowDirectPlaylistIds: true
+          # youtube-source's defaults, then TV, the only client that uses the OAuth account: videos that
+          # ask the others to sign in play through it.
+          clients: [MUSIC, ANDROID_VR, WEB, WEBEMBEDDED, TV]
+          oauth: # a spare Google account, from .env (YOUTUBE_OAUTH_*); off by default
+            enabled: ${YOUTUBE_OAUTH_ENABLED:-false}
+            refreshToken: "${YOUTUBE_OAUTH_REFRESH_TOKEN:-}"
+          # youtube-source no longer solves YouTube's signatures well itself: a yt-cipher server does, by
+          # default its author's public one; set YOUTUBE_CIPHER_URL (and _PASSWORD) in .env for your own.
+          remoteCipher:
+            url: "${YOUTUBE_CIPHER_URL:-https://cipher.kikkia.dev/}"
+            password: "${YOUTUBE_CIPHER_PASSWORD:-}"
+        lavasrc:
+          providers: # how a Spotify song is found on YouTube
+            - "ytsearch:\"%ISRC%\""
+            - "ytsearch:%QUERY%"
+          sources:
+            spotify: ${SPOTIFY_ENABLED:-false}
+          spotify:
+            clientId: "${SPOTIFY_CLIENT_ID:-}"
+            clientSecret: "${SPOTIFY_CLIENT_SECRET:-}"
+            countryCode: "${SPOTIFY_COUNTRY_CODE:-TW}"
+
+      logging:
+        request:
+          enabled: false # it would log every member's search
+        level:
+          root: INFO
+          lavalink: INFO
+          # Its INFO lines name each load's identifier: every member's search and link.
+          lavalink.server.player.AudioLoaderRestHandler: WARN
 
 volumes:
   data:

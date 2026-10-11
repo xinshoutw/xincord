@@ -31,21 +31,29 @@ and the plugins without disconnecting. In a terminal, the `console > ` prompt ac
 
 ## Docker
 
+No clone needed: an empty directory with `compose.yaml` and `.env` runs the published image, and the
+bot keeps `config.yaml` and `plugins/` next to them.
+
 ```sh
-cp .env.example .env             # once: set LAVALINK_PASSWORD (and TZ, Spotify, YouTube OAuth)
-docker compose up -d --build     # start; the bot writes bot/config.yaml on the first start
+curl -fsSLO https://raw.githubusercontent.com/xinshoutw/xincord/main/compose.yaml
+curl -fsSL -o .env https://raw.githubusercontent.com/xinshoutw/xincord/main/.env.example
+# in .env: LAVALINK_PASSWORD, and XINCORD_VERSION, TZ, Spotify or YouTube's settings if wanted
+docker compose up -d             # start; the bot writes config.yaml and plugins/ on the first start
 docker compose attach bot        # the console (Ctrl-P Ctrl-Q detaches)
 docker compose kill -s HUP bot   # reload the config and the plugins
 docker compose logs -f bot       # logs, rotated at 10 MB
+docker compose pull              # update to XINCORD_VERSION, then docker compose up -d
 docker compose stop              # stop
 ```
 
-The image runs `xincord` as a non-root user. `./bot` holds `config.yaml` and `plugins/<Name>/`
-for editing on the host; the database stays in the `xincord_data` volume. The `lavalink` service
-plays MusicPlayer's audio (`lavalink/application.yml`); its password is `LAVALINK_PASSWORD` in
-`.env`, and `lavalink.password` in `bot/plugins/MusicPlayer/config.yaml` is the same. Videos that
-YouTube plays only to a signed-in client need its OAuth on a spare Google account; YouTube's
-signatures are solved by a remote yt-cipher server, the public one by default (`.env.example`).
+The image runs `xincord` as a non-root user; the database stays in the `<directory>_data` volume
+(the empty `data/` beside `compose.yaml` is only its mount point).
+The `lavalink` service plays MusicPlayer's audio with the config inline in `compose.yaml`; its
+password is `LAVALINK_PASSWORD` in `.env`, and `lavalink.password` in
+`plugins/MusicPlayer/config.yaml` is the same. Videos that YouTube plays only to a signed-in client
+need its OAuth on a spare Google account; YouTube's signatures are solved by a remote yt-cipher
+server, the public one by default (`.env.example`). In a clone, `docker compose -f compose.yaml -f
+compose.build.yaml up -d --build` builds the image instead of pulling it.
 
 ## Development
 

@@ -39,7 +39,7 @@
     {
       "customType": "regex",
       "description": "The Lavalink node's plugins, from the repository the node downloads them from.",
-      "managerFilePatterns": ["/^lavalink/application\\.yml$/"],
+      "managerFilePatterns": ["/^compose\\.yaml$/"],
       "matchStrings": ["dependency: \"(?<depName>[^:\"]+:[^:\"]+):(?<currentValue>[^\"]+)\""],
       "datasourceTemplate": "maven",
       "registryUrlTemplate": "https://maven.lavalink.dev/releases"
@@ -63,8 +63,8 @@
       "enabled": false
     },
     {
-      "description": "The workspace's own packages and compose's locally built image.",
-      "matchPackageNames": ["xincord", "xincord-plugins"],
+      "description": "The workspace's own packages and compose's xincord image, which .env pins.",
+      "matchPackageNames": ["xincord", "xincord-plugins", "ghcr.io/xinshoutw/xincord"],
       "enabled": false
     },
     {

@@ -11,11 +11,9 @@ docs
 openspec
 scripts
 tests
-# Files the bot writes when it runs from the repository root or under compose.
-bot
+# Files the bot writes when it runs from the repository root, under compose too.
 config.yaml
 plugins
 data
-# Secrets for compose, and the Lavalink node's config, which the bot's image does not need.
+# Secrets for compose.
 .env
-lavalink

@@ -10,10 +10,9 @@ htmlcov/
 .ruff_cache/
 .DS_Store
 .idea/
-# Files the bot writes when it runs from the repository root, or in bot/ under compose.
+# Files the bot writes when it runs from the repository root, under compose too.
 /config.yaml
 /plugins/
 /data/
-/bot/
 # Secrets for compose (.env.example lists them).
 /.env
