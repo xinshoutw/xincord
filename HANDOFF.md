@@ -563,7 +563,7 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 `rename-plugins`, `uptime-heartbeat-keep-pushing`, `custom-commands-from-config`,
 `chat-logger-split-storage`, `port-ticket`, `port-ticket-away-notice`,
 `port-ntust-announcements`, `port-ntust-course-watch`, `port-music-player`,
-`ntust-announcements-model-config`, `ticket-staff-controls`, `dependency-updates`. Each one's `design.md` in
+`ntust-announcements-model-config`, `ticket-staff-controls`, `dependency-updates`, `release-pipeline`. Each one's `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
@@ -590,10 +590,11 @@ the owner's labels (`ticket-staff-controls`).
 
 Dependency updates run (`dependency-updates`): Dependabot opens security updates, Renovate version
 updates on Mondays, offering a release once it is 7 days old and merging patch updates and the
-monthly lock-file maintenance itself after CI. Next in the repository: `release-pipeline`
-(decisions.md, Amendment 4: a GPG-signed `v*` tag builds both distributions and a multi-arch GHCR
-image and creates the GitHub Release; PyPI publishing stays off until 1.0.0 and a public
-repository).
+monthly lock-file maintenance itself after CI. Releases run (`release-pipeline`, decisions.md,
+Amendment 4): a GPG-signed `v*` tag that the owner pushes (README, "Releasing") is verified,
+builds both distributions and a multi-arch image for GHCR, and creates the GitHub Release; PyPI
+publishing waits for 1.0.0 and the owner's `pypi` environment. A manual run is a dry run. Nothing
+else waits in the repository: the cutover is next.
 
 The planned `xincord migrate` tool is dropped (the owner's decision of 2026-10-11,
 `decisions.md`, Amendment 6). At the cutover, when the owner asks, Claude operates the production

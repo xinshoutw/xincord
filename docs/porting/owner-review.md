@@ -650,3 +650,17 @@ here; delete a section once it is empty.
 ### Manual checks
 - After this change lands, Renovate's first run opens the Dependency Dashboard issue; check that its first patch PR merges itself after CI.
 - GitHub documents Dependabot's uv support at uv 0.11, while `uv.lock` comes from uv 0.12: if a Dependabot uv security PR fails on the lock file, turn on Renovate's `vulnerabilityAlerts` instead.
+
+## Releases (`release-pipeline`)
+
+### User-visible changes
+- Pushing a GPG-signed `v*` tag (README, "Releasing") releases xincord: the workflow checks the signature against your GitHub GPG keys and the versions, pushes `ghcr.io/xinshoutw/xincord:<version>` and `:latest` (amd64 and arm64), and creates the GitHub Release with both distributions attached.
+### Choices made without the owner
+- 0.x releases are GitHub prereleases; alternative: ordinary releases.
+- `latest` moves with every release, 0.x included; alternative: `latest` only from 1.0.0.
+- Release notes list the commit subjects since the previous tag; alternative: a CHANGELOG file or a changelog tool.
+- arm64 is built through QEMU on one runner (slower, several minutes); alternative: native arm64 runners, if the plan offers them for private repositories.
+### Manual checks
+- Before the first 1.x tag: create the `pypi` environment with yourself as required reviewer (Settings, Environments), and add pending trusted publishers on PyPI for `xincord` and `xincord-plugins` (workflow `release.yml`, environment `pypi`).
+- When the repository goes public: make the GHCR package `xincord` public too.
+- Bumping a version needs `uv lock` before the commit, or CI's `uv sync --locked` fails.

@@ -11,5 +11,5 @@
 
 ## 3. Docs and close
 
-- [ ] 3.1 README (releasing), AGENTS.md, HANDOFF, the review queue (the owner's settings)
-- [ ] 3.2 Archive, `validate --all --strict`, push, CI green
+- [x] 3.1 README (releasing), AGENTS.md, HANDOFF, the review queue (the owner's settings)
+- [x] 3.2 Archive, `validate --all --strict`, push, CI green

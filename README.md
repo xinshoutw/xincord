@@ -59,6 +59,24 @@ Specifications live in `openspec/`; project rules for contributors and coding ag
 `AGENTS.md`. Renovate opens version updates and Dependabot security updates
 (`.github/renovate.json`, `.github/dependabot.yml`).
 
+## Releasing
+
+A GPG-signed `v*` tag releases xincord:
+
+```sh
+# Set the same version in pyproject.toml and packages/xincord-plugins/pyproject.toml.
+uv lock
+git commit -S -am "build: release 0.2.0"
+git push origin main
+git tag -s v0.2.0 -m "xincord 0.2.0"
+git push origin v0.2.0
+```
+
+The `release` workflow checks the tag's signature and the versions, builds both distributions and
+the `linux/amd64` and `linux/arm64` image `ghcr.io/xinshoutw/xincord`, and creates the GitHub
+Release (a prerelease while the version is 0.x). PyPI publishing starts at 1.0.0. Running the
+workflow by hand is a dry run that pushes and publishes nothing.
+
 ## License
 
 xincord is licensed under the GNU Affero General Public License v3 (AGPLv3).
