@@ -119,6 +119,11 @@ removed, ASCII whitespace collapsed); a page without either gives none.
   and an NTUST list page with a query
 - **THEN** only the article and the list page count as NTUST articles, as in v3
 
+#### Scenario: Other hosts
+- **WHEN** a link's host is not under `ntust.edu.tw`, though its path, query or fragment holds
+  `.ntust.edu.tw/p/<n>.php`
+- **THEN** it counts as no NTUST article (v3's pattern took it)
+
 ### Requirement: The prompt is filled in one pass
 The `prompt` SHALL be filled in one pass: `{{page_title}}` with the link's title, `{{page_url}}`
 with its URL, `{{base_url}}` with `https://` and the URL's host (`ntust.edu.tw` when it has none),

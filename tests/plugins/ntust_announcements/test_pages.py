@@ -301,3 +301,22 @@ def test_long_whitespace() -> None:
     # v3's trailing-whitespace step backtracked through each run: seconds for 30,000 spaces.
     assert time.perf_counter() - start < 1
     assert minified == "<p>a b</p><p>c\n</p>"
+
+
+@pytest.mark.xfail(strict=True, reason="Article pages give their content as minified HTML")
+@pytest.mark.parametrize(
+    "url",
+    [
+        pytest.param("https://example.com/x.ntust.edu.tw/p/1.php", id="path"),
+        pytest.param(
+            "https://www.google.com/url?q=https://student.ntust.edu.tw/p/406-1053-1.php",
+            id="query",
+        ),
+        pytest.param("https://example.com?.ntust.edu.tw/p/1.php", id="query without a path"),
+        pytest.param("https://example.com#.ntust.edu.tw/p/1.php", id="fragment"),
+    ],
+)
+def test_other_hosts(url: str) -> None:
+    """Requirement: Article pages give their content as minified HTML."""
+    # v3's .* took any host before .ntust.edu.tw: such pages were fetched and sent to Gemini.
+    assert not is_article(url)
