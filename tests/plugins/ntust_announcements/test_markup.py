@@ -183,3 +183,15 @@ def test_unsupported_selectors(selector: str) -> None:
     """Requirement: Board pages list their announcements."""
     with pytest.raises(ValueError, match="unsupported selector"):
         parse("<a>x</a>").select(selector)
+
+
+@pytest.mark.xfail(strict=True, reason="Board pages list their announcements")
+def test_deep_nesting() -> None:
+    """Requirement: Board pages list their announcements."""
+    # Unclosed elements nest; a page 3000 levels deep must not exhaust Python's recursion limit.
+    container = parse('<div class="M23">' + "<span>" * 3000 + "deep</div>").select_first("div")
+    assert container is not None
+
+    assert container.text() == "deep"
+    assert container.outer_html().startswith('<div class="M23"><span><span>')
+    assert container.outer_html().endswith("deep" + "</span>" * 3000 + "</div>")

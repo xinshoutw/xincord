@@ -395,3 +395,21 @@ async def test_refused_posts(scene: Scene) -> None:
 
     assert scene.sent == expected_posts(ENTRIES)
     assert len(scene.converted) == len(ARTICLES)
+
+
+@pytest.mark.xfail(strict=True, reason="Problems are logged without flooding or showing the keys")
+async def test_announcement_that_raises(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Problems are logged without flooding or showing the keys."""
+    failing = ARTICLES[0]
+    scene.pages[failing.url] = RuntimeError("unexpected")
+
+    with caplog.at_level(logging.DEBUG, logger=LOGGER):
+        await scene.watcher.check()
+        await scene.watcher.check()
+
+    # The board's other entries are posted; the failing one is tried again at each pass.
+    assert scene.sent == expected_posts([link for link in ENTRIES if link != failing])
+    assert scene.fetched.count(failing.url) == 2
+    [error] = [record for record in caplog.records if record.levelno == logging.ERROR]
+    assert failing.url in error.getMessage()
+    assert error.exc_info is not None

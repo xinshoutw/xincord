@@ -70,7 +70,7 @@
 - [x] 9.4 Keep an article's messages until they are posted; remove the marker
 - [x] 9.5 xfail test for a message part of only whitespace (found in the review: the rest was lost)
 - [x] 9.6 Drop blank parts; remove the marker
-- [ ] 9.7 xfail tests for an announcement that raises and for deeply nested pages (found in the
+- [x] 9.7 xfail tests for an announcement that raises and for deeply nested pages (found in the
       review: the board's later entries waited forever)
 - [ ] 9.8 Guard each announcement and walk the tree without recursion; remove the markers
 - [ ] 9.9 xfail test for a store write that fails after a post (found in the review: posted again)
