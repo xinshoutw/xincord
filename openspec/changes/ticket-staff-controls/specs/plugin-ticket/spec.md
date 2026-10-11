@@ -22,12 +22,12 @@ values SHALL be inserted as written.
   en-US
 
 ### Requirement: The control row locks and unlocks the ticket
-Lock and unlock SHALL act only for the ticket's staff (a staff role of the entry named by the
-row's message and index, or Administrator): acknowledged before any request to Discord, they SHALL
-deny or allow the ticket's member View Channel, other permissions kept, and show the other row
-(unlock: green `🔓`; lock: gray `🔒`; save: blue `💾`; delete: red `🗑`). Failures SHALL be told
-ephemerally; any other member SHALL get the admin-only text, a row without its entry the not-found
-text.
+Lock and unlock SHALL act only for the ticket's staff (a staff role of the row's entry but
+@everyone, or Administrator): acknowledged before any request to Discord, they SHALL deny or allow
+the ticket's member View Channel, other permissions kept, and show the other row (unlock: green
+`🔓`; lock: gray `🔒`; save: blue `💾`; delete: red `🗑`) with the same fields. Failures SHALL be
+told ephemerally; any other member SHALL get the admin-only text, a row without its entry the
+not-found text.
 
 #### Scenario: Lock and unlock
 - **WHEN** a staff member presses lock, then unlock
@@ -43,15 +43,20 @@ text.
 - **WHEN** the row's panel button is not stored
 - **THEN** the reply is the not-found text, ephemerally, and no overwrite or row changes
 
+#### Scenario: @everyone among the staff roles
+- **WHEN** the entry's staff roles hold @everyone, whose ID is the guild's, and the ticket's
+  member, holding no other staff role, presses lock or unlock
+- **THEN** the reply is the admin-only text, ephemerally, and no overwrite or row changes
+
 #### Scenario: A member who left
 - **WHEN** the ticket's member left the guild
 - **THEN** the reply is the lock-failed text with the error and the row is unchanged
 
 ### Requirement: Administrators delete the ticket
 Delete SHALL look the entry up by the row's message and index: without one, the not-found text; for
-a member with one of its staff roles or Administrator, an acknowledgement and the channel's
-deletion (a refusal reported); for any other member, the ticket's member too, the admin-only text,
-ephemerally, the channel kept.
+a member with one of its staff roles but @everyone, or Administrator, an acknowledgement and the
+channel's deletion (a refusal reported); for any other member, the ticket's member too, the
+admin-only text, ephemerally, the channel kept.
 
 #### Scenario: Deletion
 - **WHEN** a member with staff role 3 presses delete

@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from discord_fakes import FakeInteraction
 
 GOLDEN = golden("ticket")
+GUILD = 10  # the guild, whose ID its @everyone role shares
 PANEL = "500"
 ROW = 901  # the control row's message in the ticket channel
 FIELDS = {"user_id": "8", "msg_id": PANEL, "btn_index": "0"}
@@ -159,6 +160,31 @@ async def test_refused_selections(
     interaction = await scene.handle(selection)
 
     assert told(interaction, text)
+    assert target.sent == []  # nothing archived
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=NotImplementedError,
+    reason="Administrators choose where to save the conversation",
+)
+@pytest.mark.parametrize("control", ["button", "select"])
+async def test_everyone_among_the_staff_roles(scene: Scene, control: str) -> None:
+    """Requirement: Administrators choose where to save the conversation."""
+    target = await stored(scene)
+    scene.guild.roles.append(scene.guild.default_role)
+    await scene.store.put(
+        NAMESPACE, "10", {PANEL: [{"reasonTitle": "Why?", "adminIds": [GUILD], "categoryId": 0}]}
+    )
+    # discord.py lists @everyone among every member's roles; JDA's getRoles left it out.
+    member = scene.who(user=8, admin=False, roles=(GUILD,), message_id=ROW)
+
+    if control == "button":
+        interaction = await scene.click("save", member, **FIELDS)
+    else:
+        interaction = await scene.handle(scene.selection(select_id(), [str(TARGET)], member))
+
+    assert told(interaction, ADMIN_ONLY)
     assert target.sent == []  # nothing archived
 
 

@@ -282,10 +282,10 @@ class ControlRow:
 
         Staff hold one of the entry's roles, or Administrator (v3's ``hasTicketAdminPermission``).
         """
-        roles = _role_ids(interaction.user)
+        guild_id = cast("int", interaction.guild_id)  # members act in guilds
+        roles = _role_ids(interaction.user, guild_id)
         if roles is None:
             return "error.no-member"
-        guild_id = cast("int", interaction.guild_id)  # members act in guilds
         message_id, index = fields.get("msg_id", ""), fields.get("btn_index", "")
         entry = await self.panels.entry(guild_id, message_id, index)
         if entry is None:
@@ -328,9 +328,14 @@ class ControlRow:
         await interaction.followup.send(failed, ephemeral=True)
 
 
-def _role_ids(user: object) -> frozenset[int] | None:
+def _role_ids(user: object, guild_id: int) -> frozenset[int] | None:
     """The IDs of a member's roles; None for a user who is no member (v3's ``event.member``)."""
-    return frozenset(role.id for role in user.roles) if isinstance(user, HasRoles) else None
+    if not isinstance(user, HasRoles):
+        return None
+    ids = frozenset(role.id for role in user.roles)
+    if guild_id in ids:  # @everyone, which discord.py lists among a member's roles: stub
+        raise NotImplementedError
+    return ids
 
 
 def _controls(fields: Mapping[str, str]) -> Controls | None:

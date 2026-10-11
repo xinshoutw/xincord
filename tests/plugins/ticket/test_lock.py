@@ -21,8 +21,10 @@ from xincord.plugins.ticket.store import NAMESPACE
 if TYPE_CHECKING:
     from conftest import Scene
     from discord_fakes import FakeInteraction, Sent
+    from xincord.core.storage import JSON
 
 GOLDEN = golden("ticket")
+GUILD = 10  # the guild, whose ID its @everyone role shares
 MEMBER = 8  # the ticket's member
 PANEL = "500"
 ROW = 901  # the control row's message in the ticket channel
@@ -44,6 +46,13 @@ async def stored(scene: Scene) -> None:
 def controls(action: str) -> str:
     """The ID of the control row's button ``action`` for member 8 and the panel's button 0."""
     return IDS.build({"action": action, **FIELDS})
+
+
+async def everyone_on_staff(scene: Scene) -> None:
+    """Panel 500's button 0, whose staff roles are @everyone and role 3."""
+    scene.guild.roles.extend([scene.guild.default_role, FakeRole(3)])
+    entry: JSON = {"reasonTitle": "Why?", "adminIds": [GUILD, 3], "categoryId": 0}
+    await scene.store.put(NAMESPACE, "10", {PANEL: [entry]})
 
 
 def bob(scene: Scene) -> FakeMember:
@@ -191,6 +200,40 @@ async def test_not_a_member(scene: Scene) -> None:
     # v3's deferEdit, as save and delete answer it, and nothing else.
     assert interaction.sent == [DEFERRED]
     assert scene.channel.sent == []
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="The control row locks and unlocks the ticket"
+)
+@pytest.mark.parametrize("action", ["lock", "unlock"])
+async def test_everyone_among_the_staff_roles(scene: Scene, action: str) -> None:
+    """Requirement: The control row locks and unlocks the ticket."""
+    await everyone_on_staff(scene)
+    bob(scene)
+    # discord.py lists @everyone among every member's roles; JDA's getRoles left it out.
+    member = scene.who(user=MEMBER, admin=False, roles=(GUILD,), message_id=ROW)
+
+    interaction = await scene.click(action, member, **FIELDS)
+
+    assert interaction.sent == [
+        ("response.send_message", {"content": ADMIN_ONLY, "ephemeral": True})
+    ]
+    assert scene.channel.sent == []
+
+
+@pytest.mark.xfail(
+    strict=True, raises=NotImplementedError, reason="The control row locks and unlocks the ticket"
+)
+async def test_staff_role_beside_everyone(scene: Scene) -> None:
+    """Requirement: The control row locks and unlocks the ticket."""
+    await everyone_on_staff(scene)
+    bob(scene)
+    staff = scene.who(user=9, admin=False, roles=(GUILD, 3), message_id=ROW)
+
+    interaction = await scene.click("lock", staff, **FIELDS)
+
+    shown_row(interaction)
+    assert overwrites(scene) == [(MEMBER, 0, VIEW)]
 
 
 @pytest.mark.parametrize(
