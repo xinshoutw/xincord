@@ -182,6 +182,12 @@ the bot's voice updates to the node with the voice channel's ID, also after the 
 - **WHEN** the bot joins a channel, then moves to another
 - **THEN** the node receives the session, the voice server and each channel's ID
 
+#### Scenario: Refused voice states
+- **WHEN** the gateway refuses the voice state of a new connection, or of a leave while the link
+  closes
+- **THEN** the connection is released all the same, and the other guilds still leave before the
+  client closes
+
 ### Requirement: Commands keep v3's names, options and localizations
 The plugin SHALL register v3's eleven guild commands for every member, with v3's English
 descriptions and the en-US and zh-TW names and descriptions of `register.yaml`: `play` with the
@@ -219,7 +225,8 @@ answer `not-connected`.
 `voice-channel-not-found`), the bot's Connect permission when it must connect
 (`no-connect-permission`) and a blank query (`empty-query`), connect, load the identifier and add
 the song, a search's first song or a playlist's songs, then show the `play` panel of the first one;
-nothing found, an error, an empty playlist, a full history or no node get their reply.
+nothing found, an error, an empty playlist, a full history, no node or a bot that left voice
+meanwhile get their reply.
 
 #### Scenario: Play a search
 - **WHEN** a member in voice runs `/play query:never gonna` and the bot is not connected
@@ -232,6 +239,10 @@ nothing found, an error, an empty playlist, a full history or no node get their 
 #### Scenario: Another channel
 - **WHEN** the bot is connected to another channel
 - **THEN** the song joins that session and the bot does not move
+
+#### Scenario: The bot left during the load
+- **WHEN** the bot leaves voice while the query loads
+- **THEN** the reply is `not-connected` and nothing is added
 
 #### Scenario: Refusals
 - **WHEN** the member is outside voice or in a stage channel, the bot cannot connect, the query is

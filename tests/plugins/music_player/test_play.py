@@ -5,12 +5,14 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/music/GuildMusicManager.kt:127-164
 """
 
+import asyncio
 from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 
 from discord_fakes import embed_dict
 from music_fakes import song, text
+from plugin_fakes import until
 from xincord.plugins.music_player.audio import LoadKind
 
 if TYPE_CHECKING:
@@ -140,3 +142,22 @@ async def test_full_history(scene: Scene) -> None:
     await scene.cog.play_song(full.as_interaction(), "more")
 
     assert full.sent[-1] == ("edit_original_response", {"content": text("queue-full")})
+
+
+@pytest.mark.xfail(strict=True, reason="Play queues songs and starts them")
+async def test_the_bot_left_during_the_load(scene: Scene) -> None:
+    """Requirement: Play queues songs and starts them."""
+    scene.answer("ytsearch:never gonna", LoadKind.SEARCH, song(1))
+    await scene.connect()
+    scene.link.gate = asyncio.Event()  # the load waits
+    interaction = scene.who(VOICE)
+    playing = asyncio.create_task(scene.cog.play_song(interaction.as_interaction(), "never gonna"))
+    await until(lambda: scene.link.loads == ["ytsearch:never gonna"])
+
+    await scene.cog.leave_voice(scene.who().as_interaction())  # someone sent the bot away
+    scene.link.gate.set()
+    await playing
+
+    assert interaction.sent == [("edit_original_response", {"content": text("not-connected")})]
+    assert scene.cog.sessions[10].history.entries == []
+    assert scene.cog.panels.panels == {}

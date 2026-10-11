@@ -76,7 +76,7 @@
 
 ## 11. Review
 
-- [ ] 11.1 Gate passes, push, CI green (before the review)
+- [x] 11.1 Gate passes, push, CI green (before the review)
 - [ ] 11.2 Cross-review the change (other paths into a panel or a song, repeated or concurrent
       presses and commands, state left behind) and fix its findings xfail-first
 

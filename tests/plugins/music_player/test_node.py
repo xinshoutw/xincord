@@ -72,16 +72,20 @@ class Listener:
 
 @dataclass
 class Guild:
-    """A guild whose voice state changes are recorded."""
+    """A guild whose voice state changes are recorded, or refused when ``refuse`` is set."""
 
     id: int
     states: list[tuple[int | None, bool, bool]] = field(
         default_factory=list[tuple[int | None, bool, bool]]
     )
+    refuse: bool = False
 
     async def change_voice_state(
         self, *, channel: Channel | None, self_mute: bool = False, self_deaf: bool = False
     ) -> None:
+        if self.refuse:
+            msg = "the gateway is closed"
+            raise ConnectionError(msg)
         self.states.append((None if channel is None else channel.id, self_mute, self_deaf))
 
 
@@ -368,3 +372,44 @@ async def test_close_leaves_voice(scene: Scene) -> None:
     assert channel.guild.states == [(20, False, False), (None, False, False)]
     assert node.deleted == ["11", str(GUILD)]  # lavalink.py asks the node about any guild
     assert scene.recorder.left == [11, GUILD]
+
+
+@pytest.mark.xfail(strict=True, reason="Songs load and play through a Lavalink node")
+async def test_a_refused_connection(scene: Scene) -> None:
+    """Requirement: Songs load and play through a Lavalink node."""
+    guild = Guild(GUILD, refuse=True)  # the gateway refuses the voice state
+    voice = scene.link.voice(scene.client, cast("discord.abc.Connectable", Channel(20, guild)))
+    scene.client._connection._add_voice_client(GUILD, voice)  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
+
+    with pytest.raises(ConnectionError, match="the gateway is closed"):
+        await voice.connect(timeout=60, reconnect=True)
+    guild.refuse = False  # the link's close at the end of the test may leave voice
+
+    assert scene.client.voice_clients == []  # discord.py forgets the protocol
+    assert scene.link.voices == {}
+    assert scene.recorder.left == [GUILD]  # the plugin forgets the player it got
+
+
+@pytest.mark.xfail(strict=True, reason="Songs load and play through a Lavalink node")
+async def test_close_when_a_leave_is_refused(
+    scene: Scene, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: Songs load and play through a Lavalink node."""
+    refusing, other = Guild(GUILD), Guild(11)
+    for guild in (refusing, other):
+        voice = scene.link.voice(scene.client, cast("discord.abc.Connectable", Channel(20, guild)))
+        scene.client._connection._add_voice_client(guild.id, voice)  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
+        await voice.connect(timeout=60, reconnect=True)
+    refusing.refuse = True
+
+    try:
+        with caplog.at_level(logging.WARNING):
+            await scene.link.close()
+        await scene.node.until(lambda: scene.node.closed == 1)
+    finally:
+        await scene.link.client.close()  # closed already once the link closes whatever happens
+
+    assert other.states[-1] == (None, False, False)  # the other guild still leaves
+    assert sorted(scene.recorder.left) == [GUILD, 11]
+    assert scene.link.voices == {}
+    assert "the gateway is closed" in caplog.text
