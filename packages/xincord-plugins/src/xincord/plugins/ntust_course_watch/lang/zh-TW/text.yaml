@@ -1,0 +1,21 @@
+# The zh-TW translations of the texts that v3 wrote in its code (NtustCourse.kt) in English.
+# The plugin fills the %ncw@...% placeholders; their values are inserted as written.
+
+# Replies to the member who ran a command, in the member's language.
+reply:
+  registered: "已登記這門課程。"
+  unregistered: "已取消登記這門課程。"
+  # %ncw@courses%: the member's courses in this channel, separated by ", ".
+  list: "你登記的課程：%ncw@courses%"
+  # Not in v3: a code that is not 1 to 20 letters and digits.
+  invalid-code: "課程代碼是 1 到 20 個英文字母與數字，例如 CE162A001。"
+
+# Posts in the channels that registered a course. They use the plugin's default language, en-US,
+# as v3's English ones; these translations keep both languages' keys the same.
+# %ncw@course_name% and %ncw@course_id% are the course's name and code.
+alert:
+  # When the course has seats: %ncw@second% is the second of the minute (0 to 59) and
+  # %ncw@mentions% the channel's registered members, who are pinged.
+  available: "%ncw@second% ||%ncw@mentions%||\n[課程有名額：%ncw@course_name%](https://courseselection.ntust.edu.tw/First/A06/A06) \n```\n%ncw@course_id%\n```"
+  # Once when the course becomes full after an alert; it pings nobody.
+  full: "課程已額滿：%ncw@course_name%（%ncw@course_id%）"

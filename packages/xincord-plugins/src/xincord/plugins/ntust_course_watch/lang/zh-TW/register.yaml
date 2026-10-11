@@ -1,0 +1,21 @@
+# v3's commands with zh-TW descriptions; the names stay v3's, so that members type the same
+# commands in every language.
+course_add:
+  name: "course-add"
+  description: "登記一門課程，有名額時在這個頻道通知你"
+  options:
+    id:
+      name: "id"
+      description: "要登記的課程代碼，例如 CE162A001"
+
+course_remove:
+  name: "course-remove"
+  description: "取消你在這個頻道登記的一門課程"
+  options:
+    id:
+      name: "id"
+      description: "要取消登記的課程代碼"
+
+course_list:
+  name: "course-list"
+  description: "列出你在這個頻道登記的課程"

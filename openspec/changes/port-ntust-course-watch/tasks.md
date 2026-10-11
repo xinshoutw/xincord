@@ -2,7 +2,7 @@
 
 - [x] 1.1 Move NtustAnnouncements' `page_context` and TWCA's intermediate certificate into the
       shared package `xincord.plugins.ntust_tls` (refactor, no behavior change)
-- [ ] 1.2 Bundle `config.yaml` and the lang files (v3's English texts in en-US, zh-TW
+- [x] 1.2 Bundle `config.yaml` and the lang files (v3's English texts in en-US, zh-TW
       translations), and add the trimmed answer and `golden.yaml` under
       `tests/fixtures/plugins/ntust_course_watch/`
 

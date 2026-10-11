@@ -1,0 +1,76 @@
+# Golden data for the NtustCourseWatch tests. The en-US texts are v3's, from
+# XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/NtustCourse.kt:66-131 and
+# command/Register.kt:14-20; the zh-TW texts are the port's translations.
+# answer.json is a trimmed copy of NTUST's answer to the course code CE162A in semester 1151
+# (POST https://querycourse.ntust.edu.tw/QueryCourse/api//courses, fetched on 2026-10-11), with
+# the teachers' names replaced by an example: the course query matches codes as prefixes and lists
+# a course once per room and time.
+
+# The request for CE162A001 in semester 1151: the body that the course query site sends
+# (app.cbe19373.js, 2026-10-11), with the API's own spelling OnleyNTUST.
+request: '{"Semester":"1151","CourseNo":"CE162A001","CourseName":"","CourseTeacher":"","Dimension":"","CourseNotes":"","CampusNotes":"","ForeignLanguage":0,"OnlyIntensive":0,"OnlyGeneral":0,"OnleyNTUST":0,"OnlyMaster":0,"OnlyUnderGraduate":0,"OnlyNode":0,"Language":"zh"}'
+
+# What answer.json gives for each code: the last entry with the code.
+courses:
+  CE162A001: {name: "微積分(上)", chosen: 25, limit: 60, full: false}
+  CE162A011: {name: "微積分(上)", chosen: 87, limit: 60, full: true}
+  CE162A012: {name: "微積分(上)", chosen: 31, limit: 30, full: true}
+
+# The guild commands' payload, for every member (no default member permissions).
+commands:
+  - type: 1
+    name: "course-add"
+    description: "add a course"
+    nsfw: false
+    default_member_permissions: null
+    options:
+      - type: 3
+        name: "id"
+        description: "the course code to add"
+        required: true
+        name_localizations: {"en-US": "id", "zh-TW": "id"}
+        description_localizations: {"en-US": "the course code to add", "zh-TW": "要登記的課程代碼，例如 CE162A001"}
+    name_localizations: {"en-US": "course-add", "zh-TW": "course-add"}
+    description_localizations: {"en-US": "add a course", "zh-TW": "登記一門課程，有名額時在這個頻道通知你"}
+  - type: 1
+    name: "course-remove"
+    description: "remove a course"
+    nsfw: false
+    default_member_permissions: null
+    options:
+      - type: 3
+        name: "id"
+        description: "the course code to remove"
+        required: true
+        name_localizations: {"en-US": "id", "zh-TW": "id"}
+        description_localizations: {"en-US": "the course code to remove", "zh-TW": "要取消登記的課程代碼"}
+    name_localizations: {"en-US": "course-remove", "zh-TW": "course-remove"}
+    description_localizations: {"en-US": "remove a course", "zh-TW": "取消你在這個頻道登記的一門課程"}
+  - type: 1
+    name: "course-list"
+    description: "list all courses"
+    nsfw: false
+    default_member_permissions: null
+    options: []
+    name_localizations: {"en-US": "course-list", "zh-TW": "course-list"}
+    description_localizations: {"en-US": "list all courses", "zh-TW": "列出你在這個頻道登記的課程"}
+
+# The replies per locale; the list holds CE162A001 and CE162A002, and nothing for list-empty.
+replies:
+  en-US:
+    registered: "You have registered this course."
+    unregistered: "You have unregistered this course."
+    list: "Your registered courses: CE162A001, CE162A002"
+    list-empty: "Your registered courses: "
+    invalid-code: "A course code is 1 to 20 letters and digits, such as CE162A001."
+  zh-TW:
+    registered: "已登記這門課程。"
+    unregistered: "已取消登記這門課程。"
+    list: "你登記的課程：CE162A001, CE162A002"
+    list-empty: "你登記的課程："
+    invalid-code: "課程代碼是 1 到 20 個英文字母與數字，例如 CE162A001。"
+
+# The alerts about CE162A001 at second 7 of a minute, for members 1 and 2, in the default locale.
+alerts:
+  available: "7 ||<@1> <@2>||\n[Course Available: 微積分(上)](https://courseselection.ntust.edu.tw/First/A06/A06) \n```\nCE162A001\n```"
+  full: "Course Became Full: 微積分(上) (CE162A001)"

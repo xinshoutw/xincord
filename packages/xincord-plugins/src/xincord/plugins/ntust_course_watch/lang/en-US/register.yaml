@@ -1,0 +1,20 @@
+# v3's commands (command/Register.kt), with v3's English names and descriptions.
+course_add:
+  name: "course-add"
+  description: "add a course"
+  options:
+    id:
+      name: "id"
+      description: "the course code to add"
+
+course_remove:
+  name: "course-remove"
+  description: "remove a course"
+  options:
+    id:
+      name: "id"
+      description: "the course code to remove"
+
+course_list:
+  name: "course-list"
+  description: "list all courses"

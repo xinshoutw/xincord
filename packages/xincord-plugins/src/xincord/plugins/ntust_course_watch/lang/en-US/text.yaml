@@ -1,0 +1,20 @@
+# The texts that v3 wrote in its code (NtustCourse.kt), in English as v3 sent them.
+# The plugin fills the %ncw@...% placeholders; their values are inserted as written.
+
+# Replies to the member who ran a command, in the member's language.
+reply:
+  registered: "You have registered this course."
+  unregistered: "You have unregistered this course."
+  # %ncw@courses%: the member's courses in this channel, separated by ", ".
+  list: "Your registered courses: %ncw@courses%"
+  # Not in v3: a code that is not 1 to 20 letters and digits.
+  invalid-code: "A course code is 1 to 20 letters and digits, such as CE162A001."
+
+# Posts in the channels that registered a course, in the plugin's default language (this one).
+# %ncw@course_name% and %ncw@course_id% are the course's name and code.
+alert:
+  # When the course has seats: %ncw@second% is the second of the minute (0 to 59) and
+  # %ncw@mentions% the channel's registered members, who are pinged.
+  available: "%ncw@second% ||%ncw@mentions%||\n[Course Available: %ncw@course_name%](https://courseselection.ntust.edu.tw/First/A06/A06) \n```\n%ncw@course_id%\n```"
+  # Once when the course becomes full after an alert; it pings nobody.
+  full: "Course Became Full: %ncw@course_name% (%ncw@course_id%)"

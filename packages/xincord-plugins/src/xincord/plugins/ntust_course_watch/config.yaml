@@ -1,0 +1,20 @@
+# NtustCourseWatch (v3 NtustCourse): list it under `plugins` in the core config.yaml to enable it.
+# Members register NTUST course codes in a channel with /course-add. From `start` on, while any
+# course is registered, the plugin asks NTUST's course query about one registered course every
+# `interval` seconds, the courses in turn, and posts in each channel that registered a course when
+# the course has seats, pinging the channel's registered members, and once when it becomes full.
+
+# The semester to watch, as NTUST's course query names it: 1151 is the first semester of the 115th
+# academic year, 1152 its second and 115H its summer term. Set it for each course selection.
+semester: "1142"
+
+# When course selection opens: before it, the plugin asks and posts nothing. A date and time with
+# its offset from UTC, +08:00 in Taiwan.
+start: 2025-12-26T09:00:00+08:00
+
+# Seconds from one question to NTUST to the next, from 1. The registered courses are asked about in
+# turn: with five of them, each is checked every five intervals.
+interval: 1.5
+
+# Seconds before a channel hears again about a course that still has seats, from 10.
+alert-interval: 60
