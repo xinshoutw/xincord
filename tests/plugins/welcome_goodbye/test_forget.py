@@ -1,7 +1,4 @@
-"""A guild's channels are deleted when the bot leaves it, also while the bot was offline.
-
-Kotlin (v3 deleted them only on a GuildLeaveEvent received while the plugin was enabled):
-"""
+"""A guild's channels are deleted when the bot leaves it, also while the bot was offline."""
 
 import logging
 from typing import TYPE_CHECKING

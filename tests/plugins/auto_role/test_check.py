@@ -1,7 +1,4 @@
-"""Configuration problems are logged when the bot is ready.
-
-Kotlin (v3 resolved the roles at the first join, and dropped unknown IDs without a log):
-"""
+"""Configuration problems are logged when the bot is ready."""
 
 import logging
 from typing import TYPE_CHECKING

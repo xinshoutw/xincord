@@ -1,7 +1,7 @@
-"""The calculator: v3's formula language, evaluated exactly.
+"""The calculator: a formula language, evaluated exactly.
 
-``normalize`` trims the formula and ``calculate`` evaluates it in v3's two passes, so that v3's
-error messages keep their order: ``to_postfix`` reads it with a shunting-yard pass, and
+``normalize`` trims the formula and ``calculate`` evaluates it in two passes, so that the error
+messages keep their order: ``to_postfix`` reads it with a shunting-yard pass, and
 ``evaluate_postfix`` computes the postfix tokens with exact decimals.
 """
 
@@ -21,16 +21,16 @@ RESULT_MAX = FORMULA_MAX
 # The most digits a value keeps in its unscaled number, and the most decimal places, so that a
 # formula such as 10^999999999 fails at once instead of stalling the bot.
 DIGITS_MAX = 50_000
-DIVISION_PLACES = 10  # v3's divide(b, 10, HALF_UP)
-RESULT_PLACES = 5  # v3's setScale(5, HALF_UP)
-NEXT_LINE = chr(0x85)  # whitespace for Python's str.isspace(), not for Kotlin's isWhitespace()
-TRAILING = "?= "  # v3's trimEnd('?', '=', ' ')
+DIVISION_PLACES = 10  # a quotient's places, rounded half up
+RESULT_PLACES = 5  # a result's places, rounded half up
+NEXT_LINE = chr(0x85)  # whitespace for Python's str.isspace(), not for the calculator
+TRAILING = "?= "  # what trimming removes from the end
 NEGATE = "neg"  # the postfix token of a minus that negates
 OPERATORS = "+-*/^"
-# v3's ranks, plus the negating minus between * / and ^. Only ^ groups from the right.
+# The ranks, with the negating minus between * / and ^. Only ^ groups from the right.
 PRECEDENCE = {"+": 1, "-": 1, "*": 2, "/": 2, NEGATE: 3, "^": 4}
 RIGHT_ASSOCIATIVE = frozenset("^")
-# Kotlin's toBigDecimalOrNull() accepted ASCII digits only, so other Unicode digits fail later.
+# A number takes ASCII digits only, so other Unicode digits fail when it is computed.
 NUMBER = re.compile(r"[0-9]+\.?[0-9]*|\.[0-9]+")
 _RESULT_LIMIT = 10**RESULT_MAX
 _LOG2_TEN = math.log2(10)
@@ -46,12 +46,12 @@ WHOLE_EXPONENT = "Exponent must be an integer"
 
 
 class CalcError(ValueError):
-    """A formula the calculator refuses; the message is shown to the user, in English as v3's."""
+    """A formula the calculator refuses; the message is shown to the user, in English."""
 
 
 @dataclass(frozen=True, slots=True)
 class BigDecimal:
-    """``unscaled / 10**scale``: Java's ``BigDecimal`` without a precision limit, as v3 used it."""
+    """``unscaled / 10**scale``: a decimal without a precision limit."""
 
     unscaled: int
     scale: int
@@ -68,19 +68,19 @@ class BigDecimal:
 
 
 def is_space(char: str) -> bool:
-    """Return whether ``char`` is whitespace for Kotlin's ``Char.isWhitespace()``, as v3 read it."""
+    """Return whether ``char`` is whitespace for the calculator: Unicode's, U+0085 aside."""
     return char.isspace() and char != NEXT_LINE
 
 
 def normalize(raw: str) -> str:
-    """Trim the formula as v3 did: whitespace, then trailing ``?``, ``=`` and spaces."""
+    """Trim the formula: whitespace, then trailing ``?``, ``=`` and spaces."""
     kept = [index for index, char in enumerate(raw) if not is_space(char)]
     trimmed = raw[kept[0] : kept[-1] + 1] if kept else ""
     return trimmed.rstrip(TRAILING)
 
 
 def calculate(formula: str) -> str:
-    """Return the result of a trimmed formula, as v3's ``evaluateExpression`` did.
+    """Return the result of a trimmed formula.
 
     Raises:
         CalcError: The formula cannot be calculated; the message says why.
@@ -89,21 +89,20 @@ def calculate(formula: str) -> str:
 
 
 def to_postfix(formula: str) -> list[str]:
-    """Read ``formula`` into postfix tokens with v3's shunting-yard pass.
+    """Read ``formula`` into postfix tokens with a shunting-yard pass.
 
-    As in v3, an implicit ``*`` goes between a number or ``)`` and a number or ``(``. Unlike v3,
-    a minus that does not follow an operand negates instead of subtracting from a synthetic
-    ``0``, and ``^`` groups from the right.
+    An implicit ``*`` goes between a number or ``)`` and a number or ``(``, a minus that does not
+    follow an operand negates, and ``^`` groups from the right.
 
     Raises:
         CalcError: The formula is too long, has an unknown character or an unmatched bracket;
-            errors come in the order of their positions, as in v3.
+            errors come in the order of their positions.
     """
     if len(formula) > FORMULA_MAX:
         raise CalcError(FORMULA_TOO_LONG)
     output: list[str] = []
     stack: list[str] = []
-    after_operand = False  # v3's prevTokenType is NUMBER or RIGHT_PAREN
+    after_operand = False  # the previous token is a number or a )
     for part in _tokens(formula):
         if part in OPERATORS:
             if part == "-" and not after_operand:
@@ -131,7 +130,7 @@ def to_postfix(formula: str) -> list[str]:
 
 
 def _is_digit(char: str) -> bool:
-    """Kotlin's ``Char.isDigit()`` (Unicode ``Nd``) or ``.``, as v3 read numbers."""
+    """A Unicode decimal digit (``Nd``) or ``.``: what a number is read from."""
     return char.isdecimal() or char == "."
 
 
@@ -177,7 +176,7 @@ def _close_bracket(stack: list[str], output: list[str]) -> None:
 
 
 def evaluate_postfix(tokens: Sequence[str]) -> str:
-    """Compute postfix tokens exactly, as v3's stack machine did with ``BigDecimal``.
+    """Compute postfix tokens exactly, with a stack machine.
 
     Returns:
         The result rounded half up to 5 places, without trailing zeros.
@@ -221,7 +220,7 @@ def _multiply(left: BigDecimal, right: BigDecimal) -> BigDecimal:
 
 
 def _divide(left: BigDecimal, right: BigDecimal) -> BigDecimal:
-    """v3's ``divide(right, 10, HALF_UP)``; v3 threw an uncaught exception for a zero divisor."""
+    """Divide to ten places, rounded half up; a zero divisor is an error."""
     if right.unscaled == 0:
         raise CalcError(DIVISION_BY_ZERO)
     shift = DIVISION_PLACES + right.scale - left.scale
@@ -231,11 +230,7 @@ def _divide(left: BigDecimal, right: BigDecimal) -> BigDecimal:
 
 
 def _power(base: BigDecimal, exponent: BigDecimal) -> BigDecimal:
-    """Raise ``base`` to a whole ``exponent``; a negative one divides 1 by the power.
-
-    v3's ``pow(exponent.toInt())`` truncated the exponent to 32 bits and threw an uncaught
-    exception for a negative one.
-    """
+    """Raise ``base`` to a whole ``exponent``; a negative one divides 1 by the power."""
     whole, fraction = divmod(exponent.unscaled, 10**exponent.scale)
     if fraction:
         raise CalcError(WHOLE_EXPONENT)
@@ -260,7 +255,7 @@ BINARY: dict[str, Callable[[BigDecimal, BigDecimal], BigDecimal]] = {
 
 
 def _round_half_up(numerator: int, denominator: int) -> int:
-    """Divide and round to an integer, ties away from zero, as Java's ``HALF_UP``."""
+    """Divide and round to an integer, ties away from zero (half up)."""
     quotient, remainder = divmod(abs(numerator), abs(denominator))
     if 2 * remainder >= abs(denominator):
         quotient += 1
@@ -281,7 +276,7 @@ def _digits_limit() -> int:
 
 
 def _format(value: BigDecimal) -> str:
-    """v3's ``setScale(5, HALF_UP).stripTrailingZeros().toPlainString()``, never ``-0``."""
+    """Five places, rounded half up, without trailing zeros or an exponent, never ``-0``."""
     if value.scale <= RESULT_PLACES:
         units = value.unscaled * 10 ** (RESULT_PLACES - value.scale)
     else:

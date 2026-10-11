@@ -1,7 +1,4 @@
-"""Requirement: Modal submissions are read back.
-
-Kotlin, where v3 read a modal's input:
-"""
+"""Requirement: Modal submissions are read back."""
 
 import pytest
 

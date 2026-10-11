@@ -1,7 +1,4 @@
-"""The lavalink.py adapter against a local Lavalink v4 node.
-
-Kotlin (v3 played through lavaplayer in the JVM; the node replaces it):
-"""
+"""The lavalink.py adapter against a local Lavalink v4 node."""
 
 import asyncio
 import importlib

@@ -38,10 +38,9 @@ if TYPE_CHECKING:
     from xincord.core.templates.schema_v2 import ActionRowV2
 
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
-# JDA trimmed embed fields with Java's String.trim, which removes the characters up to U+0020.
-JAVA_TRIM = "".join(map(chr, range(0x21)))
-# JDA's EmbedBuilder.ZERO_WIDTH_SPACE, a left-to-right mark, replaced an empty field name or value,
-# which Discord refuses.
+# Embed fields are trimmed of the characters up to U+0020, not of Unicode whitespace.
+FIELD_TRIM = "".join(map(chr, range(0x21)))
+# A left-to-right mark stands for an empty field name or value, which Discord refuses.
 EMPTY_FIELD = chr(0x200E)
 
 
@@ -154,12 +153,12 @@ def _embed(
 
 
 def _field_text(text: str) -> str:
-    """Return a field's name or value as JDA's ``MessageEmbed.Field`` kept it."""
-    return text.strip(JAVA_TRIM) or EMPTY_FIELD
+    """Return a field's name or value: trimmed, and a mark when empty."""
+    return text.strip(FIELD_TRIM) or EMPTY_FIELD
 
 
 def _has_content(embed: discord.Embed) -> bool:
-    """Mirror JDA's ``EmbedBuilder.isEmpty()``: a color alone does not count."""
+    """Whether an embed shows anything: a color alone does not count."""
     return any(
         (
             embed.title,
@@ -324,7 +323,7 @@ def render_modal(
         timeout=None,
     )
     for spec in template.text_inputs:
-        # A Label carries the input's title, as JDA 6's Label.of did in v3.
+        # A Label carries the input's title.
         label = discord.ui.Label[discord.ui.Modal](
             text=render(spec.label, values),
             component=_text_input(spec, values, models),

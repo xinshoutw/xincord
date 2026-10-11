@@ -14,14 +14,14 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Slash and message commands by command type; user commands are not logged, as in v3.
+# Slash and message commands by command type; user commands are not logged.
 COMMAND_KINDS: dict[object, str] = {1: "CMD", 3: "MSG"}
 COMPONENT_KINDS: dict[object, str] = {2: "BTN", 3: "STRING"}  # the other selects are ENTITY
 TARGET_TYPES = {"CMD": "command", "BTN": "button", "MODAL": "modal"}  # what log channels take
 
 
 def describe(interaction: discord.Interaction) -> tuple[str, str] | None:
-    """Return v3's kind and text for an interaction that is logged, or None."""
+    """Return the kind and text for an interaction that is logged, or None."""
     data = cast("Mapping[str, object]", interaction.data or {})
     match interaction.type:
         case discord.InteractionType.application_command:

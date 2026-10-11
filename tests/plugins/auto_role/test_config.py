@@ -15,8 +15,8 @@ if TYPE_CHECKING:
     from xincord.core.storage import Store
     from xincord.plugins.auto_role.cog import AutoRole
 
-# v3's shape with 64-bit IDs; the values are placeholders.
-V3_CONFIG = """\
+# An `enabled` key, which only warns, and 64-bit IDs; the values are placeholders.
+ENABLED_CONFIG = """\
 enabled: true
 guilds:
   - guild_id: 111111111111111111
@@ -38,12 +38,12 @@ def loaded_cog(bot: Bot) -> AutoRole:
     return cast("AutoRole", cog)
 
 
-async def test_v3_config_file(
+async def test_config_with_enabled_key(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: The config lists guilds and their roles."""
     with caplog.at_level(logging.WARNING):
-        bot = await load_plugin("AutoRole", tmp_path / "plugins", store, config=V3_CONFIG)
+        bot = await load_plugin("AutoRole", tmp_path / "plugins", store, config=ENABLED_CONFIG)
 
     assert loaded_cog(bot).roles == {111111111111111111: (222222222222222222, 333333333333333333)}
     assert "unknown key enabled" in caplog.text

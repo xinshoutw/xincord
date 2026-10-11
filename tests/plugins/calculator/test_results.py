@@ -1,4 +1,4 @@
-"""Exact results, rounded as in v3."""
+"""Exact results, rounded."""
 
 import pytest
 
@@ -50,7 +50,7 @@ def product(factor: str, count: int) -> list[str]:
     ],
 )
 def test_exact_arithmetic(formula: str, expected: str) -> None:
-    """Requirement: Results are exact and rounded as in v3."""
+    """Requirement: Results are exact and rounded."""
     assert result(formula) == expected
 
 
@@ -74,7 +74,7 @@ def test_exact_arithmetic(formula: str, expected: str) -> None:
     ],
 )
 def test_rounding(formula: str, expected: str) -> None:
-    """Requirement: Results are exact and rounded as in v3."""
+    """Requirement: Results are exact and rounded."""
     assert result(formula) == expected
 
 
@@ -96,24 +96,24 @@ def test_rounding(formula: str, expected: str) -> None:
     ],
 )
 def test_number_and_operand_errors(formula: str, expected: str) -> None:
-    """Requirement: Results are exact and rounded as in v3."""
+    """Requirement: Results are exact and rounded."""
     assert error(to_postfix(formula)) == expected
 
 
 @pytest.mark.parametrize("formula", ["1/0", "0/0", "3/(1-1)", "1/(0.5-0.5)"])
 def test_division_by_zero(formula: str) -> None:
-    """Requirement: Results are exact and rounded as in v3."""
+    """Requirement: Results are exact and rounded."""
     assert error(to_postfix(formula)) == "Division by zero"
 
 
 def test_errors_in_evaluation_order() -> None:
-    """Requirement: Results are exact and rounded as in v3."""
+    """Requirement: Results are exact and rounded."""
     assert error(to_postfix("1/0+1.2.3")) == "Division by zero"
     assert error(to_postfix("+ 1.2.3")) == "Unknown Token: 1.2.3"
 
 
 def test_too_many_digits() -> None:
-    """Requirement: Results are exact and rounded as in v3."""
+    """Requirement: Results are exact and rounded."""
     count = DIGITS_MAX // 1000 + 1
     assert error(product("9" * 1000, count)) == "Too many digits"
     assert error(product("0." + "0" * 999 + "1", count)) == "Too many digits"  # decimal places
@@ -121,7 +121,7 @@ def test_too_many_digits() -> None:
 
 
 def test_longest_result() -> None:
-    """Requirement: Results are exact and rounded as in v3."""
+    """Requirement: Results are exact and rounded."""
     nines = "9" * RESULT_MAX
     assert evaluate_postfix([nines]) == nines
     assert evaluate_postfix([nines[1:], NEGATE]) == "-" + nines[1:]

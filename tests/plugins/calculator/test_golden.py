@@ -1,9 +1,8 @@
-"""v3's golden formulas, with an independent evaluator for the answers that xincord changes.
+"""The golden formulas, with an independent evaluator for the answers that the fixes change.
 
-`golden.jsonl` (3000 random formulas) and `edge-cases.jsonl` (155 picked ones) are copies of
-`docs/porting/analysis/inventory/fixtures/BasicCalculator-*.jsonl`, recorded by running v3's
-evaluator. A record holds the raw input, v3's trimmed formula, and v3's result, the message of its
-IllegalArgumentException, or an ArithmeticException, which v3 never answered.
+`golden.jsonl` (3000 random formulas) and `edge-cases.jsonl` (155 picked ones) hold recorded
+answers: a record holds the raw input, the trimmed formula, and the result, the error message, or
+none.
 """
 
 import ast
@@ -21,7 +20,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "plugins" / "calculator"
-NEXT_LINE = chr(0x85)  # not whitespace for Kotlin
+NEXT_LINE = chr(0x85)  # not whitespace for the calculator
 NUMBER = re.compile(r"[0-9]+\.?[0-9]*|\.[0-9]+")
 # The independent evaluator leaves the size limits to the plugin's own tests.
 SIZE_LIMITED: dict[str, str] = dict.fromkeys(
@@ -34,15 +33,15 @@ WHOLE_EXPONENT = "Exponent must be an integer"
 
 @dataclass(frozen=True)
 class Record:
-    """One formula of v3's golden files."""
+    """One formula of the golden files."""
 
     raw: str
     formula: str
-    answer: str | None  # the result or the error message; None when v3 did not reply
+    answer: str | None  # the result or the error message; None when none was recorded
 
 
 def load(name: str) -> list[Record]:
-    """Read a JSONL file of v3's answers."""
+    """Read a JSONL file of recorded answers."""
     records: list[Record] = []
     # Not splitlines(): it also splits at the U+0085 that an edge case holds.
     for line in (FIXTURES / name).read_text(encoding="utf-8").split("\n"):
@@ -71,22 +70,22 @@ def answer(formula: str) -> str:
 
 
 def changed_by_a_fix(record: Record) -> bool:
-    """Whether a v3 defect fixed in xincord may change the record's answer.
+    """Whether a fix may change the record's answer.
 
     The fixes: a minus after an operator negates, ``^`` groups from the right and takes whole
-    exponents, and v3's ArithmeticExceptions are answered.
+    exponents, and the formulas without a recorded answer are answered.
     """
     compact = "".join(char for char in record.formula if not is_space(char))
     return record.answer is None or "^" in compact or re.search(r"[-+*/^]-", compact) is not None
 
 
 def is_space(char: str) -> bool:
-    """Kotlin's whitespace."""
+    """The calculator's whitespace."""
     return char.isspace() and char != NEXT_LINE
 
 
 def is_message(reply: str | None) -> bool:
-    """Whether v3 replied with an error message rather than a result or nothing."""
+    """Whether the record holds an error message rather than a result or nothing."""
     return reply is not None and not NUMBER.fullmatch(reply.removeprefix("-"))
 
 
@@ -196,7 +195,7 @@ def half_up(number: Fraction, places: int) -> Fraction:
 
 
 def text(number: Fraction) -> str:
-    """Plain text without trailing zeros, as v3 printed results."""
+    """Plain text without trailing zeros, as results are printed."""
     units = int(number * 10**5)
     whole, fraction = divmod(abs(units), 10**5)
     digits = f"{whole}.{fraction:05d}".rstrip("0").rstrip(".")
@@ -204,7 +203,7 @@ def text(number: Fraction) -> str:
 
 
 def test_golden_files() -> None:
-    """Requirement: The golden formulas give v3's answers."""
+    """Requirement: The golden formulas give the recorded answers."""
     unexplained: list[tuple[str, str | None, str]] = []
     for record in RECORDS:
         formula = normalize(record.raw)
@@ -219,12 +218,12 @@ def test_golden_files() -> None:
 
 
 def test_independent_evaluator() -> None:
-    """Requirement: The golden formulas give v3's answers."""
+    """Requirement: The golden formulas give the recorded answers."""
     disagreements: list[tuple[str, str | None, str]] = []
     for record in RECORDS:
         expected = independent(record.formula)
         if expected is None:
-            # Only v3's reading and number errors, and the size limits, are left unread.
+            # Only the reading and number errors, and the size limits, are left unread.
             assert record.formula in SIZE_LIMITED or is_message(record.answer), record
         elif answer(record.formula) != expected:
             disagreements.append((record.formula, expected, answer(record.formula)))

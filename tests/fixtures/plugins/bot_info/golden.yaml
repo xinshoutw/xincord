@@ -1,6 +1,4 @@
-# Golden data for the BotInfo tests. The text is v3's, from
-# XsDiscordBotKt@3a59607:Plugins/BotInfo/src/main/resources/lang/; the source field is new in
-# xincord (decision C3).
+# Golden data for the BotInfo tests: the bundled texts, with the source field (decision C3).
 
 # The reply's embed while the bot is in guilds of 3 and 4 members, with the default config, as
 # Embed.to_dict() without "type" and "flags".
@@ -25,8 +23,7 @@ reply:
       - {name: "原始碼", value: "https://github.com/xinshoutw/xincord", inline: false}
 
 # The translated payload of /bot-info; keys that are not listed here are not compared. The contexts
-# (guilds and the bot's DMs) and the integration types (guild installs) are JDA's defaults, which
-# v3 sent.
+# (guilds and the bot's DMs) and the integration types (guild installs) are set explicitly.
 command:
   type: 1
   name: "bot-info"

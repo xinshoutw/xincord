@@ -50,7 +50,7 @@ def component_type(data: object) -> str | None:
 
 
 def accessory_type(data: object) -> str | None:
-    """Like :func:`component_type`, inferring a missing type as v3 did."""
+    """Like :func:`component_type`, inferring a missing type."""
     if _field(data, "type") is not None or _field(data, "model_key") is not None:
         return component_type(data)
     has_media = any(_field(data, name) is not None for name in ("url", "file_path", "file_name"))

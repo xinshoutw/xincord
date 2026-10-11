@@ -37,7 +37,7 @@ async def test_default_config(tmp_path: Path, store: Store) -> None:
     assert loaded_cog(bot).config.source_url == DEFAULT_URL
 
 
-async def test_v3_config_file(
+async def test_config_with_enabled_key(
     tmp_path: Path, store: Store, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: The config sets the source link."""

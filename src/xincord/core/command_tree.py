@@ -21,7 +21,7 @@ NAMESPACE = "core"  # store namespace of the upload hashes
 
 
 class CommandTree(app_commands.CommandTree[discord.Client]):
-    """discord.py's command tree with v3's ephemeral defer and change-based uploads."""
+    """discord.py's command tree with an ephemeral defer and change-based uploads."""
 
     @override
     async def interaction_check(self, interaction: discord.Interaction, /) -> bool:

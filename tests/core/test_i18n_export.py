@@ -1,7 +1,4 @@
-"""Requirement: Bundled lang files are exported.
-
-Kotlin: XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/plugin/PluginEvent.kt:24-37.
-"""
+"""Requirement: Bundled lang files are exported."""
 
 from typing import TYPE_CHECKING
 

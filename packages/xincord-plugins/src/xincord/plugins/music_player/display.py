@@ -220,10 +220,7 @@ def _units(text: str) -> int:
 
 
 def cut(text: str, limit: int) -> str:
-    """The longest start of ``text`` within ``limit`` UTF-16 code units, whole characters kept.
-
-    Kotlin's ``take`` counted UTF-16 code units and could split a surrogate pair.
-    """
+    """The longest start of ``text`` within ``limit`` UTF-16 code units, whole characters kept."""
     widths = accumulate(_units(char) for char in text)
     return text[: sum(1 for _ in takewhile(lambda width: width <= limit, widths))]
 

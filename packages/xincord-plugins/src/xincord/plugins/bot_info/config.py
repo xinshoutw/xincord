@@ -18,7 +18,7 @@ SourceUrl = Annotated[str, StringConstraints(pattern=r"^https?://\S+$", max_leng
 class Config(Model):
     """``plugins/BotInfo/config.yaml``; the bundled ``config.yaml`` holds the same defaults.
 
-    v3's ``enabled`` key is gone: the core config's ``plugins`` list enables the plugin.
+    The core config's ``plugins`` list enables the plugin; an ``enabled`` key here only warns.
     """
 
     # The link to the bot's source code that /bot-info shows (decision C3, AGPL section 13).

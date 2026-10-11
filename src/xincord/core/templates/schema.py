@@ -266,7 +266,7 @@ class ModalTemplate(TemplateModel):
 
 
 class _Loader(yaml.SafeLoader):
-    """A safe loader that also understands v3's component tags."""
+    """A safe loader that also understands the legacy component tags."""
 
 
 def _tagged(kind: str) -> Callable[[yaml.SafeLoader, yaml.Node], dict[object, object]]:

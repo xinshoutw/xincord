@@ -1,4 +1,4 @@
-"""Component and modal IDs: a versioned format and the permanent v3 decoder."""
+"""Component and modal IDs: a versioned format and the permanent legacy decoder."""
 
 import re
 import string
@@ -25,7 +25,7 @@ class ComponentIdError(ValueError):
 
 @dataclass(frozen=True)
 class ParsedId:
-    """The fields of a parsed ID, and whether it used the v3 format."""
+    """The fields of a parsed ID, and whether it used the legacy format."""
 
     fields: Mapping[str, str]
     legacy: bool
@@ -46,10 +46,10 @@ class ComponentIds:
 
         Args:
             namespace: Names the plugin at the start of every new ID (``[a-z0-9_-]+``).
-            fields: Field names; their positions give the letters. Start with the plugin's v3
-                fields in v3 order and only ever append.
-            legacy_prefix: The plugin's v3 prefix, such as ``ticket@``, if it had one.
-            legacy_hex: Fields that v3 wrote in hexadecimal.
+            fields: Field names; their positions give the letters. Start with the plugin's legacy
+                fields in their order and only ever append.
+            legacy_prefix: The plugin's legacy prefix, such as ``ticket@``, if it had one.
+            legacy_hex: Fields that the legacy format wrote in hexadecimal.
 
         Raises:
             ComponentIdError: The namespace or the field list is invalid.
@@ -103,7 +103,7 @@ class ComponentIds:
             raise ComponentIdError(msg)
         fields: dict[str, str] = {}
         for segment in body.split(";") if body else ():
-            # New values are escaped and v3 values could not contain the separator, so a valid
+            # New values are escaped and legacy values could not contain the separator, so a valid
             # segment splits in exactly two.
             parts = segment.split(separator)
             if len(parts) != 2 or parts[0] not in self._names:  # noqa: PLR2004 - key and value
@@ -128,7 +128,7 @@ class ComponentIds:
         return self.build(self.parse(custom_id).fields)
 
     def _legacy_value(self, name: str, value: str) -> str:
-        """Decode a v3 value; v3 wrote ``Int`` and ``Long`` fields in lowercase hex."""
+        """Decode a legacy value: the legacy format wrote integer fields in lowercase hex."""
         if name not in self._hex:
             return value
         if not HEX.fullmatch(value):

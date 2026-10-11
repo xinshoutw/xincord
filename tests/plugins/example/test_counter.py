@@ -1,7 +1,4 @@
-"""The counter button under the reply, new in xincord: v3's _Example had no components.
-
-Kotlin, the v3 prefix check that `bot.route` replaces:
-"""
+"""The counter button under the reply."""
 
 from typing import TYPE_CHECKING
 

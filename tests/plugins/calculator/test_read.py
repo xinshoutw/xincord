@@ -31,7 +31,7 @@ def message(formula: str) -> str:
     ],
 )
 def test_implicit_multiplication(formula: str, postfix: list[str]) -> None:
-    """Requirement: Formulas are read with v3's syntax."""
+    """Requirement: Formulas are read with the calculator's syntax."""
     assert to_postfix(formula) == postfix
 
 
@@ -47,7 +47,7 @@ def test_implicit_multiplication(formula: str, postfix: list[str]) -> None:
     ],
 )
 def test_precedence(formula: str, postfix: list[str]) -> None:
-    """Requirement: Formulas are read with v3's syntax."""
+    """Requirement: Formulas are read with the calculator's syntax."""
     assert to_postfix(formula) == postfix
 
 
@@ -66,12 +66,12 @@ def test_precedence(formula: str, postfix: list[str]) -> None:
     ],
 )
 def test_minus_after_an_operator(formula: str, postfix: list[str]) -> None:
-    """Requirement: Formulas are read with v3's syntax."""
+    """Requirement: Formulas are read with the calculator's syntax."""
     assert to_postfix(formula) == postfix
 
 
 def test_powers_group_from_the_right() -> None:
-    """Requirement: Formulas are read with v3's syntax."""
+    """Requirement: Formulas are read with the calculator's syntax."""
     assert to_postfix("2^3^2") == ["2", "3", "2", "^", "^"]
     assert to_postfix("(2^3)^2") == ["2", "3", "^", "2", "^"]
 
@@ -91,17 +91,17 @@ def test_powers_group_from_the_right() -> None:
     ],
 )
 def test_reading_errors(formula: str, error: str) -> None:
-    """Requirement: Formulas are read with v3's syntax."""
+    """Requirement: Formulas are read with the calculator's syntax."""
     assert message(formula) == error
 
 
 def test_numbers_are_runs_of_digits() -> None:
-    """Requirement: Formulas are read with v3's syntax."""
+    """Requirement: Formulas are read with the calculator's syntax."""
     assert to_postfix("1.2.3+.") == ["1.2.3", ".", "+"]
     assert to_postfix(f"{ARABIC_DIGITS}+1") == [ARABIC_DIGITS, "1", "+"]
 
 
 def test_long_formulas() -> None:
-    """Requirement: Formulas are read with v3's syntax."""
+    """Requirement: Formulas are read with the calculator's syntax."""
     assert message("1" * (FORMULA_MAX + 1)) == "Formula too long"
     assert to_postfix("1" * FORMULA_MAX) == ["1" * FORMULA_MAX]

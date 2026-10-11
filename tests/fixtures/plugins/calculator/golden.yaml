@@ -1,6 +1,5 @@
-# Golden data for the Calculator tests. The text is v3's, from
-# XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/resources/lang/.
-# golden.jsonl and edge-cases.jsonl hold v3's answers to 3155 formulas (see test_golden.py).
+# Golden data for the Calculator tests: the bundled texts.
+# golden.jsonl and edge-cases.jsonl hold recorded answers to 3155 formulas (see test_golden.py).
 
 # The answer embed for the formula "1+1", as Embed.to_dict() without "type" and "flags".
 answer:
@@ -40,9 +39,7 @@ error:
       - {name: "算式", value: "```1e5```", inline: false}
       - {name: "結果", value: "```Unknown character: e```", inline: false}
 
-# The translated payload of /basic-calculate; keys that are not listed here are not compared. The
-# en-US formula description is corrected (v3: "Legal symbols + - * / ^ ( ), and bracket is
-# ignorable"), and max_length is new.
+# The translated payload of /basic-calculate; keys that are not listed here are not compared.
 command:
   type: 1
   name: "basic-calculate"

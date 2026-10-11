@@ -5,7 +5,7 @@ import pytest
 from xincord.plugins.calculator.calculator import normalize
 
 IDEOGRAPHIC_SPACE = chr(0x3000)
-NEXT_LINE = chr(0x85)  # whitespace for Python's str.isspace(), not for Kotlin's isWhitespace()
+NEXT_LINE = chr(0x85)  # whitespace for Python's str.isspace(), not for the calculator
 
 
 @pytest.mark.parametrize(
@@ -19,12 +19,12 @@ NEXT_LINE = chr(0x85)  # whitespace for Python's str.isspace(), not for Kotlin's
     ],
 )
 def test_trailing_signs(raw: str, formula: str) -> None:
-    """Requirement: Formulas are trimmed as in v3."""
+    """Requirement: Formulas are trimmed."""
     assert normalize(raw) == formula
 
 
 def test_whitespace() -> None:
-    """Requirement: Formulas are trimmed as in v3."""
+    """Requirement: Formulas are trimmed."""
     assert normalize(f"{IDEOGRAPHIC_SPACE}1 2{IDEOGRAPHIC_SPACE}") == "1 2"
     assert normalize("\t 7 \n") == "7"
     assert normalize(f"1+1{NEXT_LINE}") == f"1+1{NEXT_LINE}"
@@ -32,6 +32,6 @@ def test_whitespace() -> None:
 
 
 def test_leading_signs_stay() -> None:
-    """Requirement: Formulas are trimmed as in v3."""
+    """Requirement: Formulas are trimmed."""
     assert normalize("?1+1") == "?1+1"
     assert normalize("=1+1") == "=1+1"

@@ -92,7 +92,7 @@ def row_items(
 
 
 def _set_disabled(items: Iterable[LayoutItem], disabled: bool | None) -> None:  # noqa: FBT001
-    """Enable or disable every button and select, as JDA's ``withDisabled`` did."""
+    """Enable or disable every button and select."""
     if disabled is None:
         return
     for item in items:
@@ -122,7 +122,7 @@ def _embed_header(embed: discord.Embed) -> str:
 
 
 def _embed_container(embed: discord.Embed) -> LayoutItem:
-    """Show an embed model as a container, as v3 did."""
+    """Show an embed model as a container."""
     header = _embed_header(embed)
     children: list[LayoutItem] = []
     if thumbnail := embed.thumbnail.url or embed.author.icon_url:
@@ -137,7 +137,7 @@ def _embed_container(embed: discord.Embed) -> LayoutItem:
     if embed.image.url:
         children.append(discord.ui.MediaGallery(discord.MediaGalleryItem(embed.image.url)))
 
-    # v3 printed the timestamp as ISO text; Discord's markup shows it in the reader's time zone.
+    # Discord's timestamp markup shows the time in the reader's time zone.
     moment = f"<t:{int(embed.timestamp.timestamp())}:f>" if embed.timestamp else ""
     if footer := f" {chr(0x2022)} ".join(bit for bit in (embed.footer.text, moment) if bit):
         if children:
@@ -270,7 +270,7 @@ class _Renderer:
     def button(self, spec: ButtonV2) -> LayoutItem:
         style = discord.ButtonStyle(spec.style_number)
         if style is discord.ButtonStyle.premium:
-            # v3 dropped the label and emoji: Discord renders premium buttons from the SKU.
+            # No label or emoji: Discord renders premium buttons from the SKU.
             sku = int(spec.sku or spec.sku_id or "")
             return discord.ui.Button(style=style, sku_id=sku, disabled=spec.disabled, id=spec.id)
         link = style is discord.ButtonStyle.link

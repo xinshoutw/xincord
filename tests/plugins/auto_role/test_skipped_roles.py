@@ -1,7 +1,4 @@
-"""Roles that the bot cannot give are skipped with a warning, and the others are given.
-
-Kotlin (v3 gave no role at all in these cases, or dropped unknown IDs without a log):
-"""
+"""Roles that the bot cannot give are skipped with a warning, and the others are given."""
 
 import logging
 from typing import TYPE_CHECKING
@@ -35,7 +32,7 @@ async def test_role_of_another_guild(
     store: Store, tmp_path: Path, guild: FakeGuild, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Requirement: Roles that cannot be given are skipped."""
-    # Role 21 is guild 20's: v3 found it in any guild, and JDA then refused every role.
+    # Role 21 is guild 20's: it is left out, and role 11 is still given.
     config = "guilds:\n  - guild_id: 10\n    role_ids: [11, 21]\n"
     bot = await load_plugin("AutoRole", tmp_path / "plugins", store, config=config)
     member = FakeMember(guild)

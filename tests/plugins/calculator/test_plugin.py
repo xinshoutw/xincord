@@ -31,4 +31,4 @@ async def test_first_load_creates_the_lang_files(bot: Bot, tmp_path: Path) -> No
     assert bot.loaded == ("Calculator",)
     for name in LANG_FILES:
         assert (directory / "lang" / name).is_file()
-    assert not (directory / "config.yaml").exists()  # v3's only key, enabled, is gone
+    assert not (directory / "config.yaml").exists()  # the plugin has no config

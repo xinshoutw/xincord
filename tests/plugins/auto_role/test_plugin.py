@@ -38,4 +38,4 @@ async def test_first_load_creates_the_config(store: Store, tmp_path: Path) -> No
     assert (directory / "config.yaml").read_text(encoding="utf-8") == bundled.read_text(
         encoding="utf-8"
     )
-    assert not (directory / "lang").exists()  # v3 had no text
+    assert not (directory / "lang").exists()  # no text

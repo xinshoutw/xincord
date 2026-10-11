@@ -1,5 +1,4 @@
-# Discord locale -> [JDA enum name, native name], copied from JDA 6.4.1
-# (net.dv8tion.jda.api.interactions.DiscordLocale), the library XsDiscordBotKt v3 used.
+# Discord locale -> [enum name, native name]: what the language placeholders show.
 # Keys are quoted: YAML 1.1 reads a bare `no` as false.
 "ar": [ARABIC, "اَلْعَرَبِيَّةُ"]
 "bg": [BULGARIAN, "български"]

@@ -1,7 +1,4 @@
-"""Placeholder value families.
-
-Kotlin: XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Placeholder.kt:14-287.
-"""
+"""Placeholder value families."""
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime

@@ -80,14 +80,14 @@ class Calculator(commands.Cog):
         await _post(interaction, render_message(message, values))
 
     async def _reply_error(self, interaction: discord.Interaction, values: dict[str, str]) -> None:
-        """Turn the deferred ephemeral response into the error template, as v3 did."""
+        """Turn the deferred ephemeral response into the error template."""
         message = self.templates.message("error", interaction.locale.value)
         reply = render_message(message, values)
         await interaction.edit_original_response(content=reply.content, embeds=reply.embeds)
 
 
 async def _post(interaction: discord.Interaction, reply: Message) -> None:
-    """Send ``reply`` to the channel, as v3 did, or else into the deferred response."""
+    """Send ``reply`` to the channel, or else into the deferred response."""
     channel = interaction.channel
     if isinstance(channel, Postable):
         try:
@@ -103,12 +103,12 @@ async def _post(interaction: discord.Interaction, reply: Message) -> None:
 
 
 def _values(interaction: discord.Interaction) -> dict[str, str]:
-    """v3's ``Placeholder.get(member)``: the member's keys and the bot's."""
+    """The member's keys and the bot's."""
     bot = interaction.client.user  # set once the bot has logged in
     return {} if bot is None else actor_values(interaction.user, bot)
 
 
 def _whole_part(answer: str) -> str:
-    """The digits before the decimal point; v3 meant this, but its split kept the whole answer."""
+    """The digits before the decimal point."""
     whole = answer.partition(".")[0]
     return "0" if whole == "-0" else whole

@@ -27,13 +27,13 @@ writes to `plugins/AutoRole/`, and no lang files.
 
 ### Requirement: The config lists guilds and their roles
 `config.yaml` SHALL have a required `guilds` list whose entries have a positive `guild_id` and a
-non-empty `role_ids` list of integers, as in v3; the bundled default SHALL list no guilds. A v3
-config file SHALL load unchanged, with a warning that names its `enabled` key. A guild listed twice
-SHALL use its last entry, as in v3. An invalid file SHALL disable only this plugin, with an error
+non-empty `role_ids` list of integers; the bundled default SHALL list no guilds. A config file
+with an `enabled` key SHALL load, with a warning that names the key. A guild listed twice SHALL use
+its last entry. An invalid file SHALL disable only this plugin, with an error
 that names the key.
 
-#### Scenario: v3 config file
-- **WHEN** `config.yaml` is v3's, with `enabled: true` and one guild with two 18-digit role IDs
+#### Scenario: Config file with an enabled key
+- **WHEN** `config.yaml` holds `enabled: true` and one guild with two 18-digit role IDs
 - **THEN** the plugin loads with that guild and its roles, and logs a warning that names `enabled`
 
 #### Scenario: Default config

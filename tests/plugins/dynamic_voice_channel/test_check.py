@@ -1,7 +1,4 @@
-"""When the bot is ready, stale bindings are dropped and the rooms are checked.
-
-Kotlin (v3 checked the bindings once, lazily, and never its rooms):
-"""
+"""When the bot is ready, stale bindings are dropped and the rooms are checked."""
 
 import logging
 from typing import TYPE_CHECKING

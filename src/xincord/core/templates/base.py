@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 COLOR = re.compile(r"(?:#|0[xX])[0-9a-fA-F]{1,6}")
 ENTITY_TARGETS = ("USER", "ROLE", "CHANNEL")
-# JDA channel type names that discord.py can put in a channel select.
+# The channel type names that a template's channel select takes, as discord.py's types.
 CHANNEL_TYPE_BY_NAME = {
     name: discord.ChannelType(value)
     for value, name in CHANNEL_TYPES.items()
@@ -32,7 +32,7 @@ class TemplateError(Exception):
 
 
 class TemplateModel(Model):
-    """Base of the template schemas: numbers in text fields stay text, as in v3's KAML."""
+    """Base of the template schemas: numbers in text fields stay text."""
 
     model_config = ConfigDict(extra="allow", frozen=True, coerce_numbers_to_str=True)
 
@@ -48,7 +48,7 @@ def require(model: TemplateModel, *names: str) -> None:
 
 def lookup(models: Mapping[str, object] | None, key: str) -> object:
     """Return the model supplied under ``key``."""
-    # ponytail: model keys are looked up verbatim, as v3 did, even when they contain %...%.
+    # ponytail: model keys are looked up verbatim, even when they contain %...%.
     if models is None or key not in models:
         msg = f"no model named {key!r} was supplied"
         raise TemplateError(msg)

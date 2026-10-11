@@ -1,4 +1,4 @@
-"""``%key%`` placeholders: single-pass rendering and the v3 key families."""
+"""``%key%`` placeholders: single-pass rendering and the key families."""
 
 import functools
 from datetime import UTC, datetime
@@ -11,7 +11,7 @@ import yaml
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping, Sequence
 
-# JDA 6.4.1 ChannelType names by Discord channel type number.
+# The channel type names that the ``*_type`` keys show, by Discord channel type number.
 CHANNEL_TYPES = {
     0: "TEXT",
     1: "PRIVATE",
@@ -254,7 +254,7 @@ def render(text: str, values: Mapping[str, str]) -> str:
 
 
 def actor_values(user: UserLike, bot: UserLike) -> dict[str, str]:
-    """Return the v3 ``Placeholder.get`` keys for the user acting in an interaction."""
+    """Return the keys for the user acting in an interaction."""
     values = {
         "bot_id": str(bot.id),
         "bot_name": bot.name,
@@ -273,7 +273,7 @@ def actor_values(user: UserLike, bot: UserLike) -> dict[str, str]:
 
 
 def user_values(user: UserLike, prefix: str = "", none: str = "-") -> dict[str, str]:
-    """Return the v3 ``putUser`` keys, each prefixed with ``prefix``."""
+    """Return the user keys, each prefixed with ``prefix``."""
     return _prefixed(
         prefix,
         {
@@ -294,7 +294,7 @@ def user_values(user: UserLike, prefix: str = "", none: str = "-") -> dict[str, 
 
 
 def member_values(member: MemberLike, prefix: str = "", none: str = "-") -> dict[str, str]:
-    """Return the v3 ``putMember`` keys, each prefixed with ``prefix``."""
+    """Return the member keys, each prefixed with ``prefix``."""
     roles = sorted(
         (role for role in member.roles if not role.is_default()),
         key=lambda role: role.position,
@@ -319,7 +319,7 @@ def member_values(member: MemberLike, prefix: str = "", none: str = "-") -> dict
 
 
 def guild_values(guild: GuildLike, prefix: str = "", none: str = "-") -> dict[str, str]:
-    """Return the v3 ``putGuild`` keys, each prefixed with ``prefix``."""
+    """Return the guild keys, each prefixed with ``prefix``."""
     owner, system, rules = guild.owner, guild.system_channel, guild.rules_channel
     boosts = str(guild.premium_subscription_count)
     return _prefixed(
@@ -355,7 +355,7 @@ def channel_values(
     base: str = "channel",
     none: str = "-",
 ) -> dict[str, str]:
-    """Return the v3 ``putTextChannel`` keys ``<base>_id``, ``_name``, ``_mention``, ``_type``."""
+    """Return the channel keys ``<base>_id``, ``_name``, ``_mention``, ``_type``."""
     if channel is None:
         values = {"id": "0", "name": none, "mention": none, "type": none}
     else:
@@ -369,7 +369,7 @@ def channel_values(
 
 
 def event_values(event_type: str, prefix: str = "", at: datetime | None = None) -> dict[str, str]:
-    """Return the v3 ``putEvent`` keys for an event at ``at`` (default: now)."""
+    """Return the event keys for an event at ``at`` (default: now)."""
     moment = at or datetime.now(UTC)
     return _prefixed(
         prefix,
@@ -425,7 +425,7 @@ class ClientLike(Protocol):
 
 
 class EventLike(InteractionLike, Protocol):
-    """An interaction as v3's ``Placeholder.get(event)`` read it, such as a slash command."""
+    """An interaction as the placeholders read it, such as a slash command."""
 
     @property
     def user(self) -> UserLike:
@@ -438,7 +438,7 @@ class EventLike(InteractionLike, Protocol):
         ...
 
 
-# Discord option types: subcommand and group nest options; entities resolve to names as in JDA.
+# Discord option types: subcommand and group nest options; entities resolve to names.
 SUBCOMMAND_TYPES = (1, 2)
 BOOLEAN_OPTION = 5
 ENTITY_OPTIONS = {
@@ -451,7 +451,7 @@ CONTEXT_MENU_TYPES = (2, 3)  # user and message commands
 
 
 def interaction_values(interaction: InteractionLike) -> dict[str, str]:
-    """Return v3's interaction keys: ``language``, the channel, and the command or component."""
+    """Return the interaction keys: ``language``, the channel, and the command or component."""
     data = interaction.data or {}
     values = {"language": locale_names(interaction.locale.value)[1]}
     channel = interaction.channel
@@ -467,7 +467,7 @@ def interaction_values(interaction: InteractionLike) -> dict[str, str]:
 
 
 def placeholder_values(interaction: EventLike) -> dict[str, str]:
-    """Return v3's ``Placeholder.get(event)``: the acting user's keys and the interaction's.
+    """Return an interaction's keys: the acting user's and the interaction's own.
 
     Before the bot has logged in, the client has no user, and only the interaction's keys are
     given.
@@ -478,9 +478,9 @@ def placeholder_values(interaction: EventLike) -> dict[str, str]:
 
 
 def global_values(client: ClientLike) -> dict[str, str]:
-    """Return v3's global placeholders: the bot's ``bot_id`` and ``bot_name``.
+    """Return the global placeholders: the bot's ``bot_id`` and ``bot_name``.
 
-    v3 rendered templates without a user with these keys only (``Placeholder.globalSubstitutor``).
+    A template rendered without a user gets these keys only.
     Before the bot has logged in, when the client has no user, there are none.
     """
     bot = client.user
@@ -496,7 +496,7 @@ def _category(channel: object) -> object:
 
 
 def _command_values(data: Mapping[str, object]) -> dict[str, str]:
-    """The command keys, with ``command_string`` as JDA's ``getCommandString`` built it."""
+    """The command keys, with ``command_string``: the command's path and options."""
     name = str(data["name"])
     path, options = [name], _options(data)
     while options and options[0].get("type") in SUBCOMMAND_TYPES:
@@ -525,7 +525,7 @@ def _option_text(option: Mapping[str, object], resolved: Mapping[str, object]) -
         entity = _mapping(_mapping(resolved.get(table)).get(str(value)))
         if field in entity:
             return f"{prefix}{entity[field]}"
-    # Unresolved entities (autocomplete) show their raw ID, as in JDA.
+    # Unresolved entities (autocomplete) show their raw ID.
     return str(value)
 
 
@@ -568,7 +568,7 @@ def _mapping(value: object) -> Mapping[str, object]:
 
 
 def locale_names(locale: str) -> tuple[str, str]:
-    """Return JDA's enum name and native name of a Discord locale such as ``zh-TW``."""
+    """Return the enum name and the native name of a Discord locale such as ``zh-TW``."""
     name, native = _locales().get(locale, ("UNKNOWN", "Unknown"))
     return name, native
 
@@ -596,7 +596,7 @@ def _fraction(moment: datetime) -> str:
 
 
 def _offset_iso(moment: datetime) -> str:
-    """Format like Java's ``OffsetDateTime.toString()`` in UTC: seconds only when non-zero."""
+    """Format an ISO 8601 time in UTC: seconds only when non-zero."""
     moment = moment.astimezone(UTC)
     text = moment.strftime("%Y-%m-%dT%H:%M")
     if moment.second or moment.microsecond:
@@ -605,7 +605,7 @@ def _offset_iso(moment: datetime) -> str:
 
 
 def _instant_iso(moment: datetime) -> str:
-    """Format like Java's ``Instant.toString()``: seconds always."""
+    """Format an ISO 8601 instant in UTC: seconds always."""
     moment = moment.astimezone(UTC)
     return f"{moment.strftime('%Y-%m-%dT%H:%M:%S')}{_fraction(moment)}Z"
 

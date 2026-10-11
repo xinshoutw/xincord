@@ -22,9 +22,9 @@ no extra intents. It SHALL bundle en-US and zh-TW lang files, which its first lo
 - **THEN** `register.yaml`, `message/basic-calculate.yaml` and `message/error.yaml` exist for en-US
   and zh-TW under `plugins/Calculator/lang/`, and no `config.yaml` is written
 
-### Requirement: Formulas are trimmed as in v3
-The plugin SHALL remove the formula's leading and trailing whitespace as Kotlin's `trim()` did, for
-which U+0085 is not whitespace, then its trailing `?`, `=` and spaces, and use the result as the
+### Requirement: Formulas are trimmed
+The plugin SHALL remove the formula's leading and trailing whitespace, for which U+0085 is not
+whitespace, then its trailing `?`, `=` and spaces, and use the result as the
 formula everywhere.
 
 #### Scenario: Trailing signs
@@ -39,10 +39,10 @@ formula everywhere.
 - **WHEN** the formula `?1+1` is trimmed
 - **THEN** it stays `?1+1`
 
-### Requirement: Formulas are read with v3's syntax
+### Requirement: Formulas are read with the calculator's syntax
 The plugin SHALL read numbers (runs of digits and `.`), `+ - * / ^` and brackets, skip whitespace,
 multiply implicitly between a number or `)` and a following number or `(`, and rank `^` over `* /`
-over `+ -`, failing with v3's `Unknown character: <c>` and `Unmatched bracket`. A minus at the start
+over `+ -`, failing with `Unknown character: <c>` and `Unmatched bracket`. A minus at the start
 or after an operator or `(` SHALL negate, binding tighter than `* /` and looser than `^`; `^` SHALL
 group from the right. Formulas over 1018 characters SHALL fail with `Formula too long`.
 
@@ -67,8 +67,8 @@ group from the right. Formulas over 1018 characters SHALL fail with `Formula too
 - **WHEN** a formula of 1019 characters is read
 - **THEN** it fails with `Formula too long`, and one of 1018 characters is read
 
-### Requirement: Results are exact and rounded as in v3
-The plugin SHALL compute exactly, as v3's `BigDecimal`: a number is ASCII digits with at most one
+### Requirement: Results are exact and rounded
+The plugin SHALL compute exactly, with decimals of any size: a number is ASCII digits with at most one
 `.`, else `Unknown Token: <token>`; a missing operand is `Illegal formula`; `/` rounds half up to 10
 places and fails with `Division by zero`; the result is rounded half up to 5 places with no trailing
 zeros, exponent or `-0`. A value needing over 50,000 digits or decimal places, or a result over 1018
@@ -121,15 +121,15 @@ must be an integer`. A power that would need over 50,000 digits or decimal place
 - **WHEN** `10^999999999`, `2^4294967297` and `0.1^60000` are evaluated
 - **THEN** each fails with `Too many digits` at once, while `1^4294967297` gives `1`
 
-### Requirement: The golden formulas give v3's answers
-Each record of v3's golden files SHALL trim to v3's formula and give v3's result or error message,
-unless it has a minus after an operator, a `^` or a v3 `ArithmeticException`; such a record SHALL
+### Requirement: The golden formulas give the recorded answers
+Each record of the golden files SHALL trim to its recorded formula and give its recorded result or
+error message, unless it has a minus after an operator, a `^` or no recorded answer; such a record SHALL
 give the answer of an independent evaluator that follows these requirements through Python's
 expression parser instead.
 
 #### Scenario: Golden files
-- **WHEN** the 3155 records of v3's golden and edge-case files are calculated
-- **THEN** each gives v3's formula and v3's answer, or differs for one of the reasons above and
+- **WHEN** the 3155 records of the golden and edge-case files are calculated
+- **THEN** each gives its recorded formula and answer, or differs for one of the reasons above and
   agrees with the independent evaluator
 
 #### Scenario: Independent evaluator
@@ -139,18 +139,18 @@ expression parser instead.
 ### Requirement: The answer is posted in the channel
 On success the plugin SHALL send the `basic-calculate` template in the user's locale, falling back
 to zh-TW, to the command's channel, then delete the deferred response. Values: `%bc_question%`,
-`%bc_answer%`, `%bc_answer_round%` (the part before the decimal point) and v3's member
+`%bc_answer%`, `%bc_answer_round%` (the part before the decimal point) and the member
 placeholders. If the channel cannot take the message, the plugin SHALL edit the deferred response
 into it instead.
 
 #### Scenario: Answer
 - **WHEN** an en-US user runs the command with `1+1 = ?`
-- **THEN** the channel receives v3's en-US calculator embed showing `1+1` and `2`, and the deferred
+- **THEN** the channel receives the en-US calculator embed showing `1+1` and `2`, and the deferred
   response is deleted
 
 #### Scenario: Locale and fallback
 - **WHEN** a zh-TW user and a Japanese user run the command with `1+1 = ?`
-- **THEN** both get v3's zh-TW calculator embed
+- **THEN** both get the zh-TW calculator embed
 
 #### Scenario: Placeholders
 - **WHEN** the operator's en-US template has the content `%user_name%: %bc_question% =
@@ -164,12 +164,12 @@ into it instead.
 ### Requirement: Errors are answered privately
 When the formula cannot be calculated, the plugin SHALL edit the deferred ephemeral response into
 the `error` template in the user's locale, falling back to zh-TW, with `%bc_question%`,
-`%bc_error%` (the English message) and v3's member placeholders. The formula SHALL be shown as
+`%bc_error%` (the English message) and the member placeholders. The formula SHALL be shown as
 typed.
 
 #### Scenario: Error
 - **WHEN** an en-US user and a zh-TW user run the command with `1e5`
-- **THEN** each deferred response becomes v3's error embed in that locale, showing `1e5` and
+- **THEN** each deferred response becomes the error embed in that locale, showing `1e5` and
   `Unknown character: e`, and nothing is sent to the channel
 
 #### Scenario: Placeholder text in the formula
@@ -178,14 +178,14 @@ typed.
 
 ### Requirement: The command is a localized guild command
 The plugin SHALL register the guild command `basic-calculate` with a required text option `formula`
-of at most 1018 characters. Names and descriptions SHALL default to v3's and be localized in en-US
-and zh-TW from `register.yaml`, with the en-US `formula` description corrected. The command SHALL
+of at most 1018 characters. Names and descriptions SHALL be localized in en-US and zh-TW from
+`register.yaml`. The command SHALL
 keep the command tree's ephemeral defer.
 
 #### Scenario: Command payload
 - **WHEN** the plugin is loaded and the commands are translated
-- **THEN** the guild payload holds `basic-calculate` with v3's names, descriptions and
-  localizations, the corrected en-US `formula` description, no default member permissions, and
+- **THEN** the guild payload holds `basic-calculate` with its names, descriptions and
+  localizations, no default member permissions, and
   `formula` required with a maximum length of 1018
 
 #### Scenario: Command callback

@@ -1,7 +1,4 @@
-"""Placeholder rendering.
-
-Kotlin: XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Substitutor.kt:80-93.
-"""
+"""Placeholder rendering."""
 
 import pytest
 

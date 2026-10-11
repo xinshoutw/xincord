@@ -1,7 +1,4 @@
-"""Lang loading: locales, validation and key sets.
-
-Kotlin: XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/localizations/StringLocalizer.kt:32-67.
-"""
+"""Lang loading: locales, validation and key sets."""
 
 import logging
 from typing import TYPE_CHECKING

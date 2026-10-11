@@ -29,15 +29,15 @@ lang files, which its first load writes to `plugins/BotInfo/`.
 ### Requirement: The config sets the source link
 `config.yaml` SHALL have an optional `source_url`, `https://github.com/xinshoutw/xincord` by
 default, which SHALL be an `http` or `https` URL without spaces and of at most 512 characters. A
-v3 config file SHALL load unchanged, with a warning that names its `enabled` key. An invalid value
+config file with an `enabled` key SHALL load, with a warning that names the key. An invalid value
 SHALL disable only this plugin, with an error that names `source_url`.
 
 #### Scenario: Default config
 - **WHEN** the plugin loads with the bundled `config.yaml`
 - **THEN** its source link is `https://github.com/xinshoutw/xincord`
 
-#### Scenario: v3 config file
-- **WHEN** `config.yaml` is v3's, with `enabled: true` only
+#### Scenario: Config file with an enabled key
+- **WHEN** `config.yaml` holds `enabled: true` only
 - **THEN** the plugin loads with the default source link and logs a warning that names `enabled`
 
 #### Scenario: Operator URL
@@ -50,7 +50,7 @@ SHALL disable only this plugin, with an error that names `source_url`.
 - **THEN** the plugin does not load, and the error names `source_url`
 
 ### Requirement: The counts sum the bot's guilds
-The plugin SHALL count the guilds the bot is in and sum their member counts, as v3 did: a user in
+The plugin SHALL count the guilds the bot is in and sum their member counts: a user in
 several guilds counts once per guild, and bots count. A guild whose member count is unknown SHALL
 add nothing to the sum.
 
@@ -73,12 +73,12 @@ in the user's locale, falling back to zh-TW, with `%guild_counts%`, `%member_cou
 
 #### Scenario: Reply
 - **WHEN** an en-US user runs the command while the bot is in guilds of 3 and 4 members
-- **THEN** the response is v3's en-US embed showing 2 servers and 7 members, with a "Source Code"
+- **THEN** the response is the en-US embed showing 2 servers and 7 members, with a "Source Code"
   field showing `https://github.com/xinshoutw/xincord`
 
 #### Scenario: Locale and fallback
 - **WHEN** a zh-TW user, a Japanese user and a British English user run the command
-- **THEN** each gets v3's zh-TW embed with the zh-TW source field
+- **THEN** each gets the zh-TW embed with the zh-TW source field
 
 #### Scenario: Operator URL in the reply
 - **WHEN** `source_url` is `https://git.example/bot`
@@ -95,14 +95,13 @@ in the user's locale, falling back to zh-TW, with `%guild_counts%`, `%member_cou
 
 ### Requirement: The command is a localized global command
 The plugin SHALL register the global command `bot-info`, without options or default member
-permissions, usable in guilds and in the bot's DMs and installed with guilds, as JDA's defaults
-made v3's. Its name and description SHALL default to v3's and be localized in en-US and zh-TW from
-`register.yaml`. The command SHALL keep the command tree's ephemeral defer and answer through the
+permissions, usable in guilds and in the bot's DMs and installed with guilds. Its name and
+description SHALL be localized in en-US and zh-TW from `register.yaml`. The command SHALL keep the command tree's ephemeral defer and answer through the
 reply.
 
 #### Scenario: Command payload
 - **WHEN** the plugin is loaded and the commands are translated
-- **THEN** the global payload holds `bot-info` with v3's name, description and localizations, no
+- **THEN** the global payload holds `bot-info` with its name, description and localizations, no
   options, no default member permissions, the guild and bot DM contexts and the guild install
   type, and the guild payload does not hold it
 

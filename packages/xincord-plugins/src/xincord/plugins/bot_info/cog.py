@@ -39,9 +39,9 @@ class BotInfo(commands.Cog):
     def command(self) -> app_commands.Command[Any, ..., None]:
         """Build the global ``/bot-info``, localized from ``register.yaml``.
 
-        v3's command had JDA's defaults: usable in guilds and in the bot's DMs, and installed with
-        guilds. discord.py sends no contexts or install types unless they are set, which would
-        leave them to Discord, so the command sets JDA's.
+        The command is usable in guilds and in the bot's DMs, and installed with guilds.
+        discord.py sends no contexts or install types unless they are set, which would leave them
+        to Discord, so the command sets them.
         """
         lang = self.lang
         command: app_commands.Command[Any, ..., None] = app_commands.Command(
@@ -52,15 +52,14 @@ class BotInfo(commands.Cog):
                 guild=True, dm_channel=True, private_channel=False
             ),
             allowed_installs=app_commands.AppInstallationType(guild=True, user=False),
-            extras={"global": True},  # v3's globalCommands()
+            extras={"global": True},  # a global command
         )
         return command
 
     async def bot_info(self, interaction: discord.Interaction) -> None:
         """Turn the deferred response into the ``bot-info`` embed, with the counts as they are now.
 
-        v3 wrote the counts into the placeholders that every plugin shared; here they belong to
-        this render only.
+        The counts belong to this render only, not to placeholders that every plugin shares.
         """
         guild_count, member_count = counts(interaction.client.guilds)
         values = global_values(interaction.client) | {
@@ -70,7 +69,7 @@ class BotInfo(commands.Cog):
         }
         message = self.templates.message("bot-info", interaction.locale.value)
         reply = render_message(message, values)
-        # The command tree deferred the response ephemerally, as v3's core did.
+        # The command tree deferred the response ephemerally.
         await interaction.edit_original_response(
             content=reply.content, embeds=reply.embeds, view=reply.view
         )
@@ -79,7 +78,7 @@ class BotInfo(commands.Cog):
 def counts(guilds: Collection[Counted]) -> tuple[int, int]:
     """Return the number of ``guilds`` and the sum of their member counts.
 
-    As in v3, a user in several guilds counts once per guild, and bots count. An unknown member
+    A user in several guilds counts once per guild, and bots count. An unknown member
     count (a guild unavailable since the bot connected) adds nothing.
     """
     return len(guilds), sum(guild.member_count or 0 for guild in guilds)

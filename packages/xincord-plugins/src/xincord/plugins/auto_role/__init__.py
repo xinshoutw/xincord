@@ -12,14 +12,14 @@ if TYPE_CHECKING:
 
 DEPENDS: tuple[str, ...] = ()
 SOFT_DEPENDS: tuple[str, ...] = ()
-# Member joins need the privileged members intent, which v3's core always requested.
+# Member joins need the privileged members intent.
 INTENTS = discord.Intents(members=True)
 
 
 async def setup(bot: Bot) -> None:
     """Load the config and add the cog.
 
-    The plugin has no lang files: v3 had no text.
+    The plugin has no lang files: it has no text.
     """
     context = bot.plugin_context(__name__)
     await bot.add_cog(AutoRole(bot, context.config(Config)))
