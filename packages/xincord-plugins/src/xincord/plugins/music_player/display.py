@@ -225,11 +225,17 @@ def _units(text: str) -> int:
     return len(text.encode("utf-16-le")) // 2
 
 
+def cut(text: str, limit: int) -> str:
+    """The longest start of ``text`` within ``limit`` UTF-16 code units, whole characters kept.
+
+    Kotlin's ``take`` counted UTF-16 code units and could split a surrogate pair.
+    """
+    widths = accumulate(_units(char) for char in text)
+    return text[: sum(1 for _ in takewhile(lambda width: width <= limit, widths))]
+
+
 def _clip(text: str, limit: int) -> str:
     """``text`` within ``limit`` UTF-16 code units, cut before a whole character and marked."""
     if _units(text) <= limit:
         return text
-    room = limit - _units(ELLIPSIS)
-    widths = accumulate(_units(char) for char in text)
-    kept = sum(1 for _ in takewhile(lambda width: width <= room, widths))
-    return text[:kept] + ELLIPSIS
+    return cut(text, limit - _units(ELLIPSIS)) + ELLIPSIS

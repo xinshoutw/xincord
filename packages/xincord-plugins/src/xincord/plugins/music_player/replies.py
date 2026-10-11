@@ -12,12 +12,13 @@ import discord
 
 from xincord.core.placeholders import placeholder_values
 from xincord.core.templates import render_message
+from xincord.plugins.redaction import redact
 
 from .display import QUEUE_COLOR, Look, emoji_values, queue_embed, track_values
 from .history import Requester
 from .ids import IDS
 from .session import Session
-from .texts import raw, text
+from .texts import describe, raw, text
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -129,6 +130,16 @@ class Replies:
         """Edit the response's content into the text ``key``, as v3's ``editOriginal(text)``."""
         content = self.text(key, interaction.locale.value, **values)
         await interaction.edit_original_response(content=content)
+
+    async def report(
+        self, interaction: discord.Interaction, key: str, error: BaseException
+    ) -> None:
+        """Tell the user about an unexpected error: ``key`` with its text, URLs cut to their
+        origin, or ``<key>-hidden`` without ``messages.show_detailed_errors``, as v3."""
+        if self.config.messages.show_detailed_errors:
+            await self.tell(interaction, key, error=redact(describe(error)))
+        else:
+            await self.tell(interaction, f"{key}-hidden")
 
     async def show(
         self,

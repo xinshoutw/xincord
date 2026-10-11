@@ -6,16 +6,20 @@ Kotlin:
     XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/util/MusicPlayerUtils.kt:85-109
 """
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, NamedTuple, cast
 
 import discord
 from discord import app_commands
 
+from xincord.plugins.redaction import redact
+
 from .audio import LoadKind, NodeUnavailableError
-from .display import identifier
+from .display import SEARCH, cut, identifier
 from .history import Entry
 from .replies import Replies, Screen, requester
+from .texts import format_traceback
 
 if TYPE_CHECKING:
     from collections import OrderedDict
@@ -28,6 +32,11 @@ logger = logging.getLogger(__name__)
 
 QUERY_MAX = 500  # v3's setMaxLength(500)
 SEARCH_DEADLINE = 2.5  # seconds an autocomplete search may take: Discord waits 3 (v3 waited 10)
+SEARCH_MIN = 2  # v3 searched from two characters
+CHOICES = 10  # v3's suggestions
+CHOICE = 100  # Discord's limit for a suggestion's name and value
+SEARCHES = 100  # v3's cache of searches
+FOUND = (LoadKind.TRACK, LoadKind.PLAYLIST, LoadKind.SEARCH)  # loads with songs to suggest
 
 
 class CommandSpec(NamedTuple):
@@ -325,20 +334,63 @@ class Commands(Replies):
     async def cog_app_command_error(
         self, interaction: discord.Interaction, error: app_commands.AppCommandError
     ) -> None:
-        """An unexpected error in a command."""
-        raise NotImplementedError
+        """An error in a command: logged with its traceback and answered, as v3's ``Event``.
+
+        A node that stopped answering is no unexpected error: ``node-unavailable``.
+        """
+        cause = error.original if isinstance(error, app_commands.CommandInvokeError) else error
+        if isinstance(cause, NodeUnavailableError):
+            await self.tell(interaction, "node-unavailable")
+            return
+        name = getattr(getattr(error, "command", None), "qualified_name", "?")
+        logger.error("MusicPlayer: /%s failed:\n%s", name, redact(format_traceback(cause)))
+        await self.report(interaction, "command-error", cause)
 
     async def song_choices(
         self, interaction: discord.Interaction, current: str
     ) -> list[app_commands.Choice[str]]:
-        """The ``query`` option's suggestions."""
-        raise NotImplementedError
+        """``query``'s suggestions: v3's YouTube search of the input, from two characters.
+
+        Up to ten songs, ``title | author`` within 100 characters and their links as values
+        (Discord refuses longer ones), kept for the 100 latest inputs, the oldest out first, as
+        v3's cache; a search that takes past Discord's deadline, fails or finds nothing suggests
+        nothing and is not kept.
+        """
+        del interaction
+        if len(current) < SEARCH_MIN:
+            return []
+        if (cached := self.searches.get(current)) is not None:
+            return list(cached)
+        if self.link is None or not self.link.available:
+            return []
+        try:
+            async with asyncio.timeout(self.search_deadline):
+                loaded = await self.link.load(SEARCH + current)
+        except TimeoutError, NodeUnavailableError:
+            return []
+        if loaded.kind not in FOUND:
+            return []
+        found = tuple(
+            app_commands.Choice(
+                name=cut(f"{track.title} | {track.author}", CHOICE), value=track.uri
+            )
+            for track in loaded.tracks
+            if track.uri and len(track.uri) <= CHOICE
+        )[:CHOICES]
+        self.searches[current] = found
+        while len(self.searches) > SEARCHES:
+            self.searches.popitem(last=False)
+        return list(found)
 
     async def volume_choices(
         self, interaction: discord.Interaction, current: str
     ) -> list[app_commands.Choice[int]]:
-        """The ``level`` option's suggestion."""
-        raise NotImplementedError
+        """``level``'s suggestion: the guild's volume, as v3's ``current-volume``."""
+        del current
+        session = self.sessions.get(_guild(interaction).id)
+        volume = self.config.player.default_volume if session is None else session.volume
+        name = self.text("current-volume", interaction.locale.value, volume=volume)
+        return [app_commands.Choice(name=name, value=volume)]
 
 
 def _guild(interaction: discord.Interaction) -> discord.Guild:

@@ -11,7 +11,6 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast
 
 import discord
-import pytest
 from discord import app_commands
 
 from music_fakes import song, text
@@ -28,11 +27,6 @@ def choices(found: list[app_commands.Choice[str]]) -> list[tuple[str, str]]:
     return [(choice.name, choice.value) for choice in found]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Autocomplete suggests songs and the current volume",
-)
 async def test_song_suggestions(scene: Scene) -> None:
     """Requirement: Autocomplete suggests songs and the current volume."""
     long_link = "https://www.youtube.com/watch?v=" + "x" * 80
@@ -60,11 +54,6 @@ async def test_song_suggestions(scene: Scene) -> None:
     assert choices(again) == expected
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Autocomplete suggests songs and the current volume",
-)
 async def test_the_cache_keeps_the_latest_inputs(scene: Scene) -> None:
     """Requirement: Autocomplete suggests songs and the current volume."""
     interaction = scene.who().as_interaction()
@@ -79,11 +68,6 @@ async def test_the_cache_keeps_the_latest_inputs(scene: Scene) -> None:
     assert scene.link.loads.count("ytsearch:song 0") == 2  # v3's 100 inputs, the oldest out
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Autocomplete suggests songs and the current volume",
-)
 async def test_slow_or_missing_node(scene: Scene) -> None:
     """Requirement: Autocomplete suggests songs and the current volume."""
     interaction = scene.who().as_interaction()
@@ -106,11 +90,6 @@ async def test_slow_or_missing_node(scene: Scene) -> None:
     assert scene.link.loads.count("ytsearch:nothing") == 2
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Autocomplete suggests songs and the current volume",
-)
 async def test_volume_suggestion(scene: Scene) -> None:
     """Requirement: Autocomplete suggests songs and the current volume."""
     english = scene.who().as_interaction()
@@ -128,11 +107,6 @@ async def test_volume_suggestion(scene: Scene) -> None:
     ]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Autocomplete suggests songs and the current volume",
-)
 async def test_through_the_command(scene: Scene) -> None:
     """Requirement: Autocomplete suggests songs and the current volume."""
     scene.answer(SEARCH, LoadKind.SEARCH, song(1))

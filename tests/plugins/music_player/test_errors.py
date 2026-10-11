@@ -44,7 +44,6 @@ def failure(scene: Scene, error: Exception) -> app_commands.CommandInvokeError:
     return app_commands.CommandInvokeError(play, error)
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Errors are reported as v3 did")
 async def test_detailed_errors(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Errors are reported as v3 did."""
     interaction = scene.who()
@@ -65,7 +64,6 @@ async def test_detailed_errors(scene: Scene, caplog: pytest.LogCaptureFixture) -
 
 
 @pytest.mark.parametrize("config", [HIDDEN])
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Errors are reported as v3 did")
 async def test_hidden_details(scene: Scene) -> None:
     """Requirement: Errors are reported as v3 did."""
     interaction = scene.who()
@@ -79,7 +77,6 @@ async def test_hidden_details(scene: Scene) -> None:
     ]
 
 
-@pytest.mark.xfail(strict=True, raises=NotImplementedError, reason="Errors are reported as v3 did")
 async def test_a_node_that_went_away(scene: Scene, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Errors are reported as v3 did."""
     interaction = scene.who()
