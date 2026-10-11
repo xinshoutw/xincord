@@ -1,8 +1,4 @@
-"""The plugin's ``config.yaml``.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/config/ConfigSerializer.kt:6-11
-"""
+"""The plugin's ``config.yaml``."""
 
 from typing import Annotated
 

@@ -1,14 +1,4 @@
-"""The registration of ``/dynamic-voice-channel`` and its two subcommands.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/command/Register.kt:13-89
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/command/CmdFileSerializer.kt:7-54
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/Event.kt:56-68
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/resources/lang/en-US/register.yaml:1-24
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/resources/lang/zh-TW/register.yaml:1-24
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/util/GlobalUtil.kt:49-50
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/logger/InteractionLogger.kt:25-30
-"""
+"""The registration of ``/dynamic-voice-channel`` and its two subcommands."""
 
 import shutil
 from types import SimpleNamespace

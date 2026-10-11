@@ -2,9 +2,6 @@
 
 The bundled config lists v3's five administrator commands, which post a shop's bank payment
 instructions in the channel.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/Event.kt:14-62
 """
 
 from typing import TYPE_CHECKING

@@ -1,8 +1,4 @@
-"""The /basic-calculate command and its replies.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:14-61
-"""
+"""The /basic-calculate command and its replies."""
 
 import asyncio
 import logging

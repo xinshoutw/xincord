@@ -1,10 +1,4 @@
-"""v3's eleven guild commands: names, descriptions, options and localizations.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/command/Register.kt:11-154
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/resources/lang/en-US/register.yaml:1-44
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/resources/lang/zh-TW/register.yaml:1-56
-"""
+"""v3's eleven guild commands: names, descriptions, options and localizations."""
 
 from typing import TYPE_CHECKING, Any
 

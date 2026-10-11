@@ -1,8 +1,4 @@
-"""Requirement: Command line options.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/util/Arguments.kt:11-60
-"""
+"""Requirement: Command line options."""
 
 import logging
 from importlib.metadata import entry_points

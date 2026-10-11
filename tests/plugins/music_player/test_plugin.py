@@ -1,9 +1,4 @@
-"""The MusicPlayer plugin's entry point and bundled files.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/resources/info.yaml:1-19
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/Event.kt:19-35
-"""
+"""The MusicPlayer plugin's entry point and bundled files."""
 
 from importlib.resources import files
 from typing import TYPE_CHECKING

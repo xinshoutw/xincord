@@ -1,9 +1,4 @@
-"""The plugin's HTTP against a local server standing for NTUST and the model's API.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/announcement/AnnouncementParser.kt:19-102
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/service/GeminiApiService.kt:111-150
-"""
+"""The plugin's HTTP against a local server standing for NTUST and the model's API."""
 
 import hashlib
 import json

@@ -1,8 +1,4 @@
-"""The application's emojis by their configured names, and Unicode ones for the missing.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/util/MusicPlayerUtils.kt:51-65
-"""
+"""The application's emojis by their configured names, and Unicode ones for the missing."""
 
 from typing import TYPE_CHECKING
 

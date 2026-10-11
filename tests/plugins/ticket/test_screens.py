@@ -1,14 +1,4 @@
-"""Builder buttons that switch the builder's screen, through the press.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:123-138
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:169-184
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:202-217
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:234-240
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/en-US/message/modify-category.yaml:1-33
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/en-US/message/modify-admin-role.yaml:1-23
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/en-US/message/modify-btn-color.yaml:1-46
-"""
+"""Builder buttons that switch the builder's screen, through the press."""
 
 from typing import TYPE_CHECKING, cast
 

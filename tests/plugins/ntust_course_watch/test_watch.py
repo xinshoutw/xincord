@@ -1,9 +1,4 @@
-"""The loop's steps: the next registered course asked about and its alerts.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/api/CourseMonitorService.kt:22-76
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/NtustCourse.kt:94-138
-"""
+"""The loop's steps: the next registered course asked about and its alerts."""
 
 import logging
 import sqlite3

@@ -3,9 +3,6 @@
 v3 parsed pages with Ksoup, a port of jsoup, an HTML5 parser. NTUST's pages are well formed, so
 this tree follows HTML only where pages may leave things out: void elements, raw text, the end
 tags that HTML lets pages omit in tables and lists, and the table bodies that HTML5 parsers add.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/announcement/AnnouncementParser.kt:108-236
 """
 
 import html

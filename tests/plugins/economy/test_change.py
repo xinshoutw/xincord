@@ -1,13 +1,4 @@
-"""The six change commands, their permission check and v3's ``Bad Value``.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/Economy.kt:42-53
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/Economy.kt:73-179
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/Economy.kt:190-198
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/MessageReplier.kt:26-42
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/resources/lang/en-US/message/no-permission.yaml:1-9
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/resources/lang/zh-TW/message/no-permission.yaml:1-9
-"""
+"""The six change commands, their permission check and v3's ``Bad Value``."""
 
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast

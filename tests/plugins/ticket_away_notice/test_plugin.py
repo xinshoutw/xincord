@@ -1,9 +1,4 @@
-"""The TicketAwayNotice plugin's entry point, intents and bundled files.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/resources/info.yaml:1-13
-    XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/kotlin/addons/ticket/Event.kt:7-14
-"""
+"""The TicketAwayNotice plugin's entry point, intents and bundled files."""
 
 from importlib.resources import files
 from typing import TYPE_CHECKING

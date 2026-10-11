@@ -3,10 +3,6 @@
 v3 asked for the whole catalogue of a semester (``CourseTeacher: " "``) and kept every course; the
 plugin asks about one registered code at a time, since NTUST no longer answers the whole catalogue
 (no answer in 60 seconds, then a 500 after 120, on 2026-10-11).
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/api/CourseApi.kt:16-92
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/api/CourseMonitorService.kt:51-67
 """
 
 import json

@@ -1,8 +1,4 @@
-"""The /bot-info command and its reply.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BotInfo/src/main/kotlin/botinfo/BotInfo.kt:10-37
-"""
+"""The /bot-info command and its reply."""
 
 from typing import TYPE_CHECKING, Any, Protocol
 

@@ -1,9 +1,4 @@
-"""Each board's posted links in the store, as v3's MongoDB document.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/announcement/AnnouncementCacheManager.kt:25-68
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/announcement/AnnouncementCacheManager.kt:181-224
-"""
+"""Each board's posted links in the store, as v3's MongoDB document."""
 
 import json
 from typing import TYPE_CHECKING

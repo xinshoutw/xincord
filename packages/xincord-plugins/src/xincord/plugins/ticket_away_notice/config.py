@@ -1,8 +1,4 @@
-"""The plugin's ``config.yaml``.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/kotlin/addons/ticket/config/ConfigSerializer.kt:6-26
-"""
+"""The plugin's ``config.yaml``."""
 
 from typing import Annotated
 

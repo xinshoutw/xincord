@@ -1,9 +1,4 @@
-"""The plugin's ``config.yaml``.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/config/ConfigSerializer.kt:5-10
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:93-95
-"""
+"""The plugin's ``config.yaml``."""
 
 from typing import Annotated
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError

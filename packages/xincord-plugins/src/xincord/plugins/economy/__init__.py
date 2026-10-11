@@ -1,8 +1,4 @@
-"""Economy: each guild's wallets of money and spending, which listed administrators change.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/Event.kt:26-131
-"""
+"""Economy: each guild's wallets of money and spending, which listed administrators change."""
 
 from typing import TYPE_CHECKING
 

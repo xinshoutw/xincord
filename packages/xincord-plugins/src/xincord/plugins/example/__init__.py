@@ -2,9 +2,6 @@
 
 ``/example-command`` answers with its two options and the config's ``example_key`` in an
 ephemeral embed, under a button that counts its presses.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/_Example/src/main/kotlin/_example/Event.kt:14-62
 """
 
 from typing import TYPE_CHECKING

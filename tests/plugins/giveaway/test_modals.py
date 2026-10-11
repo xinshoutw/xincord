@@ -1,10 +1,4 @@
-"""The builder's modals: v3's six modals, pre-filled with the draft as written.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:157-245
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/resources/lang/en-US/modal/add-prize.yaml:1-18
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/messagecreator/modal/ModalCreator.kt
-"""
+"""The builder's modals: v3's six modals, pre-filled with the draft as written."""
 
 from typing import TYPE_CHECKING, Any, cast
 

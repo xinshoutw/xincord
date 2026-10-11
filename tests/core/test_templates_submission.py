@@ -1,7 +1,6 @@
 """Requirement: Modal submissions are read back.
 
 Kotlin, where v3 read a modal's input:
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Feedbacker.kt:139-145
 """
 
 import pytest

@@ -1,8 +1,4 @@
-"""Channels that a guild no longer has are dropped from its lists when the bot is ready.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/JsonManager.kt:29-58
-"""
+"""Channels that a guild no longer has are dropped from its lists when the bot is ready."""
 
 import logging
 from typing import TYPE_CHECKING

@@ -1,8 +1,4 @@
-"""Commands for the bot owner: ``/xincord reload``.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/cli/JLineManager.kt:60-93
-"""
+"""Commands for the bot owner: ``/xincord reload``."""
 
 from typing import TYPE_CHECKING, cast
 

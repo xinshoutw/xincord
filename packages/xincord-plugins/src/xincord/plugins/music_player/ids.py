@@ -1,8 +1,4 @@
-"""The panels' button IDs.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:58-63
-"""
+"""The panels' button IDs."""
 
 from xincord.core.component_ids import ComponentIds
 

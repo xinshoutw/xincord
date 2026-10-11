@@ -1,11 +1,4 @@
-"""The ``xincord`` command: start the bot from the working directory.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/Main.kt:17-39
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/util/Arguments.kt:11-60
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/SettingsLoader.kt:21-33
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/BotLoader.kt:36-107
-"""
+"""The ``xincord`` command: start the bot from the working directory."""
 
 import argparse
 import asyncio

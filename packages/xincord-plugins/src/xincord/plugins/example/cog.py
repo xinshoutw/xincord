@@ -1,8 +1,4 @@
-"""The example command and its counter button.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/_Example/src/main/kotlin/_example/_Example.kt:11-43
-"""
+"""The example command and its counter button."""
 
 from typing import TYPE_CHECKING, Any
 

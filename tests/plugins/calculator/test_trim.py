@@ -1,8 +1,4 @@
-"""Trimming the formula.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:28
-"""
+"""Trimming the formula."""
 
 import pytest
 

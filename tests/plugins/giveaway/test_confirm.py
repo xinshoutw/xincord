@@ -1,9 +1,4 @@
-"""Confirming a draft: v3's checks of the draft and of Administrator, then the post.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:247-295
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepData.kt:47-59
-"""
+"""Confirming a draft: v3's checks of the draft and of Administrator, then the post."""
 
 import asyncio
 import logging

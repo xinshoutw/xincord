@@ -1,8 +1,4 @@
-"""The builder's preview of a draft.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:145-162
-"""
+"""The builder's preview of a draft."""
 
 import discord
 

@@ -1,8 +1,4 @@
-"""The command, the menu's components, the message listeners and the checks at READY.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChatLogger.kt:31-382
-"""
+"""The command, the menu's components, the message listeners and the checks at READY."""
 
 import asyncio
 import logging

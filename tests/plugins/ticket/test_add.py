@@ -1,11 +1,4 @@
-"""``/add-ticket``: the builder of a button added to one of the bot's messages.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:33-51
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:29-51
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:145-154
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/en-US/message/add-ticket.yaml:1-47
-"""
+"""``/add-ticket``: the builder of a button added to one of the bot's messages."""
 
 from typing import TYPE_CHECKING, cast
 

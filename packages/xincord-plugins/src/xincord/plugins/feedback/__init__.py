@@ -1,8 +1,4 @@
-"""Feedback: administrators ask a member to rate the service; the review goes to a channel.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Event.kt:15-75
-"""
+"""Feedback: administrators ask a member to rate the service; the review goes to a channel."""
 
 from typing import TYPE_CHECKING
 

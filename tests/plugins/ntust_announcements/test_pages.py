@@ -2,11 +2,6 @@
 
 The pages are trimmed copies of NTUST's, fetched on 2026-10-11; the expected entries are in
 golden.yaml.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/announcement/AnnouncementParser.kt:104-236
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/util/HtmlMinifier.kt:18-51
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/util/UrlUtils.kt:53-74
 """
 
 import time

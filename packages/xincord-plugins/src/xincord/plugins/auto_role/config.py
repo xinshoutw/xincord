@@ -1,9 +1,4 @@
-"""The plugin's ``config.yaml``.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/AutoRole/src/main/kotlin/autorole/config/ConfigSerializer.kt:6-24
-    XsDiscordBotKt@3a59607:Plugins/AutoRole/src/main/kotlin/autorole/AutoRole.kt:9-12
-"""
+"""The plugin's ``config.yaml``."""
 
 from typing import Annotated
 

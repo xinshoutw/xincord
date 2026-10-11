@@ -1,9 +1,4 @@
-"""What a log shows of a voice channel, and the template and values of a voice change.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:144-161
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:278-350
-"""
+"""What a log shows of a voice channel, and the template and values of a voice change."""
 
 from dataclasses import dataclass
 from typing import Protocol, Self

@@ -2,10 +2,6 @@
 
 Rooms are deleted once they are empty, and a guild's bindings and rooms are checked when the bot
 is ready.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/DynamicVoiceChannel.kt:94-135
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/JsonManager.kt:44-87
 """
 
 import logging

@@ -1,9 +1,6 @@
 """A guild's channels are deleted when the bot leaves it, also while the bot was offline.
 
 Kotlin (v3 deleted them only on a GuildLeaveEvent received while the plugin was enabled):
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/WelcomeByeGuild.kt:55-57
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/Event.kt:77-80
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/json/JsonGuildFileManager.kt:38-40
 """
 
 import logging

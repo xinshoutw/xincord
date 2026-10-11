@@ -3,10 +3,6 @@
 v3 fetched pages with Java's ``HttpClient``, which follows no redirect, and called Gemini through
 the google-genai Java SDK, building a client per attempt that it never closed. One session serves
 the plugin from READY until it unloads; the APIs' documented REST calls need no SDK (``api.py``).
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/announcement/AnnouncementParser.kt:19-102
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/service/GeminiApiService.kt:111-150
 """
 
 import json

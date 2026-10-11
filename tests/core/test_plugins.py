@@ -1,9 +1,4 @@
-"""Plugin discovery, loading and reloading.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/PluginLoader.kt:39-245
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/plugin/PluginEvent.kt:14-74
-"""
+"""Plugin discovery, loading and reloading."""
 
 import logging
 import sys

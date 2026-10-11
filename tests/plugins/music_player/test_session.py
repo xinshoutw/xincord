@@ -1,10 +1,4 @@
-"""One guild's history on its player: the songs started, the node's events, the controls.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/music/GuildMusicManager.kt:127-237
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/music/TrackSchedulerCompat.kt:32-62
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/music/HistoryIndexManager.kt:41-157
-"""
+"""One guild's history on its player: the songs started, the node's events, the controls."""
 
 import logging
 import random

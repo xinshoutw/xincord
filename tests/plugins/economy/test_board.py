@@ -1,14 +1,4 @@
-"""``/top-money`` and ``/top-cost``, and the check of their templates at load.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/Economy.kt:42-53
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/MessageReplier.kt:44-68
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/storage/JsonImpl.kt:75-120
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/resources/lang/en-US/message/top-money.yaml:1-9
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/resources/lang/en-US/message/top-cost.yaml:1-9
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/resources/lang/zh-TW/message/top-money.yaml:1-9
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/resources/lang/zh-TW/message/top-cost.yaml:1-9
-"""
+"""``/top-money`` and ``/top-cost``, and the check of their templates at load."""
 
 import textwrap
 from types import SimpleNamespace

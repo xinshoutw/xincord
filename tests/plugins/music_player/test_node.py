@@ -1,8 +1,6 @@
 """The lavalink.py adapter against a local Lavalink v4 node.
 
 Kotlin (v3 played through lavaplayer in the JVM; the node replaces it):
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:84-138
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:365-471
 """
 
 import asyncio

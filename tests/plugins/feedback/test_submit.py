@@ -1,11 +1,4 @@
-"""A submitted modal: the review in the submit channel, the form's deletion and the failures.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Feedbacker.kt:93-98
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Feedbacker.kt:139-160
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/resources/lang/en-US/message/print-result.yaml:1-12
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/resources/lang/zh-TW/message/print-result.yaml:1-12
-"""
+"""A submitted modal: the review in the submit channel, the form's deletion and the failures."""
 
 import logging
 from typing import TYPE_CHECKING, cast

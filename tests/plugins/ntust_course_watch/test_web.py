@@ -1,8 +1,4 @@
-"""The course query over HTTP, against a local server standing for NTUST.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/api/CourseApi.kt:51-92
-"""
+"""The course query over HTTP, against a local server standing for NTUST."""
 
 import json
 import ssl

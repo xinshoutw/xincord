@@ -1,10 +1,4 @@
-"""Each guild's giveaways, kept in the shared store as v3's documents.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:49-54
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:411-415
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/json/JsonGuildFileManager.kt:7-40
-"""
+"""Each guild's giveaways, kept in the shared store as v3's documents."""
 
 import logging
 from typing import TYPE_CHECKING

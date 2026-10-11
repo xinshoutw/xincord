@@ -2,9 +2,6 @@
 
 v3 measured Discord's limits with Kotlin's ``String.length``, in UTF-16 code units, where a
 character outside the BMP counts twice; so do these functions, which never cut such a character.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/NtustManager.kt:97-183
 """
 
 import re

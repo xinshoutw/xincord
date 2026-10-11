@@ -1,9 +1,4 @@
-"""Drawing: the creator or an administrator draws once the end time has come; admins reroll.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:281-386
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/resources/lang/en-US/message/draw-result.yaml:1
-"""
+"""Drawing: the creator or an administrator draws once the end time has come; admins reroll."""
 
 import asyncio
 import random

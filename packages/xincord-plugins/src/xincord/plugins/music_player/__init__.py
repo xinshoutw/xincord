@@ -2,10 +2,6 @@
 
 Members bring the bot into voice with ``/join`` or ``/play`` and control the songs with v3's
 commands and the buttons of an ephemeral panel that refreshes itself.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/Event.kt:16-62
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/resources/info.yaml:1-19
 """
 
 from typing import TYPE_CHECKING

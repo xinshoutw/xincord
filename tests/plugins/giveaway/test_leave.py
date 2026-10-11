@@ -1,10 +1,4 @@
-"""Leaving a guild: its drafts go, its giveaways stay (v3 deleted the guild's file).
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Event.kt:109-112
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:151-154
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:153-155
-"""
+"""Leaving a guild: its drafts go, its giveaways stay (v3 deleted the guild's file)."""
 
 from typing import TYPE_CHECKING
 

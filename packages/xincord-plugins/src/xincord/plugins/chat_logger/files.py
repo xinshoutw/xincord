@@ -3,9 +3,6 @@
 ``data/ChatLogger/messages-<start>.db`` holds the messages created from ``<start>``, a UTC second,
 up to the next file's start; the oldest file also holds the older ones. v3 kept one file per guild
 with one table per channel instead.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/DbManager.kt:164-187
 """
 
 import re

@@ -1,10 +1,4 @@
-"""The ``query`` and ``level`` options' suggestions.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/Event.kt:120-140
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:235-276
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:733-772
-"""
+"""The ``query`` and ``level`` options' suggestions."""
 
 import asyncio
 from types import SimpleNamespace

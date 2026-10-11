@@ -1,8 +1,4 @@
-"""One listener's loop, driven by fakes for the monitor, Discord and the clock.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/IntervalPusher.kt:15-136
-"""
+"""One listener's loop, driven by fakes for the monitor, Discord and the clock."""
 
 import logging
 from dataclasses import dataclass, field

@@ -1,13 +1,4 @@
-"""Welcome and bye messages in the bound channels when members join or leave.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/WelcomeByeGuild.kt:78-118
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/Event.kt:67-75
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/resources/lang/en-US/message/welcome.yaml:1-13
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/resources/lang/zh-TW/message/welcome.yaml:1-13
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/resources/lang/en-US/message/bye.yaml:1-10
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/resources/lang/zh-TW/message/bye.yaml:1-10
-"""
+"""Welcome and bye messages in the bound channels when members join or leave."""
 
 import logging
 from types import SimpleNamespace

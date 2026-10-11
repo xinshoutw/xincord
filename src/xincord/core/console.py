@@ -1,8 +1,4 @@
-"""The interactive console: ``reload [plugin]`` and the stop words.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/cli/JLineManager.kt:12-94
-"""
+"""The interactive console: ``reload [plugin]`` and the stop words."""
 
 import logging
 from typing import TYPE_CHECKING

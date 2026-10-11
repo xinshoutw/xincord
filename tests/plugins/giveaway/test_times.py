@@ -2,9 +2,6 @@
 
 v3 read them with Java's ``DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")`` and its SMART
 resolver in the host's zone; the inventory lists the results verified with JDK 25.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepData.kt:130-146
 """
 
 import time

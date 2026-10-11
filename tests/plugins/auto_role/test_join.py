@@ -1,9 +1,4 @@
-"""Members who join a configured guild get its roles.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/AutoRole/src/main/kotlin/autorole/AutoRole.kt:21-25
-    XsDiscordBotKt@3a59607:Plugins/AutoRole/src/main/kotlin/autorole/Event.kt:28-31
-"""
+"""Members who join a configured guild get its roles."""
 
 from typing import TYPE_CHECKING
 

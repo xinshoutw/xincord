@@ -1,8 +1,4 @@
-"""Rendering Components V2 templates into discord.py layout items.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/messagecreator/v2/builder/MessageBuilder.kt:112-536
-"""
+"""Rendering Components V2 templates into discord.py layout items."""
 
 import copy
 from typing import TYPE_CHECKING, cast

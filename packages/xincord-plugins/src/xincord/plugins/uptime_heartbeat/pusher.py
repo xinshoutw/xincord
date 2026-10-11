@@ -1,8 +1,4 @@
-"""One listener's loop: the REST ping, the push and its outcome (v3's IntervalPusher class).
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/IntervalPusher.kt:15-136
-"""
+"""One listener's loop: the REST ping, the push and its outcome (v3's IntervalPusher class)."""
 
 import logging
 import time

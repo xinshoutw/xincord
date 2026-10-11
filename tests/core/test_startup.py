@@ -1,11 +1,4 @@
-"""Startup, the offline check, the stop signals and the bot's defaults.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/Main.kt:17-39
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/SettingsLoader.kt:21-33
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/BotLoader.kt:36-107
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/ListenerManager.kt:18-36
-"""
+"""Startup, the offline check, the stop signals and the bot's defaults."""
 
 import signal
 from pathlib import Path

@@ -1,8 +1,5 @@
 """``/pause``, ``/resume``, ``/stop``, ``/skip``, ``/volume``, ``/queue``, ``/shuffle`` and
 ``/now-playing`` with v3's replies.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:473-731
 """
 
 import asyncio

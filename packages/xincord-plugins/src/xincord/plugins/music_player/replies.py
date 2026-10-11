@@ -1,9 +1,4 @@
-"""Rendering and answering: the panels' screens and the texts, a base of the cog.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:413-705
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/util/MusicPlayerUtils.kt:234-304
-"""
+"""Rendering and answering: the panels' screens and the texts, a base of the cog."""
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast

@@ -1,11 +1,4 @@
-"""The Giveaway config: v3's ``defaultLocale`` and ``autoDrawIntervalSeconds``, and ``timeZone``.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/config/ConfigSerializer.kt:5-10
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/resources/config.yaml:1-7
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Event.kt:22-46
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:93-113
-"""
+"""The Giveaway config: v3's ``defaultLocale`` and ``autoDrawIntervalSeconds``, and ``timeZone``."""
 
 import logging
 from typing import TYPE_CHECKING, cast

@@ -1,8 +1,4 @@
-"""The feedback form: the command, the star buttons and the feedback modal.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Feedbacker.kt:23-161
-"""
+"""The feedback form: the command, the star buttons and the feedback modal."""
 
 import logging
 from typing import TYPE_CHECKING, Any, Protocol, cast, override, runtime_checkable

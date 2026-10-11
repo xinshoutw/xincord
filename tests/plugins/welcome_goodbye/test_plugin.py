@@ -1,11 +1,4 @@
-"""The WelcomeGoodbye plugin's entry point, intents and bundled files.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/resources/info.yaml:1-9
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/Event.kt:18-49
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/config/ConfigSerializer.kt:5-8
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/BotLoader.kt:68-72
-"""
+"""The WelcomeGoodbye plugin's entry point, intents and bundled files."""
 
 from typing import TYPE_CHECKING
 

@@ -1,9 +1,5 @@
 """Deleting a ticket from the control row: its staff and administrators only; anyone else is told
 so.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:181-196
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:834-852
 """
 
 import logging

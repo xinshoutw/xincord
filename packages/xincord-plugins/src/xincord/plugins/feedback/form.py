@@ -1,9 +1,4 @@
-"""The stars of a form: v3's star text, the star count that an ID carries and the highlight.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Feedbacker.kt:106-124
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Feedbacker.kt:139-145
-"""
+"""The stars of a form: v3's star text, the star count that an ID carries and the highlight."""
 
 import discord
 

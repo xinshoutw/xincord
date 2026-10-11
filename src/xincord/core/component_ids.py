@@ -1,8 +1,4 @@
-"""Component and modal IDs: a versioned format and the permanent v3 decoder.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/util/ComponentIdManager.kt:13-247
-"""
+"""Component and modal IDs: a versioned format and the permanent v3 decoder."""
 
 import re
 import string

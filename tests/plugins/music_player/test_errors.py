@@ -1,8 +1,4 @@
-"""Unexpected errors: logged with their tracebacks and answered as v3 did.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/Event.kt:72-118
-"""
+"""Unexpected errors: logged with their tracebacks and answered as v3 did."""
 
 import logging
 from typing import TYPE_CHECKING, Any, cast

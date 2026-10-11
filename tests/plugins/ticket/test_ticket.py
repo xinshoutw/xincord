@@ -1,9 +1,4 @@
-"""Submitting the reason opens a ticket channel with v3's overwrites, the bot's, and its opener.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:248-310
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:784-832
-"""
+"""Submitting the reason opens a ticket channel with v3's overwrites, the bot's, and its opener."""
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast

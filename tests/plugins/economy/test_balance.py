@@ -1,14 +1,4 @@
-"""``/balance``: a user's own wallet, or anyone's for an administrator.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/Economy.kt:62-71
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/Economy.kt:141-148
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/Economy.kt:185-188
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/MessageReplier.kt:26-42
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/resources/lang/en-US/message/balance.yaml:1-15
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/resources/lang/zh-TW/message/balance.yaml:1-15
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Placeholder.kt:29-41
-"""
+"""``/balance``: a user's own wallet, or anyone's for an administrator."""
 
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast

@@ -1,8 +1,4 @@
-"""The Discord messages of an announcement: v3's header, its split and its title links.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/NtustManager.kt:97-183
-"""
+"""The Discord messages of an announcement: v3's header, its split and its title links."""
 
 import pytest
 

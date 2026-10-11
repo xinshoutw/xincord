@@ -1,9 +1,4 @@
-"""The channel commands and the join and removal listeners.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/WelcomeByeGuild.kt:30-303
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/command/Register.kt:12-75
-"""
+"""The channel commands and the join and removal listeners."""
 
 import logging
 from typing import TYPE_CHECKING, Any, NamedTuple, Protocol, override, runtime_checkable

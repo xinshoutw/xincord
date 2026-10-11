@@ -1,10 +1,4 @@
-"""The plugin's cog: the boards' loops, their posts and the ready check.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/NtustManager.kt:15-95
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/Event.kt:6-43
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/announcement/AnnouncementScheduler.kt:117-153
-"""
+"""The plugin's cog: the boards' loops, their posts and the ready check."""
 
 import asyncio
 import logging

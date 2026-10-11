@@ -1,9 +1,4 @@
-"""The TicketAwayNotice config: v3's keys, without defaults, validated when the plugin loads.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/kotlin/addons/ticket/config/ConfigSerializer.kt:6-26
-    XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/resources/config.yaml:1-7
-"""
+"""The TicketAwayNotice config: v3's keys, without defaults, validated when the plugin loads."""
 
 import logging
 from importlib.resources import files

@@ -1,9 +1,4 @@
-"""The alerts: v3's texts, their mentions and how often a channel hears about a course.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/NtustCourse.kt:94-138
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/api/CourseMonitorService.kt:51-76
-"""
+"""The alerts: v3's texts, their mentions and how often a channel hears about a course."""
 
 import re
 from dataclasses import dataclass, field

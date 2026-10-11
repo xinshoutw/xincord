@@ -1,13 +1,4 @@
-"""The registration of the nine guild commands.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/command/Register.kt:11-204
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/command/CmdFileSerializer.kt:7-59
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/Event.kt:113-125
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/resources/lang/en-US/register.yaml:1-81
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/resources/lang/zh-TW/register.yaml:1-81
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/logger/InteractionLogger.kt:25-30
-"""
+"""The registration of the nine guild commands."""
 
 from typing import TYPE_CHECKING, Any, cast
 

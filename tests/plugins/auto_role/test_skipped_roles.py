@@ -1,8 +1,6 @@
 """Roles that the bot cannot give are skipped with a warning, and the others are given.
 
 Kotlin (v3 gave no role at all in these cases, or dropped unknown IDs without a log):
-    XsDiscordBotKt@3a59607:Plugins/AutoRole/src/main/kotlin/autorole/AutoRole.kt:9-12
-    XsDiscordBotKt@3a59607:Plugins/AutoRole/src/main/kotlin/autorole/AutoRole.kt:21-25
 """
 
 import logging

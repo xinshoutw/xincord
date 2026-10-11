@@ -1,10 +1,4 @@
-"""The plugin's cog: the commands, the loop and the posts.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/Event.kt:14-61
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/NtustCourse.kt:15-142
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/command/Register.kt:12-28
-"""
+"""The plugin's cog: the commands, the loop and the posts."""
 
 import asyncio
 import logging

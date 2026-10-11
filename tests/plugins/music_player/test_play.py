@@ -1,9 +1,4 @@
-"""``/play``: the member's checks, the node's load, and the ``play`` panel.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:365-471
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/music/GuildMusicManager.kt:127-164
-"""
+"""``/play``: the member's checks, the node's load, and the ``play`` panel."""
 
 import asyncio
 from typing import TYPE_CHECKING, Any, cast

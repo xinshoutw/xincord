@@ -4,9 +4,6 @@ v3 kept them in MongoDB (database ``NtustManager``, collection ``current_announc
 ``_id`` = the board's name), the value being Core's ``TypedListWrapper``: ``{"items": [{"type",
 "url", "title"}], "itemTypeName": ...}``. The store keeps that value under the board's name, so the
 planned v3 data import copies it unchanged. Each board has one writer, its own loop.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/announcement/AnnouncementCacheManager.kt:10-224
 """
 
 from dataclasses import dataclass

@@ -1,11 +1,4 @@
-"""Each guild's panels, kept in the shared store as v3's documents.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:62-67
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:839-852
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:219-232
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/json/JsonGuildFileManager.kt:7-40
-"""
+"""Each guild's panels, kept in the shared store as v3's documents."""
 
 import re
 from typing import TYPE_CHECKING

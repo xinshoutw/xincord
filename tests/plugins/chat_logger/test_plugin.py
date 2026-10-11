@@ -1,10 +1,4 @@
-"""The ChatLogger plugin's entry point, intents and bundled files.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/resources/info.yaml:1-16
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/build.gradle.kts:1-7
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/Event.kt:23-48
-"""
+"""The ChatLogger plugin's entry point, intents and bundled files."""
 
 from importlib.resources import files
 from typing import TYPE_CHECKING

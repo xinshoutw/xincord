@@ -1,9 +1,4 @@
-"""The Feedback config: v3's replies and the two new failure replies.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/config/ConfigSerializer.kt:6-18
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/resources/config.yaml:1-5
-"""
+"""The Feedback config: v3's replies and the two new failure replies."""
 
 import logging
 from typing import TYPE_CHECKING, cast

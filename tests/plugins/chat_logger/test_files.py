@@ -2,9 +2,6 @@
 
 v3 kept one file per guild, ``plugins/ChatLogger/data/<guildId>.db``, with one table per channel;
 there is no Kotlin counterpart to the ranges.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/DbManager.kt:164-187
 """
 
 from datetime import UTC, datetime, timedelta

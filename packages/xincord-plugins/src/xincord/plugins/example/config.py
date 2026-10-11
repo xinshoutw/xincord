@@ -1,8 +1,4 @@
-"""The plugin's ``config.yaml``.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/_Example/src/main/kotlin/_example/config/ConfigSerializer.kt:6-12
-"""
+"""The plugin's ``config.yaml``."""
 
 from xincord.core.config import Model
 

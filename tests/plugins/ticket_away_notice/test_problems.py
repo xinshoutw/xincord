@@ -1,8 +1,4 @@
-"""Problems with notices are reported: a missing owner, Discord's refusals, unpostable templates.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/kotlin/addons/ticket/TicketAddons.kt:28-37
-"""
+"""Problems with notices are reported: a missing owner, Discord's refusals, unpostable templates."""
 
 import logging
 from pathlib import Path

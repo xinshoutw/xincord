@@ -1,11 +1,4 @@
-"""The NtustAnnouncements config: v3's keys, and the boards and model settings that v3 hard-coded.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/config/ConfigSerializer.kt:6-26
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/service/GeminiApiService.kt:220-238
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/announcement/AnnouncementScheduler.kt:21-115
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/resources/config.yaml:1-105
-"""
+"""The NtustAnnouncements config: its keys, the boards and the model settings."""
 
 import json
 import logging

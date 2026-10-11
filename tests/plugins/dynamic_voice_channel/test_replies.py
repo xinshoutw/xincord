@@ -1,12 +1,4 @@
-"""``bind`` and ``unbind``: administrators bind voice channels as lobbies.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/DynamicVoiceChannel.kt:35-78
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/JsonManager.kt:89-128
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/resources/lang/en-US/message/bind-success.yaml:1-4
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/resources/lang/zh-TW/message/bind-success.yaml:1-4
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Placeholder.kt:60-83
-"""
+"""``bind`` and ``unbind``: administrators bind voice channels as lobbies."""
 
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast

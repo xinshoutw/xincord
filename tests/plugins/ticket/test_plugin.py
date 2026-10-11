@@ -1,10 +1,4 @@
-"""The Ticket plugin's entry point, intents and bundled files.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/info.yaml:1-9
-    XsDiscordBotKt@3a59607:Plugins/Ticket/build.gradle.kts:1-3
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Event.kt:18-34
-"""
+"""The Ticket plugin's entry point, intents and bundled files."""
 
 from typing import TYPE_CHECKING
 

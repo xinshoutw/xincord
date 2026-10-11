@@ -1,9 +1,4 @@
-"""The archive: a ticket's messages copied into a new thread of another channel, by a webhook.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:378-782
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:854-878
-"""
+"""The archive: a ticket's messages copied into a new thread of another channel, by a webhook."""
 
 import contextlib
 import logging

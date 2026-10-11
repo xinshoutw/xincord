@@ -1,19 +1,4 @@
-"""v3's texts and IDs: every shipped template renders in each locale, and v3's IDs read.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/en-US/message/confirm-create.yaml:1-7
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/en-US/message/modify-admin-role.yaml:1-23
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/en-US/message/modify-btn-color.yaml:1-46
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/en-US/message/modify-category.yaml:1-33
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/zh-TW/message/modify-btn-color.yaml:1-45
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/en-US/modal/modify-author.yaml:1-20
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/zh-TW/modal/modify-author.yaml:1-19
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/zh-TW/modal/press-ticket.yaml:1-9
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:69-79
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:207-376
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:719-854
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:37-308
-"""
+"""v3's texts and IDs: every shipped template renders in each locale, and v3's IDs read."""
 
 from typing import TYPE_CHECKING, Any
 

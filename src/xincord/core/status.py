@@ -1,8 +1,4 @@
-"""The rotating bot activity.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/statuschanger/StatusChanger.kt:16-90
-"""
+"""The rotating bot activity."""
 
 import asyncio
 import itertools

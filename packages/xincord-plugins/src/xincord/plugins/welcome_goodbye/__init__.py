@@ -1,8 +1,4 @@
-"""WelcomeGoodbye: members who join or leave a guild are welcomed or seen off in bound channels.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/Event.kt:18-80
-"""
+"""WelcomeGoodbye: members who join or leave a guild are welcomed or seen off in bound channels."""
 
 from typing import TYPE_CHECKING
 

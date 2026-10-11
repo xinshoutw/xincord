@@ -1,9 +1,4 @@
-"""The Economy config: the administrators and the length of the boards.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/config/ConfigSerializer.kt:6-42
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/resources/config.yaml:1-42
-"""
+"""The Economy config: the administrators and the length of the boards."""
 
 import logging
 from typing import TYPE_CHECKING, cast

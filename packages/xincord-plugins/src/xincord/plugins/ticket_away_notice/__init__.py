@@ -1,9 +1,4 @@
-"""TicketAwayNotice (v3 TicketAddons): new ticket channels get a notice while the owner is offline.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/kotlin/addons/ticket/Event.kt:7-30
-    XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/resources/info.yaml:1-13
-"""
+"""TicketAwayNotice: new ticket channels get a notice while the owner is offline."""
 
 from typing import TYPE_CHECKING
 

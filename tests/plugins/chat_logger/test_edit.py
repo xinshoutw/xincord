@@ -1,11 +1,4 @@
-"""The edits of stored messages, posted to the listen channels that detect the channel.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/Event.kt:115-119
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChatLogger.kt:132-172
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/DbManager.kt:96-112
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/resources/lang/en-US/message/on-msg-update.yaml:1-31
-"""
+"""The edits of stored messages, posted to the listen channels that detect the channel."""
 
 from typing import TYPE_CHECKING
 

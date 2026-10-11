@@ -2,10 +2,6 @@
 
 v3 kept one SQLite file per guild under ``plugins/ChatLogger/data/``, with one table per channel,
 and never closed its connections.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/DbManager.kt:16-188
-    XsDiscordBotKt@3a59607:Plugins/API/SQLiteAPI/src/main/kotlin/api/sqlite/SQLiteFileManager.kt:8-46
 """
 
 import asyncio

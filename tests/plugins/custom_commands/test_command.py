@@ -1,11 +1,4 @@
-"""The registration of the commands that the config lists: v3's five by default.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/command/Register.kt:9-60
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/Event.kt:49-61
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/resources/lang/zh-TW/register.yaml:1-19
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/logger/InteractionLogger.kt:25-30
-"""
+"""The registration of the commands that the config lists: v3's five by default."""
 
 from typing import TYPE_CHECKING, Any, cast
 

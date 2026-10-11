@@ -1,8 +1,4 @@
-"""The HTML tree that stands for Ksoup: v3's selectors, its text() and its outer HTML.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/announcement/AnnouncementParser.kt:108-236
-"""
+"""The HTML tree that stands for Ksoup: v3's selectors, its text() and its outer HTML."""
 
 import pytest
 

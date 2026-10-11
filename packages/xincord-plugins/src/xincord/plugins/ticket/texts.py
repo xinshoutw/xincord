@@ -1,9 +1,4 @@
-"""The texts that v3 wrote in its code, from ``text.yaml``.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:207-376
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:181-196
-"""
+"""The texts that v3 wrote in its code, from ``text.yaml``."""
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING

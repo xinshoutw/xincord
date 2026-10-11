@@ -1,9 +1,4 @@
-"""An article's conversion by the model: v3's prompt, its keys' rate limit and its retries.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/service/GeminiApiService.kt:29-218
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/util/UrlUtils.kt:37-46
-"""
+"""An article's conversion by the model: v3's prompt, its keys' rate limit and its retries."""
 
 import logging
 import re

@@ -1,8 +1,4 @@
-"""Message rendering: component rows and model keys.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/messagecreator/v1/builder/MessageBuilder.kt:159-293
-"""
+"""Message rendering: component rows and model keys."""
 
 from typing import TYPE_CHECKING
 

@@ -1,9 +1,4 @@
-"""Each push is one GET request, here to a local status monitor or a server answering garbage.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/IntervalPusher.kt:20-22
-    XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/IntervalPusher.kt:67-99
-"""
+"""Each push is one GET request, here to a local status monitor or a server answering garbage."""
 
 import asyncio
 import logging

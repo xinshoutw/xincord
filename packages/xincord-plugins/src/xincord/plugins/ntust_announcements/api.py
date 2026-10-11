@@ -3,10 +3,6 @@
 ``gemini`` is v3's API, Gemini's ``generateContent``; ``openai`` is the chat completions API that
 OpenAI, OpenRouter, Ollama and Gemini itself offer. Both are plain REST calls over the plugin's
 aiohttp session (``web.Web.generate``), with ``config.yaml``'s model settings.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/service/GeminiApiService.kt:34-36
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/service/GeminiApiService.kt:131-150
 """
 
 from dataclasses import dataclass

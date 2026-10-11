@@ -27,7 +27,6 @@ ACTIVITY_TYPES = {
 LOG_TYPES = ("command", "button", "modal")
 # Plugins whose xincord name differs from v3's (decision B18 as amended on 2026-10-10). v3 kept
 # each plugin's files in plugins/<v3 name>/:
-#     XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/plugin/PluginEvent.kt:21
 RENAMED = {
     "_Example": "Example",
     "BasicCalculator": "Calculator",

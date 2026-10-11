@@ -1,10 +1,4 @@
-"""Each guild's wallets, kept in the shared store as v3's documents.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/storage/JsonImpl.kt:17-173
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/json/JsonData.kt:3-10
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/json/JsonGuildFileManager.kt:7-40
-"""
+"""Each guild's wallets, kept in the shared store as v3's documents."""
 
 import re
 from typing import TYPE_CHECKING

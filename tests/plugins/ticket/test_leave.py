@@ -1,10 +1,4 @@
-"""Leaving a guild forgets its panels and its drafts, at once or when the bot is ready again.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Event.kt:85-88
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:243-245
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:329-331
-"""
+"""Leaving a guild forgets its panels and its drafts, at once or when the bot is ready again."""
 
 import logging
 from typing import TYPE_CHECKING

@@ -1,9 +1,4 @@
-"""Which voice channels a listen channel's settings detect, and where an event goes.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/ChannelData.kt:31-46
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:278-350
-"""
+"""Which voice channels a listen channel's settings detect, and where an event goes."""
 
 from xincord.plugins.listen_channels.settings import Setting, detects, targets
 

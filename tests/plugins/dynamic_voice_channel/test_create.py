@@ -1,11 +1,4 @@
-"""A member who joins a lobby alone gets the lobby as a room, and a copy becomes the new lobby.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/Event.kt:75-78
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/DynamicVoiceChannel.kt:94-135
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/JsonManager.kt:138-142
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/mongodb/MemoryCacheDb.kt:64-71
-"""
+"""A member who joins a lobby alone gets the lobby as a room, and a copy becomes the new lobby."""
 
 import asyncio
 import logging

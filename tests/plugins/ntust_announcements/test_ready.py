@@ -2,10 +2,6 @@
 
 v3 looked its guild up with ``!!`` when it started, which stopped the bot outside the owner's guild,
 and each announcement channel when it first posted there.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/NtustManager.kt:15-40
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/NtustManager.kt:207-227
 """
 
 import logging

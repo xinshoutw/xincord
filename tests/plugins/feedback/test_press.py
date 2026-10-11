@@ -1,10 +1,4 @@
-"""A star press: who may rate, the feedback modal and the highlight of the pressed star.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Feedbacker.kt:86-137
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/resources/lang/en-US/modal/fill-form.yaml:1-14
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/resources/lang/zh-TW/modal/fill-form.yaml:1-14
-"""
+"""A star press: who may rate, the feedback modal and the highlight of the pressed star."""
 
 import logging
 from typing import TYPE_CHECKING, cast

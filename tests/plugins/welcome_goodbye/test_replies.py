@@ -1,11 +1,4 @@
-"""The bind and unbind commands: access, bindings and replies.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/WelcomeByeGuild.kt:59-76
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/WelcomeByeGuild.kt:120-303
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/WelcomeByeGuildMessageKeys.kt:3-20
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/messagecreator/v2/MessageCreator.kt:130-134
-"""
+"""The bind and unbind commands: access, bindings and replies."""
 
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast

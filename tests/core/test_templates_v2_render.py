@@ -1,8 +1,4 @@
-"""Components V2 rendering.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/messagecreator/v2/builder/MessageBuilder.kt:56-536
-"""
+"""Components V2 rendering."""
 
 from pathlib import Path
 from typing import TYPE_CHECKING

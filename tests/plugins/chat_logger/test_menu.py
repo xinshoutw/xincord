@@ -1,13 +1,4 @@
-"""The settings menu that ``/chat-logger setting`` shows for the current channel.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/Event.kt:91-95
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChatLogger.kt:53-59
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChatLogger.kt:320-375
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/command/PlaceholderSerializer.kt:6-14
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/resources/lang/en-US/placeholder.yaml:1-3
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/resources/lang/en-US/message/chat-logger@setting.yaml:1-40
-"""
+"""The settings menu that ``/chat-logger setting`` shows for the current channel."""
 
 from typing import TYPE_CHECKING, Any, cast
 

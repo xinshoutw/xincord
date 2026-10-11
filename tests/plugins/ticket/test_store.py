@@ -1,11 +1,4 @@
-"""Each guild's panels in the store, as v3's documents.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/json/serializer/JsonData.kt:3-10
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:839-852
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:219-232
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:329-331
-"""
+"""Each guild's panels in the store, as v3's documents."""
 
 import json
 from typing import TYPE_CHECKING

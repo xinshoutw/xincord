@@ -1,9 +1,6 @@
 """The guild and the owner are checked when the bot is ready, and on a load into a ready bot.
 
 v3 checked nothing: with its guild filter broken (B1), a wrong guild_id went unnoticed.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/kotlin/addons/ticket/TicketAddons.kt:24-29
 """
 
 import logging

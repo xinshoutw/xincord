@@ -1,8 +1,4 @@
-"""A message's text as the plugin stores it, and the texts that fit an embed field.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChatLogger.kt:298-317
-"""
+"""A message's text as the plugin stores it, and the texts that fit an embed field."""
 
 from itertools import accumulate
 from typing import TYPE_CHECKING, Protocol

@@ -1,9 +1,4 @@
-"""The texts that v3 wrote in its code, in one language per message, and the embeds built from them.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:621-627
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:313-371
-"""
+"""The plugin's texts, in one language per message, and the embeds built from them."""
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING

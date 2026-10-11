@@ -1,10 +1,4 @@
-"""The CustomCommands plugin's entry point and bundled files.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/resources/info.yaml:1-8
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/Event.kt:14-30
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/config/ConfigSerializer.kt:5-8
-"""
+"""The CustomCommands plugin's entry point and bundled files."""
 
 from importlib.resources import files
 from typing import TYPE_CHECKING

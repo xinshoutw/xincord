@@ -1,10 +1,4 @@
-"""The panels' five buttons, a base of the cog.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/Event.kt:96-118
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:298-333
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:783-956
-"""
+"""The panels' five buttons, a base of the cog."""
 
 import logging
 from typing import TYPE_CHECKING, cast

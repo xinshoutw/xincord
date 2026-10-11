@@ -1,12 +1,4 @@
-"""Builder buttons that open pre-filled modals, and the preview button's reason modal.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:79-121
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:140-167
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:186-200
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/en-US/modal/modify-author.yaml:1-20
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/zh-TW/modal/modify-btn-text.yaml:1-3
-"""
+"""Builder buttons that open pre-filled modals, and the preview button's reason modal."""
 
 from typing import TYPE_CHECKING
 

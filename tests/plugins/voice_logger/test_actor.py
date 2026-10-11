@@ -1,9 +1,6 @@
 """The audit log entry that names the member of a voice channel status change.
 
 v3 took the user of the guild's newest type-192 entry, whatever its channel or age.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:117-141
 """
 
 from datetime import UTC, datetime, timedelta

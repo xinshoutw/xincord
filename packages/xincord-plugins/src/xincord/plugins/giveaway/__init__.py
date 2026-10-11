@@ -1,8 +1,4 @@
-"""Giveaway: administrators build a giveaway step by step and post it; members join, winners drawn.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Event.kt:19-118
-"""
+"""Giveaway: administrators build and post a giveaway; members join and winners are drawn."""
 
 from typing import TYPE_CHECKING
 

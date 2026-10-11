@@ -1,10 +1,4 @@
-"""v3's wbg@ placeholders for the replies and the welcome and bye messages.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/WelcomeByeGuildSubstitutorFactory.kt:12-113
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Placeholder.kt:30-82
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Placeholder.kt:145-276
-"""
+"""v3's wbg@ placeholders for the replies and the welcome and bye messages."""
 
 import discord
 import pytest

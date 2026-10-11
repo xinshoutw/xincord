@@ -1,10 +1,4 @@
-"""The NtustCourseWatch config: what v3 hard-coded, with v3's values as defaults.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/config/ConfigSerializer.kt:5-8
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/api/CourseMonitorService.kt:22-36
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/NtustCourse.kt:97-100
-"""
+"""The NtustCourseWatch config: what v3 hard-coded, with v3's values as defaults."""
 
 import logging
 from datetime import datetime, timedelta, timezone

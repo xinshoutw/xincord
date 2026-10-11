@@ -2,11 +2,6 @@
 
 Each value is checked here against what Discord and discord.py take, so that a mistake names its
 key when the plugin loads instead of failing at each use or at the upload.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/command/Register.kt:9-60
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/command/CmdFileSerializer.kt:7-23
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/resources/lang/zh-TW/register.yaml:1-19
 """
 
 from typing import Annotated, Literal

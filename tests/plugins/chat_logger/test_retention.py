@@ -2,9 +2,6 @@
 
 Files whose messages all expired are deleted. v3 kept every message forever; there is no Kotlin
 counterpart.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/DbManager.kt:168-187
 """
 
 import asyncio

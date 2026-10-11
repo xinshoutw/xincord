@@ -1,13 +1,4 @@
-"""The registration of the four commands.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/command/Register.kt:12-75
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/command/CmdFileSerializer.kt:7-32
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/Event.kt:51-65
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/resources/lang/en-US/register.yaml:1-23
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/resources/lang/zh-TW/register.yaml:1-23
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/logger/InteractionLogger.kt:25-30
-"""
+"""The registration of the four commands."""
 
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast

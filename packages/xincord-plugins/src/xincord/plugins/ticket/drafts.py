@@ -1,9 +1,4 @@
-"""A new draft and the builder's changes to it, as v3's StepManager and StepData made them.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:58-104
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:181-196
-"""
+"""A new draft and the builder's changes to it, as v3's StepManager and StepData made them."""
 
 from dataclasses import replace
 from typing import TYPE_CHECKING

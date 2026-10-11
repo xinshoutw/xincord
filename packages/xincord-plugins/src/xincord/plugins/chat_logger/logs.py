@@ -1,9 +1,4 @@
-"""What a log shows of a message's channel and author.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChatLogger.kt:132-226
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChannelData.kt:31-46
-"""
+"""What a log shows of a message's channel and author."""
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Self

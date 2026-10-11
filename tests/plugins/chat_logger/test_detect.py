@@ -1,10 +1,4 @@
-"""Which channels a listen channel's settings detect, threads included, and where an event goes.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChannelData.kt:31-46
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChatLogger.kt:132-138
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChatLogger.kt:174-180
-"""
+"""Which channels a listen channel's settings detect, threads included, and where an event goes."""
 
 from xincord.plugins.listen_channels.settings import ChannelIds, Setting, detects, targets
 

@@ -1,10 +1,4 @@
-"""A room is deleted once its last member leaves.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/DynamicVoiceChannel.kt:94-110
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/mongodb/MemoryCacheDb.kt:85-94
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/mongodb/CacheCollectionManager.kt:91-97
-"""
+"""A room is deleted once its last member leaves."""
 
 import asyncio
 import logging

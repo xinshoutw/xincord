@@ -1,9 +1,4 @@
-"""A listen channel's settings: which channels it detects, and how the menu lists them.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/ChannelData.kt:8-77
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChannelData.kt:8-78
-"""
+"""A listen channel's settings: which channels it detects, and how the menu lists them."""
 
 from dataclasses import dataclass
 from itertools import accumulate

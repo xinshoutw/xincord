@@ -1,8 +1,4 @@
-"""End times as administrators type and see them: ``yyyy-MM-dd HH:mm`` in the configured zone.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepData.kt:130-146
-"""
+"""End times as administrators type and see them: ``yyyy-MM-dd HH:mm`` in the configured zone."""
 
 import calendar
 import re

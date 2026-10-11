@@ -1,10 +1,4 @@
-"""What a board's first page lists and what an article's page holds.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/announcement/AnnouncementParser.kt:104-236
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/util/HtmlMinifier.kt:18-51
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/util/UrlUtils.kt:37-74
-"""
+"""What a board's first page lists and what an article's page holds."""
 
 import re
 from dataclasses import dataclass

@@ -1,13 +1,4 @@
-"""The settings menu that ``/voice-logger setting`` shows for the current channel.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/Event.kt:83-87
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:51-57
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:383-439
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/command/PlaceholderSerializer.kt:6-14
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/resources/lang/en-US/placeholder.yaml:1-3
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/resources/lang/en-US/message/voice-logger@setting.yaml:1-40
-"""
+"""The settings menu that ``/voice-logger setting`` shows for the current channel."""
 
 from typing import TYPE_CHECKING, Any, cast
 

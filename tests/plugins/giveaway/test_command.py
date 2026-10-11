@@ -1,14 +1,4 @@
-"""``/create-giveaway``: a localized administrator guild command that opens the builder.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/command/Register.kt:9-24
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/command/CmdFileSerializer.kt:7-11
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Event.kt:69-83
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:26-42
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepData.kt:22-32
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/resources/lang/en-US/message/create-giveaway.yaml:1-71
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/logger/InteractionLogger.kt:25-30
-"""
+"""``/create-giveaway``: a localized administrator guild command that opens the builder."""
 
 from typing import TYPE_CHECKING, Any, cast
 

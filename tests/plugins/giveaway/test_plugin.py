@@ -1,10 +1,4 @@
-"""The Giveaway plugin's entry point, intents and bundled files.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/resources/info.yaml:1-9
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/build.gradle.kts:1-3
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Event.kt:19-46
-"""
+"""The Giveaway plugin's entry point, intents and bundled files."""
 
 from importlib.resources import files
 from typing import TYPE_CHECKING

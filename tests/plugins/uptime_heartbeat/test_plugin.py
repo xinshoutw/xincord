@@ -1,10 +1,4 @@
-"""The UptimeHeartbeat plugin's entry point, intents and bundled files.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/resources/info.yaml:1-8
-    XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/Event.kt:10-31
-    XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/resources/config.yaml:1-4
-"""
+"""The UptimeHeartbeat plugin's entry point, intents and bundled files."""
 
 from importlib.resources import files
 from typing import TYPE_CHECKING

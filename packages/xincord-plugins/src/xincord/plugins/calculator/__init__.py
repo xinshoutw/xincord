@@ -1,8 +1,4 @@
-"""Calculator: ``/basic-calculate`` evaluates a formula exactly and posts the result.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/Event.kt:14-62
-"""
+"""Calculator: ``/basic-calculate`` evaluates a formula exactly and posts the result."""
 
 from typing import TYPE_CHECKING
 

@@ -1,9 +1,4 @@
-"""A builder's draft, a panel button's stored entry (v3's ``DataContainer``) and its JSON.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/json/serializer/JsonData.kt:3-10
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:181-196
-"""
+"""A builder's draft, a panel button's stored entry (v3's ``DataContainer``) and its JSON."""
 
 import re
 from dataclasses import dataclass

@@ -1,8 +1,4 @@
-"""Powers with whole exponents.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:183
-"""
+"""Powers with whole exponents."""
 
 import time
 

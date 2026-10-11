@@ -1,9 +1,4 @@
-"""The Example plugin's entry point and bundled files.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/_Example/src/main/resources/info.yaml:1-8
-    XsDiscordBotKt@3a59607:Plugins/_Example/src/main/kotlin/_example/Event.kt:17-30
-"""
+"""The Example plugin's entry point and bundled files."""
 
 from importlib.resources import files
 from typing import TYPE_CHECKING

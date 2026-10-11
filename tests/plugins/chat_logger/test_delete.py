@@ -1,12 +1,4 @@
-"""The deletions of stored messages, alone or in bulk, posted to the detecting listen channels.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/Event.kt:121-125
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChatLogger.kt:174-226
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/DbManager.kt:114-123
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/resources/lang/en-US/message/on-msg-delete.yaml:1-26
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/BotLoader.kt:61
-"""
+"""The deletions of stored messages, alone or in bulk, posted to the detecting listen channels."""
 
 from typing import TYPE_CHECKING
 

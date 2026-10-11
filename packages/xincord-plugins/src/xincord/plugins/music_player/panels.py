@@ -1,9 +1,4 @@
-"""The players' panels: each member's last panel, edited every 5 seconds and deleted after 60.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:47-54
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:150-233
-"""
+"""The players' panels: each member's last panel, edited every 5 seconds and deleted after 60."""
 
 import asyncio
 import logging

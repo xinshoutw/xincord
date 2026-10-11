@@ -1,16 +1,4 @@
-"""Posting: each command's message goes to the channel, or else into the deferred response.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/SimpleCommand.kt:21-58
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/Event.kt:49-53
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/messagecreator/v2/MessageCreator.kt:84-95
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Placeholder.kt:15-18
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/resources/lang/zh-TW/message/cub-none-card.yaml:1-16
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/resources/lang/zh-TW/message/tsib-none-card.yaml:1-16
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/resources/lang/zh-TW/message/ctcb-none-card.yaml:1-16
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/resources/lang/zh-TW/message/ctcb-remit.yaml:1-17
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/resources/lang/zh-TW/message/chpytwtp-remit.yaml:1-17
-"""
+"""Posting: each command's message goes to the channel, or else into the deferred response."""
 
 import logging
 from types import SimpleNamespace

@@ -1,10 +1,4 @@
-"""The NtustCourseWatch plugin's entry point and bundled files.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/resources/info.yaml:1-8
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/resources/config.yaml:1
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/Event.kt:14-26
-"""
+"""The NtustCourseWatch plugin's entry point and bundled files."""
 
 from importlib.resources import files
 from typing import TYPE_CHECKING

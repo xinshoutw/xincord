@@ -1,9 +1,4 @@
-"""New channels whose names start with a prefix, in the configured guild, start a notice.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/kotlin/addons/ticket/TicketAddons.kt:24-37
-    XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/kotlin/addons/ticket/Event.kt:26-29
-"""
+"""New channels whose names start with a prefix, in the configured guild, start a notice."""
 
 import logging
 from typing import TYPE_CHECKING

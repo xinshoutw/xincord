@@ -1,9 +1,4 @@
-"""The Calculator plugin's entry point and bundled files.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/resources/info.yaml:1-8
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/Event.kt:17-30
-"""
+"""The Calculator plugin's entry point and bundled files."""
 
 from typing import TYPE_CHECKING
 

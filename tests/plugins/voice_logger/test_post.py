@@ -1,8 +1,4 @@
-"""Each log reaches every listen channel that detects it, in the guild's locale.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:352-364
-"""
+"""Each log reaches every listen channel that detects it, in the guild's locale."""
 
 import logging
 from typing import TYPE_CHECKING, cast

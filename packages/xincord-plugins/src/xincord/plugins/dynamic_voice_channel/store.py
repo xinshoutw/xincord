@@ -1,10 +1,4 @@
-"""Each guild's bindings and rooms, kept in the shared store.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/JsonManager.kt:30-142
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/json/JsonData.kt:3-29
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/json/JsonGuildFileManager.kt:7-40
-"""
+"""Each guild's bindings and rooms, kept in the shared store."""
 
 import re
 from dataclasses import dataclass

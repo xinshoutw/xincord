@@ -1,10 +1,4 @@
-"""The MusicPlayer config: the Lavalink node, and v3's keys that had an effect.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/config/ConfigSerializer.kt:7-297
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/resources/config.yaml:1-102
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/music/GuildMusicManager.kt:47-57
-"""
+"""The MusicPlayer config: the Lavalink node, and v3's keys that had an effect."""
 
 import logging
 from typing import TYPE_CHECKING, cast

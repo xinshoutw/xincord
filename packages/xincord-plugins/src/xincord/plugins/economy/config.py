@@ -1,8 +1,4 @@
-"""The plugin's ``config.yaml``.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/config/ConfigSerializer.kt:6-42
-"""
+"""The plugin's ``config.yaml``."""
 
 from typing import Annotated
 

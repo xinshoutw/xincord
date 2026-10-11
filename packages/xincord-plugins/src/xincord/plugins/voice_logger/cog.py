@@ -1,8 +1,4 @@
-"""The command, the voice and status listeners, and the shared listen channel code's wiring.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:29-350
-"""
+"""The command, the voice and status listeners, and the shared listen channel code's wiring."""
 
 import asyncio
 import logging

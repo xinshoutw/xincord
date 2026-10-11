@@ -1,8 +1,4 @@
-"""UptimeHeartbeat: each configured listener pushes an HTTP GET to its URL at a fixed delay.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/Event.kt:10-54
-"""
+"""UptimeHeartbeat: each configured listener pushes an HTTP GET to its URL at a fixed delay."""
 
 from typing import TYPE_CHECKING
 

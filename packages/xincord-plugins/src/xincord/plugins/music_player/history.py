@@ -1,9 +1,4 @@
-"""One guild's history of songs: v3's order of play, without its defects.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/music/HistoryIndexManager.kt:10-252
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/music/TrackSchedulerCompat.kt:16-127
-"""
+"""One guild's history of songs: v3's order of play, without its defects."""
 
 from dataclasses import dataclass
 from enum import StrEnum

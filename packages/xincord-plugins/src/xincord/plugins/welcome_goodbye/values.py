@@ -1,9 +1,4 @@
-"""v3's ``wbg@`` placeholders for the replies and the welcome and bye messages.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/WelcomeByeGuildSubstitutorFactory.kt:12-113
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/WelcomeByeGuild.kt:276-284
-"""
+"""v3's ``wbg@`` placeholders for the replies and the welcome and bye messages."""
 
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 

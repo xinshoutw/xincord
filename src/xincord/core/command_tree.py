@@ -1,9 +1,4 @@
-"""The command tree: ephemeral auto-defer, command scopes, and uploads only when commands change.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/logger/InteractionLogger.kt:25-41
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/ListenerManager.kt:18-36
-"""
+"""The command tree: ephemeral auto-defer, command scopes, and uploads only when commands change."""
 
 import hashlib
 import json

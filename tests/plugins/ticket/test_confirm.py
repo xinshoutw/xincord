@@ -1,11 +1,4 @@
-"""Confirming a draft: a new panel, or a button added to the bot's message, and failures.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:219-232
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:106-142
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:164-176
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/en-US/message/confirm-create.yaml:1-8
-"""
+"""Confirming a draft: a new panel, or a button added to the bot's message, and failures."""
 
 import asyncio
 import logging

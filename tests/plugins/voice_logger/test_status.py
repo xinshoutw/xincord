@@ -1,13 +1,6 @@
 """Voice channel status changes, posted with the member that the audit log names.
 
 discord.py 2.7.1 does not parse ``VOICE_CHANNEL_STATUS_UPDATE``; the plugin relays it.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/Event.kt:101-104
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:117-141
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:163-184
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:231-276
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/resources/lang/en-US/message/on-status-new.yaml:1-21
 """
 
 import asyncio

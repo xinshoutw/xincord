@@ -1,7 +1,6 @@
 """Validating the config at load: every problem disables the plugin with the key named.
 
 v3 fixed its commands in code, where Discord's rules held by construction:
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/command/Register.kt:39-60
 """
 
 import logging

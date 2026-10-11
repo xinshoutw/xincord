@@ -1,8 +1,6 @@
 """Configuration problems are logged when the bot is ready.
 
 Kotlin (v3 resolved the roles at the first join, and dropped unknown IDs without a log):
-    XsDiscordBotKt@3a59607:Plugins/AutoRole/src/main/kotlin/autorole/AutoRole.kt:9-19
-    XsDiscordBotKt@3a59607:Plugins/AutoRole/src/main/kotlin/autorole/Event.kt:17-26
 """
 
 import logging

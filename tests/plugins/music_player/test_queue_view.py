@@ -1,8 +1,4 @@
-"""The queue panel's list of upcoming songs: v3's lines, within Discord's limits.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:637-680
-"""
+"""The queue panel's list of upcoming songs: v3's lines, within Discord's limits."""
 
 import pytest
 

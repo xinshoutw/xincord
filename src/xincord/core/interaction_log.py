@@ -1,9 +1,4 @@
-"""The interaction log: a console line per interaction and lines in configured channels.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/logger/InteractionLogger.kt:25-65
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/consolelogger/ConsoleLogger.kt:91-139
-"""
+"""The interaction log: a console line per interaction and lines in configured channels."""
 
 import logging
 from typing import TYPE_CHECKING, cast

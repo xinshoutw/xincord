@@ -1,10 +1,4 @@
-"""The registration of /example-command.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/_Example/src/main/kotlin/_example/command/Register.kt:9-33
-    XsDiscordBotKt@3a59607:Plugins/_Example/src/main/kotlin/_example/Event.kt:49-61
-    XsDiscordBotKt@3a59607:Plugins/_Example/src/main/resources/lang/en-US/register.yaml:1-10
-"""
+"""The registration of /example-command."""
 
 from typing import TYPE_CHECKING, Any, cast
 

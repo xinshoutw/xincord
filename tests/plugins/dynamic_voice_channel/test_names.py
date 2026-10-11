@@ -1,9 +1,4 @@
-"""The rooms' names, rendered from format 1.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/DynamicVoiceChannel.kt:117-123
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Placeholder.kt:44-58
-"""
+"""The rooms' names, rendered from format 1."""
 
 import pytest
 

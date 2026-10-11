@@ -1,8 +1,4 @@
-"""Voice channel status changes and the audit log entries that name their member.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:117-141
-"""
+"""Voice channel status changes and the audit log entries that name their member."""
 
 import re
 from dataclasses import dataclass

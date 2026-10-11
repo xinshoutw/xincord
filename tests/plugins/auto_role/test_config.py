@@ -1,10 +1,4 @@
-"""The AutoRole config.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/AutoRole/src/main/kotlin/autorole/config/ConfigSerializer.kt:6-24
-    XsDiscordBotKt@3a59607:Plugins/AutoRole/src/main/kotlin/autorole/AutoRole.kt:9-12
-    XsDiscordBotKt@3a59607:Plugins/AutoRole/src/main/resources/config.yaml:1-10
-"""
+"""The AutoRole config."""
 
 import logging
 from typing import TYPE_CHECKING, cast

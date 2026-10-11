@@ -1,9 +1,4 @@
-"""The Example config.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/_Example/src/main/kotlin/_example/config/ConfigSerializer.kt:6-12
-    XsDiscordBotKt@3a59607:Plugins/_Example/src/main/resources/config.yaml:1-2
-"""
+"""The Example config."""
 
 import logging
 from typing import TYPE_CHECKING

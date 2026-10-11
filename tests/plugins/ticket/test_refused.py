@@ -1,9 +1,4 @@
-"""A change that Discord refuses keeps the draft, and how errors are shown to users.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:322-324
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:860-878
-"""
+"""A change that Discord refuses keeps the draft, and how errors are shown to users."""
 
 from typing import TYPE_CHECKING
 

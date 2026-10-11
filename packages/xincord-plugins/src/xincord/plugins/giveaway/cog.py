@@ -1,9 +1,4 @@
-"""The command, the builder, the post's buttons and the automatic draw.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:44-633
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:16-380
-"""
+"""The command, the builder, the post's buttons and the automatic draw."""
 
 import asyncio
 import logging

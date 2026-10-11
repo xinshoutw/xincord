@@ -1,9 +1,4 @@
-"""Message rendering: text, URLs, empty embeds, colors, timestamps and fields.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/messagecreator/v1/builder/MessageBuilder.kt:28-157
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/messagecreator/v1/builder/MessageBuilder.kt:185-205
-"""
+"""Message rendering: text, URLs, empty embeds, colors, timestamps and fields."""
 
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING

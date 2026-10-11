@@ -1,9 +1,4 @@
-"""NtustCourseWatch (v3 NtustCourse): members register NTUST courses and hear when they have seats.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/Event.kt:14-61
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/resources/info.yaml:1-8
-"""
+"""NtustCourseWatch: members register NTUST courses and hear when they have seats."""
 
 from typing import TYPE_CHECKING
 

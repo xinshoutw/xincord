@@ -1,8 +1,4 @@
-"""Requirement: V2 model keys insert runtime objects.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/messagecreator/v2/builder/MessageBuilder.kt:538-631
-"""
+"""Requirement: V2 model keys insert runtime objects."""
 
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING

@@ -4,10 +4,6 @@ discord.py hands ``on_message`` its cached ``Message``, which a ``MESSAGE_UPDATE
 listener runs changes in place: discord.py parses the frames that arrived together without
 yielding. The payload keeps the text that the message was sent with, as JDA's
 ``MessageReceivedEvent`` did.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/Event.kt:109-113
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChatLogger.kt:119-130
 """
 
 import re

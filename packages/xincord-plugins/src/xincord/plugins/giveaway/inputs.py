@@ -1,10 +1,4 @@
-"""The builder's inputs as v3 checked them, and texts cut to Discord's limits.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:70-151
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:373-379
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:629-632
-"""
+"""The builder's inputs as v3 checked them, and texts cut to Discord's limits."""
 
 import ipaddress
 import re

@@ -1,8 +1,4 @@
-"""Interaction placeholder values.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Placeholder.kt:59-142
-"""
+"""Interaction placeholder values."""
 
 from dataclasses import dataclass
 from types import SimpleNamespace

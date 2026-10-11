@@ -1,9 +1,4 @@
-"""The commands, the builder, the panels, the ticket channels and their control row.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:56-376
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:17-332
-"""
+"""The commands, the builder, the panels, the ticket channels and their control row."""
 
 import functools
 import logging

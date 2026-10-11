@@ -1,9 +1,4 @@
-"""The texts that v3 wrote in its code, per reader, and the control row's labels.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:783-821
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:784-854
-"""
+"""The texts that v3 wrote in its code, per reader, and the control row's labels."""
 
 from typing import TYPE_CHECKING, cast
 

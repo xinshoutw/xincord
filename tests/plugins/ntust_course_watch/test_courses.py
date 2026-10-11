@@ -1,9 +1,4 @@
-"""The course query's request body and answer, and v3's seats.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/api/CourseApi.kt:16-92
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/api/CourseMonitorService.kt:51-67
-"""
+"""The course query's request body and answer, and v3's seats."""
 
 import json
 from typing import Any

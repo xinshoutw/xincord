@@ -1,9 +1,4 @@
-"""The wallet commands, the boards and v3's balance button.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/Economy.kt:18-203
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/MessageReplier.kt:13-69
-"""
+"""The wallet commands, the boards and v3's balance button."""
 
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple, cast

@@ -1,8 +1,4 @@
-"""DynamicVoiceChannel: members who join a bound lobby alone get a voice room of their own.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/Event.kt:21-78
-"""
+"""DynamicVoiceChannel: members who join a bound lobby alone get a voice room of their own."""
 
 from typing import TYPE_CHECKING
 

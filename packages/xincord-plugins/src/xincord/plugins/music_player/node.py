@@ -3,10 +3,6 @@
 lavalink.py 5.11.1 sends the voice state's ``channelId`` that Lavalink 4.2 needs for DAVE. Its
 ``DefaultPlayer`` starts the next song of its own queue when one ends; the plugin's sessions
 decide that instead, so the player class here reports the events and starts nothing.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:84-138
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/util/MusicPlayerUtils.kt:72-82
 """
 
 import logging

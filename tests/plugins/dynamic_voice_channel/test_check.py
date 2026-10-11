@@ -1,9 +1,6 @@
 """When the bot is ready, stale bindings are dropped and the rooms are checked.
 
 Kotlin (v3 checked the bindings once, lazily, and never its rooms):
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/JsonManager.kt:44-87
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/DynamicVoiceChannel.kt:19-33
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/mongodb/MemoryCacheDb.kt:21-46
 """
 
 import logging

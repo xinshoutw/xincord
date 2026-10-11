@@ -1,9 +1,4 @@
-"""Each guild's welcome and bye channels, kept in the shared store as v3's documents.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/WelcomeByeGuild.kt:25-43
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/json/JsonGuildFileManager.kt:7-41
-"""
+"""Each guild's welcome and bye channels, kept in the shared store as v3's documents."""
 
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Literal

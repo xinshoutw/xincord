@@ -1,11 +1,4 @@
-"""The reply to /bot-info.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BotInfo/src/main/kotlin/botinfo/BotInfo.kt:23-37
-    XsDiscordBotKt@3a59607:Plugins/BotInfo/src/main/resources/lang/en-US/message/bot-info.yaml:1-17
-    XsDiscordBotKt@3a59607:Plugins/BotInfo/src/main/resources/lang/zh-TW/message/bot-info.yaml:1-17
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Placeholder.kt:15-18
-"""
+"""The reply to /bot-info."""
 
 from dataclasses import dataclass
 from types import SimpleNamespace

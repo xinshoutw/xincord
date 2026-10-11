@@ -1,8 +1,4 @@
-"""What the logs show: a URL's origin without the push token, and failures when they are new.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/IntervalPusher.kt:99-123
-"""
+"""What the logs show: a URL's origin without the push token, and failures when they are new."""
 
 import pytest
 

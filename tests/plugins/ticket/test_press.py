@@ -1,10 +1,4 @@
-"""Pressing a panel's button asks for the reason in v3's modal.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:121-146
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:839-854
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/en-US/modal/press-ticket.yaml:1-11
-"""
+"""Pressing a panel's button asks for the reason in v3's modal."""
 
 from typing import TYPE_CHECKING
 

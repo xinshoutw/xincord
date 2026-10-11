@@ -1,10 +1,4 @@
-"""The Feedback plugin's entry point, intents and bundled files.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/resources/info.yaml:1-10
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Event.kt:15-31
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/resources/config.yaml:1-5
-"""
+"""The Feedback plugin's entry point, intents and bundled files."""
 
 from importlib.resources import files
 from typing import TYPE_CHECKING

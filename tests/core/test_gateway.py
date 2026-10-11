@@ -2,9 +2,6 @@
 
 discord.py 2.7.1 drops ``VOICE_CHANNEL_STATUS_UPDATE``, which v3's VoiceLogger handled through
 JDA's ``ChannelUpdateVoiceStatusEvent``.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/Event.kt:101-104
 """
 
 from typing import TYPE_CHECKING

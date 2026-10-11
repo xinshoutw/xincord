@@ -1,8 +1,4 @@
-"""BotInfo: ``/bot-info`` shows the bot's guild and member counts and a link to its source code.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BotInfo/src/main/kotlin/botinfo/Event.kt:13-60
-"""
+"""BotInfo: ``/bot-info`` shows the bot's guild and member counts and a link to its source code."""
 
 from typing import TYPE_CHECKING
 

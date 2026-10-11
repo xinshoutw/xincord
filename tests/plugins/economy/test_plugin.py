@@ -1,11 +1,4 @@
-"""The Economy plugin's entry point, intents and bundled files.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/resources/info.yaml:1-12
-    XsDiscordBotKt@3a59607:Plugins/Economy/build.gradle.kts:1-7
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/Event.kt:26-68
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/resources/config.yaml:1-42
-"""
+"""The Economy plugin's entry point, intents and bundled files."""
 
 from importlib.resources import files
 from typing import TYPE_CHECKING

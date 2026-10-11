@@ -1,10 +1,4 @@
-"""Saving a ticket: the save button's channel select, and the select's checks in v3's order.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:198-242
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:312-358
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:834-852
-"""
+"""Saving a ticket: the save button's channel select, and the select's checks in v3's order."""
 
 from typing import TYPE_CHECKING
 

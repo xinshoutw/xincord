@@ -1,9 +1,4 @@
-"""The plugin's cog: the commands, the panels' buttons, the autocompletes and the voice lifecycle.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/Event.kt:16-140
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:56-957
-"""
+"""The plugin's cog: the commands, the panels' buttons, the autocompletes and voice."""
 
 import asyncio
 import logging

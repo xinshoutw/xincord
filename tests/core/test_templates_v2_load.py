@@ -1,8 +1,4 @@
-"""Requirement: Components V2 templates are validated when they load.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/messagecreator/v2/builder/MessageBuilder.kt:9-57
-"""
+"""Requirement: Components V2 templates are validated when they load."""
 
 import logging
 from pathlib import Path

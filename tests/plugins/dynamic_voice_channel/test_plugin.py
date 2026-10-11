@@ -1,11 +1,4 @@
-"""The DynamicVoiceChannel plugin's entry point, intents and bundled files.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/resources/info.yaml:1-21
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/build.gradle.kts:1-3
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/Event.kt:21-37
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/config/ConfigSerializer.kt:5-8
-"""
+"""The DynamicVoiceChannel plugin's entry point, intents and bundled files."""
 
 from typing import TYPE_CHECKING
 

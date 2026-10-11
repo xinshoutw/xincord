@@ -1,8 +1,4 @@
-"""Exact results, rounded as in v3.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:162-203
-"""
+"""Exact results, rounded as in v3."""
 
 import pytest
 

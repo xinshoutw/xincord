@@ -1,7 +1,6 @@
 """The counter button under the reply, new in xincord: v3's _Example had no components.
 
 Kotlin, the v3 prefix check that `bot.route` replaces:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/util/GlobalUtil.kt:52-62
 """
 
 from typing import TYPE_CHECKING

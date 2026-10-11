@@ -1,11 +1,4 @@
-"""The command's handler: the Administrator check, the prompt and its failures.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Feedbacker.kt:59-84
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/resources/lang/en-US/message/ask-message.yaml:1-54
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/resources/lang/zh-TW/message/ask-message.yaml:1-54
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Placeholder.kt:43-57
-"""
+"""The command's handler: the Administrator check, the prompt and its failures."""
 
 import logging
 from types import SimpleNamespace

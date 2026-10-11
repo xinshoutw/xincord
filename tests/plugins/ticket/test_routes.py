@@ -1,11 +1,4 @@
-"""Routing the panels' and the tickets' components, in v3's ID format too.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Event.kt:67-83
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:69-79
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:109-246
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/info.yaml:9
-"""
+"""Routing the panels' and the tickets' components, in v3's ID format too."""
 
 import logging
 from typing import TYPE_CHECKING, cast

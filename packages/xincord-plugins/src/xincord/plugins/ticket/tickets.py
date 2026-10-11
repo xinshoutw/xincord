@@ -1,8 +1,4 @@
-"""A ticket channel: its category, its permission overwrites and its first messages.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:248-310
-"""
+"""A ticket channel: its category, its permission overwrites and its first messages."""
 
 from typing import TYPE_CHECKING
 

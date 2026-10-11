@@ -1,13 +1,4 @@
-"""The registration of ``/chat-logger`` and its subcommand ``setting``.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/command/Register.kt:11-33
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/command/CmdFileSerializer.kt:7-23
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/Event.kt:83-95
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/resources/lang/en-US/register.yaml:1-8
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/resources/lang/zh-TW/register.yaml:1-8
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/logger/InteractionLogger.kt:25-30
-"""
+"""The registration of ``/chat-logger`` and its subcommand ``setting``."""
 
 from typing import TYPE_CHECKING, Any, cast
 

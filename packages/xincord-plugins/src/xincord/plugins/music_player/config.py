@@ -2,10 +2,6 @@
 
 v3's other keys (about 35 that v3 never read, and ``engines.spotify``, which the node's
 ``application.yml`` replaces) are not fields: v3's files load, and the core warns about each.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/config/ConfigSerializer.kt:7-297
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/music/GuildMusicManager.kt:47-57
 """
 
 from typing import Annotated

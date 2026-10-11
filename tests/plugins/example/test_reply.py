@@ -1,10 +1,4 @@
-"""The reply to /example-command.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/_Example/src/main/kotlin/_example/_Example.kt:24-42
-    XsDiscordBotKt@3a59607:Plugins/_Example/src/main/resources/lang/en-US/message/example.yaml:1-16
-    XsDiscordBotKt@3a59607:Plugins/_Example/src/main/resources/lang/zh-TW/message/example.yaml:1-16
-"""
+"""The reply to /example-command."""
 
 from dataclasses import dataclass
 from types import SimpleNamespace

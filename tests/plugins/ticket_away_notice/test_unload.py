@@ -1,8 +1,4 @@
-"""Pending notices end with the plugin: unloading or reloading it cancels their wait.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/kotlin/addons/ticket/TicketAddons.kt:31-37
-"""
+"""Pending notices end with the plugin: unloading or reloading it cancels their wait."""
 
 import asyncio
 import logging

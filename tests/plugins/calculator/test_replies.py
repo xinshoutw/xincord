@@ -1,10 +1,4 @@
-"""The replies: the answer goes to the channel, an error into the deferred response.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:27-61
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/resources/lang/en-US/message/basic-calculate.yaml:1-14
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/resources/lang/en-US/message/error.yaml:1-14
-"""
+"""The replies: the answer goes to the channel, an error into the deferred response."""
 
 import logging
 from types import SimpleNamespace

@@ -1,10 +1,4 @@
-"""The registration of /basic-calculate.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/command/Register.kt:9-27
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/Event.kt:49-61
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/resources/lang/en-US/register.yaml:1-7
-"""
+"""The registration of /basic-calculate."""
 
 from typing import TYPE_CHECKING, Any, cast
 

@@ -1,9 +1,4 @@
-"""Reloading the config and the plugins.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/cli/JLineManager.kt:60-93
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/BotLoader.kt:112-159
-"""
+"""Reloading the config and the plugins."""
 
 import asyncio
 import logging

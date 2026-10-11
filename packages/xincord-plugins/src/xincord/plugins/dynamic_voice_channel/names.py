@@ -1,9 +1,4 @@
-"""The names of the rooms, from the binding's format 1.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/DynamicVoiceChannel.kt:117-123
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Placeholder.kt:44-58
-"""
+"""The names of the rooms, from the binding's format 1."""
 
 from typing import TYPE_CHECKING
 

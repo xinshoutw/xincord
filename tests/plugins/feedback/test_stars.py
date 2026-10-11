@@ -1,9 +1,4 @@
-"""The star text of a review and the star count of an ID.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Feedbacker.kt:139-145
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/resources/lang/en-US/message/ask-message.yaml:13-54
-"""
+"""The star text of a review and the star count of an ID."""
 
 import pytest
 

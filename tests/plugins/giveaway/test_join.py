@@ -1,9 +1,4 @@
-"""Joining and leaving: Join / Leave toggles the user among the participants of a running giveaway.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:246-279
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:388-428
-"""
+"""Joining and leaving: Join / Leave toggles the user among a running giveaway's participants."""
 
 import asyncio
 from dataclasses import replace

@@ -1,9 +1,4 @@
-"""Submitted modals: a valid one changes the draft and the builder, an invalid one gets v3's error.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:70-151
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepData.kt:22-32
-"""
+"""Submitted modals: a valid one changes the draft and the builder, an invalid one an error."""
 
 from typing import TYPE_CHECKING, cast
 from zoneinfo import ZoneInfo

@@ -1,8 +1,4 @@
-"""Reloading the plugin after the operator edited its config.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/Event.kt:32-47
-"""
+"""Reloading the plugin after the operator edited its config."""
 
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast

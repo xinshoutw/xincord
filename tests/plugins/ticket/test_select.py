@@ -1,9 +1,4 @@
-"""Selections in the builder: staff roles, the category and the button's color.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:242-276
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:82-104
-"""
+"""Selections in the builder: staff roles, the category and the button's color."""
 
 from typing import TYPE_CHECKING
 

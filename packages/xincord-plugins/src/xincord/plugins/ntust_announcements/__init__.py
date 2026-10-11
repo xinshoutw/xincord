@@ -1,9 +1,4 @@
-"""NtustAnnouncements (v3 NtustManager): new announcements on NTUST's boards, posted to Discord.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/Event.kt:6-43
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/resources/info.yaml:1-8
-"""
+"""NtustAnnouncements (v3 NtustManager): new announcements on NTUST's boards, posted to Discord."""
 
 from typing import TYPE_CHECKING
 

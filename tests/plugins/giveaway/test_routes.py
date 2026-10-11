@@ -1,11 +1,4 @@
-"""Routing the builder's and the post's components, in v3's ID format too.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Event.kt:85-107
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:56-63
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:125-149
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/resources/info.yaml:9
-"""
+"""Routing the builder's and the post's components, in v3's ID format too."""
 
 from typing import TYPE_CHECKING, cast
 

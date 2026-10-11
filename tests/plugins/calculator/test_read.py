@@ -1,8 +1,4 @@
-"""Reading the formula into postfix tokens.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:64-160
-"""
+"""Reading the formula into postfix tokens."""
 
 import pytest
 

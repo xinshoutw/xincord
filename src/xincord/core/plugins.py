@@ -1,10 +1,4 @@
-"""Plugin discovery, ordering and the context each plugin gets.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/PluginLoader.kt:39-245
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/plugin/PluginEvent.kt:14-74
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/plugin/yaml/InfoSerializer.kt:7-40
-"""
+"""Plugin discovery, ordering and the context each plugin gets."""
 
 import importlib
 import logging

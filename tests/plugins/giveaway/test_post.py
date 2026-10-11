@@ -1,9 +1,4 @@
-"""The post: v3's embed and buttons of a giveaway, in the creator's language.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:471-633
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/resources/lang/en-US/message/giveaway-post.yaml:1-9
-"""
+"""The post: v3's embed and buttons of a giveaway, in the creator's language."""
 
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any

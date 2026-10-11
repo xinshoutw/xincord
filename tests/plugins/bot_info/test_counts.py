@@ -1,8 +1,4 @@
-"""The guild and member counts that /bot-info shows.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BotInfo/src/main/kotlin/botinfo/BotInfo.kt:24-27
-"""
+"""The guild and member counts that /bot-info shows."""
 
 from discord_fakes import FakeGuild
 from xincord.plugins.bot_info.cog import counts

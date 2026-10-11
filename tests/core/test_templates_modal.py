@@ -1,8 +1,4 @@
-"""Requirement: Modal templates render text inputs.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/messagecreator/modal/builder/ModalBuilder.kt:14-80
-"""
+"""Requirement: Modal templates render text inputs."""
 
 from typing import TYPE_CHECKING
 

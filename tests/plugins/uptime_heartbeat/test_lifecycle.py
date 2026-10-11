@@ -1,10 +1,4 @@
-"""The listeners' loops start when the bot is ready and end with the plugin.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/Event.kt:10-54
-    XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/IntervalPusher.kt:55-135
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/BotLoader.kt:112-159
-"""
+"""The listeners' loops start when the bot is ready and end with the plugin."""
 
 import asyncio
 import json

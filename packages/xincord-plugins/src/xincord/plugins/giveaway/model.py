@@ -1,8 +1,4 @@
-"""Giveaways as v3 kept them: drafts, prizes, winners and the stored instances.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/data/GiveawayData.kt:7-102
-"""
+"""Giveaways as v3 kept them: drafts, prizes, winners and the stored instances."""
 
 from dataclasses import dataclass, replace
 from enum import StrEnum

@@ -1,10 +1,4 @@
-"""The panels' five buttons: previous, pause or resume, skip, loop mode and disconnect.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/Event.kt:96-118
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:298-333
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:783-956
-"""
+"""The panels' five buttons: previous, pause or resume, skip, loop mode and disconnect."""
 
 import asyncio
 from typing import TYPE_CHECKING, Any, cast

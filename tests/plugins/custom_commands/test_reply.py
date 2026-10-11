@@ -1,7 +1,6 @@
 """Replies: a command answers with a public or an ephemeral reply instead of a post.
 
 v3's commands only posted in the channel:
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/SimpleCommand.kt:21-58
 """
 
 import logging

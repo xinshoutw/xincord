@@ -3,10 +3,6 @@
 ``normalize`` trims the formula and ``calculate`` evaluates it in v3's two passes, so that v3's
 error messages keep their order: ``to_postfix`` reads it with a shunting-yard pass, and
 ``evaluate_postfix`` computes the postfix tokens with exact decimals.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:28
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:64-206
 """
 
 import math

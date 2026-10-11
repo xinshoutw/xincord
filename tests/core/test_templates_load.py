@@ -1,9 +1,4 @@
-"""Requirement: Templates are validated when they load.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/messagecreator/v2/MessageCreator.kt:14-44
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/messagecreator/v1/serializer/MessageDataSerializer.kt
-"""
+"""Requirement: Templates are validated when they load."""
 
 import logging
 from typing import TYPE_CHECKING

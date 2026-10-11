@@ -1,10 +1,4 @@
-"""v3's operations on a wallet and the boards' ranking, without Discord or storage.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/UserData.kt:11-69
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/Economy.kt:83-138
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/storage/JsonImpl.kt:75-120
-"""
+"""v3's operations on a wallet and the boards' ranking, without Discord or storage."""
 
 import pytest
 

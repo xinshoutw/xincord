@@ -1,12 +1,4 @@
-"""v3's ``economy@`` buttons: any button with an Economy ID shows the presser's wallet.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/Event.kt:127-131
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/Economy.kt:34-39
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/Economy.kt:55-60
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/resources/info.yaml:9
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/util/GlobalUtil.kt:58-59
-"""
+"""v3's ``economy@`` buttons: any button with an Economy ID shows the presser's wallet."""
 
 from typing import TYPE_CHECKING, Any, cast
 

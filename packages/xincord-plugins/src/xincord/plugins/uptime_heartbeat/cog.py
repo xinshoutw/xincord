@@ -1,9 +1,4 @@
-"""The loops that push each listener's URL, from READY until the plugin unloads.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/Event.kt:10-54
-    XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/IntervalPusher.kt:54-135
-"""
+"""The loops that push each listener's URL, from READY until the plugin unloads."""
 
 import asyncio
 from typing import TYPE_CHECKING, override

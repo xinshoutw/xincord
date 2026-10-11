@@ -1,8 +1,4 @@
-"""Components V2 template schema (``components_v2`` entries).
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/messagecreator/v2/builder/MessageBuilder.kt:112-536
-"""
+"""Components V2 template schema (``components_v2`` entries)."""
 
 from typing import Annotated, Self, cast
 

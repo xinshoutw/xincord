@@ -1,8 +1,4 @@
-"""Ticket: administrators build ticket panels; members open private ticket channels from them.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Event.kt:18-89
-"""
+"""Ticket: administrators build ticket panels; members open private ticket channels from them."""
 
 from typing import TYPE_CHECKING
 

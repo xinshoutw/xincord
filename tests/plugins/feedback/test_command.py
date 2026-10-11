@@ -1,13 +1,4 @@
-"""The registration of ``/feedback``.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/command/Register.kt:10-35
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/command/CmdFileSerializer.kt:7-25
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Event.kt:50-62
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/resources/lang/en-US/register.yaml:1-10
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/resources/lang/zh-TW/register.yaml:1-10
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/logger/InteractionLogger.kt:25-30
-"""
+"""The registration of ``/feedback``."""
 
 from typing import TYPE_CHECKING, Any, cast
 

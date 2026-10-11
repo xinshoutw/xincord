@@ -1,9 +1,4 @@
-"""v3's Placeholder.get(event) and its global substitutor.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Placeholder.kt:15-18
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/placeholder/Placeholder.kt:30-82
-"""
+"""v3's Placeholder.get(event) and its global substitutor."""
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime

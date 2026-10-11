@@ -1,11 +1,4 @@
-"""The VoiceLogger plugin's entry point, intents and bundled files.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/resources/info.yaml:1-21
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/build.gradle.kts:1-3
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/Event.kt:23-48
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/config/ConfigSerializer.kt:5-8
-"""
+"""The VoiceLogger plugin's entry point, intents and bundled files."""
 
 from typing import TYPE_CHECKING
 

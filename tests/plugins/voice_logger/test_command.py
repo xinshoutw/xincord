@@ -1,13 +1,4 @@
-"""The registration of ``/voice-logger`` and its subcommand ``setting``.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/command/Register.kt:10-32
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/command/CmdFileSerializer.kt:7-23
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/Event.kt:75-87
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/resources/lang/en-US/register.yaml:1-8
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/resources/lang/zh-TW/register.yaml:1-8
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/logger/InteractionLogger.kt:25-30
-"""
+"""The registration of ``/voice-logger`` and its subcommand ``setting``."""
 
 from typing import TYPE_CHECKING, Any, cast
 

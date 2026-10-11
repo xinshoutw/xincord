@@ -2,11 +2,6 @@
 
 v3 chose its hard-coded texts by a ``zh`` prefix and its templates by the locale's directory, else
 the configured default, so en-GB users saw English texts with zh-TW buttons.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:621-627
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepData.kt:61-62
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:313-319
 """
 
 from typing import TYPE_CHECKING, cast

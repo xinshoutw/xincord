@@ -1,8 +1,4 @@
-"""Component ID codec.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/util/ComponentIdManager.kt:13-247
-"""
+"""Component ID codec."""
 
 from typing import TYPE_CHECKING
 

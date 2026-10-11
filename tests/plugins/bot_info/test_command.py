@@ -1,11 +1,4 @@
-"""The registration of /bot-info.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BotInfo/src/main/kotlin/botinfo/command/Register.kt:8-19
-    XsDiscordBotKt@3a59607:Plugins/BotInfo/src/main/kotlin/botinfo/Event.kt:48-60
-    XsDiscordBotKt@3a59607:Plugins/BotInfo/src/main/resources/lang/en-US/register.yaml:1-3
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/logger/InteractionLogger.kt:25-30
-"""
+"""The registration of /bot-info."""
 
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast

@@ -1,10 +1,4 @@
-"""The registrations: v3's document in the store, changed under its lock.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/NtustCourse.kt:15-30
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/NtustCourse.kt:58-76
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/mongodb/ICacheDb.kt:92-112
-"""
+"""The registrations: v3's document in the store, changed under its lock."""
 
 import asyncio
 from typing import TYPE_CHECKING

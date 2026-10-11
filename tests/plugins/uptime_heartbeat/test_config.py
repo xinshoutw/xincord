@@ -1,10 +1,4 @@
-"""The UptimeHeartbeat config.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/config/ConfigSerializer.kt:5-15
-    XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/kotlin/intervalpusher/IntervalPusher.kt:61-123
-    XsDiscordBotKt@3a59607:Plugins/IntervalPusher/src/main/resources/config.yaml:1-4
-"""
+"""The UptimeHeartbeat config."""
 
 import logging
 from typing import TYPE_CHECKING, cast

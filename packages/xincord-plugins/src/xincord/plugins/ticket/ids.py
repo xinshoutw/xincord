@@ -1,8 +1,4 @@
-"""The plugin's component and modal IDs, which read v3's too.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:69-79
-"""
+"""The plugin's component and modal IDs, which read v3's too."""
 
 from xincord.core.component_ids import ComponentIds
 

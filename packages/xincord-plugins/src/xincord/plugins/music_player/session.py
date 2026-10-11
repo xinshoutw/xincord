@@ -1,9 +1,4 @@
-"""One guild's music: its history on the guild's player, the loop mode and the volume.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/music/GuildMusicManager.kt:21-342
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/music/TrackSchedulerCompat.kt:16-127
-"""
+"""One guild's music: its history on the guild's player, the loop mode and the volume."""
 
 import asyncio
 import logging

@@ -1,8 +1,4 @@
-"""ChatLogger: stored guild messages, whose edits and deletions are posted to listen channels.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/Event.kt:23-131
-"""
+"""ChatLogger: stored guild messages, whose edits and deletions are posted to listen channels."""
 
 from typing import TYPE_CHECKING
 

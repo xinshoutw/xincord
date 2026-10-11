@@ -1,9 +1,4 @@
-"""A guild's settings are deleted when the bot leaves it, also while the bot was offline.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/JsonManager.kt:29-40
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/json/JsonGuildFileManager.kt:7-40
-"""
+"""A guild's settings are deleted when the bot leaves it, also while the bot was offline."""
 
 import logging
 from typing import TYPE_CHECKING

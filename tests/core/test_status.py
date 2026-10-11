@@ -1,8 +1,4 @@
-"""Requirement: Status rotation.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/builtin/statuschanger/StatusChanger.kt:16-90
-"""
+"""Requirement: Status rotation."""
 
 import asyncio
 from pathlib import Path

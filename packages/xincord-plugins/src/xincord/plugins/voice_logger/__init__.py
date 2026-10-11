@@ -1,8 +1,4 @@
-"""VoiceLogger: voice joins, leaves, switches and status changes, posted to listen channels.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/Event.kt:23-110
-"""
+"""VoiceLogger: voice joins, leaves, switches and status changes, posted to listen channels."""
 
 from typing import TYPE_CHECKING
 

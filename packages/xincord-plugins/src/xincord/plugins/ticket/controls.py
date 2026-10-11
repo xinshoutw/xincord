@@ -1,10 +1,4 @@
-"""A ticket channel's control row (lock, unlock, delete and save), and the texts of every reply.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:148-242
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:312-376
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:834-852
-"""
+"""A ticket channel's control row (lock, unlock, delete and save), and the texts of every reply."""
 
 import logging
 import re

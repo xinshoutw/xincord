@@ -1,10 +1,4 @@
-"""Each guild's channels in the store, as v3's data/<guildId>.json documents.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/WelcomeByeGuild/src/main/kotlin/welcomebyeguild/WelcomeByeGuild.kt:25-57
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/json/JsonGuildFileManager.kt:7-41
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/json/JsonFileManager.kt:29-67
-"""
+"""Each guild's channels in the store, as v3's data/<guildId>.json documents."""
 
 import asyncio
 from typing import TYPE_CHECKING

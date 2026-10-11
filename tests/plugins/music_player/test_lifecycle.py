@@ -1,10 +1,4 @@
-"""The voice lifecycle: the idle leave, disconnections, left guilds, READY and the unload.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/Event.kt:19-62
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/music/GuildMusicManager.kt:59-112
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/util/MusicPlayerUtils.kt:51-65
-"""
+"""The voice lifecycle: the idle leave, disconnections, left guilds, READY and the unload."""
 
 import asyncio
 import logging

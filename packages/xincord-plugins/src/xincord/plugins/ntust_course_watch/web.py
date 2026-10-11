@@ -1,8 +1,4 @@
-"""The plugin's HTTP: NTUST's course query, over one aiohttp session.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/api/CourseApi.kt:51-92
-"""
+"""The plugin's HTTP: NTUST's course query, over one aiohttp session."""
 
 import json
 from contextlib import asynccontextmanager

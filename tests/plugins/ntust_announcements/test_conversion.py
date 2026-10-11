@@ -1,9 +1,4 @@
-"""An article's conversion: v3's prompt, its keys' rate limit, its retries and their logs.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/service/GeminiApiService.kt:35-218
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/util/UrlUtils.kt:37-46
-"""
+"""An article's conversion: v3's prompt, its keys' rate limit, its retries and their logs."""
 
 import logging
 from dataclasses import dataclass, field

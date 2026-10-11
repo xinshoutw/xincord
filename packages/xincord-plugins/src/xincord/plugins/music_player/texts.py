@@ -1,9 +1,4 @@
-"""The texts that v3 wrote in its code, from ``text.yaml``.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:278-956
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/Event.kt:79-118
-"""
+"""The texts that v3 wrote in its code, from ``text.yaml``."""
 
 import traceback
 from typing import TYPE_CHECKING

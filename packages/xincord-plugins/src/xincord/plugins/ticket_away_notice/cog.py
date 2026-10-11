@@ -1,9 +1,4 @@
-"""The listeners that post the away notice in new ticket channels while the owner is offline.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/kotlin/addons/ticket/TicketAddons.kt:11-39
-    XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/kotlin/addons/ticket/Event.kt:26-29
-"""
+"""The listeners that post the away notice in new ticket channels while the owner is offline."""
 
 import asyncio
 import logging

@@ -1,10 +1,4 @@
-"""Submitted builder modals that change the draft.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:280-325
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:58-104
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/zh-TW/modal/modify-btn-text.yaml:1-3
-"""
+"""Submitted builder modals that change the draft."""
 
 from typing import TYPE_CHECKING
 

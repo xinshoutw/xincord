@@ -1,12 +1,4 @@
-"""Voice joins, leaves and switches, posted to the listen channels that detect them.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/Event.kt:106-109
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:144-161
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:278-364
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/resources/lang/en-US/message/on-channel-join.yaml:1-18
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/resources/lang/en-US/message/on-channel-switch.yaml:1-24
-"""
+"""Voice joins, leaves and switches, posted to the listen channels that detect them."""
 
 from typing import TYPE_CHECKING, Any, cast
 

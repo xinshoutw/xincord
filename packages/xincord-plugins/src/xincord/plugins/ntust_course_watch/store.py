@@ -5,10 +5,6 @@ v3 kept them in MongoDB (database ``NtustCourse``, collection ``generated_cache`
 the channels' ``Long`` keys as JSON names and the users as strings. The store keeps that value under
 the same key, so that the planned v3 data import copies it unchanged. v3 never read it back after a
 restart (``getTyped`` found no adapter for its ``HashMap``) and overwrote it at the next change.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/NtustCourse.kt:15-30
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/NtustCourse.kt:58-76
 """
 
 import re

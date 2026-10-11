@@ -4,10 +4,6 @@
 `docs/porting/analysis/inventory/fixtures/BasicCalculator-*.jsonl`, recorded by running v3's
 evaluator. A record holds the raw input, v3's trimmed formula, and v3's result, the message of its
 IllegalArgumentException, or an ArithmeticException, which v3 never answered.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:27-61
-    XsDiscordBotKt@3a59607:Plugins/BasicCalculator/src/main/kotlin/basiccalculator/BasicCalculator.kt:64-206
 """
 
 import ast

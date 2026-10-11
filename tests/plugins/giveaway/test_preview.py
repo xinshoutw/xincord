@@ -1,9 +1,4 @@
-"""The builder's preview: v3's green embed of the draft, with long fields clipped.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepData.kt:61-128
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/data/GiveawayData.kt:42
-"""
+"""The builder's preview: v3's green embed of the draft, with long fields clipped."""
 
 from typing import TYPE_CHECKING, cast
 from zoneinfo import ZoneInfo

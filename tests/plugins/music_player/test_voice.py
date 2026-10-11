@@ -1,9 +1,4 @@
-"""``/join`` and ``/disconnect``: the bot in the member's voice channel, and out of it.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:335-363
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/util/MusicPlayerUtils.kt:85-109
-"""
+"""``/join`` and ``/disconnect``: the bot in the member's voice channel, and out of it."""
 
 from typing import TYPE_CHECKING
 

@@ -1,11 +1,4 @@
-"""Guild messages that the plugin stores, as discord.py parses them from the gateway.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/Event.kt:109-113
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChatLogger.kt:119-130
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChatLogger.kt:378-381
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/DbManager.kt:72-85
-"""
+"""Guild messages that the plugin stores, as discord.py parses them from the gateway."""
 
 from typing import TYPE_CHECKING
 

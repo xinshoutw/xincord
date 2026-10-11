@@ -1,9 +1,4 @@
-"""The listeners that give members who join a configured guild its roles.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/AutoRole/src/main/kotlin/autorole/AutoRole.kt:8-25
-    XsDiscordBotKt@3a59607:Plugins/AutoRole/src/main/kotlin/autorole/Event.kt:28-31
-"""
+"""The listeners that give members who join a configured guild its roles."""
 
 import logging
 from typing import TYPE_CHECKING, override

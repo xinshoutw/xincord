@@ -1,10 +1,4 @@
-"""What the panels show: v3's identifier rule, times, bar, thumbnails, values and queue.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:401-407
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:637-680
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/util/MusicPlayerUtils.kt:21-312
-"""
+"""What the panels show: v3's identifier rule, times, bar, thumbnails, values and queue."""
 
 from importlib.resources import files
 from pathlib import Path

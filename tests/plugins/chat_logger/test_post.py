@@ -1,8 +1,4 @@
-"""The posts to the listen channels: the guild's locale, and channels that are gone or refuse.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/ChatLogger.kt:279-295
-"""
+"""The posts to the listen channels: the guild's locale, and channels that are gone or refuse."""
 
 import logging
 from typing import TYPE_CHECKING

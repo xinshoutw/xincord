@@ -1,10 +1,4 @@
-"""One board's passes: its new entries posted in page order, its posted list kept.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/announcement/AnnouncementScheduler.kt:155-256
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/announcement/AnnouncementParser.kt:61-102
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/NtustManager.kt:185-237
-"""
+"""One board's passes: its new entries posted in page order, its posted list kept."""
 
 import asyncio
 import logging

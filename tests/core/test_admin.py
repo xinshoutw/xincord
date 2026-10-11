@@ -1,8 +1,4 @@
-"""The owner's reload command and SIGHUP.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/cli/JLineManager.kt:60-93
-"""
+"""The owner's reload command and SIGHUP."""
 
 import signal
 from types import SimpleNamespace

@@ -1,8 +1,4 @@
-"""Winners: each prize draws distinct participants, unique across prizes when the policy says so.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/data/GiveawayData.kt:67-102
-"""
+"""Winners: each prize draws distinct participants, unique across prizes when the policy says so."""
 
 import random
 from collections import Counter

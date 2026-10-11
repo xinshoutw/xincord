@@ -1,9 +1,4 @@
-"""The lobby commands, the voice listener and the checks when the bot is ready.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/DynamicVoiceChannel.kt:19-135
-    XsDiscordBotKt@3a59607:Plugins/DynamicVoiceChannel/src/main/kotlin/dynamicvoicechannel/command/Register.kt:13-89
-"""
+"""The lobby commands, the voice listener and the checks when the bot is ready."""
 
 import logging
 from typing import TYPE_CHECKING, Any, NamedTuple, override

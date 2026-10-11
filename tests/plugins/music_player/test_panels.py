@@ -1,8 +1,5 @@
 """The panels: edited every 5 seconds with the current song, deleted 60 seconds after their last
 interaction, one per member.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:150-233
 """
 
 import asyncio

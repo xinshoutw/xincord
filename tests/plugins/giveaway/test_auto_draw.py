@@ -1,12 +1,4 @@
-"""The automatic draw: due giveaways are drawn five seconds after READY, then at each interval.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:93-185
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Giveaway.kt:430-469
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Event.kt:27-67
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/Event.kt:114-117
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/resources/lang/en-US/message/auto-draw-result.yaml:1
-"""
+"""The automatic draw: due giveaways are drawn five seconds after READY, then at each interval."""
 
 import asyncio
 import logging

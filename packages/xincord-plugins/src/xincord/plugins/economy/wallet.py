@@ -1,9 +1,4 @@
-"""Wallets, v3's operations on them and the boards' ranking, without Discord or storage.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/UserData.kt:11-69
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/storage/JsonImpl.kt:75-120
-"""
+"""Wallets, v3's operations on them and the boards' ranking, without Discord or storage."""
 
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Literal

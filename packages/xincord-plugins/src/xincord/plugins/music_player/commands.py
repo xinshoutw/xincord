@@ -1,10 +1,4 @@
-"""v3's eleven guild commands, a base of the cog.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/command/Register.kt:11-154
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/MusicPlayer.kt:278-731
-    XsDiscordBotKt@3a59607:Plugins/MusicPlayer/src/main/kotlin/musicplayer/util/MusicPlayerUtils.kt:85-109
-"""
+"""v3's eleven guild commands, a base of the cog."""
 
 import asyncio
 import logging

@@ -1,11 +1,4 @@
-"""Each guild's wallets in the store, as v3's data/<guildId>.json documents.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/storage/JsonImpl.kt:17-173
-    XsDiscordBotKt@3a59607:Plugins/Economy/src/main/kotlin/economy/json/JsonData.kt:3-10
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/json/JsonGuildFileManager.kt:7-40
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/json/JsonFileManager.kt:29-113
-"""
+"""Each guild's wallets in the store, as v3's data/<guildId>.json documents."""
 
 import asyncio
 from typing import TYPE_CHECKING

@@ -1,9 +1,4 @@
-"""The commands of the config and their messages.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/SimpleCommand.kt:8-58
-    XsDiscordBotKt@3a59607:Plugins/SimpleCommand/src/main/kotlin/simplecommand/command/Register.kt:39-60
-"""
+"""The commands of the config and their messages."""
 
 import logging
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable

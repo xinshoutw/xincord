@@ -1,8 +1,4 @@
-"""The texts that v3 wrote in its code, from ``text.yaml``.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustCourse/src/main/kotlin/ntustcourse/NtustCourse.kt:66-131
-"""
+"""The texts that v3 wrote in its code, from ``text.yaml``."""
 
 from typing import TYPE_CHECKING
 

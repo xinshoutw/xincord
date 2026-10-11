@@ -1,9 +1,5 @@
 """The messages that ``/add-ticket`` adds a button to: found in the command's channel, checked,
 and given their view back when the button's entry cannot be stored.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:33-51
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:106-142
 """
 
 import logging

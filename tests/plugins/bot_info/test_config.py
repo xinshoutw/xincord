@@ -1,9 +1,4 @@
-"""The BotInfo config: the source link of decision C3.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/BotInfo/src/main/kotlin/botinfo/config/ConfigSerializer.kt:5-8
-    XsDiscordBotKt@3a59607:Plugins/BotInfo/src/main/resources/config.yaml:1
-"""
+"""The BotInfo config: the source link of decision C3."""
 
 import logging
 from typing import TYPE_CHECKING, cast

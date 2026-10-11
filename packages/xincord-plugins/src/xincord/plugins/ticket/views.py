@@ -1,10 +1,4 @@
-"""What v3 built in its code: the preview, the panel button, the control row and the save select.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:145-176
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:211-226
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Ticket.kt:784-832
-"""
+"""What v3 built in its code: the preview, the panel button, the control row and the save select."""
 
 from typing import TYPE_CHECKING
 

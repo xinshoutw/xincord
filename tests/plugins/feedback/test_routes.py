@@ -1,11 +1,4 @@
-"""Routing a form's star presses and submissions, in v3's ID format too.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Event.kt:64-74
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Feedbacker.kt:24-32
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/kotlin/feedbacker/Feedbacker.kt:86-98
-    XsDiscordBotKt@3a59607:Plugins/Feedbacker/src/main/resources/info.yaml:10
-"""
+"""Routing a form's star presses and submissions, in v3's ID format too."""
 
 from typing import TYPE_CHECKING, cast
 

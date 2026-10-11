@@ -1,9 +1,4 @@
-"""The xincord bot: discord.py's ``commands.Bot`` plus plugin loading.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/PluginLoader.kt:145-180
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/base/BotLoader.kt:112-159
-"""
+"""The xincord bot: discord.py's ``commands.Bot`` plus plugin loading."""
 
 import asyncio
 import logging

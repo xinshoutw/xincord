@@ -1,15 +1,4 @@
-"""The settings menu's buttons and select menus, in v3's ID format too.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/Event.kt:89-99
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:30-35
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:59-115
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/VoiceLogger.kt:186-229
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/kotlin/logger/voice/JsonManager.kt:60-113
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/resources/info.yaml:9
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/resources/lang/en-US/message/modify-allow.yaml:1-11
-    XsDiscordBotKt@3a59607:Plugins/VoiceLogger/src/main/resources/lang/en-US/message/delete.yaml:1-9
-"""
+"""The settings menu's buttons and select menus, in v3's ID format too."""
 
 from typing import TYPE_CHECKING, Any, cast
 

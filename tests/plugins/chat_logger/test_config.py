@@ -1,9 +1,4 @@
-"""The ChatLogger config: v3's ``log_all`` and the retention of the stored messages.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/config/ConfigSerializer.kt:6-11
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/resources/config.yaml:1-2
-"""
+"""The ChatLogger config: v3's ``log_all`` and the retention of the stored messages."""
 
 import logging
 from typing import TYPE_CHECKING, cast

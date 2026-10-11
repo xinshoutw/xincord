@@ -1,9 +1,4 @@
-"""The NtustAnnouncements plugin's entry point and bundled config.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/resources/info.yaml:1-8
-    XsDiscordBotKt@3a59607:Plugins/NtustManager/src/main/kotlin/ntustmanager/Event.kt:6-19
-"""
+"""The NtustAnnouncements plugin's entry point and bundled config."""
 
 from importlib.resources import files
 from typing import TYPE_CHECKING

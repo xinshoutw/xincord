@@ -1,8 +1,4 @@
-"""The interactive console.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/cli/JLineManager.kt:12-94
-"""
+"""The interactive console."""
 
 import asyncio
 import io

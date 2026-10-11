@@ -1,9 +1,4 @@
-"""The builder's changes to a draft, as v3's modals and buttons made them.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepManager.kt:70-151
-    XsDiscordBotKt@3a59607:Plugins/Giveaway/src/main/kotlin/giveaway/create/StepData.kt:34-59
-"""
+"""The builder's changes to a draft, as v3's modals and buttons made them."""
 
 from dataclasses import replace
 from typing import TYPE_CHECKING

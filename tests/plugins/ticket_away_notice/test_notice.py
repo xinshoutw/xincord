@@ -1,9 +1,4 @@
-"""The notice waits for the delay while the owner is offline, then checks again and posts.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/kotlin/addons/ticket/TicketAddons.kt:11-39
-    XsDiscordBotKt@3a59607:Plugins/TicketAddons/src/main/resources/lang/zh-TW/message/not-online.yaml:1-7
-"""
+"""The notice waits for the delay while the owner is offline, then checks again and posts."""
 
 from typing import TYPE_CHECKING
 

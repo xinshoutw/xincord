@@ -2,10 +2,6 @@
 
 v3 kept one file per guild with one table per channel, through SQLiteAPI's connections, which it
 never closed; the files of time ranges and their thread are new.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/ChatLogger/src/main/kotlin/logger/chat/DbManager.kt:16-188
-    XsDiscordBotKt@3a59607:Plugins/API/SQLiteAPI/src/main/kotlin/api/sqlite/SQLiteFileManager.kt:8-46
 """
 
 import asyncio

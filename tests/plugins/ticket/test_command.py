@@ -1,15 +1,5 @@
 """``/create-ticket`` and ``/add-ticket``: localized administrator guild commands; the first opens
 the builder of a new panel.
-
-Kotlin:
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/command/Register.kt:11-43
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/command/CmdFileSerializer.kt:7-27
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/Event.kt:53-65
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepManager.kt:20-31
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:29-51
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/kotlin/ticket/create/StepData.kt:181-196
-    XsDiscordBotKt@3a59607:Plugins/Ticket/src/main/resources/lang/en-US/message/create-ticket.yaml:1-65
-    XsDiscordBotKt@3a59607:Core/src/main/kotlin/core/logger/InteractionLogger.kt:25-30
 """
 
 from typing import TYPE_CHECKING, Any, cast
