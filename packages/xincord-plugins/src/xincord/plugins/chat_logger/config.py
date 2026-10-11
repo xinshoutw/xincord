@@ -30,5 +30,7 @@ class Config(Model):
     log_all: bool = True
     # How many days a message's text is kept; edits and deletions of older messages are not logged.
     retention_days: Annotated[int, Field(ge=RETENTION_MIN, le=RETENTION_MAX)] = RETENTION_DEFAULT
+    # True: a deleted message stays stored until the retention removes it, as v3 kept it.
+    keep_deleted: bool = False
     # When the newest message file reaches this size in MiB, a new file starts.
     max_file_size_mb: Annotated[int, Field(ge=1, le=FILE_SIZE_MAX)] = FILE_SIZE_DEFAULT

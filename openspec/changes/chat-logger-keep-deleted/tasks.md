@@ -1,8 +1,8 @@
 ## 1. Keeping deleted texts
 
-- [ ] 1.1 xfail tests for "Deleted texts can be kept" (kept alone and in bulk, removed by default,
+- [x] 1.1 xfail tests for "Deleted texts can be kept" (kept alone and in bulk, removed by default,
       an invalid value)
-- [ ] 1.2 The `keep_deleted` key, the bundled file's comment, `keep` on `pop` and `pop_all`;
+- [x] 1.2 The `keep_deleted` key, the bundled file's comment, `keep` on `pop` and `pop_all`;
       remove the markers
 
 ## 2. Close

@@ -228,14 +228,14 @@ class ChatLogger(commands.Cog):
     async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent) -> None:
         """Log a deleted stored message to the listen channels that detect its channel.
 
-        The message leaves the store either way: v3 kept the text of deleted messages, which
-        nothing needs once the deletion is handled.
+        The message leaves the store either way unless ``keep_deleted`` keeps it, as v3 kept the
+        text of deleted messages.
         """
         if payload.guild_id is None:
             return
         place = self._place(payload.guild_id, payload.channel_id)
         await self._inserted([payload.message_id])
-        stored = await self.messages.pop(payload.message_id)
+        stored = await self.messages.pop(payload.message_id, keep=self.config.keep_deleted)
         await self._log_deletions(payload.guild_id, place, [] if stored is None else [stored])
 
     @commands.Cog.listener()
@@ -249,7 +249,7 @@ class ChatLogger(commands.Cog):
             return
         place = self._place(payload.guild_id, payload.channel_id)
         await self._inserted(payload.message_ids)
-        taken = await self.messages.pop_all(payload.message_ids)
+        taken = await self.messages.pop_all(payload.message_ids, keep=self.config.keep_deleted)
         await self._log_deletions(payload.guild_id, place, [stored for _, stored in taken])
 
     def _place(self, guild_id: int, channel_id: int) -> Place:

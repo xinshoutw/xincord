@@ -11,6 +11,10 @@ log_all: true
 # older messages are not logged.
 retention_days: 1826
 
+# false: a deleted message's text leaves the store once its deletion is logged. true: it stays
+# until retention_days removes it, as in v3.
+keep_deleted: false
+
 # The stored messages are kept in files under data/ChatLogger/, in the bot's data directory (the
 # data volume under compose). When the newest file reaches this size in MiB (1 MiB is 1,048,576
 # bytes), 1 to 65536, a new file starts; a file whose messages are all older than retention_days is

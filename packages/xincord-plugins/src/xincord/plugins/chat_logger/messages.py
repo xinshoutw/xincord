@@ -221,20 +221,23 @@ class MessageFiles:
         """
         return await self._run(self._edit, message_id, text)
 
-    async def pop(self, message_id: int) -> Stored | None:
+    async def pop(self, message_id: int, *, keep: bool = False) -> Stored | None:
         """Take a deleted message out of its file and return it, or None if it is not stored.
 
-        v3 kept the text of deleted messages; nothing needs it once the deletion is handled.
+        With ``keep`` it stays in its file until the retention removes it, as v3 kept it.
         """
-        taken = await self.pop_all([message_id])
+        taken = await self.pop_all([message_id], keep=keep)
         return taken[0][1] if taken else None
 
-    async def pop_all(self, message_ids: Iterable[int]) -> list[tuple[int, Stored]]:
+    async def pop_all(
+        self, message_ids: Iterable[int], *, keep: bool = False
+    ) -> list[tuple[int, Stored]]:
         """Take the deleted messages of a bulk deletion out of their files and return them.
 
-        They come oldest first, with their IDs; messages that are not stored are left out.
+        They come oldest first, with their IDs; messages that are not stored are left out. With
+        ``keep`` they stay in their files.
         """
-        return await self._run(self._pop_all, sorted(set(message_ids)))
+        return await self._run(self._pop_all, sorted(set(message_ids)), keep)
 
     async def prune(self, before: int, batch: int = BATCH) -> int:
         """Delete the messages whose IDs are below ``before``: whole files, then in batches.
@@ -355,7 +358,7 @@ class MessageFiles:
 
         return transaction(file.connection, apply)
 
-    def _pop_all(self, message_ids: list[int]) -> list[tuple[int, Stored]]:
+    def _pop_all(self, message_ids: list[int], keep: bool) -> list[tuple[int, Stored]]:  # noqa: FBT001 - _run passes it positionally
         # The IDs are sorted, so the files come in order and their messages oldest first.
         by_file: dict[Path, tuple[MessageFile, list[int]]] = {}
         for message_id in message_ids:
@@ -363,7 +366,7 @@ class MessageFiles:
                 by_file.setdefault(file.path, (file, []))[1].append(message_id)
         taken: list[tuple[int, Stored]] = []
         for file, ids in by_file.values():
-            taken += transaction(file.connection, lambda db, ids=ids: _take(db, ids))
+            taken += transaction(file.connection, lambda db, ids=ids: _take(db, ids, keep=keep))
         return taken
 
     def _drop_expired(self, before: int) -> list[str]:
@@ -421,12 +424,15 @@ def _delete(path: Path) -> bool:
     return True
 
 
-def _take(db: sqlite3.Connection, message_ids: list[int]) -> list[tuple[int, Stored]]:
-    """Delete the stored messages of ``message_ids`` from one file and return them."""
+def _take(
+    db: sqlite3.Connection, message_ids: list[int], *, keep: bool
+) -> list[tuple[int, Stored]]:
+    """Return the stored messages of ``message_ids`` in one file; delete them unless ``keep``."""
     taken: list[tuple[int, Stored]] = []
     for message_id in message_ids:
         row = db.execute(FIND, (message_id,)).fetchone()
         if row is not None:
-            db.execute(DELETE, (message_id,))
+            if not keep:
+                db.execute(DELETE, (message_id,))
             taken.append((message_id, Stored(text=row[0], user_id=row[1], count=row[2])))
     return taken

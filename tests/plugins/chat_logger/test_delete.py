@@ -164,7 +164,6 @@ async def test_deleted_at_once(scene: Scene) -> None:
     assert await scene.rows() == []
 
 
-@pytest.mark.xfail(strict=True, reason="Deleted texts can be kept")
 @pytest.mark.parametrize("config", ["keep_deleted: true\n"])
 async def test_kept(scene: Scene) -> None:
     """Requirement: Deleted texts can be kept."""
