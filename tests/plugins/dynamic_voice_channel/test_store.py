@@ -29,7 +29,7 @@ from xincord.plugins.dynamic_voice_channel.store import (
 if TYPE_CHECKING:
     from xincord.core.storage import JSON, Store
 
-LOBBY = Binding(20, "Lobby", "A", "B")
+LOBBY = Binding(20, "Lobby", "A")
 
 
 async def test_first_binding(store: Store) -> None:
@@ -37,13 +37,11 @@ async def test_first_binding(store: Store) -> None:
     await bind(store, 10, LOBBY)
 
     document = await store.get(NAMESPACE, "10")
-    assert document == [
-        {"categoryId": 20, "defaultName": "Lobby", "formatName1": "A", "formatName2": "B"}
-    ]
+    assert document == [{"categoryId": 20, "defaultName": "Lobby", "formatName1": "A"}]
     assert isinstance(document, list)
     first = document[0]
     assert isinstance(first, dict)
-    assert list(first) == ["categoryId", "defaultName", "formatName1", "formatName2"]  # Moshi's
+    assert list(first) == ["categoryId", "defaultName", "formatName1"]  # Moshi's order
     assert await read_bindings(store, 10) == [LOBBY]
 
 
@@ -55,10 +53,10 @@ async def test_guild_without_bindings(store: Store) -> None:
 
 async def test_missing_formats(store: Store) -> None:
     """Requirement: Bindings are kept per guild in v3's documents."""
-    # Moshi's defaults for formatName1 and formatName2; unknown fields are ignored.
+    # Moshi's default for formatName1; unknown fields are ignored.
     await store.put(NAMESPACE, "10", [{"categoryId": 20, "defaultName": "Lobby", "x": 1}])
 
-    assert await read_bindings(store, 10) == [Binding(20, "Lobby", "", "")]
+    assert await read_bindings(store, 10) == [Binding(20, "Lobby", "")]
 
 
 def test_find() -> None:
@@ -85,19 +83,19 @@ async def test_binding_again(store: Store) -> None:
         NAMESPACE,
         "10",
         [
-            {"categoryId": 20, "defaultName": "Lobby", "formatName1": "A", "formatName2": "x"},
+            {"categoryId": 20, "defaultName": "Lobby", "formatName1": "A"},
             other,
-            {"categoryId": 20, "defaultName": "Lobby", "formatName1": "B", "formatName2": "y"},
+            {"categoryId": 20, "defaultName": "Lobby", "formatName1": "B"},
         ],
     )
     found = find(await read_bindings(store, 10), 20, "Lobby")
-    assert found == Binding(20, "Lobby", "A", "x")
+    assert found == Binding(20, "Lobby", "A")
 
-    await bind(store, 10, Binding(20, "Lobby", "C", "z"))
+    await bind(store, 10, Binding(20, "Lobby", "C"))
 
     assert await store.get(NAMESPACE, "10") == [
         other,
-        {"categoryId": 20, "defaultName": "Lobby", "formatName1": "C", "formatName2": "z"},
+        {"categoryId": 20, "defaultName": "Lobby", "formatName1": "C"},
     ]
 
 
@@ -164,7 +162,6 @@ async def test_concurrent_binds(store: Store) -> None:
         [{"categoryId": 20}],
         [{"categoryId": 20, "defaultName": 5}],
         [{"categoryId": 20, "defaultName": "Lobby", "formatName1": None}],
-        [{"categoryId": 20, "defaultName": "Lobby", "formatName2": 2}],
     ],
 )
 async def test_unreadable_entry(store: Store, document: JSON) -> None:
@@ -236,7 +233,6 @@ async def test_unreadable_rooms(store: Store, document: JSON) -> None:
     assert await store.get(ROOMS, "10") == document
 
 
-@pytest.mark.xfail(strict=True, reason="v3's second format is ignored")
 async def test_second_format_ignored(store: Store) -> None:
     """Requirement: v3's second format is ignored."""
     stored: list[JSON] = [

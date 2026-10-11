@@ -31,12 +31,14 @@ class DataError(Exception):
 
 @dataclass(frozen=True)
 class Binding:
-    """v3's ``DataContainer``: a lobby, by its category and exact name, and the room formats."""
+    """v3's ``DataContainer``: a lobby, by its category and exact name, and the room format.
+
+    v3's second format, which v3 stored and never used, is gone (``dvc-one-name-format``).
+    """
 
     category_id: int
     default_name: str
     format_name_1: str = ""
-    format_name_2: str = ""  # stored and never used, as in v3
 
     @property
     def key(self) -> Key:
@@ -192,21 +194,21 @@ async def _read(store: Store, guild_id: int) -> list[tuple[JSON, Binding]]:
 def _binding(entry: JSON, guild_id: int) -> Binding:
     """The binding of v3's entry; other fields are ignored, as Moshi ignored them.
 
-    Moshi refused an entry without ``categoryId`` or ``defaultName``, or with a null format, and
-    Core then replaced the guild's whole file with an empty list.
+    ``formatName2`` is one of them now, whatever its value. Moshi refused an entry without
+    ``categoryId`` or ``defaultName``, or with a null format, and Core then replaced the guild's
+    whole file with an empty list.
     """
     fields = entry if isinstance(entry, dict) else {}
     category_id, name = fields.get("categoryId"), fields.get("defaultName")
-    format_1, format_2 = fields.get("formatName1", ""), fields.get("formatName2", "")
+    format_1 = fields.get("formatName1", "")
     if (
         type(category_id) is not int  # booleans and fractions are not IDs
         or not isinstance(name, str)
         or not isinstance(format_1, str)
-        or not isinstance(format_2, str)
     ):
         msg = f"guild {guild_id}: a binding is not v3's: {entry!r}"
         raise DataError(msg)
-    return Binding(category_id, name, format_1, format_2)
+    return Binding(category_id, name, format_1)
 
 
 def _entry(binding: Binding) -> dict[str, JSON]:
@@ -215,7 +217,6 @@ def _entry(binding: Binding) -> dict[str, JSON]:
         "categoryId": binding.category_id,
         "defaultName": binding.default_name,
         "formatName1": binding.format_name_1,
-        "formatName2": binding.format_name_2,
     }
 
 

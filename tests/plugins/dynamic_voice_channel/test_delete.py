@@ -73,7 +73,7 @@ async def test_move_into_a_lobby(bot: Bot, store: Store, rest: FakeRest) -> None
     """Requirement: Empty rooms are deleted."""
     # v3 handled the joined channel first, then the left one, and so does the plugin.
     guild, room = room_guild(rest.sent)
-    await bind(store, 10, Binding(20, "Lobby", "| %dvc@custom_name%", "unused"))
+    await bind(store, 10, Binding(20, "Lobby", "| %dvc@custom_name%"))
     await track(store, 10, 50, 7)
     lobby = guild.get_channel(30)
     assert isinstance(lobby, FakeVoiceChannel)
@@ -151,7 +151,7 @@ async def test_leaving_during_the_creation(bot: Bot, store: Store, rest: FakeRes
     """Requirement: Empty rooms are deleted."""
     # v3 tracked the room in memory at once and in MongoDB later, and read MongoDB on the leave.
     guild, _ = room_guild(rest.sent)
-    await bind(store, 10, Binding(20, "Lobby", "| %dvc@custom_name%", "unused"))
+    await bind(store, 10, Binding(20, "Lobby", "| %dvc@custom_name%"))
     lobby = guild.get_channel(30)
     assert isinstance(lobby, FakeVoiceChannel)
     lobby.gate = asyncio.Event()

@@ -12,9 +12,6 @@ dynamic-voice-channel:
         format-name-1:
           name: "名稱格式1"
           description: "名稱格式1"
-        format-name-2:
-          name: "名稱格式2"
-          description: "名稱格式2"
     unbind:
       name: "解綁"
       description: "解綁語音頻道"

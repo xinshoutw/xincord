@@ -43,7 +43,7 @@ def lobby_guild(sent: list[Sent]) -> tuple[FakeGuild, FakeVoiceChannel]:
 
 async def bind_lobby(store: Store, format_1: str = "| %dvc@custom_name%") -> None:
     """Bind the lobby of guild 10 with format 1."""
-    await bind(store, 10, Binding(20, "Lobby", format_1, "unused"))
+    await bind(store, 10, Binding(20, "Lobby", format_1))
 
 
 def bob(guild: FakeGuild, *, is_bot: bool = False) -> FakeMember:
@@ -182,7 +182,7 @@ async def test_gone_while_the_guild_was_busy(bot: Bot, store: Store, rest: FakeR
     """Requirement: Joining an empty lobby creates a room."""
     # Two lobbies of one guild: Bob's room waits for Alice's, and Bob leaves meanwhile.
     await bind_lobby(store)
-    await bind(store, 10, Binding(20, "Second", "| %dvc@custom_name%", "unused"))
+    await bind(store, 10, Binding(20, "Second", "| %dvc@custom_name%"))
     guild, first = lobby_guild(rest.sent)
     first.gate = asyncio.Event()
     second = FakeVoiceChannel(sent=rest.sent, id=40, name="Second", guild=guild, category_id=20)

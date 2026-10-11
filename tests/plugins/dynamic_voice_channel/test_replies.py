@@ -71,23 +71,23 @@ async def test_bind(cog: DynamicVoiceChannel, store: Store, locale: str) -> None
     """Requirement: Administrators bind lobbies."""
     interaction = run("bind", locale)
 
-    await cog.bind_lobby(interaction.as_interaction(), lobby(), "A", "B")
+    await cog.bind_lobby(interaction.as_interaction(), lobby(), "A")
 
-    assert await read_bindings(store, 10) == [Binding(20, "Lobby", "A", "B")]
+    assert await read_bindings(store, 10) == [Binding(20, "Lobby", "A")]
     assert replied(interaction) == GOLDEN["replies"][locale]["bind-success"]  # the user's locale
 
 
 async def test_bind_again(cog: DynamicVoiceChannel, store: Store) -> None:
     """Requirement: Administrators bind lobbies."""
-    await bind(store, 10, Binding(20, "Lobby", "A", "B"))
-    await bind(store, 10, Binding(20, "Other", "C", "D"))
+    await bind(store, 10, Binding(20, "Lobby", "A"))
+    await bind(store, 10, Binding(20, "Other", "C"))
     interaction = run("bind")
 
-    await cog.bind_lobby(interaction.as_interaction(), lobby(), "E", "F")
+    await cog.bind_lobby(interaction.as_interaction(), lobby(), "E")
 
     assert await read_bindings(store, 10) == [
-        Binding(20, "Other", "C", "D"),
-        Binding(20, "Lobby", "E", "F"),
+        Binding(20, "Other", "C"),
+        Binding(20, "Lobby", "E"),
     ]
     assert replied(interaction) == GOLDEN["replies"]["en-US"]["bind-success"]
 
@@ -97,7 +97,7 @@ async def test_bind_outside_a_category(cog: DynamicVoiceChannel, store: Store, l
     """Requirement: Administrators bind lobbies."""
     interaction = run("bind", locale)
 
-    await cog.bind_lobby(interaction.as_interaction(), lobby(category_id=None), "A", "B")
+    await cog.bind_lobby(interaction.as_interaction(), lobby(category_id=None), "A")
 
     assert await store.keys(NAMESPACE) == []
     assert replied(interaction) == GOLDEN["replies"][locale]["must-under-category"]
@@ -116,7 +116,7 @@ async def test_replies_get_the_interactions_values(store: Store, tmp_path: Path)
     cog = cast("DynamicVoiceChannel", bot.get_cog("DynamicVoiceChannel"))
     interaction = run("bind")
 
-    await cog.bind_lobby(interaction.as_interaction(), lobby(), "A", "B")
+    await cog.bind_lobby(interaction.as_interaction(), lobby(), "A")
 
     assert replied(interaction)["title"] == "alice ran dynamic-voice-channel bind (xincord)"
 
@@ -124,14 +124,14 @@ async def test_replies_get_the_interactions_values(store: Store, tmp_path: Path)
 @pytest.mark.parametrize("locale", LOCALES)
 async def test_unbind(cog: DynamicVoiceChannel, store: Store, locale: str) -> None:
     """Requirement: Administrators unbind lobbies."""
-    await bind(store, 10, Binding(20, "Lobby", "A", "B"))
-    await bind(store, 10, Binding(21, "Lobby", "C", "D"))
+    await bind(store, 10, Binding(20, "Lobby", "A"))
+    await bind(store, 10, Binding(21, "Lobby", "C"))
     first, second = run("unbind", locale), run("unbind", locale)
 
     await cog.unbind_lobby(first.as_interaction(), lobby())
     await cog.unbind_lobby(second.as_interaction(), lobby())
 
-    assert await read_bindings(store, 10) == [Binding(21, "Lobby", "C", "D")]
+    assert await read_bindings(store, 10) == [Binding(21, "Lobby", "C")]
     assert replied(first) == GOLDEN["replies"][locale]["unbind-success"]
     assert replied(second) == GOLDEN["replies"][locale]["unbind-fail"]
 
@@ -139,12 +139,12 @@ async def test_unbind(cog: DynamicVoiceChannel, store: Store, locale: str) -> No
 async def test_unbind_matches_the_current_name(cog: DynamicVoiceChannel, store: Store) -> None:
     """Requirement: Administrators unbind lobbies."""
     # As in v3, a lobby renamed since it was bound no longer names its binding.
-    await bind(store, 10, Binding(20, "Lobby", "A", "B"))
+    await bind(store, 10, Binding(20, "Lobby", "A"))
     interaction = run("unbind")
 
     await cog.unbind_lobby(interaction.as_interaction(), lobby(name="Renamed"))
 
-    assert await read_bindings(store, 10) == [Binding(20, "Lobby", "A", "B")]
+    assert await read_bindings(store, 10) == [Binding(20, "Lobby", "A")]
     assert replied(interaction) == GOLDEN["replies"]["en-US"]["unbind-fail"]
 
 
@@ -153,12 +153,12 @@ async def test_unbind_outside_a_category(
     cog: DynamicVoiceChannel, store: Store, locale: str
 ) -> None:
     """Requirement: Administrators unbind lobbies."""
-    await bind(store, 10, Binding(20, "Lobby", "A", "B"))
+    await bind(store, 10, Binding(20, "Lobby", "A"))
     interaction = run("unbind", locale)
 
     await cog.unbind_lobby(interaction.as_interaction(), lobby(category_id=None))
 
-    assert await read_bindings(store, 10) == [Binding(20, "Lobby", "A", "B")]
+    assert await read_bindings(store, 10) == [Binding(20, "Lobby", "A")]
     assert replied(interaction) == GOLDEN["replies"][locale]["must-under-category"]
 
 
@@ -168,7 +168,7 @@ async def test_outside_a_guild(cog: DynamicVoiceChannel, store: Store) -> None:
     bind_command, unbind_command = run("bind"), run("unbind")
     bind_command.guild = unbind_command.guild = None
 
-    await cog.bind_lobby(bind_command.as_interaction(), lobby(), "A", "B")
+    await cog.bind_lobby(bind_command.as_interaction(), lobby(), "A")
     await cog.unbind_lobby(unbind_command.as_interaction(), lobby())
 
     assert bind_command.sent == unbind_command.sent == []

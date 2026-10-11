@@ -67,7 +67,7 @@ async def test_command_payload(bot: Bot) -> None:
 
 @pytest.mark.parametrize(
     ("subcommand", "options"),
-    [("bind", (LOBBY, "A", "B")), ("unbind", (LOBBY,))],
+    [("bind", (LOBBY, "A")), ("unbind", (LOBBY,))],
 )
 async def test_command_callbacks(
     bot: Bot, cog: DynamicVoiceChannel, subcommand: str, options: tuple[object, ...]
@@ -113,7 +113,6 @@ def bind_options(payload: list[dict[str, Any]]) -> list[str]:
     return [option["name"] for option in bind["options"]]
 
 
-@pytest.mark.xfail(strict=True, reason="v3's second format is ignored")
 async def test_bind_has_one_format(bot: Bot) -> None:
     """Requirement: v3's second format is ignored."""
     _, guild_payload = await cast("CommandTree", bot.tree).payloads()
@@ -121,7 +120,6 @@ async def test_bind_has_one_format(bot: Bot) -> None:
     assert bind_options(guild_payload) == ["channel", "format-name-1"]
 
 
-@pytest.mark.xfail(strict=True, reason="v3's second format is ignored")
 async def test_v3_lang_files(store: Store, tmp_path: Path) -> None:
     """Requirement: v3's second format is ignored."""
     lang = tmp_path / "plugins" / "DynamicVoiceChannel" / "lang"

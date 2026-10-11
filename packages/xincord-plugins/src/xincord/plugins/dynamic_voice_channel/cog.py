@@ -73,7 +73,6 @@ SUBCOMMANDS = {
         {
             "channel": ("channel", "voice channel to bind"),
             "format_name_1": ("format-name-1", "format name 1"),
-            "format_name_2": ("format-name-2", "format name 2"),
         },
     ),
     "unbind": SubcommandSpec(
@@ -138,9 +137,8 @@ class DynamicVoiceChannel(commands.Cog):
         interaction: discord.Interaction,
         channel: app_commands.Transform[app_commands.AppCommandChannel, VoiceChannelOption],
         format_name_1: str,
-        format_name_2: str,
     ) -> None:
-        """Bind ``channel``'s category and name as a lobby with the room formats (v3's ``bind``).
+        """Bind ``channel``'s category and name as a lobby with the room format (v3's ``bind``).
 
         A binding of the same category and name is replaced; v3 added a duplicate. The reply is
         ``bind-success``, or ``must-under-category`` for a channel outside a category, where
@@ -152,7 +150,7 @@ class DynamicVoiceChannel(commands.Cog):
         if channel.category_id is None:
             await self._reply(interaction, "must-under-category")
             return
-        binding = Binding(channel.category_id, channel.name, format_name_1, format_name_2)
+        binding = Binding(channel.category_id, channel.name, format_name_1)
         await bind(self.store, guild.id, binding)
         logger.info(
             "DynamicVoiceChannel bound the lobby %r of category %s in guild %s",

@@ -18,7 +18,8 @@ replies:
 # The translated payload of the guild command; keys that are not listed here are not compared. 8 is
 # the Administrator permission; option type 1 is a subcommand, 3 a string and 7 a channel, and
 # channel type 2 is a voice channel. The texts come from v3's Register.kt and register.yaml: the
-# en-US option names of the formats are name-format-1 and name-format-2, unlike the base names.
+# en-US option name of the format is name-format-1, unlike the base name. v3's format-name-2 is
+# gone (dvc-one-name-format).
 commands:
   - type: 1
     name: "dynamic-voice-channel"
@@ -46,12 +47,6 @@ commands:
             required: true
             name_localizations: {"en-US": "name-format-1", "zh-TW": "名稱格式1"}
             description_localizations: {"en-US": "Name format 1", "zh-TW": "名稱格式1"}
-          - type: 3
-            name: "format-name-2"
-            description: "format name 2"
-            required: true
-            name_localizations: {"en-US": "name-format-2", "zh-TW": "名稱格式2"}
-            description_localizations: {"en-US": "Name format 2", "zh-TW": "名稱格式2"}
       - type: 1
         name: "unbind"
         description: "unbind a voice channel"
