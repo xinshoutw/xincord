@@ -870,7 +870,16 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   `NotImplementedError` is an xfail stub for a new key that leaves the files without it loading.
 - **Union and float bounds.** `Annotated[float, Field(ge=0, le=2)] | None` keeps the key's name in
   errors (pydantic's nullable schema); floats take YAML's `.inf` and `.nan` unless
-  `allow_inf_nan=False`; lax mode reads `true` as 1 for an `int` or a `float`.
+  `allow_inf_nan=False`; lax mode reads `true` (YAML's `yes`, `on`) as 1 for an `int` or a `float`,
+  which `Field(strict=True)` refuses while a strict float still takes an integer
+  (NtustAnnouncements' model settings). A strict tuple refuses YAML's lists: make its items strict.
+- **URLs that aiohttp requests.** Check them with yarl (`yarl.URL`), as aiohttp reads them:
+  `urlsplit` takes a backslash in the host that yarl refuses, and yarl takes port 0, a host with a
+  trailing space and an empty user info (`https://@host`), so check those too
+  (NtustAnnouncements' `_endpoint`).
+- **One clock reading per decision.** A rate limiter that finds no key with room at one reading and
+  computes the wait at a later one can find the oldest attempt gone (`IndexError`); read the clock
+  once per pass (NtustAnnouncements' `Converter.convert`).
 - **Logger names.** discord.py's log format prints each record's logger name, which is the module's
   path: a module named after a product (`ntust_announcements.gemini`) names it on every line, with
   any API. Name modules after what they do (`conversion`).
@@ -879,8 +888,11 @@ Set by `port-example`; the full checklist is `.claude/skills/port-plugin/SKILL.m
   nothing of the plugin (NtustAnnouncements' `strings.trim`).
 - **OpenAI-compatible APIs differ.** OpenAI's reasoning models refuse a temperature other than
   their default and the deprecated `max_tokens` (they take `max_completion_tokens`), which Ollama's
-  compatible endpoint does not list; Ollama ignores the key. aiohttp refuses an `Authorization`
-  header together with credentials in the URL (`ValueError`), so an endpoint takes no user info.
+  compatible endpoint does not list; Ollama ignores the key. Errors come as
+  `{"error": {"message": ...}}`, a list of one such object (Gemini's compatible endpoint) or
+  `{"error": "<text>"}`. aiohttp refuses an `Authorization` header together with credentials in the
+  URL (`ValueError`), so an endpoint takes no user info. A placeholder key that is short garbles
+  every error text that redaction replaces it in: suggest a distinctive one.
 
 v3 behaviors never to reproduce: loading plugins in reverse dependency order, non-atomic JSON
 writes that silently reset corrupt files, recursive placeholder expansion, shared mutable

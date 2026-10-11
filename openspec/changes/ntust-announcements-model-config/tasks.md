@@ -42,7 +42,7 @@
       attempts are retried" (the window's edge), found in the review
 - [x] 5.6 Strict numbers, endpoints read as aiohttp reads them, both error shapes, one clock
       reading per pass; remove the markers
-- [ ] 5.7 The review's notes: reloads and the limiter, placeholder keys, Ollama from compose, the
+- [x] 5.7 The review's notes: reloads and the limiter, placeholder keys, Ollama from compose, the
       connect limit, and the failures package's docstring
 
 ## 6. Close

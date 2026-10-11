@@ -1,7 +1,7 @@
 """Failure episodes: a step that keeps failing logs each kind of failure once, not at every pass.
 
 The owner decided on 2026-10-10 that a listener failing at every push must not log at every push
-(UptimeHeartbeat); NtustAnnouncements' boards and Gemini attempts follow the same rule. This
+(UptimeHeartbeat); NtustAnnouncements' boards and conversion attempts follow the same rule. This
 package is no plugin: it has no entry point, and the plugins that use it import it.
 """
 

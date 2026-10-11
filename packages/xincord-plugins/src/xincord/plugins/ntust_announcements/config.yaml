@@ -10,8 +10,8 @@
 fetch-interval: 3600
 
 # API keys for `endpoint`, used in turn. The log names a key by its position in this list, never by
-# its text. Replace these examples with your keys (an API without keys, such as Ollama's, takes
-# any text).
+# its text. Replace these examples with your keys; an API without keys, such as Ollama's, takes any
+# text that no address or message holds, such as "unused-key".
 api-keys:
   - "sk-thisisatestkey1234567890abcdef1234567890"
   - "sk-thisisatestkey1234567890abcdef1234567890"
@@ -19,9 +19,10 @@ api-keys:
 # The model's API. gemini: Gemini's generateContent at `endpoint`/models/`model`:generateContent,
 # the key in the x-goog-api-key header. openai: an OpenAI-compatible API at
 # `endpoint`/chat/completions, the key as a bearer token, such as https://api.openai.com/v1,
-# https://openrouter.ai/api/v1, Ollama's http://localhost:11434/v1 or Gemini's own
-# https://generativelanguage.googleapis.com/v1beta/openai. `endpoint` is an http or https URL
-# without user info, a query or a fragment; the log shows only its scheme, host and port.
+# https://openrouter.ai/api/v1, Gemini's own https://generativelanguage.googleapis.com/v1beta/openai
+# or Ollama on the host of the bot's container, http://host.docker.internal:11434/v1. `endpoint` is
+# an http or https URL without user info, a query or a fragment; the log shows only its scheme,
+# host and port.
 api-format: gemini
 endpoint: "https://generativelanguage.googleapis.com/v1beta"
 
@@ -34,7 +35,7 @@ model: "gemini-2.5-flash"
 temperature: 0.1
 max-output-tokens: null
 
-# Seconds that an attempt may take in all (up to 3600), and to connect.
+# Seconds that an attempt may take in all (up to 3600), and to connect (up to `request-timeout`).
 request-timeout: 300
 connect-timeout: 30
 

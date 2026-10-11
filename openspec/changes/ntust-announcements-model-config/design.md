@@ -52,7 +52,7 @@ other keys, each optional with v3's value as default, in the bundled file betwee
 | Key | Default | Accepted |
 |---|---|---|
 | `api-format` | `gemini` | `gemini` or `openai` |
-| `endpoint` | `https://generativelanguage.googleapis.com/v1beta` | an http or https URL with a host, a valid port, no spaces, no user info, no query, no fragment; a final `/` is dropped |
+| `endpoint` | `https://generativelanguage.googleapis.com/v1beta` | an http or https URL as aiohttp reads it (yarl): a host, a port from 1 to 65535, no spaces, no user info, no query, no fragment; a final `/` is dropped |
 | `model` (exists) | `gemini-2.5-flash` | 1 to 256 characters without whitespace; with `gemini`, letters, digits, `.`, `-` and `_` only, since it goes into the URL's path |
 | `temperature` | 0.1 | 0 to 2, or null (none sent) |
 | `max-output-tokens` | null (none sent) | 1 to 1048576, or null |
@@ -63,9 +63,10 @@ other keys, each optional with v3's value as default, in the bundled file betwee
 | `max-attempts` | 10 | 1 to 100 |
 | `retry-waits` | `[60, 300, 900, 1800]` | 1 to 100 waits, each 0 to 86400 seconds |
 
-- Floats are finite (`allow_inf_nan=False`: YAML's `.inf` and `.nan` are refused). The bounds catch
-  units typed wrongly (milliseconds for seconds, a day of waits) and are wider than any provider's
-  documented values.
+- Floats are finite (`allow_inf_nan=False`: YAML's `.inf` and `.nan` are refused) and the numbers
+  are strict, so YAML's `yes`, `on` and `true` are refused where a number goes (a lax number takes
+  them as 1; found in the cross-review). The bounds catch units typed wrongly (milliseconds for
+  seconds, a day of waits) and are wider than any provider's documented values.
 - `Config` declares `api_format` before `model` and `request_timeout` before `connect_timeout`, so
   that the field validators of `model` and `connect_timeout` read the earlier field from pydantic's
   `ValidationInfo.data` and the error names the field itself; a model validator would report
@@ -105,8 +106,9 @@ other keys, each optional with v3's value as default, in the bundled file betwee
   `max_completion_tokens`: Ollama, OpenRouter and Gemini's compatible endpoint take it; OpenAI's
   reasoning models refuse it, so the comment says to leave it null for them.
 - Both formats: a status other than 200 raises `ApiError(status, error.message)` (was
-  `GeminiError`); no redirects; `aiohttp.ClientTimeout(total=request-timeout,
-  connect=connect-timeout)`.
+  `GeminiError`), the message taken from the first item when the answer is a list (Gemini's
+  OpenAI-compatible endpoint) and `error` itself when it is a text; no redirects;
+  `aiohttp.ClientTimeout(total=request-timeout, connect=connect-timeout)`.
 - `web.Web` takes the `Api` (`open_web(api)`), so the session, the pages and the TLS context stay
   as they were. `API`, `TEMPERATURE` and `GEMINI_TIMEOUT` go.
 
@@ -120,7 +122,7 @@ other keys, each optional with v3's value as default, in the bundled file betwee
   `KeyRing(keys, limit, window)` and `backoff(failed, waits)` take them; `Converter` takes a
   `Limits` and `urls`, the endpoint and the request URL, whose parts error texts never show.
 - `backoff`: the wait after the n-th failed attempt is `retry_waits[min(n, len) - 1]`, v3's rule
-  with v3's list.
+  with v3's list. `convert` reads the clock once per pass, for `take` and `wait` alike.
 - `config.py` imports `api.py` (the format, the defaults) and `conversion.py` (`Limits`), which
   imported Kotlin's `trim` from `pages.py`, which imports `config.py`'s `Layout`: a second
   `refactor` commit moves `trim` into `strings.py`, a module that imports nothing of the plugin.
@@ -153,7 +155,10 @@ whole keys are replaced.
 the `Api` and builds the `Converter` with the `Limits` and the URLs. A reload builds a new cog
 from the file (unchanged since the port), so the next board passes use the new settings; an
 attempt under way in the old cog ends with it, and its article is converted again at the new cog's
-first pass.
+first pass. The new cog's rate limiter starts empty, as the port's did, after a reload that worked
+and after one that failed (the previous version is set up again): right after a reload a key can
+take up to `rate-limit` attempts more within one window than the setting allows, and an article
+in its retries starts its attempts again (review queue).
 
 ### Tests (xfail-first)
 
@@ -248,6 +253,40 @@ With a token, a test guild, two boards with test channels and `plugins: [NtustAn
   attempt named Gemini.
 - Not rebuilt: the image. Only the plugin's modules and bundled config changed, and no
   dependency; the wheel check covers them.
+
+## Cross-review (a subagent, 2026-10-11)
+
+A review of the pushed work (other paths into the settings, retries and repeated work, state left
+behind), with scratch probes through the loaded plugin, local servers and the core's reload, found
+no high or medium problem and these low ones:
+
+1. Numeric settings took YAML's booleans (`max-output-tokens: yes` asked for one token, and each
+   article was posted as that token). Fixed: the numbers are strict (tasks 5.5 and 5.6).
+2. `urlsplit` accepted endpoints that aiohttp's yarl refuses (a backslash in the host, so every
+   attempt failed, and `origin` then showed the text after the backslash) and port 0. Fixed: the
+   endpoint is read with yarl; `redaction.origin` is unchanged, since no endpoint can hold a
+   backslash now.
+3. `error_message` read only `{"error": {"message": ...}}`; Gemini's OpenAI-compatible endpoint
+   answers a list of one error, and some servers an error text. Fixed: both shapes.
+4. `Converter.convert` read the clock twice: an attempt leaving the window between the readings
+   left `KeyRing.wait` no attempt to wait for (`IndexError`), more likely with `rate-limit: 1` and a
+   small window. Fixed: one reading per pass.
+5. Any reload, a failed one included, starts the boards again with an empty rate limiter and
+   restarts an article's attempts. Kept and recorded (above and in the review queue): keeping the
+   limiter's state outside the cog would need state that survives the plugin's modules.
+6. A short placeholder key (`o`) is replaced in every error text, which garbles them. The bundled
+   comment now suggests a placeholder that no address or message holds; whole keys stay hidden.
+7. Docs: the comment's Ollama address was the bot's own container under compose (now
+   `host.docker.internal`), the comment did not say that `connect-timeout` is at most
+   `request-timeout`, and the failures package's docstring named Gemini. Fixed.
+
+The review also found sound: settings reaching the web and the conversions on a first load, a load
+into a ready bot, a reload and a failed reload; `--no-online`; an unload during a request or a
+retry wait; the limits with two boards on one converter, `max-attempts: 1`, one wait, more waits
+than attempts and zero waits; both formats' requests, null settings left out, temperature 0 kept,
+no redirects and the timeouts applied; no line or logger name holding the endpoint's path, a key
+or Gemini, through a 401 quoting the key, odd paths, IPv6, a bad status line, a disconnect and a
+closed port; the validators reading defaults; and no module-level state.
 
 ## Scenario audit
 
