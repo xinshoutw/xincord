@@ -563,7 +563,8 @@ shared with Ticket since port-ticket) and `Failures` (one for the pushes, one fo
 `rename-plugins`, `uptime-heartbeat-keep-pushing`, `custom-commands-from-config`,
 `chat-logger-split-storage`, `port-ticket`, `port-ticket-away-notice`,
 `port-ntust-announcements`, `port-ntust-course-watch`, `port-music-player`,
-`ntust-announcements-model-config`, `ticket-staff-controls`, `dependency-updates`, `release-pipeline`, `compose-run-fixes`. Each one's `design.md` in
+`ntust-announcements-model-config`, `ticket-staff-controls`, `dependency-updates`, `release-pipeline`, `compose-run-fixes`, `reload-uploads-changes`. Each
+one's `design.md` in
 `openspec/changes/archive/` records its decisions and "v3 behaved differently" notes;
 `docs/porting-guide.md` has the differences table.
 
@@ -745,7 +746,8 @@ Answered on 2026-10-11 (evening), after the core's run under compose, from the r
 - **Reload uploads:** a reload uploads only the commands that changed, and the first READY after a
   start uploads every scope with force, so that a restart repairs the commands. This replaces
   `core-reload`'s forced upload at every reload, which kept `/xincord reload` "thinking" for over
-  a minute behind Discord's rate limit (about two uploads a minute per route). Follow-up change.
+  a minute behind Discord's rate limit (about two uploads a minute per route). Done in
+  `reload-uploads-changes`: a reload that changes no command answers within seconds.
 - **Time zone:** compose passes `TZ` from `.env` to the bot, UTC when unset, and the owner's `.env`
   sets `Asia/Taipei`; this covers Giveaway's typed end times, Ticket's archive times and
   NtustAnnouncements' `{{now}}`. Follow-up change.
@@ -894,6 +896,9 @@ setup-uv v10.2.0, setup-node v7.1.0.
   in the payload; `await bot.tree._call(interaction)` runs a command's whole path.
 
 **discord.py 2.7.1 facts**
+- A request that empties a rate-limit bucket returns only after the bucket resets
+  (`Ratelimit.__aexit__` sleeps in `_refresh`), although Discord applied it at once; command
+  uploads (about two bulk overwrites a minute per route) wait so, silently below DEBUG.
 - Decorators evaluate app-command annotations at import time; keep those imports at runtime
   (`runtime-evaluated-decorators` in `pyproject.toml`).
 - `send`, interaction replies and `send_modal` store a view or modal for dispatch only if it is

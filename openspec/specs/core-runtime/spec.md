@@ -57,13 +57,16 @@ status 0 if every listed plugin loaded and 1 otherwise.
 - **THEN** the exit status is 1
 
 ### Requirement: Commands are uploaded when ready
-When the bot is ready it SHALL upload the global commands and then each guild's commands, each only
-if its payload changed since the last upload. When the bot joins a guild it SHALL upload that
-guild's commands even if they did not change.
+When the bot is ready it SHALL upload the global commands and then each guild's commands: with
+force at the first READY after the program started, so that a restart repairs commands that
+another program changed, and at later READYs each only if its payload changed since the last
+upload. When the bot joins a guild it SHALL upload that guild's commands even if they did not
+change.
 
 #### Scenario: Ready
-- **WHEN** the bot becomes ready in two guilds
-- **THEN** the global commands and both guilds' commands are synced without forcing
+- **WHEN** the bot becomes ready in two guilds, and again after a new session
+- **THEN** the global commands and both guilds' commands are synced with force the first time and
+  without forcing the second time
 
 #### Scenario: Joined guild
 - **WHEN** the bot joins a guild
@@ -121,13 +124,13 @@ re-reading the core config. A plugin that is not loaded SHALL be reported in the
 
 ### Requirement: Reloads upload the commands and never overlap
 After a reload the bot SHALL log the summary and then, if it is connected, upload the global and
-every guild's commands with force, also after a failed reload that unloaded plugins. A reload that
-starts while another runs SHALL log `Waiting for the running reload to finish` and wait for it to
-finish.
+each guild's commands whose payload changed since their last upload, also after a failed reload
+that unloaded plugins. A reload that starts while another runs SHALL log `Waiting for the running
+reload to finish` and wait for it to finish.
 
 #### Scenario: Upload after reload
 - **WHEN** a reload finishes while the bot is connected, and another while it is not
-- **THEN** the first uploads every scope with force and the second uploads nothing
+- **THEN** the first syncs every scope without force and the second syncs nothing
 
 #### Scenario: Summary before the upload
 - **WHEN** a reload finishes while the bot is connected
@@ -135,7 +138,7 @@ finish.
 
 #### Scenario: Upload after a reload that unloaded a plugin
 - **WHEN** a reload of one plugin fails and unloads it while the bot is connected
-- **THEN** every scope is uploaded with force, without that plugin's commands
+- **THEN** every scope is synced without force, without that plugin's commands
 
 #### Scenario: Concurrent reloads
 - **WHEN** two reloads start at the same time

@@ -12,6 +12,6 @@
 
 ## 3. Close
 
-- [ ] 3.1 Gate passes, push, CI green
-- [ ] 3.2 The manual check on the owner's test guild (design, "Manual check")
-- [ ] 3.3 Archive the change and run `openspec validate --all --strict`; update `HANDOFF.md`
+- [x] 3.1 Gate passes, push, CI green
+- [x] 3.2 The manual check on the owner's test guild (design, "Manual check")
+- [x] 3.3 Archive the change and run `openspec validate --all --strict`; update `HANDOFF.md`

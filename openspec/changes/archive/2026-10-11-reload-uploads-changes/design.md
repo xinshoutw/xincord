@@ -52,3 +52,17 @@ On the owner's test application and guild:
 2. A change of `plugins/CustomCommands/config.yaml` (a description) and `/xincord reload
    CustomCommands`: the guild's commands get a new `version`, the global ones keep theirs.
 3. `docker compose restart bot`: every scope gets a new `version` after READY.
+
+Result on 2026-10-11 (the owner's test application `xincord-test` in the guild `xincord-test`):
+with `example-command` deleted on Discord through the API, a SIGHUP reload logged its summary
+after 2.4 s and left the command deleted, and `docker compose restart bot` brought it back at
+READY (40 commands). A description edited in `plugins/CustomCommands/config.yaml` reached Discord
+with the next reload (summary after 2.5 s). Discord keeps a command's `version` when a bulk
+overwrite sends it unchanged, so the deletion was the observable check instead of step 1's
+`version`.
+
+Found: discord.py sleeps until a bucket resets inside the request that empties it
+(`Ratelimit.__aexit__` calls `_refresh`), so that request returns only after the reset although
+Discord applied it at once. The reload that set the description back, 7 seconds after the edit,
+waited 38 seconds for the edit's reload, whose upload had emptied the guild route's bucket. With
+uploads of changes only, this happens when commands change twice within about a minute.
