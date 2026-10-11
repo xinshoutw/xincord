@@ -72,6 +72,7 @@ class NtustAnnouncements(commands.Cog):
         self.clock: Callable[[], float] = time.monotonic
         self.now: Callable[[], datetime] = datetime.now  # the host's local time, as v3's
         self.open_web: OpenWeb = open_web
+        self.redos: set[asyncio.Task[None]] = set()  # stub
 
     @override
     async def cog_load(self) -> None:
@@ -100,6 +101,10 @@ class NtustAnnouncements(commands.Cog):
     async def on_ready(self) -> None:
         """Check the boards' channels once the guilds are cached; fires for each session."""
         self.check()
+
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
+        """Stub."""
+        raise NotImplementedError
 
     def check(self) -> None:
         """Warn about each board whose channel the bot cannot see or that takes no messages.

@@ -44,7 +44,7 @@ NETWORK_ERRORS = (aiohttp.ClientError, OSError)
 BLANK = "blank"  # the kind of failure of an answer without text
 
 
-def fill_prompt(template: str, link: Link, html: str, now: datetime) -> str:
+def fill_prompt(template: str, link: Link, html: str, now: datetime, markdown: str = "") -> str:
     """The prompt for ``link``'s article, its tokens replaced in one pass.
 
     ``{{page_title}}`` is the entry's title, ``{{page_url}}`` its URL, ``{{base_url}}`` ``https://``
@@ -53,6 +53,7 @@ def fill_prompt(template: str, link: Link, html: str, now: datetime) -> str:
     ``replace`` calls, so tokens in the title or the article were replaced too; values are
     inserted as they are now.
     """
+    del markdown  # stub
     host = match[1] if (match := HOST.search(link.url)) else DEFAULT_HOST
     values = {
         "page_title": link.title,
@@ -155,6 +156,8 @@ class Converter:
     limits: Limits = Limits()
     # The endpoint and the request URL: error texts show their origins only.
     urls: tuple[str, ...] = ()
+    reject: tuple[str, ...] = ()  # stub
+    review_prompt: str = ""  # stub
     # Failed attempts of every board: each kind once per episode (v3 logged every attempt).
     failures: Failures = field(default_factory=Failures)
     ring: KeyRing = field(init=False)
@@ -207,6 +210,10 @@ class Converter:
             counted(limits.max_attempts, "attempt"),
         )
         return None
+
+    async def review(self, html: str, link: Link, markdown: str) -> str | None:
+        """Stub."""
+        raise NotImplementedError
 
     async def _attempt(self, index: int, number: int, html: str, link: Link) -> str:
         """One attempt with the key at ``index``: its text, or an empty one when it failed."""

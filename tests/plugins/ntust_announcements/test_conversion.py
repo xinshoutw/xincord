@@ -435,3 +435,69 @@ async def test_window_edge() -> None:
 
     assert time.sleeps == [pytest.approx(1e-7, abs=1e-9)]  # until the attempt left the window
     assert len(answers.calls) == 2
+
+
+def warnings(caplog: pytest.LogCaptureFixture) -> list[str]:
+    """The plugin's warnings."""
+    return [
+        record.getMessage()
+        for record in caplog.records
+        if record.name.startswith(LOGGER) and record.levelno == logging.WARNING
+    ]
+
+
+@pytest.mark.xfail(strict=True, reason="Answers that hold a refused text are retried")
+async def test_fenced_answer(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Answers that hold a refused text are retried."""
+    answers = Answers(Time(), ["```markdown\n# Notice\n```", "# Notice"])
+    convert = converter(answers)
+    convert.reject = ("```",)
+
+    assert await convert.convert("<p>x</p>", LINK) == "# Notice"
+    assert answers.time.sleeps == [backoff(1)]
+    [warning] = warnings(caplog)
+    assert warning.endswith("failed with key 1: the answer holds ```")
+
+
+async def test_nothing_refused() -> None:
+    """Requirement: Answers that hold a refused text are retried."""
+    answers = Answers(Time(), ["```\nx\n```"])
+    convert = converter(answers)
+    convert.reject = ()
+
+    assert await convert.convert("<p>x</p>", LINK) == "```\nx\n```"
+    assert answers.time.sleeps == []
+
+
+@pytest.mark.xfail(strict=True, reason="The prompt is filled in one pass")
+def test_markdown_token() -> None:
+    """Requirement: The prompt is filled in one pass."""
+    template = "{{page_title}}|{{html}}|{{markdown}}"
+
+    assert fill_prompt(template, LINK, "<p>x</p>", NOW, "# Draft") == "Dorm notice|<p>x</p>|# Draft"
+    assert fill_prompt(template, LINK, "<p>x</p>", NOW) == "Dorm notice|<p>x</p>|"
+
+
+@pytest.mark.xfail(strict=True, reason="A reviewer's cross mark redoes a post")
+async def test_review() -> None:
+    """Requirement: A reviewer's cross mark redoes a post."""
+    answers = Answers(Time(), ["```\nfenced\n```", "# Reviewed"])
+    convert = converter(answers)
+    convert.reject = ("```",)
+    convert.review_prompt = "check {{markdown}} against {{html}}"
+
+    assert await convert.review("<p>x</p>", LINK, "# Draft") == "# Reviewed"
+    assert [prompt for _, _, prompt in answers.calls] == ["check # Draft against <p>x</p>"] * 2
+    assert answers.time.sleeps == [backoff(1)]  # a review retries as a conversion does
+
+
+@pytest.mark.xfail(strict=True, reason="A reviewer's cross mark redoes a post")
+async def test_review_gives_up(caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: A reviewer's cross mark redoes a post."""
+    answers = Answers(Time(), ["", ""])
+    convert = converter(answers, limits=Limits(max_attempts=2))
+    convert.review_prompt = "check {{markdown}} against {{html}}"
+
+    assert await convert.review("<p>x</p>", LINK, "# Draft") is None
+    assert "review attempt 1 of 2" in warnings(caplog)[0]
+    assert f"NtustAnnouncements: gave up reviewing {URL} after 2 attempts" in caplog.messages

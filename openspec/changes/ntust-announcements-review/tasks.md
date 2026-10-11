@@ -1,20 +1,20 @@
 ## 1. Refused texts and the review
 
-- [ ] 1.1 xfail tests for "Answers that hold a refused text are retried", "The review prompt" and
+- [x] 1.1 xfail tests for "Answers that hold a refused text are retried", "The review prompt" and
       "The prompt is filled in one pass" (`{{markdown}}`)
 - [ ] 1.2 `reject-texts`, `review-prompt`, `fill_prompt`'s token, `Converter.review`; remove the
       markers
 
 ## 2. Posted messages and the redo
 
-- [ ] 2.1 xfail tests for "Posted messages are remembered" and "A reviewer's cross mark redoes a
+- [x] 2.1 xfail tests for "Posted messages are remembered" and "A reviewer's cross mark redoes a
       post"
 - [ ] 2.2 `store.Announcements`, `Watcher._post` recording the IDs, `Watcher.redo`, the cog's
       listener and `reviewers`; remove the markers
 
 ## 3. Splitting at the structure
 
-- [ ] 3.1 xfail tests for "Long content is split at its structure" (headings, bold lines, blank
+- [x] 3.1 xfail tests for "Long content is split at its structure" (headings, bold lines, blank
       lines, list items, short parts, consecutive breaks); v3's comparison keeps the contents
       without them
 - [ ] 3.2 The new `split`; remove the markers

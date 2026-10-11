@@ -155,6 +155,11 @@ def _prompt(prompt: str) -> str:
     return prompt
 
 
+def bundled_review_prompt() -> str:
+    """Stub."""
+    raise NotImplementedError
+
+
 class Board(Model):
     """One announcement board: what v3's AnnouncementType, URL map and channel enum held."""
 
@@ -192,6 +197,9 @@ class Config(Model):
         AfterValidator(_some_keys),
     ]
     prompt: Annotated[str, AfterValidator(_prompt)]  # required, as in v3
+    reject_texts: Annotated[tuple[str, ...], Field(alias="reject-texts")] = ()  # stub
+    reviewers: tuple[PositiveInt, ...] = ()  # stub
+    review_prompt: Annotated[str | None, Field(alias="review-prompt")] = None  # stub
     # The model settings (``api.Api``, ``conversion.Limits``), v3's values by default.
     api_format: Annotated[ApiFormat, Field(alias="api-format")] = ApiFormat.GEMINI
     endpoint: Annotated[str, AfterValidator(_endpoint)] = GEMINI_ENDPOINT

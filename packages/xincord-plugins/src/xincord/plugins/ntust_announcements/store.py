@@ -85,6 +85,34 @@ def remember(
 
 
 @dataclass(frozen=True)
+class Announcement:
+    """Stub."""
+
+    link: Link
+    channel_id: int
+    message_ids: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class Announcements:
+    """Stub."""
+
+    store: Store
+
+    async def save(self, announcement: Announcement) -> None:
+        """Stub."""
+        raise NotImplementedError
+
+    async def find(self, message_id: int) -> Announcement | None:
+        """Stub."""
+        raise NotImplementedError
+
+    async def forget(self, announcement: Announcement) -> None:
+        """Stub."""
+        raise NotImplementedError
+
+
+@dataclass(frozen=True)
 class Posted:
     """The boards' documents in the store."""
 

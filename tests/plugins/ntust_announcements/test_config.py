@@ -19,7 +19,7 @@ import yaml
 from plugin_fakes import golden, load_plugin
 from xincord.core.config import ConfigError, parse_model
 from xincord.plugins.ntust_announcements.api import Api, ApiFormat
-from xincord.plugins.ntust_announcements.config import Config
+from xincord.plugins.ntust_announcements.config import Config, bundled_review_prompt
 from xincord.plugins.ntust_announcements.conversion import Limits
 
 if TYPE_CHECKING:
@@ -669,3 +669,33 @@ def test_endpoints_as_requests_read_them(endpoint: str) -> None:
 
     assert str(raised.value) == f"config.yaml: {ENDPOINT_ERROR}"
     assert "secret" not in str(raised.value.__cause__)
+
+
+@pytest.mark.xfail(strict=True, reason="Answers that hold a refused text are retried")
+def test_reject_texts() -> None:
+    """Requirement: Answers that hold a refused text are retried."""
+    assert parse(VALID).reject_texts == ("```",)
+    assert parse(VALID + "reject-texts: []\n").reject_texts == ()
+
+    with pytest.raises(ConfigError) as raised:
+        parse(VALID + 'reject-texts: ["```", ""]\n')
+
+    assert "reject-texts.1: String should have at least 1 character" in str(raised.value)
+
+
+@pytest.mark.xfail(strict=True, reason="The review prompt")
+def test_review_prompt() -> None:
+    """Requirement: The review prompt."""
+    bundled_prompt = bundled()["review-prompt"]
+
+    assert parse(VALID).review_prompt is None  # the bundled one is used
+    assert bundled_review_prompt() == bundled_prompt
+    assert "{{html}}" in bundled_prompt
+    assert "{{markdown}}" in bundled_prompt
+    assert parse(VALID).reviewers == ()
+    assert parse(VALID + "reviewers: [7, 8]\n").reviewers == (7, 8)
+
+    with pytest.raises(ConfigError) as raised:
+        parse(VALID + 'review-prompt: "check {{html}}"\n')
+
+    assert "review-prompt: Value error, the review prompt lacks {{markdown}}" in str(raised.value)

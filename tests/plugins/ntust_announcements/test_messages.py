@@ -59,7 +59,6 @@ def test_one_message(length: int) -> None:
         pytest.param("a" * 1500 + "\n" + "b" * 1000, id="one break"),
         pytest.param("a" * 1980 + "\n" + "b" * 10, id="break at the limit"),
         pytest.param("a" * 1981 + "\n" + "b" * 10, id="break past the limit"),
-        pytest.param("a" * 1979 + "\n\n\n" + "b" * 2500, id="consecutive breaks"),
         pytest.param(("line\n" * 900).strip(), id="many lines"),
         pytest.param("a" * 1500 + "\n" + "b" * 3000 + "\n" + "c" * 100, id="long line"),
     ],
@@ -154,3 +153,60 @@ def test_no_blank_parts(content: str) -> None:
     # Discord refuses a message of only whitespace, and a refused later part ends the post.
     assert all(message.strip() for message in messages)
     assert "".join(messages).count("b") == 3000
+
+
+@pytest.mark.xfail(strict=True, reason="Long content is split at its structure")
+def test_split_before_a_heading() -> None:
+    """Requirement: Long content is split at its structure."""
+    first = "## A\n" + "x" * 1200 + "\n\n" + "y" * 300
+    second = "## B\n" + "z" * 900
+
+    assert split(f"{first}\n{second}", 1980) == [first, second]
+
+
+@pytest.mark.xfail(strict=True, reason="Long content is split at its structure")
+def test_split_at_a_blank_line() -> None:
+    """Requirement: Long content is split at its structure."""
+    first = "a" * 1000 + "\n" + "b" * 500
+    second = "c" * 300 + "\n" + "d" * 600
+
+    assert split(f"{first}\n\n{second}", 1980) == [first, second]
+
+
+@pytest.mark.xfail(strict=True, reason="Long content is split at its structure")
+def test_split_before_a_list_item() -> None:
+    """Requirement: Long content is split at its structure."""
+    first = "p" * 1100 + "\n- " + "a" * 400
+    second = "1. " + "b" * 400 + "\n" + "c" * 400  # a list item, then its continued line
+
+    assert split(f"{first}\n{second}", 1980) == [first, second]
+
+
+def test_no_short_parts() -> None:
+    """Requirement: Long content is split at its structure."""
+    title = "# [Notice](https://student.ntust.edu.tw/p/406-1053-152183.php)"
+    items = ["1. " + "a" * 900, "2. " + "b" * 900, "3. " + "c" * 900]
+    content = f"{title}\n\n**Notes:**\n\n" + "\n".join(items)
+
+    # The heading and the blank lines fit only in the first half: no part of one line.
+    assert split(content, 1980) == [f"{title}\n\n**Notes:**\n\n{items[0]}\n{items[1]}", items[2]]
+
+
+@pytest.mark.xfail(strict=True, reason="Long content is split at its structure")
+@pytest.mark.parametrize(
+    "heading", [pytest.param("## H", id="heading"), pytest.param("**Notes:**", id="bold line")]
+)
+def test_heading_kept_with_its_text(heading: str) -> None:
+    """Requirement: Long content is split at its structure."""
+    content = "x" * 1500 + f"\n{heading}\n" + "y" * 800
+
+    assert split(content, 1980) == ["x" * 1500, f"{heading}\n" + "y" * 800]
+
+
+@pytest.mark.xfail(strict=True, reason="Long content is split at its structure")
+def test_consecutive_breaks() -> None:
+    """Requirement: Long content is split at its structure."""
+    content = "a" * 1979 + "\n\n\n" + "b" * 2500
+
+    # The line breaks at a cut are left out.
+    assert split(content, 1980) == ["a" * 1979, "b" * 1980, "b" * 520]

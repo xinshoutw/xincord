@@ -27,12 +27,14 @@ if TYPE_CHECKING:
 
     from .config import Board
     from .pages import Link
-    from .store import Posted
+    from .store import Announcement, Announcements, Posted
     from .web import Page
 
 type FetchPage = Callable[[str], Awaitable[Page]]
 type Convert = Callable[[str, Link], Awaitable[str | None]]  # an article's HTML to Markdown
-type Post = Callable[[int, str], Awaitable[object]]  # one message to a channel
+type Post = Callable[[int, str], Awaitable[int | None]]  # one message to a channel: its ID
+type Review = Callable[[str, Link, str], Awaitable[str | None]]  # stub
+type Delete = Callable[[int, int], Awaitable[object]]  # stub
 type Sleep = Callable[[float], Awaitable[object]]
 
 logger = logging.getLogger(__name__)
@@ -58,6 +60,9 @@ class Watcher:
     convert: Convert
     post: Post
     posted: Posted
+    review: Review | None = None  # stub
+    delete: Delete | None = None  # stub
+    announcements: Announcements | None = None  # stub
     # Failure episodes: the board's page, its articles' pages, its posts and its document. Each
     # kind of failure is logged once per episode (v3 logged at every cycle).
     pages: Failures = field(default_factory=Failures)
@@ -85,6 +90,10 @@ class Watcher:
         while True:
             await self.check()
             await sleep(interval)
+
+    async def redo(self, announcement: Announcement) -> None:
+        """Stub."""
+        raise NotImplementedError
 
     async def check(self) -> None:
         """One pass: post the page's entries that the board has not posted yet, in page order.
