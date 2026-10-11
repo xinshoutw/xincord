@@ -202,9 +202,6 @@ async def test_not_a_member(scene: Scene) -> None:
     assert scene.channel.sent == []
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The control row locks and unlocks the ticket"
-)
 @pytest.mark.parametrize("action", ["lock", "unlock"])
 async def test_everyone_among_the_staff_roles(scene: Scene, action: str) -> None:
     """Requirement: The control row locks and unlocks the ticket."""
@@ -221,9 +218,6 @@ async def test_everyone_among_the_staff_roles(scene: Scene, action: str) -> None
     assert scene.channel.sent == []
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="The control row locks and unlocks the ticket"
-)
 async def test_staff_role_beside_everyone(scene: Scene) -> None:
     """Requirement: The control row locks and unlocks the ticket."""
     await everyone_on_staff(scene)

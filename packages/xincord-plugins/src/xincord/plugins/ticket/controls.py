@@ -329,13 +329,15 @@ class ControlRow:
 
 
 def _role_ids(user: object, guild_id: int) -> frozenset[int] | None:
-    """The IDs of a member's roles; None for a user who is no member (v3's ``event.member``)."""
+    """The IDs of a member's roles but @everyone's, which is the guild's ID; None for a user who
+    is no member (v3's ``event.member``).
+
+    discord.py lists @everyone among every member's roles, where JDA's ``getRoles`` left it out:
+    an entry naming it would make every member staff.
+    """
     if not isinstance(user, HasRoles):
         return None
-    ids = frozenset(role.id for role in user.roles)
-    if guild_id in ids:  # @everyone, which discord.py lists among a member's roles: stub
-        raise NotImplementedError
-    return ids
+    return frozenset(role.id for role in user.roles) - {guild_id}
 
 
 def _controls(fields: Mapping[str, str]) -> Controls | None:

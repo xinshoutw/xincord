@@ -73,9 +73,6 @@ async def test_not_a_staff_member(scene: Scene, user: int, locale: str, text: st
     assert scene.channel.sent == []  # the channel stays
 
 
-@pytest.mark.xfail(
-    strict=True, raises=NotImplementedError, reason="Administrators delete the ticket"
-)
 async def test_everyone_among_the_staff_roles(scene: Scene) -> None:
     """Requirement: Administrators delete the ticket."""
     scene.guild.roles.append(scene.guild.default_role)

@@ -27,7 +27,7 @@
       among a member's roles, so an entry naming it made every member staff; against a guard stub
       in `_role_ids`. The delta names @everyone and keeps the lock requirement's "with the same
       fields"
-- [ ] 3.6 Leave @everyone out of a member's role IDs; remove the markers
+- [x] 3.6 Leave @everyone out of a member's role IDs; remove the markers
 - [ ] 3.7 The review's notes: what v3's lock and unlock let members do, the design's checks, and the
       pitfall in the porting guide and `HANDOFF.md`
 

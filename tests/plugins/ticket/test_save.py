@@ -163,11 +163,6 @@ async def test_refused_selections(
     assert target.sent == []  # nothing archived
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=NotImplementedError,
-    reason="Administrators choose where to save the conversation",
-)
 @pytest.mark.parametrize("control", ["button", "select"])
 async def test_everyone_among_the_staff_roles(scene: Scene, control: str) -> None:
     """Requirement: Administrators choose where to save the conversation."""
