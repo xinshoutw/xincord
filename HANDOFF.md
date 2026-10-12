@@ -66,7 +66,7 @@ repository root (gitignored), with the owner's test application and guild `xinco
   command with a TTY: use `ssh -o RemoteCommand=none -o RequestTTY=no xs-mac '...'`, with
   `/usr/local/bin` on `PATH` for docker. Redact tokens and keys from anything printed there.
 - Both bots, their plugins, tokens and the daily backup: `docs/owner-review.md`, "Production".
-  Each runs the `compose.yaml` of its release tag with `XINCORD_VERSION` set to it (0.3.1 since
+  Each runs the `compose.yaml` of its release tag with `XINCORD_VERSION` set to it (1.0.0 since
   2026-10-12);
   compose projects `xincord` and `xincord-shirotsuki`, volumes `<project>_data`.
 - To update: copy `compose.yaml` from the new tag, set `XINCORD_VERSION` in `.env`, then
