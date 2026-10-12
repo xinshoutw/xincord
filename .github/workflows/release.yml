@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   release:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
       packages: write
@@ -94,7 +94,7 @@ jobs:
     # repository, workflow and environment, so two new projects cannot share one.
     needs: release
     if: github.ref_type == 'tag' && !startsWith(github.ref_name, 'v0.')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     environment: pypi
     permissions:
       contents: read
@@ -116,7 +116,7 @@ jobs:
     # The plugins after the core, which they depend on.
     needs: pypi
     if: github.ref_type == 'tag' && !startsWith(github.ref_name, 'v0.')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     environment: pypi-plugins
     permissions:
       contents: read
