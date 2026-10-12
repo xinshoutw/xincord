@@ -99,8 +99,8 @@ git push origin v0.2.0
 
 The `release` workflow checks the tag's signature and the versions, builds both distributions and
 the `linux/amd64` and `linux/arm64` image `ghcr.io/xinshoutw/xincord`, and creates the GitHub
-Release (a prerelease while the version is 0.x). PyPI publishing starts at 1.0.0: `xincord`, then
-`xincord-plugins`, each in its own environment (`pypi`, `pypi-plugins`) that waits for your
+Release (a prerelease while the version is 0.x), then publishes `xincord` and `xincord-plugins` to
+PyPI (from 1.0.0), each in its own environment (`pypi`, `pypi-plugins`) that waits for your
 approval. Running the workflow by hand is a dry run that pushes and publishes nothing.
 
 ## License

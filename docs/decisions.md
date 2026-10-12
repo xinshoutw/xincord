@@ -85,11 +85,11 @@ Markers: **[rec]** the owner followed Claude's recommendation; **[owner]** the o
   (argparse) takes `--level`, `--no-online` and `--force-renew-lang-resources`; the token comes
   from `XINCORD_TOKEN` (compose passes it from `.env`) or `config.yaml`.
 - **B16 Versioning and deployment** [owner]: one semver; the Docker image (amd64 and arm64) on
-  GHCR, private until the repository is public, run with docker compose on the macOS host (Apple
+  GHCR, run with docker compose on the macOS host (Apple
   M4 Pro, OrbStack). The SQLite file lives in a named volume, not a host bind mount. A release
   starts from a GPG-signed `v*` tag that the owner pushes, or that Claude pushes with the owner's
-  approval; PyPI publishing starts at 1.0.0, once the repository is public, and TestPyPI is not
-  used. `python -m xincord.core.backup` copies `data/` while the bot runs into `backups/` beside
+  approval; both distributions are on PyPI since 1.0.0 (2026-10-12), each publish waiting for
+  the owner's approval, and TestPyPI is not used. `python -m xincord.core.backup` copies `data/` while the bot runs into `backups/` beside
   `compose.yaml`; the host runs it daily and keeps the newest 7.
 - **B17 Testing** [rec]: pure logic without discord.py; Cogs and Views depend on narrow Protocols
   with hand-written fakes; SQLite `:memory:` for storage tests; pytest and pytest-asyncio (auto

@@ -44,8 +44,9 @@ it (below). What waits for the owner is in `docs/owner-review.md`; how it is bui
   --exit-status`; `archive <name> --yes`; `validate --all --strict`; a docs commit.
 - Releases: README, "Releasing" (both `pyproject.toml` versions, `uv lock`, a signed `v*` tag). A
   tag builds both distributions, the image `ghcr.io/xinshoutw/xincord` (public) and the GitHub
-  Release; from 1.0.0 it also publishes to PyPI through the environments `pypi` and `pypi-plugins`
-  (trusted publishers registered, LICENSE in both distributions). Latest: `v0.3.1`.
+  Release, and publishes `xincord`, then `xincord-plugins` to PyPI through the environments `pypi`
+  and `pypi-plugins`, each waiting for the owner's approval. Latest: `v1.0.0`, the first on PyPI
+  (2026-10-12).
 
 ## Running it
 
@@ -79,8 +80,7 @@ repository root (gitignored), with the owner's test application and guild `xinco
 
 ## Next steps
 
-1. PyPI's first release, 1.0.0, when the owner says so.
-2. Issues: #3 (youtube-source back to a release that holds its TV client fix), #2 (CustomCommands'
+1. Issues: #3 (youtube-source back to a release that holds its TV client fix), #2 (CustomCommands'
    features left out), #7 (backups to Google Drive), #8 (delete the migration's copies).
-3. The follow-ups in `docs/owner-review.md`: the plugins not enabled in production, Renovate's
-   first PRs, what to watch.
+2. The follow-ups in `docs/owner-review.md`: the plugins not enabled in production, what to
+   watch.

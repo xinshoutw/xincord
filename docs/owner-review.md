@@ -54,11 +54,7 @@ Before enabling another plugin there:
 
 ## Releases and dependencies
 
-- PyPI's first release is 1.0.0: the trusted publishers (environments `pypi` and `pypi-plugins`)
-  and LICENSE (in both distributions since `license-files`) are in place; the owner picks the time.
-- Renovate runs since 2026-10-12 (Dependency Dashboard #6). Its first PRs wait for the owner: #4
-  (uv's image 0.13.0, minor) and #5 (the runners to Ubuntu 26.04, major); they predate CI's image
-  job, so rebase them first (the checkbox in each PR). Check that the first patch PR merges itself
-  after CI.
+- Renovate runs since 2026-10-12 (Dependency Dashboard #6); its first PRs, #4 and #5, merged on
+  2026-10-12. Check that the first patch PR merges itself after CI.
 - If a Dependabot uv security PR fails on the lock file (GitHub documents uv 0.11; `uv.lock` comes
   from uv 0.12), turn on Renovate's `vulnerabilityAlerts` instead.
