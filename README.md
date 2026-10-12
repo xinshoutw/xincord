@@ -4,8 +4,8 @@ xincord is a modular Discord bot built on [discord.py](https://github.com/Rapptz
 small core loads plugins through entry points and gives them YAML config, SQLite storage, i18n,
 message templates and component IDs that survive restarts.
 
-Status: 0.x, running the owner's bots since 2026-10-12. The plugin API (`docs/plugin-api.md`)
-follows semver from 1.0.0.
+Status: 1.x, running the owner's bots since 2026-10-12. The plugin API (`docs/plugin-api.md`)
+follows semver.
 
 The bundled plugins: AutoRole, BotInfo, Calculator, ChatLogger, CustomCommands,
 DynamicVoiceChannel, Economy, Example, Feedback, Giveaway, MusicPlayer (with a Lavalink node),
@@ -22,9 +22,12 @@ WelcomeGoodbye.
 ## Running
 
 ```sh
-uv run xincord --help
-uv run xincord
+uv tool install xincord --with xincord-plugins   # or: pip install xincord-plugins
+xincord --help
+xincord
 ```
+
+In a clone, `uv run xincord` runs the workspace's code.
 
 xincord works in the current directory: it writes `config.yaml` on the first start, keeps each
 plugin's files in `plugins/<Name>/`, its database in `data/xincord.db`, and the data files that a
