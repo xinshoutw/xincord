@@ -37,7 +37,7 @@ it (below). What waits for the owner is in `docs/owner-review.md`; how it is bui
 
 ## How to work
 
-- OpenSpec is not installed globally: `OPENSPEC_TELEMETRY=0 npx --yes @fission-ai/openspec@1.14.1
+- OpenSpec is not installed globally: `OPENSPEC_TELEMETRY=0 npx --yes @fission-ai/openspec@1.14.3
   <command> </dev/null`.
 - Per change: `new change <name>`; proposal, design, tasks and spec deltas; `validate <name>
   --strict`; commit; the xfail tests' commit; the implementation's commit; push; `gh run watch <id>

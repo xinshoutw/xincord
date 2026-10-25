@@ -8,4 +8,4 @@ uv run --locked ruff format --check .
 uv run --locked pyright
 uv run --locked coverage run -m pytest
 uv run --locked coverage report
-OPENSPEC_TELEMETRY=0 npx --yes --prefer-offline @fission-ai/openspec@1.14.1 validate --all --strict </dev/null
+OPENSPEC_TELEMETRY=0 npx --yes --prefer-offline @fission-ai/openspec@1.14.3 validate --all --strict </dev/null
