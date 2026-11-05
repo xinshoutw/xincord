@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # xincord with the official plugins, installed from uv.lock. Run it with compose.yaml.
 
-FROM python:3.14.9-slim-trixie AS builder
+FROM python:3.15.1-slim-trixie AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /bin/uv
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0
 WORKDIR /app
@@ -15,7 +15,7 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --all-packages --no-editable
 
-FROM python:3.14.9-slim-trixie
+FROM python:3.15.1-slim-trixie
 # /bot/data is created here so a new named volume mounted there starts owned by xincord.
 RUN useradd --uid 1000 --create-home xincord \
     && mkdir -p /bot/data \
