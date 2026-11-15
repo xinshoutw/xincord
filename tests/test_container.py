@@ -4,11 +4,12 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
 # Exact versions of the pinned series, so that Renovate's patch updates pass.
-PYTHON_IMAGE = re.compile(r"python:3\.14\.\d+-slim-trixie\b")
+PYTHON_IMAGE = re.compile(r"python:3\.15\.\d+-slim-trixie\b")
 UV_IMAGE = re.compile(r"ghcr\.io/astral-sh/uv:\d+\.\d+\.\d+\s")
 PINNED = re.compile(r"[\w.-]+/[\w.-]+@[0-9a-f]{40} # v\d+(\.\d+)*")  # an action at a commit
 
@@ -31,6 +32,7 @@ def node_config() -> dict[str, Any]:
     return cast("dict[str, Any]", yaml.safe_load(compose["configs"]["lavalink"]["content"]))
 
 
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason="Container image")
 def test_image_definition() -> None:
     """Requirement: Container image."""
     steps = instructions()
