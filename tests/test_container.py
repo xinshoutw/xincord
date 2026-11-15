@@ -4,7 +4,6 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
-import pytest
 import yaml
 
 ROOT = Path(__file__).parent.parent
@@ -32,7 +31,6 @@ def node_config() -> dict[str, Any]:
     return cast("dict[str, Any]", yaml.safe_load(compose["configs"]["lavalink"]["content"]))
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="Container image")
 def test_image_definition() -> None:
     """Requirement: Container image."""
     steps = instructions()
