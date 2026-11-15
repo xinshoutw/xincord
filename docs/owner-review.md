@@ -12,6 +12,11 @@ release tag and the image that `XINCORD_VERSION` in its `.env` names:
 - The main bot in `~/selfhost/Discord/xincord` runs AutoRole, Calculator, BotInfo, ChatLogger,
   DynamicVoiceChannel, Economy, UptimeHeartbeat, MusicPlayer, NtustAnnouncements, Ticket and
   VoiceLogger; its `.env` sets `COMPOSE_PROFILES=music` for the Lavalink node.
+- Since 2026-11-15 the main bot runs `xincord:main-6be7707`, built on the host from `main`
+  (NtustAnnouncements on bulletin's feed, Python 3.15), through `compose.override.yaml`, which
+  says how to go back. After the next release, delete the override and set `XINCORD_VERSION`.
+  NtustAnnouncements' old config, with its keys, is `config.yaml.scraper-2026-11-15` beside the
+  new one; 67 of its 85 boards wait for a channel (`channel-id: 0`).
 - The shop's bot in `~/selfhost/Discord/xincord-shirotsuki` runs Economy, UptimeHeartbeat and
   TicketAwayNotice, without a node.
 - Each token is `XINCORD_TOKEN` in the bot's `.env`; `config.yaml` keeps `token: ""`.
