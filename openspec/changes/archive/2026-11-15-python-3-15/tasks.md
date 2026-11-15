@@ -10,4 +10,4 @@
 ## 2. Docs and archive
 
 - [x] 2.1 Update the docs that name the Python version
-- [ ] 2.2 Run `scripts/gate.sh`, archive the change, then validate all specs strictly
+- [x] 2.2 Run `scripts/gate.sh`, archive the change, then validate all specs strictly

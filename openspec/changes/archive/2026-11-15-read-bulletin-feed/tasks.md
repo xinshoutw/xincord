@@ -25,4 +25,4 @@
 
 - [x] 3.1 Update `docs/architecture.md`, `docs/plugin-conventions.md`, `docs/pitfalls.md`,
   `docs/owner-review.md` and `README.md`
-- [ ] 3.2 Run `scripts/gate.sh`, archive the change, then validate all specs strictly
+- [x] 3.2 Run `scripts/gate.sh`, archive the change, then validate all specs strictly
