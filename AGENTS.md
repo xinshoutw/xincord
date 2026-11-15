@@ -3,7 +3,8 @@
 Rules for everyone who changes this repository, people and coding agents alike. There is no
 CLAUDE.md on purpose: Claude Code reads this file when no CLAUDE.md exists.
 
-xincord is a modular Discord bot on Python 3.14 + discord.py. Read these first:
+xincord is a modular Discord bot on Python 3.15 + discord.py; it still installs on 3.14. Read
+these first:
 
 - `docs/decisions.md`: accepted decisions. Do not re-open them without asking the owner.
 - `HANDOFF.md`: current state and next steps.

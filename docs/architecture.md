@@ -108,7 +108,7 @@ decisions, `docs/plugin-conventions.md` the patterns that the plugins share.
     Component and modal IDs come from a `build_id(uid_map)` callable the plugin passes in. Views
     and modals are stopped before they are returned, so discord.py never dispatches their
     interactions; the core will route them (Core change `command-tree`).
-- **Deployment (`container`):** `Dockerfile` (two stages on `python:3.14.8-slim-trixie`, uv 0.12.24,
+- **Deployment (`container`):** `Dockerfile` (two stages on `python:3.15.2-slim-trixie`, uv 0.13.8,
   `uv sync --locked --no-dev --all-packages --no-editable`, user `xincord` in `/bot`, entry point
   `xincord`), `.dockerignore`, and `compose.yaml` (service `bot`: the published image tagged
   `XINCORD_VERSION`, its own directory bind-mounted at `/bot`, named volume `data` =

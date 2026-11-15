@@ -1,7 +1,7 @@
 schema: spec-driven
 
 context: |
-  xincord is a modular Discord bot in Python 3.14 on discord.py, managed by uv: a core that loads
+  xincord is a modular Discord bot in Python 3.15 on discord.py, managed by uv: a core that loads
   plugins by entry point, with YAML config, SQLite storage, i18n and a Docker compose deployment.
   Accepted decisions: docs/decisions.md. Project rules: AGENTS.md. Session handoff: HANDOFF.md.
   Every artifact is written in English.

@@ -6,7 +6,7 @@ Traditional Chinese; everything written into the repository is English.
 
 ## State
 
-xincord is a modular Discord bot on Python 3.14, uv and discord.py: the core and 18 plugins,
+xincord is a modular Discord bot on Python 3.15, uv and discord.py: the core and 18 plugins,
 specified with OpenSpec and tested first (coverage 100%). Both of the owner's production bots run
 it (below). What waits for the owner is in `docs/owner-review.md`; how it is built is in
 `docs/architecture.md` and `docs/plugin-conventions.md`, hard-won facts in `docs/pitfalls.md`.

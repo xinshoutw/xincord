@@ -32,7 +32,8 @@ What earlier sessions checked the hard way: discord.py, Discord, the tools and t
 
 ## Verified facts and pitfalls
 
-**Versions in use (2026-10-10):** Python 3.14.8 (uv-managed), uv 0.12.24, ruff 0.16.10, pyright
+**Versions in use (2026-10-10):** Python 3.14.8 (uv-managed; 3.15.2 since 2026-11-15, change
+`python-3-15`), uv 0.12.24, ruff 0.16.10, pyright
 1.1.414, pytest 9.1.1, pytest-asyncio 1.4.0, coverage 7.16.2, prek 0.5.5, OpenSpec 1.14.1,
 discord.py 2.7.1, pydantic 2.14.0, PyYAML 6.0.3. Actions are pinned by SHA: checkout v7.0.1,
 setup-uv v10.2.0, setup-node v7.1.0.
