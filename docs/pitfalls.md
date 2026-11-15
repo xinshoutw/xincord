@@ -389,14 +389,13 @@ setup-uv v10.2.0, setup-node v7.1.0.
   `model_key` that the plugin cannot give.
 - An image check or `xincord --no-online` with every plugin enabled needs example values in
   `plugins/Economy/config.yaml` (`admin_id`), `plugins/TicketAwayNotice/config.yaml` (`guild_id`,
-  `user_id`) and `plugins/NtustAnnouncements/config.yaml` (a key other than the example, and every
-  `channel-id`), whose bundled files wait for the operator.
+  `user_id`), whose bundled files wait for the operator.
 
 - Python 3.13+ adds `VERIFY_X509_STRICT` to `ssl.create_default_context()`, which aiohttp uses:
   NTUST's hosts (`student`, `www.academic`, `lc`, `querycourse`) fail it with `Missing Subject Key
   Identifier`, in the image too (OpenSSL 3.5.7); clear only that flag for them. The academic host
   also leaves out TWCA's intermediate (`unable to get local issuer certificate`): the package
-  ships it (`twca-secure-ssl-ca.pem`, until 2030-10-16) and `ntust_announcements.web.page_context`
+  ships it (`twca-secure-ssl-ca.pem`, until 2030-10-16) and `xincord.plugins.ntust_tls`
   loads it.
 - pydantic's `min_length` on a list counts the items that validated: invalid items also read as an
   empty list. Check emptiness in an after-validator.
@@ -406,9 +405,6 @@ setup-uv v10.2.0, setup-node v7.1.0.
   once reached NTUST that way; its conftest now refuses every host but 127.0.0.1 (`offline`).
 - aiohttp's `ClientConnectorError` shows its `OSError`'s `strerror`: raise `OSError(errno, text)`
   in fakes, or the text reads `[None]`.
-- NtustAnnouncements' page text (`markup.py`) collapses spaces, tabs, line breaks and no-break
-  spaces, drops U+200B and U+00AD and separates blocks and `br`; its minifier (`pages.py`) matches
-  `\s` as ASCII.
 
 - NTUST's course query (`POST https://querycourse.ntust.edu.tw/QueryCourse/api//courses`) no longer
   answers a whole-catalogue request (`CourseTeacher: " "`): on 2026-10-11, no answer in 60 s,
@@ -474,7 +470,7 @@ setup-uv v10.2.0, setup-node v7.1.0.
   in the host that yarl refuses, and yarl takes port 0. Read a clock once per decision: a limiter
   that reads it again to compute a wait can find the oldest attempt gone.
 - A module that `config.py` imports must not import one that imports `config.py`
-  (NtustAnnouncements' `pages.py` imports `Layout`): put such helpers in a module that imports
+  (NtustAnnouncements' scraper, whose `pages.py` imported `Layout`): put such helpers in a module that imports
   nothing of the plugin (`strings.trim`).
 - OpenAI's reasoning models refuse a temperature other than their default and `max_tokens`;
   Ollama's OpenAI-compatible endpoint takes `max_tokens` (no `max_completion_tokens`) and ignores
@@ -542,18 +538,18 @@ and a scale) cost a few milliseconds. Python refuses `str()`/`int()` conversions
   logging them (`xincord.plugins.redaction.redact`).
 - Pages with unclosed elements nest deeply: a recursive walk of a page about 1,000 levels deep
   exhausts Python's recursion limit. Walk trees with a stack of your own (NtustAnnouncements'
-  `markup.py`).
+  scraper's `markup.py`, before read-bulletin-feed).
 - `\s+$` in multiline mode tries every start inside a run of whitespace that no line end follows:
   quadratic (40,000 spaces, 5 seconds). `(?<!\s)\s+$` removes the same text in linear time.
 - `html.parser` takes about 0.3 s per MB: parse fetched pages in `asyncio.to_thread`. Its default
   `handle_startendtag` closes a non-void start tag written with a slash (`<a href=x />`), which
   browsers leave open.
 - When a step that follows a paid call fails (a post after a model's conversion), keep the call's
-  result until the step works, or every retry pays again (NtustAnnouncements' `Watcher.ready`).
+  result until the step works, or every retry pays again (NtustAnnouncements' scraper kept them in `Watcher.ready`).
 - pydantic floats take YAML's `.inf` and `.nan` unless `allow_inf_nan=False`;
   `Annotated[float, Field(ge=0, le=2)] | None` keeps the key's name in errors. yarl takes a host
   with a trailing space and an empty user info (`https://@host`): check those too
-  (NtustAnnouncements' `_endpoint`).
+  (NtustAnnouncements' `_api_url`).
 - OpenAI-compatible APIs answer errors as `{"error": {"message": ...}}`, a list of one such object
   (Gemini's endpoint) or `{"error": "<text>"}`. A short placeholder key garbles every error text
   that redaction replaces it in: suggest a distinctive one.

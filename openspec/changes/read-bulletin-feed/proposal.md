@@ -38,6 +38,7 @@ None.
 - `plugin-ntust-announcements`: the source becomes bulletin's events feed. The config, the
   posting rule, the stored state and the logging change. Scraping, conversion and the redo are
   removed. Messages gain the rewrite's form.
+- `deployment`: the time zone requirement no longer names the plugin's `{{now}}`, which is gone.
 
 ## Impact
 

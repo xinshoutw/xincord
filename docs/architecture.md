@@ -379,41 +379,26 @@ shared with Ticket) and `Failures` (one for the pushes, one for the
   gateway scene through discord.py's parsers with `FakeRest` answering `POST
   /channels/{id}/messages`, `payloads.guild(members=, presences=)`, `payloads.presence`,
   `payloads.channel(guild_id=)`, and `FakeRest`'s `form` for uploads.
-- **NtustAnnouncements** (`xincord.plugins.ntust_announcements`, no intents, no
-  lang, config `fetch-interval`, `api-keys`, `prompt`, `boards`, `model` and, since
-  `ntust-announcements-model-config` (the owner's request), every model setting: `api-format`
-  (`gemini` or an OpenAI-compatible `openai`), `endpoint`, `temperature`, `max-output-tokens`,
-  `request-timeout`, `connect-timeout`, `rate-limit`, `rate-window`, `max-attempts` and
-  `retry-waits`, with defaults, applied by a reload; the bundled file holds the prompt, an
-  example key and 18 boards with 0 for every channel, so the plugin waits for the
-  operator): the first plugin that scrapes pages and calls an LLM. Pure modules: `markup.py` (a
-  tree over `html.parser`: omitted end tags in tables and lists, the implied `tbody`,
-  selectors, the page text, a serializer), `pages.py` (three layouts, `complete_url` keeping the
-  exact URL strings, `is_article`, the container, the minifier with `re.ASCII`), `strings.py`
-  (`trim`, importing nothing of the plugin), `messages.py` (the header and split in UTF-16 code
-  units, title links escaped and cut), `api.py` (`ApiFormat`, `Api`: each format's URL, key header and body from the settings, null settings left out; `answer_text`,
-  `error_message`), `conversion.py` (was `gemini.py`: `fill_prompt` in one pass, `Limits`,
-  `KeyRing`, `backoff`, `Converter.convert` with the configured attempts and waits, `hide`
-  cutting URLs to their origins and removing the endpoint's path and the keys), `store.py` (the
-  posted list per board under namespace `NtustAnnouncements`, `remember` keeping up to 100
-  links that left the page). `config.py` builds `Config.api` and `Config.limits`; validators that
-  read another key are field validators declared after it, the numbers are strict (YAML's `yes` is
-  no 1) and the endpoint is read with yarl, as aiohttp reads it. `web.py`: aiohttp, pages through
-  `xincord.plugins.ntust_tls.ntust_context` (Python 3.13+'s `VERIFY_X509_STRICT` refuses NTUST's
-  certificates), the model's request
-  from the `Api` with its timeouts. Log lines name no product; a READY line names the format, the
-  model and the endpoint's origin. `watch.py`:
-  `Watcher`, one board's passes (posted links stored after each post, failures retried at the next
-  pass, unconvertible articles posted as title links, `Failures` per step; refused messages wait in `ready` so that the model converts an article once, links posted while
-  the store refused them wait in `delivered`, each announcement is guarded, and pages are parsed
-  in `asyncio.to_thread` with walks that need no recursion). `cog.py`: one task that
-  waits for READY and runs a loop per board in a `TaskGroup`, five fetches at a time, posts through
-  partial messageables without mentions, the ready check. Reuse: `xincord.plugins.failures`
-  (`Failures`, moved from UptimeHeartbeat), `markup.py` (move it into a shared package when
-  another plugin parses HTML), the conftest's `offline` guard (aiohttp refuses every host but this
-  machine's), `FakeWeb` (its `apis` record the settings of each session, `error` fails every
-  attempt), the `Clock` whose `wake` ends the waits started so far, trimmed copies of live pages
-  as fixtures, and `BeforeValidator` stubs for new config keys (`docs/pitfalls.md`).
+- **NtustAnnouncements** (`xincord.plugins.ntust_announcements`, no intents, no lang, config
+  `api-url`, `poll-interval`, `rendition-wait` and `boards`, with defaults; the bundled file lists
+  the 18 boards that the plugin once scraped and every other unit, each with channel 0, a
+  placeholder that posts nowhere): it follows the events feed of bulletin (`bulletin.ntust.org`),
+  which polls NTUST's boards and rewrites their announcements (change `read-bulletin-feed`).
+  `bulletin.py`: the aiohttp client of `/events` and `/announcements/{id}`, its answers read by
+  pydantic models that keep only the fields used, other bodies an `AnswerError`. `state.py`: one
+  document, namespace `NtustAnnouncements.feed`, key `state`, holding the position and the
+  waiting announcements with their due times and the channels that got them. `feed.py`: `Feed`,
+  one pass reads every page of events after the position (500 a time), puts notify-worthy
+  `published` events of a configured board or site in waiting (a link entry is due at once, the
+  others `rendition-wait` seconds later or at their `rendered` event, a `withdrawn` event drops
+  them), then reads each due announcement again and posts it to its boards' channels; refusals
+  and failed reads are retried until a day after the due time; the held state is the truth while
+  the plugin runs and is written whenever it differs from the stored one; `Failures` per step.
+  `messages.py`: the header and split in UTF-16 code units, title links escaped and cut, and a
+  rewrite as its title line, its Markdown and its attachments. `cog.py`: one task that waits for
+  READY (none when no board has a channel), the ready check, posts through partial messageables
+  without mentions. Reuse: `tests/support/bulletin_fakes.py` (`FakeApi`, `Channels`, `Clock`,
+  `World`, whose `feed()` is a run after a restart), the conftest's `offline` guard and `Waits`.
 - **NtustCourseWatch** (`xincord.plugins.ntust_course_watch`, no intents, en-US default locale
   with zh-TW translations, config `semester`, `start`, `interval` and `alert-interval` with
   defaults): the first

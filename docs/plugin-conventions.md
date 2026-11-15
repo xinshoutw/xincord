@@ -205,7 +205,8 @@ How the bundled plugins are built; Example (`xincord.plugins.example`) is the te
   listener returns at once, so that the wait holds no other event up.
 - Background work over several independent sources runs one loop per source in a `TaskGroup`
   inside the plugin's single task, so that one source's long waits hold up no other; a shared
-  `asyncio.Semaphore` bounds the requests themselves (NtustAnnouncements' boards).
+  `asyncio.Semaphore` bounds the requests themselves (NtustAnnouncements' boards, until it read
+  bulletin's feed).
 - A plugin that watches items that members register (NtustCourseWatch's courses) asks the
   external API about one registered item per step, the items in turn, at most once per `interval`
   seconds (a config key with a minimum, so that the bot cannot hammer the API), and only from the
@@ -220,7 +221,7 @@ How the bundled plugins are built; Example (`xincord.plugins.example`) is the te
   server. A URL that carries a secret, such as a push token, appears in logs as its origin only;
   error texts and tracebacks have their URLs cut and the secret URL's parts removed, and config
   errors hide their input (UptimeHeartbeat's `logs.py` and `Config`).
-- A plugin that scrapes pages (NtustAnnouncements) parses them with the standard library
+- A plugin that scrapes pages (NtustAnnouncements until read-bulletin-feed) parses them with the standard library
   (`markup.py`'s tree and selectors), keeps the pages it needs as trimmed and anonymized copies of
   the live ones under `tests/fixtures/plugins/<package>/` (fetched once, the date in a comment),
   and keeps the exact URL strings where they are an item's identity (the stored lists). Its tests
@@ -229,11 +230,15 @@ How the bundled plugins are built; Example (`xincord.plugins.example`) is the te
 - Calls to an LLM API go over its documented REST API with aiohttp (no SDK); keys are config,
   validated with hidden input, named in logs by their position and removed from error texts, and
   shared within a client-side rate limit (`conversion.KeyRing`) with a retry schedule on the
-  injected `sleep` (NtustAnnouncements). Every setting of the model is a config key and a reload
+  injected `sleep` (NtustAnnouncements until read-bulletin-feed). Every setting of the model is a config key and a reload
   applies it: the request format (`gemini` or an OpenAI-compatible `openai`), the endpoint with its
   version path, the model, the generation settings (null sends none), the timeouts, the rate limit
   and the retries. Logs and module names name no product, the endpoint shows only as its origin
   (`xincord.plugins.redaction`), and URLs in error texts are cut to theirs.
+- A plugin that follows another service's feed (NtustAnnouncements on bulletin) stores the last
+  event ID it read and what it still has to post in one document, starts at the feed's end when
+  nothing is stored, and validates every answer with pydantic models that keep only the fields it
+  uses; anything else is a logged failure that the next pass retries.
 - A plugin that plays audio (MusicPlayer) talks to a Lavalink node in compose through narrow
   Protocols of its own (`audio.Link`, `audio.Player`, `audio.Listener`): the cog and the per-guild
   sessions only see them, `node.py` implements them with lavalink.py, the cog's tests give fakes

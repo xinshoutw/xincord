@@ -3,7 +3,7 @@
 ## 1. Failing tests
 
 - [x] 1.1 Add stubs for the feed client (`bulletin.py`), the loop's logic (`feed.py`), the state
-  document (`store.py`) and the rewrite's messages, raising `NotImplementedError`
+  document (`state.py`) and the rewrite's messages, raising `NotImplementedError`
 - [x] 1.2 Write the tests for "The config names the feed and the boards", "The feed is read from
   READY until the plugin unloads", "The first read starts at the feed's end", "Notify-worthy
   announcements on a configured board wait for their rewrite", "Waiting announcements are posted
@@ -23,6 +23,6 @@
 
 ## 3. Docs and archive
 
-- [ ] 3.1 Update `docs/architecture.md`, `docs/plugin-conventions.md`, `docs/pitfalls.md`,
+- [x] 3.1 Update `docs/architecture.md`, `docs/plugin-conventions.md`, `docs/pitfalls.md`,
   `docs/owner-review.md` and `README.md`
 - [ ] 3.2 Run `scripts/gate.sh`, archive the change, then validate all specs strictly

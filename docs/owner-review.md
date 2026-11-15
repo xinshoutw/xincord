@@ -49,8 +49,9 @@ Before enabling another plugin there:
   lobby without a room.
 - Ticket: a long archive near Discord's rate limits, and authors whose names Discord refuses for
   webhooks (the archive renames them).
-- NtustAnnouncements: TWCA's intermediate certificate in the package expires on 2030-10-16; if
-  NTUST changes its certificates, check the log for TLS failures on the boards.
+- NtustAnnouncements: it reads bulletin's events feed (`bulletin.ntust.org`), so its posts follow
+  bulletin's poll tier for each board and wait while bulletin is down. Boards with `channel-id: 0`
+  are placeholders that post nowhere.
 
 ## Releases and dependencies
 
