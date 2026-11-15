@@ -115,15 +115,20 @@ class FakeApi:
 
 @dataclass
 class Channels:
-    """The channels: each post is recorded, except in a channel that ``refusing`` names."""
+    """The channels: each post is recorded, except in a channel that ``refusing`` names, or once
+    a channel has taken as many messages as ``taking`` gives it."""
 
     sent: list[tuple[int, str]] = field(default_factory=list[tuple[int, str]])
     refusing: dict[int, Exception] = field(default_factory=dict[int, Exception])
+    taking: dict[int, int] = field(default_factory=dict[int, int])
     ids: itertools.count[int] = field(default_factory=lambda: itertools.count(1000))
 
     async def post(self, channel: int, content: str) -> int:
         if (error := self.refusing.get(channel)) is not None:
             raise error
+        if len(self.got(channel)) >= self.taking.get(channel, len(self.sent) + 1):
+            msg = "connection reset"
+            raise OSError(msg)
         self.sent.append((channel, content))
         return next(self.ids)
 

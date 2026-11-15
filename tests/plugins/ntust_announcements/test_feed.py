@@ -22,7 +22,6 @@ MAIN_OFFICE = board("STUDENT_MAIN_OFFICE", "1053-1435", 104, prefix="[Office]")
 REWRITE = "### Who\n\n- Every resident"
 DAY = timedelta(days=1)
 LATER = timedelta(seconds=WAIT)
-XFAIL = pytest.mark.xfail(strict=True, reason="read-bulletin-feed")
 
 
 @pytest.fixture
@@ -52,7 +51,6 @@ def title_link(number: int, title: str = "Dormitory notice") -> list[str]:
     return [link_message(title, article_url(number))]
 
 
-@XFAIL
 async def test_first_pass(world: World) -> None:
     """Requirement: The first read starts at the feed's end."""
     for number in range(1, 1201):
@@ -67,7 +65,6 @@ async def test_first_pass(world: World) -> None:
     assert await world.states.load() == State(1200)
 
 
-@XFAIL
 async def test_several_reads(started: World) -> None:
     """Requirement: The first read starts at the feed's end."""
     world = started
@@ -86,7 +83,6 @@ async def test_several_reads(started: World) -> None:
     assert world.channels.got(101) == title_link(701)
 
 
-@XFAIL
 async def test_rewrite_in_time(started: World) -> None:
     """Requirement: Notify-worthy announcements on a configured board wait for their rewrite."""
     world = started
@@ -104,7 +100,6 @@ async def test_rewrite_in_time(started: World) -> None:
     assert content.endswith(REWRITE)
 
 
-@XFAIL
 async def test_no_rewrite_in_time(started: World) -> None:
     """Requirement: Notify-worthy announcements on a configured board wait for their rewrite."""
     world = started
@@ -120,7 +115,6 @@ async def test_no_rewrite_in_time(started: World) -> None:
     assert world.channels.got(101) == title_link(1)
 
 
-@XFAIL
 async def test_link_entry(started: World) -> None:
     """Requirement: Notify-worthy announcements on a configured board wait for their rewrite."""
     world = started
@@ -131,7 +125,6 @@ async def test_link_entry(started: World) -> None:
     assert world.channels.got(101) == title_link(1)
 
 
-@XFAIL
 @pytest.mark.parametrize("kind", ["published", "revised", "restored", "rendered", "unknown"])
 async def test_not_notify_worthy(started: World, kind: str) -> None:
     """Requirement: Notify-worthy announcements on a configured board wait for their rewrite."""
@@ -147,7 +140,6 @@ async def test_not_notify_worthy(started: World, kind: str) -> None:
     assert (world.channels.sent, world.api.asked) == ([], [])
 
 
-@XFAIL
 async def test_a_whole_site(started: World) -> None:
     """Requirement: Notify-worthy announcements on a configured board wait for their rewrite."""
     world = started
@@ -159,7 +151,6 @@ async def test_a_whole_site(started: World) -> None:
     assert world.channels.got(102) == title_link(1)
 
 
-@XFAIL
 async def test_other_boards_and_titles(started: World) -> None:
     """Requirement: Notify-worthy announcements on a configured board wait for their rewrite."""
     world = started
@@ -173,7 +164,6 @@ async def test_other_boards_and_titles(started: World) -> None:
     assert world.channels.sent == [(104, title_link(3, "[Office] News")[0])]
 
 
-@XFAIL
 async def test_withdrawn(started: World) -> None:
     """Requirement: Notify-worthy announcements on a configured board wait for their rewrite."""
     world = started
@@ -188,7 +178,6 @@ async def test_withdrawn(started: World) -> None:
     assert world.channels.sent == []
 
 
-@XFAIL
 async def test_two_boards_one_channel(started: World) -> None:
     """Requirement: Waiting announcements are posted to their boards' channels."""
     world = started
@@ -200,7 +189,6 @@ async def test_two_boards_one_channel(started: World) -> None:
     assert world.channels.sent == [(101, title_link(1)[0])]
 
 
-@XFAIL
 async def test_two_channels(started: World) -> None:
     """Requirement: Waiting announcements are posted to their boards' channels."""
     world = started
@@ -212,7 +200,6 @@ async def test_two_channels(started: World) -> None:
     assert [channel for channel, _ in world.channels.sent] == [102, 101]
 
 
-@XFAIL
 async def test_refused_post(started: World) -> None:
     """Requirement: Waiting announcements are posted to their boards' channels."""
     world = started
@@ -231,7 +218,6 @@ async def test_refused_post(started: World) -> None:
     assert world.channels.got(102) == title_link(1)
 
 
-@XFAIL
 async def test_refused_for_a_day(started: World, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Waiting announcements are posted to their boards' channels."""
     world = started
@@ -255,7 +241,6 @@ async def test_refused_for_a_day(started: World, caplog: pytest.LogCaptureFixtur
     assert await world.states.load() == State(1)
 
 
-@XFAIL
 async def test_failed_read(started: World) -> None:
     """Requirement: Waiting announcements are posted to their boards' channels."""
     world = started
@@ -272,7 +257,6 @@ async def test_failed_read(started: World) -> None:
     assert world.channels.got(101) == title_link(1)
 
 
-@XFAIL
 async def test_failed_reads_for_a_day(started: World, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Waiting announcements are posted to their boards' channels."""
     world = started
@@ -289,7 +273,6 @@ async def test_failed_reads_for_a_day(started: World, caplog: pytest.LogCaptureF
     assert await world.states.load() == State(1)
 
 
-@XFAIL
 async def test_gone(started: World, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Waiting announcements are posted to their boards' channels."""
     world = started
@@ -305,7 +288,6 @@ async def test_gone(started: World, caplog: pytest.LogCaptureFixture) -> None:
     assert world.channels.sent == []
 
 
-@XFAIL
 async def test_restart(started: World) -> None:
     """Requirement: The feed's position and the waiting announcements are stored."""
     world = started
@@ -322,7 +304,6 @@ async def test_restart(started: World) -> None:
     assert world.channels.got(101) == title_link(1)
 
 
-@XFAIL
 async def test_posted_channels(started: World) -> None:
     """Requirement: The feed's position and the waiting announcements are stored."""
     world = started
@@ -336,7 +317,6 @@ async def test_posted_channels(started: World) -> None:
     assert await world.states.load() == State(1)
 
 
-@XFAIL
 async def test_broken_document(world: World, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: The feed's position and the waiting announcements are stored."""
     world.api.publish(1, link_item=True)
@@ -351,7 +331,6 @@ async def test_broken_document(world: World, caplog: pytest.LogCaptureFixture) -
     assert await world.store.get(NAMESPACE, KEY) == {"after": "seven"}
 
 
-@XFAIL
 async def test_store_refusing_a_write(
     started: World, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -380,9 +359,9 @@ async def test_store_refusing_a_write(
     assert await world.states.load() == State(1)
 
 
-@XFAIL
 async def test_repeated_failure(started: World, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems are logged without flooding."""
+    caplog.set_level(logging.DEBUG)
     world = started
     world.api.error = FetchError(503)
     feed = world.feed()
@@ -396,9 +375,9 @@ async def test_repeated_failure(started: World, caplog: pytest.LogCaptureFixture
     assert len(lines(caplog, logging.DEBUG)) == 2
 
 
-@XFAIL
 async def test_recovery(started: World, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems are logged without flooding."""
+    caplog.set_level(logging.INFO)
     world = started
     world.api.error = FetchError(503)
     feed = world.feed()
@@ -412,7 +391,6 @@ async def test_recovery(started: World, caplog: pytest.LogCaptureFixture) -> Non
     assert "feed" in info
 
 
-@XFAIL
 async def test_unexpected_answer(started: World, caplog: pytest.LogCaptureFixture) -> None:
     """Requirement: Problems are logged without flooding."""
     world = started
@@ -425,3 +403,68 @@ async def test_unexpected_answer(started: World, caplog: pytest.LogCaptureFixtur
     assert "unexpected answer" in warning
     assert world.channels.sent == []
     assert await world.states.load() == State(0)
+
+
+async def test_a_refused_later_part(started: World, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Waiting announcements are posted to their boards' channels."""
+    world = started
+    world.channels.taking[101] = 1
+    world.api.publish(1)
+    world.api.render(1, "\n\n".join(["x" * 900] * 3))
+    feed = world.feed()
+
+    await feed.check()
+    await feed.check()
+
+    assert len(world.channels.got(101)) == 1
+    [error] = lines(caplog, logging.ERROR)
+    assert "part 2 of 2" in error
+    assert await world.states.load() == State(2)
+
+
+async def test_recoveries(
+    started: World, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Requirement: Problems are logged without flooding."""
+    caplog.set_level(logging.INFO)
+    world = started
+    put = world.store.put
+    failing = [sqlite3.OperationalError("database is locked")]
+
+    async def put_once(namespace: str, key: str, value: object) -> None:
+        if failing:
+            raise failing.pop()
+        await put(namespace, key, value)  # pyright: ignore[reportArgumentType]
+
+    monkeypatch.setattr(world.store, "put", put_once)
+    world.api.failing[1] = FetchError(502)
+    feed = world.feed()
+    world.api.publish(1, link_item=True)
+    await feed.check()  # the read and the write fail
+    world.api.failing.clear()
+    world.channels.refusing[101] = forbidden()
+    world.api.publish(2, link_item=True)
+    await feed.check()  # the posts fail
+    world.channels.refusing.clear()
+    for number in range(3, 6):
+        world.api.publish(number, link_item=True)
+        await feed.check()
+
+    again = [line for line in lines(caplog, logging.INFO) if "again" in line]
+    assert len(again) == 3  # the announcements' reads, the posts and the writes
+
+
+async def test_an_unexpected_error(started: World, caplog: pytest.LogCaptureFixture) -> None:
+    """Requirement: Problems are logged without flooding."""
+    world = started
+    world.api.error = RuntimeError("a bug")
+    feed = world.feed()
+
+    await feed.check()
+    world.api.error = None
+    world.api.publish(1, link_item=True)
+    await feed.check()
+
+    [error] = lines(caplog, logging.ERROR)
+    assert "the pass failed" in error
+    assert world.channels.got(101) == title_link(1)

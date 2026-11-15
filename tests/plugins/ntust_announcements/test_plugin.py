@@ -25,7 +25,7 @@ async def test_first_load_writes_the_config(store: Store, tmp_path: Path) -> Non
     bot = await load_plugin("NtustAnnouncements", tmp_path / "plugins", store)
     directory = tmp_path / "plugins" / "NtustAnnouncements"
 
-    assert bot.loaded == ()  # the bundled keys and channels wait for the operator
+    assert bot.loaded == ("NtustAnnouncements",)  # it posts nowhere until a channel is set
     bundled = files("xincord.plugins.ntust_announcements").joinpath("config.yaml")
     written = (directory / "config.yaml").read_text(encoding="utf-8")
     assert written == bundled.read_text(encoding="utf-8")

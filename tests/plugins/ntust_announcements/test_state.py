@@ -19,7 +19,6 @@ from xincord.plugins.ntust_announcements.state import (
 if TYPE_CHECKING:
     from xincord.core.storage import Store
 
-XFAIL = pytest.mark.xfail(strict=True, reason="read-bulletin-feed")
 STATE = State(7, (Waiting(1, NOW, (101,)), Waiting(2, NOW + timedelta(hours=1))))
 DOCUMENT: dict[str, object] = {
     "after": 7,
@@ -47,7 +46,6 @@ BROKEN: list[object] = [
 ]
 
 
-@XFAIL
 async def test_stored_as_a_document(store: Store) -> None:
     """Requirement: The feed's position and the waiting announcements are stored."""
     await States(store).save(STATE)
@@ -56,19 +54,16 @@ async def test_stored_as_a_document(store: Store) -> None:
     assert await States(store).load() == STATE
 
 
-@XFAIL
 async def test_nothing_stored(store: Store) -> None:
     """Requirement: The first read starts at the feed's end."""
     assert await States(store).load() is None
 
 
-@XFAIL
 def test_no_waiting_list() -> None:
     """Requirement: The feed's position and the waiting announcements are stored."""
     assert parse_state({"after": 3}) == State(3)
 
 
-@XFAIL
 @pytest.mark.parametrize("document", BROKEN)
 def test_another_shape(document: object) -> None:
     """Requirement: The feed's position and the waiting announcements are stored."""

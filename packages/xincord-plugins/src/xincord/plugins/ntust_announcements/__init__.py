@@ -1,4 +1,5 @@
-"""NtustAnnouncements: new announcements on NTUST's boards, posted to Discord."""
+"""NtustAnnouncements: new announcements on NTUST's boards, read from bulletin and posted to
+Discord."""
 
 from typing import TYPE_CHECKING
 
@@ -13,7 +14,7 @@ if TYPE_CHECKING:
 DEPENDS: tuple[str, ...] = ()
 SOFT_DEPENDS: tuple[str, ...] = ()
 # Nothing beyond discord.py's defaults: their guilds intent caches the channels that the ready check
-# looks up, and their reactions intent brings the reviewers' cross marks.
+# looks up.
 INTENTS = discord.Intents.none()
 
 

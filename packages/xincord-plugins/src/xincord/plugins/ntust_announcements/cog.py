@@ -1,9 +1,8 @@
-"""The plugin's cog: the boards' loops, their posts and the ready check."""
+"""The plugin's cog: the feed's loop, its posts and the ready check."""
 
 import asyncio
 import logging
-import time
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Protocol, override, runtime_checkable
 
 import discord
@@ -11,11 +10,9 @@ from discord.ext import commands
 
 from xincord.plugins.redaction import origin
 
-from .config import bundled_review_prompt
-from .conversion import Converter
-from .store import Announcements, Posted
-from .watch import Watcher
-from .web import open_web
+from .bulletin import open_bulletin
+from .feed import Feed
+from .state import States
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -23,17 +20,12 @@ if TYPE_CHECKING:
 
     from xincord.core.storage import Store
 
-    from .api import Api
+    from .bulletin import Api
     from .config import Config
-    from .store import Announcement
-    from .watch import Sleep
-    from .web import Page, Requests
+    from .feed import Sleep
 
-type OpenWeb = Callable[[Api], AbstractAsyncContextManager[Requests]]  # settings to a session
+type OpenBulletin = Callable[[str], AbstractAsyncContextManager[Api]]  # the API's URL to a session
 
-FETCHES = 5  # NTUST pages fetched at a time
-CROSS_MARK = "\N{CROSS MARK}"  # a reviewer's reaction that redoes a post
-HOURGLASS = "\N{HOURGLASS WITH FLOWING SAND}"  # the bot's sign on the marked message during a redo
 logger = logging.getLogger(__name__)
 
 
@@ -49,130 +41,74 @@ class Postable(Protocol):
         ...
 
 
-NO_MENTIONS = discord.AllowedMentions.none()  # the model's text pings nobody
+NO_MENTIONS = discord.AllowedMentions.none()  # the rewrite's text pings nobody
+
+
+def utc_now() -> datetime:
+    """The time now, with its offset: the feed's events carry theirs."""
+    return datetime.now(UTC)
 
 
 class NtustAnnouncements(commands.Cog):
     """The plugin's state; ``setup`` adds it."""
 
     def __init__(self, bot: commands.Bot, config: Config, store: Store) -> None:
-        """Keep the bot, the config and the store of the boards' posted lists.
+        """Keep the bot, the config and the store of the feed's state.
 
         A reload builds a new cog from the new config.
         """
         self.bot = bot
         self.config = config
         self.store = store
-        self.tasks: tuple[asyncio.Task[None], ...] = ()  # the boards' loops, from READY
-        # The effects that tests replace: the waits, the clocks and the web.
+        self.tasks: tuple[asyncio.Task[None], ...] = ()  # the feed's loop, from READY
+        # The effects that tests replace: the waits, the clock and the web.
         self.sleep: Sleep = asyncio.sleep
-        self.clock: Callable[[], float] = time.monotonic
-        self.now: Callable[[], datetime] = datetime.now  # the host's local time
-        self.open_web: OpenWeb = open_web
-        self.watchers: dict[str, Watcher] = {}  # by board name, once the boards run
-        self.redoing: set[str] = set()  # the URLs being redone
-        self.redos: set[asyncio.Task[None]] = set()  # their tasks
+        self.now: Callable[[], datetime] = utc_now
+        self.open_bulletin: OpenBulletin = open_bulletin
 
     @override
     async def cog_load(self) -> None:
-        """Start the boards' loops; they wait until the bot is ready.
+        """Start the feed's loop, which waits until the bot is ready; none without a channel.
 
         ``setup`` runs before the gateway connects, and ``--no-online`` never connects, so nothing
-        is fetched before READY. In a ready bot, as after a reload, the boards pass at once.
+        is requested before READY. In a ready bot, as after a reload, the feed is read at once.
         """
-        self.tasks = (asyncio.create_task(self._run(), name="NtustAnnouncements"),)
+        if len(self.config.placeholders) < len(self.config.boards):
+            self.tasks = (asyncio.create_task(self._run(), name="NtustAnnouncements"),)
         if self.bot.is_ready():
             self.check()  # a plugin loaded into a ready bot gets no on_ready
 
     @override
     async def cog_unload(self) -> None:
-        """Cancel the loops and wait for them, so that their session closes.
+        """Cancel the loop and wait for it, so that its session closes.
 
-        A reload builds a new cog with the new config, whose loops replace these.
+        A reload builds a new cog with the new config, whose loop replaces this one.
         """
-        tasks = (*self.tasks, *self.redos)
-        for task in tasks:
+        for task in self.tasks:
             task.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
+        await asyncio.gather(*self.tasks, return_exceptions=True)
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
         """Check the boards' channels once the guilds are cached; fires for each session."""
         self.check()
 
-    @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
-        """Redo the announcement whose message a reviewer marked with a cross mark.
-
-        Only ``reviewers``, the Unicode cross mark and the plugin's stored posts count; a second
-        mark while the announcement is redone is ignored.
-        """
-        emoji = payload.emoji
-        if payload.user_id not in self.config.reviewers or emoji.is_custom_emoji():
-            return
-        if emoji.name != CROSS_MARK:
-            return
-        announcement = await Announcements(self.store).find(payload.message_id)
-        if announcement is None:
-            return
-        link = announcement.link
-        watcher = self.watchers.get(link.board)
-        if watcher is None or link.url in self.redoing:
-            return
-        self.redoing.add(link.url)
-        logger.info(
-            "NtustAnnouncements board %s: user %d marked %s; converting it again",
-            link.board,
-            payload.user_id,
-            link.url,
-        )
-        marked = (payload.channel_id, payload.message_id)
-        task = asyncio.create_task(self._redo(watcher, announcement, marked))
-        self.redos.add(task)
-        task.add_done_callback(self.redos.discard)
-
-    async def _redo(
-        self, watcher: Watcher, announcement: Announcement, marked: tuple[int, int]
-    ) -> None:
-        """Run the redo with an hourglass on the marked message, removed if the old post stays.
-
-        A replaced post takes the marked message, and its hourglass, along. An unexpected error is
-        logged with its traceback.
-        """
-        await self._sign(*marked, on=True)
-        replaced = False
-        try:
-            replaced = await watcher.redo(announcement)
-        except Exception:
-            logger.exception("NtustAnnouncements: redoing %s failed", announcement.link.url)
-        finally:
-            self.redoing.discard(announcement.link.url)
-        if not replaced:
-            await self._sign(*marked, on=False)
-
-    async def _sign(self, channel_id: int, message_id: int, *, on: bool) -> None:
-        """Add the bot's hourglass to a marked message, or remove it; a refusal is a warning."""
-        message = self.bot.get_partial_messageable(channel_id).get_partial_message(message_id)
-        try:
-            if on:
-                await message.add_reaction(HOURGLASS)
-            elif self.bot.user is not None:
-                await message.remove_reaction(HOURGLASS, self.bot.user)
-        except discord.HTTPException as error:
-            logger.warning(
-                "NtustAnnouncements: the hourglass on message %d of channel %d failed: %s",
-                message_id,
-                channel_id,
-                error,
-            )
-
     def check(self) -> None:
-        """Warn about each board whose channel the bot cannot see or that takes no messages.
+        """Name the boards without a channel, and warn about each channel the bot cannot see or
+        that takes no messages.
 
         A wrong ID shows at READY, and when posting, as a warning. An unavailable guild (an outage)
         shows no channels either.
         """
+        if placeholders := self.config.placeholders:
+            logger.info(
+                "NtustAnnouncements: %d boards have no channel yet: %s",
+                len(placeholders),
+                ", ".join(board.name for board in placeholders),
+            )
         for board in self.config.boards:
+            if not board.channel_id:
+                continue
             channel: object = self.bot.get_channel(board.channel_id)
             if channel is None:
                 logger.warning(
@@ -188,67 +124,28 @@ class NtustAnnouncements(commands.Cog):
                 )
 
     async def _run(self) -> None:
-        """Wait until the bot is ready, then run one loop per board over one session.
+        """Wait until the bot is ready, then read the feed over one session until unloaded.
 
-        Each board passes at once, then ``fetch-interval`` seconds after its own pass, so a board
-        whose announcement waits hours between conversion attempts holds up no other.
-        The model's settings are the config's; the log names the endpoint by its origin only.
+        The log names the API by its origin only.
         """
         await self.bot.wait_until_ready()
-        api = self.config.api
-        logger.info(
-            "NtustAnnouncements: converting articles with %s at %s (api-format %s)",
-            api.model,
-            origin(api.endpoint),
-            api.format,
-        )
-        fetches = asyncio.Semaphore(FETCHES)
-        async with self.open_web(api) as web:
-
-            async def page(url: str) -> Page:
-                async with fetches:  # held while fetching only
-                    return await web.page(url)
-
-            converter = Converter(
-                self.config.api_keys,
-                self.config.prompt,
-                web.generate,
-                self.sleep,
-                self.clock,
+        config = self.config
+        source = origin(config.api_url)
+        logger.info("NtustAnnouncements: reading the feed at %s", source)
+        async with self.open_bulletin(config.api_url) as api:
+            feed = Feed(
+                config.boards,
+                api,
+                self._send,
+                States(self.store),
+                config.rendition_wait,
                 self.now,
-                self.config.limits,
-                (api.endpoint, api.url),
-                reject=self.config.reject_texts,
-                review_prompt=self.config.review_prompt or bundled_review_prompt(),
+                source,
             )
-            posted = Posted(self.store)
-            announcements = Announcements(self.store)
-            self.watchers = {
-                board.name: Watcher(
-                    board,
-                    page,
-                    converter.convert,
-                    self._send,
-                    posted,
-                    review=converter.review,
-                    delete=self._delete,
-                    announcements=announcements,
-                )
-                for board in self.config.boards
-            }
-            async with asyncio.TaskGroup() as boards:
-                for watcher in self.watchers.values():
-                    boards.create_task(
-                        watcher.run(self.config.fetch_interval, self.sleep), name=watcher.name
-                    )
+            await feed.run(config.poll_interval, self.sleep)
 
     async def _send(self, channel_id: int, content: str) -> int:
         """Post one message to a board's channel, which needs no cache, pinging nobody; its ID."""
         channel = self.bot.get_partial_messageable(channel_id)
         message = await channel.send(content=content, allowed_mentions=NO_MENTIONS)
         return message.id
-
-    async def _delete(self, channel_id: int, message_id: int) -> None:
-        """Delete one of the plugin's messages, which needs no cache."""
-        channel = self.bot.get_partial_messageable(channel_id)
-        await channel.get_partial_message(message_id).delete()

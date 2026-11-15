@@ -1,195 +1,367 @@
-# NtustAnnouncements: list it under `plugins` in the core config.yaml to enable
-# it. Once the bot is ready, it reads the first page of each board below at once, then
-# `fetch-interval` seconds after each pass, and posts the board's entries that it has not posted
-# yet to the board's channel, in the page's order. A model (Gemini by default) turns each NTUST
-# article into Discord Markdown with `prompt`; other links (shared documents, other sites) are
-# posted as their title. The plugin does not load until `api-keys` holds your API keys and every
-# board names its channel. A reload applies changes to this file.
+# NtustAnnouncements: list it under `plugins` in the core config.yaml to enable it. Once the bot is
+# ready, it reads the events feed of bulletin (https://bulletin.ntust.org), which polls NTUST's
+# boards and rewrites their announcements, at once, then `poll-interval` seconds after each read.
+# Each new announcement on a board below goes to the board's channel: bulletin's rewrite under the
+# title link, with its attachments, or the title link alone when the rewrite is not ready within
+# `rendition-wait` seconds. The first read starts at the feed's end, so nothing older is posted. A
+# reload applies changes to this file.
 
-# Seconds between a board's passes, from 60.
-fetch-interval: 3600
+# bulletin's API: an http or https URL without user info, a query or a fragment.
+api-url: "https://bulletin.ntust.org/api/v1"
 
-# API keys for `endpoint`, used in turn. The log names a key by its position in this list, never by
-# its text. Replace these examples with your keys; an API without keys, such as Ollama's, takes any
-# text that no address or message holds, such as "unused-key".
-api-keys:
-  - "sk-thisisatestkey1234567890abcdef1234567890"
-  - "sk-thisisatestkey1234567890abcdef1234567890"
+# Seconds between the feed's reads, from 30. bulletin polls each board on its own schedule, from
+# every 5 minutes to once a day.
+poll-interval: 60
 
-# The model's API. gemini: Gemini's generateContent at `endpoint`/models/`model`:generateContent,
-# the key in the x-goog-api-key header. openai: an OpenAI-compatible API at
-# `endpoint`/chat/completions, the key as a bearer token, such as https://api.openai.com/v1,
-# https://openrouter.ai/api/v1, Gemini's own https://generativelanguage.googleapis.com/v1beta/openai
-# or Ollama on the host of the bot's container, http://host.docker.internal:11434/v1. `endpoint` is
-# an http or https URL without user info, a query or a fragment; the log shows only its scheme,
-# host and port.
-api-format: gemini
-endpoint: "https://generativelanguage.googleapis.com/v1beta"
+# Seconds that a new announcement waits for its rewrite, from 0 to 86400; then it is posted as its
+# title link.
+rendition-wait: 3600
 
-# The model that converts the articles, as the API names it.
-model: "gemini-2.5-flash"
-
-# `temperature`, from 0 to 2, and `max-output-tokens`, the most tokens an answer may hold (sent as
-# max_tokens with openai). null sends none, leaving the API's default; OpenAI's reasoning models
-# take neither.
-temperature: 0.1
-max-output-tokens: null
-
-# Seconds that an attempt may take in all (up to 3600), and to connect (up to `request-timeout`).
-request-timeout: 300
-connect-timeout: 30
-
-# Each key takes at most `rate-limit` attempts in any `rate-window` seconds; when every key is at
-# its limit, a conversion waits for one.
-rate-limit: 10
-rate-window: 60
-
-# Attempts per article (up to 100), and the seconds to wait after the first, second, ... failed
-# attempt, the last wait repeating. An article that fails every attempt is posted as its title.
-max-attempts: 10
-retry-waits: [60, 300, 900, 1800]
-
-# What the model is asked for each article. It must hold {{page_url}}, {{base_url}}, {{now}} and
-# {{html}}; {{page_title}} is optional. Each token is replaced once: {{page_title}} with the
-# entry's title, {{page_url}} with its URL, {{base_url}} with https:// and the URL's host, {{now}}
-# with the host's local time (yyyy-MM-dd HH:mm:ss) and {{html}} with the article's content.
-prompt: |-
-  把下面這則臺科大公告的 HTML 轉成 Discord 訊息用的 Markdown。只輸出 Markdown 本身：不要加任何說明，也不要用 ``` 包住內容。
-
-  - 第一行是連到公告的標題：# [{{page_title}}]({{page_url}})
-  - 只保留公告正文，略過瀏覽數、列印、分享、選單等頁面元素。
-  - 保留原文的語言、用詞與所有資訊（日期、時間、地點、金額、名額、聯絡方式），不要摘要、翻譯或補寫。
-  - 只用 Discord 支援的語法：## 與 ### 標題、粗體、清單、[文字](網址) 連結。Discord 不支援表格與圖片：表格改寫成清單，每列一項；有資訊的圖片寫成 [圖片：簡短說明](網址)，裝飾用的圖片略過。
-  - 附件與下載檔列成清單：[檔名](網址)。相對網址補成以 {{base_url}} 開頭的完整網址。
-  - 段落之間空一行，全文不超過 10000 字元。
-
-  現在時間：{{now}}
-
-  HTML：
-  {{html}}
-
-# Answers that hold one of these texts are refused: the attempt fails, and the model is asked again
-# after the next of `retry-waits`. The default refuses code fences; [] refuses nothing.
-reject-texts: ["```"]
-
-# Members, by user ID, whose ❌ reaction on a post makes the plugin post the announcement again: the
-# article is converted anew, the model checks the result with `review-prompt`, the new post goes to
-# the channel and the old one is deleted. [] turns this off.
-reviewers: []
-
-# What the model is asked to check a redone post. It must hold {{html}} and {{markdown}}, the new
-# conversion; the tokens of `prompt` work too. Without this key, this text is used.
-review-prompt: |-
-  下面是一則臺科大公告的 HTML 原文，以及由它轉成的 Discord Markdown。請對照原文檢查這份 Markdown 並直接修正，只輸出修正後的完整 Markdown：不要加任何說明，也不要用 ``` 包住內容。
-
-  檢查這些地方：
-  - 資訊與原文一致：日期、時間、地點、金額、名額、聯絡方式、連結與附件都不能遺漏或寫錯，也不能出現原文沒有的內容。
-  - 第一行是連到公告的標題：# [{{page_title}}]({{page_url}})
-  - 只用 Discord 支援的語法（標題、粗體、清單、連結），沒有表格、圖片語法或 ```。
-  - 相對網址已補成以 {{base_url}} 開頭的完整網址。
-  - 段落之間空一行，沒有頁面雜訊或多餘的空行。
-  沒有問題就原樣輸出。
-
-  HTML 原文：
-  {{html}}
-
-  待檢查的 Markdown：
-  {{markdown}}
-
-# The boards. `name` keys the list of what the board posted; `url` is the board's first page; `layout` is how the page lists its entries
-# (student-affairs: titles in the table's first column; academic-affairs: in its second;
-# language-center: listed rows); `channel-id` is the channel that gets the board's posts (set each
-# one: the plugin does not load with 0); `title-prefix`, when set, keeps the titles that start
-# with it. Each board posts its whole first page the first time it is read.
+# The boards. `name` names the board in the logs; `board` is bulletin's key for it, `<site>-<board>`
+# such as 1053-1436, or `<site>` for every board of a site (https://bulletin.ntust.org/api/v1/sites
+# lists them); `channel-id` is the channel that gets its posts, 0 until you set one; `title-prefix`,
+# when set, keeps the titles that start with it. An announcement on several boards that share a
+# channel is posted there once.
 boards:
   # 學生宿舍公告
   - name: STUDENT_DORMITORY
-    url: "https://student.ntust.edu.tw/p/403-1053-1436-1.php"
-    layout: student-affairs
+    board: "1053-1436"
     channel-id: 0
   # 助學措施
   - name: STUDENT_AID
-    url: "https://student.ntust.edu.tw/p/403-1053-1437-1.php"
-    layout: student-affairs
+    board: "1053-1437"
     channel-id: 0
   # 生輔組
   - name: STUDENT_GUIDANCE
-    url: "https://student.ntust.edu.tw/p/403-1053-1439-1.php"
-    layout: student-affairs
+    board: "1053-1439"
     channel-id: 0
   # 活動組
   - name: STUDENT_ACTIVITY
-    url: "https://student.ntust.edu.tw/p/403-1053-1440-1.php"
-    layout: student-affairs
+    board: "1053-1440"
     channel-id: 0
   # 資源教室
   - name: STUDENT_RESOURCE_ROOM
-    url: "https://student.ntust.edu.tw/p/412-1053-8272.php"
-    layout: student-affairs
+    board: "1053-1443"
     channel-id: 0
   # 學務處本部公告
   - name: STUDENT_MAIN_OFFICE
-    url: "https://student.ntust.edu.tw/p/403-1053-1435-1.php"
-    layout: student-affairs
+    board: "1053-1435"
     channel-id: 0
     title-prefix: "【處本部】"
   # 處本部公告
   - name: ACADEMIC_MAIN_OFFICE
-    url: "https://www.academic.ntust.edu.tw/p/403-1048-1413-1.php"
-    layout: academic-affairs
+    board: "1048-1413"
     channel-id: 0
   # 研教組公告
   - name: ACADEMIC_GRADUATE_EDUCATION
-    url: "https://www.academic.ntust.edu.tw/p/403-1048-1414-1.php"
-    layout: academic-affairs
+    board: "1048-1414"
     channel-id: 0
   # 註冊組公告
   - name: ACADEMIC_REGISTRATION
-    url: "https://www.academic.ntust.edu.tw/p/403-1048-1415-1.php"
-    layout: academic-affairs
+    board: "1048-1415"
     channel-id: 0
   # 課務組公告
   - name: ACADEMIC_COURSE
-    url: "https://www.academic.ntust.edu.tw/p/403-1048-1416-1.php"
-    layout: academic-affairs
+    board: "1048-1416"
     channel-id: 0
   # 綜合業務組公告
   - name: ACADEMIC_COMPREHENSIVE_BUSINESS
-    url: "https://www.academic.ntust.edu.tw/p/403-1048-1417-1.php"
-    layout: academic-affairs
+    board: "1048-1417"
     channel-id: 0
   # 語言中心徵才公告
   - name: LANGUAGE_CENTER_RECRUITMENT
-    url: "https://lc.ntust.edu.tw/p/403-1070-1626-1.php"
-    layout: language-center
+    board: "1070-1626"
     channel-id: 0
   # 語言中心抵免與獎勵公告
   - name: LANGUAGE_CENTER_EXEMPTION_REWARD
-    url: "https://lc.ntust.edu.tw/p/403-1070-1627-1.php"
-    layout: language-center
+    board: "1070-1627"
     channel-id: 0
   # 語言中心榮譽榜單
   - name: LANGUAGE_CENTER_HONOR_LIST
-    url: "https://lc.ntust.edu.tw/p/403-1070-1051-1.php"
-    layout: language-center
+    board: "1070-1051"
     channel-id: 0
   # 語言中心新生相關公告
   - name: LANGUAGE_CENTER_FRESHMAN
-    url: "https://lc.ntust.edu.tw/p/403-1070-1628-1.php"
-    layout: language-center
+    board: "1070-1628"
     channel-id: 0
   # 語言中心英文單字
   - name: LANGUAGE_CENTER_ENGLISH_WORDS
-    url: "https://lc.ntust.edu.tw/p/403-1070-1828-1.php"
-    layout: language-center
+    board: "1070-1828"
     channel-id: 0
-  # 語言中心校外公告
+  # 語言中心校外公文
   - name: LANGUAGE_CENTER_EXTERNAL
-    url: "https://lc.ntust.edu.tw/p/403-1070-1829-1.php"
-    layout: language-center
+    board: "1070-1829"
     channel-id: 0
   # 語言中心活動公告
   - name: LANGUAGE_CENTER_ACTIVITY
-    url: "https://lc.ntust.edu.tw/p/403-1070-1050-1.php"
-    layout: language-center
+    board: "1070-1050"
+    channel-id: 0
+  # The other boards of the units above, and every other unit's boards.
+  # 學務處就輔組
+  - name: STUDENT_CAREER
+    board: "1053-1441"
+    channel-id: 0
+  # 學務處諮輔組
+  - name: STUDENT_COUNSELING
+    board: "1053-1442"
+    channel-id: 0
+  # 學務處衛保組
+  - name: STUDENT_HEALTH
+    board: "1053-1444"
+    channel-id: 0
+  # 學務處社團活動
+  - name: STUDENT_CLUBS
+    board: "1053-1446"
+    channel-id: 0
+  # 學務處兵役相關連結
+  - name: STUDENT_MILITARY_SERVICE
+    board: "1053-1678"
+    channel-id: 0
+  # 學務處畢業生專區
+  - name: STUDENT_GRADUATES
+    board: "1053-1780"
+    channel-id: 0
+  # 學務處社團外部補助資源專區
+  - name: STUDENT_CLUB_GRANTS
+    board: "1053-2450"
+    channel-id: 0
+  # 教務處最新公告
+  - name: ACADEMIC_NEWS
+    board: "1048-1405"
+    channel-id: 0
+  # 教務處雙主修、輔系最新消息
+  - name: ACADEMIC_DOUBLE_MAJOR
+    board: "1048-1986"
+    channel-id: 0
+  # 教務處新聞專區
+  - name: ACADEMIC_PRESS
+    board: "1048-2076"
+    channel-id: 0
+  # 語言中心最新公告
+  - name: LANGUAGE_CENTER_NEWS
+    board: "1070-1053"
+    channel-id: 0
+  # 全校公佈欄
+  - name: BULLETIN
+    board: "1045"
+    channel-id: 0
+  # 官網
+  - name: NTUST
+    board: "1000"
+    channel-id: 0
+  # 秘書室
+  - name: SECRETARIAT
+    board: "1063"
+    channel-id: 0
+  # 總務處
+  - name: GENERAL
+    board: "1054"
+    channel-id: 0
+  # 研究發展處
+  - name: RD
+    board: "1055"
+    channel-id: 0
+  # 國際事務處
+  - name: OIA
+    board: "1060"
+    channel-id: 0
+  # 產學營運處
+  - name: IAC
+    board: "1061"
+    channel-id: 0
+  # 主計室
+  - name: ACCOUNTING
+    board: "1067"
+    channel-id: 0
+  # 人事室
+  - name: PERSONNEL
+    board: "1066"
+    channel-id: 0
+  # 環安室
+  - name: SHE
+    board: "1068"
+    channel-id: 0
+  # 體育室
+  - name: SPORT
+    board: "1069"
+    channel-id: 0
+  # 圖書館
+  - name: LIBRARY
+    board: "1049"
+    channel-id: 0
+  # 電子計算機中心
+  - name: CC
+    board: "1050"
+    channel-id: 0
+  # 永續發展與校務研究中心
+  - name: PO
+    board: "1059"
+    channel-id: 0
+  # 教學發展中心
+  - name: CTLD
+    board: "1051"
+    channel-id: 0
+  # 臺巴計畫辦公室
+  - name: UPTP_OFFICE
+    board: "1116"
+    channel-id: 0
+  # 原住民族學生資源中心
+  - name: INDIGENOUS
+    board: "1108"
+    channel-id: 0
+  # 招生資訊
+  - name: ADMISSION
+    board: "1052"
+    channel-id: 0
+  # 通識教育中心
+  - name: CLA
+    board: "1076"
+    channel-id: 0
+  # 師資培育中心
+  - name: TEC
+    board: "1040"
+    channel-id: 0
+  # 工程學院、工程學士班
+  - name: CE
+    board: "1024"
+    channel-id: 0
+  # 自動化及控制研究所
+  - name: GSAC
+    board: "1020"
+    channel-id: 0
+  # 機械工程系
+  - name: ME
+    board: "1005"
+    channel-id: 0
+  # 材料科學與工程系
+  - name: MSE
+    board: "1019"
+    channel-id: 0
+  # 高階科技研發碩士學位學程(EMRD在職專班)
+  - name: EMRD
+    board: "1039"
+    channel-id: 0
+  # 先進科技全英語學士學位學程
+  - name: IATP
+    board: "1041"
+    channel-id: 0
+  # 全球發展工程學士學位學程
+  - name: GDEP
+    board: "1022"
+    channel-id: 0
+  # 半導體高階經營暨研發碩士在職學位學程(SEMI-EMRD)
+  - name: SEMI_EMRD
+    board: "1103"
+    channel-id: 0
+  # 電資學院、電資學士班
+  - name: CEECS
+    board: "1001"
+    channel-id: 0
+  # 電子工程系
+  - name: ECE
+    board: "1017"
+    channel-id: 0
+  # 電機工程系
+  - name: EE
+    board: "1027"
+    channel-id: 0
+  # 資訊工程系
+  - name: CSIE
+    board: "1038"
+    channel-id: 0
+  # 光電工程研究所
+  - name: EOE
+    board: "1018"
+    channel-id: 0
+  # 資通科技國際學士學位學程
+  - name: IICT
+    board: "1123"
+    channel-id: 0
+  # 管理學院
+  - name: MANAGEMENT
+    board: "1031"
+    channel-id: 0
+  # 管理研究所
+  - name: GM
+    board: "1015"
+    channel-id: 0
+  # 工業管理系
+  - name: IM
+    board: "1014"
+    channel-id: 0
+  # 企業管理系
+  - name: BA
+    board: "1098"
+    channel-id: 0
+  # 財務金融研究所
+  - name: FN
+    board: "1002"
+    channel-id: 0
+  # 管理學院MBA
+  - name: MBA
+    board: "1013"
+    channel-id: 0
+  # EMBA碩士在職專班
+  - name: EMBA
+    board: "1016"
+    channel-id: 0
+  # 科技管理研究所
+  - name: TM
+    board: "1012"
+    channel-id: 0
+  # 管理學士班
+  - name: MUP
+    board: "1023"
+    channel-id: 0
+  # 設計學院
+  - name: DCOLLEGE
+    board: "1028"
+    channel-id: 0
+  # 人文社會學院
+  - name: LASS
+    board: "1029"
+    channel-id: 0
+  # 數位學習與教育研究所
+  - name: GIDLE
+    board: "1006"
+    channel-id: 0
+  # 應用外語系
+  - name: AFL
+    board: "1121"
+    channel-id: 0
+  # 跨域創新暨國際華語中心
+  - name: DOH
+    board: "1026"
+    channel-id: 0
+  # 應用科技學院(原名：精誠榮譽學院)
+  - name: HONOR
+    board: "1030"
+    channel-id: 0
+  # 應用科技研究所
+  - name: GSAS
+    board: "1010"
+    channel-id: 0
+  # 醫學工程研究所
+  - name: BE
+    board: "1009"
+    channel-id: 0
+  # 專利研究所、智慧財產權學士學位學程
+  - name: PATENT
+    board: "1007"
+    channel-id: 0
+  # 色彩與照明科技研究所、色彩影像與照明科技學士學位學程
+  - name: COLOR
+    board: "1011"
+    channel-id: 0
+  # 不分系學士班
+  - name: JC
+    board: "1008"
+    channel-id: 0
+  # 應用科技學士學位學程
+  - name: AST
+    board: "1032"
+    channel-id: 0
+  # 產學創新學院、先進半導體科技研究所
+  - name: INNC
+    board: "1111"
     channel-id: 0

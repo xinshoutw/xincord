@@ -9,10 +9,10 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
 import aiohttp
-from pydantic import AwareDatetime, BaseModel, ConfigDict
+from pydantic import AwareDatetime, BaseModel, ConfigDict, ValidationError
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+    from collections.abc import AsyncGenerator, Mapping
 
 PAGE = 500  # events per read: the API's most
 OK = 200
@@ -112,7 +112,7 @@ class Bulletin:
             FetchError: The API answered with a status other than 200.
             AnswerError: The answer is not the feed's JSON.
         """
-        raise NotImplementedError
+        return _parsed(Events, await self._get("/events", {"after": after, "limit": PAGE}))
 
     async def announcement(self, announcement_id: int) -> Announcement | None:
         """One announcement, or None when the API answers 404.
@@ -121,7 +121,41 @@ class Bulletin:
             FetchError: The API answered with a status other than 200 or 404.
             AnswerError: The answer is not an announcement's JSON.
         """
-        raise NotImplementedError
+        try:
+            body = await self._get(f"/announcements/{announcement_id}")
+        except FetchError as error:
+            if error.status == NOT_FOUND:
+                return None
+            raise
+        return _parsed(Announcement, body)
+
+    async def _get(self, path: str, params: Mapping[str, int] | None = None) -> bytes:
+        """The body of a GET of ``path`` under the API.
+
+        Raises:
+            FetchError: The API answered with a status other than 200.
+        """
+        async with self.session.get(
+            f"{self.url}{path}", params=params, timeout=TIMEOUT
+        ) as response:
+            if response.status != OK:
+                raise FetchError(response.status)
+            return await response.read()
+
+
+def _parsed[A: Answer](model: type[A], body: bytes) -> A:
+    """``body`` read as ``model``.
+
+    Raises:
+        AnswerError: The body is not that JSON; the message names the first problem.
+    """
+    try:
+        return model.model_validate_json(body)
+    except ValidationError as error:
+        first = error.errors()[0]
+        where = ".".join(str(part) for part in first["loc"]) or "the body"
+        msg = f"{where}: {first['msg']}"
+        raise AnswerError(msg) from None
 
 
 @asynccontextmanager

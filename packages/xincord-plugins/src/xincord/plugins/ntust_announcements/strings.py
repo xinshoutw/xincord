@@ -1,4 +1,4 @@
-"""The trim of titles, links, contents and the model's text.
+"""The trim of titles, links and contents.
 
 It removes whitespace: Python's ``str.isspace()`` without U+0085. The module imports nothing of the
 plugin, so that every module can use it.

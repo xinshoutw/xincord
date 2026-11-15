@@ -13,7 +13,6 @@ from xincord.plugins.ntust_announcements.bulletin import AnswerError, FetchError
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
-XFAIL = pytest.mark.xfail(strict=True, reason="read-bulletin-feed")
 ITEM = {
     "id": 1697,
     "site": 1053,
@@ -83,7 +82,6 @@ async def server() -> AsyncGenerator[Server]:
         yield running
 
 
-@XFAIL
 async def test_events(server: Server) -> None:
     """Requirement: The first read starts at the feed's end."""
     server.answers["/api/v1/events"] = (200, json.dumps(EVENTS))
@@ -98,7 +96,6 @@ async def test_events(server: Server) -> None:
     assert (later.kind, later.announcement.rendition, events.last) == ("archived", None, 2837)
 
 
-@XFAIL
 async def test_an_announcement(server: Server) -> None:
     """Requirement: Waiting announcements are posted to their boards' channels."""
     server.answers["/api/v1/announcements/1697"] = (200, json.dumps(ANNOUNCEMENT))
@@ -114,14 +111,12 @@ async def test_an_announcement(server: Server) -> None:
     ]
 
 
-@XFAIL
 async def test_an_unknown_announcement(server: Server) -> None:
     """Requirement: Waiting announcements are posted to their boards' channels."""
     async with open_bulletin(server.root) as api:
         assert await api.announcement(999999) is None
 
 
-@XFAIL
 @pytest.mark.parametrize("path", ["/api/v1/events", "/api/v1/announcements/1697"])
 async def test_a_failing_status(server: Server, path: str) -> None:
     """Requirement: Problems are logged without flooding."""
@@ -134,7 +129,6 @@ async def test_a_failing_status(server: Server, path: str) -> None:
     assert raised.value.status == 503
 
 
-@XFAIL
 @pytest.mark.parametrize("body", ["<html>maintenance</html>", '{"events": []}', "[]"])
 async def test_an_unexpected_answer(server: Server, body: str) -> None:
     """Requirement: Problems are logged without flooding."""

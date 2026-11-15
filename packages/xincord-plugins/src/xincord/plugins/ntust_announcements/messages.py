@@ -25,7 +25,7 @@ ELLIPSIS = "\N{HORIZONTAL ELLIPSIS}"
 ESCAPED = frozenset("\\[]")  # what ends or breaks a Markdown link's text
 ENCODED = frozenset("()<>\\")  # what ends or breaks a Markdown link's URL, with whitespace
 BMP_END = 0xFFFF
-# A Markdown heading, or a line wholly in bold: the prompt's small headings.
+# A Markdown heading, or a line wholly in bold: a rewrite's small headings.
 HEADING = re.compile(r"#{1,6} .*|\*\*[^*]+\*\*")
 LIST_ITEM = re.compile(r"\s*(?:[-*+\N{BULLET}]|\d+[.)]) ")  # a bullet or a numbered item
 # How a break before a line ranks, by that line: a heading, a blank line before it, a list item,
@@ -116,7 +116,7 @@ def _cut(text: str, fitting: int) -> tuple[int, int]:
 
 
 def content_messages(content: str) -> list[str]:
-    """The messages that post the model's ``content``.
+    """The messages that post ``content``.
 
     The content is trimmed (:func:`strings.trim`); up to 1975 units it follows the header in one
     message, else it is split in parts of 1980 units, the header before the first.
@@ -128,31 +128,62 @@ def content_messages(content: str) -> list[str]:
     return [f"{HEADER}\n{first}", *rest]
 
 
-def link_message(title: str, url: str) -> str:
-    """The message that posts an announcement as its title, linked to ``url``.
-
-    ``HEADER + "\\n# [" + title + "](" + url + ")"``, the URL trimmed, with ``\\``, ``[`` and
-    ``]`` escaped in the title and the characters that end a link percent-encoded in the URL; a
-    title too long for Discord is cut with an ellipsis, the URL kept whole.
-    A URL that leaves no room for a title (no board has one) is posted bare, cut to the limit.
-    """
-    target = "".join(
+def _target(url: str) -> str:
+    """``url`` trimmed, the characters that end or break a Markdown link's URL percent-encoded."""
+    return "".join(
         quote(character, safe="") if character in ENCODED or character.isspace() else character
         for character in trim(url)
     )
-    prefix = f"{HEADER}\n# ["
+
+
+def _escaped(text: str) -> list[str]:
+    """``text``'s characters, those that end or break a Markdown link's text escaped."""
+    return [f"\\{character}" if character in ESCAPED else character for character in text]
+
+
+def title_line(title: str, url: str) -> str:
+    """The line ``"# [" + title + "](" + url + ")"`` that follows the header in a post.
+
+    ``\\``, ``[`` and ``]`` are escaped in the title and the characters that end a link
+    percent-encoded in the URL; a title too long for Discord is cut with an ellipsis, the URL kept
+    whole. A URL that leaves no room for a title (no board has one) is the line, cut to the limit.
+    """
+    target = _target(url)
+    limit = MESSAGE_LIMIT - units(HEADER) - 1  # after the header and its line break
     suffix = f"]({target})"
-    room = MESSAGE_LIMIT - units(prefix) - units(suffix)
-    pieces = [f"\\{character}" if character in ESCAPED else character for character in title]
+    room = limit - units("# [") - units(suffix)
+    pieces = _escaped(title)
     sizes = [units(piece) for piece in pieces]
     if sum(sizes) <= room:
-        return prefix + "".join(pieces) + suffix
+        return f"# [{''.join(pieces)}{suffix}"
     budget = room - units(ELLIPSIS)
     if budget < 0:
-        return clip(f"{HEADER}\n{target}", MESSAGE_LIMIT)
-    return prefix + "".join(pieces[: _fitting(sizes, budget)]) + ELLIPSIS + suffix
+        return clip(target, limit)
+    return f"# [{''.join(pieces[: _fitting(sizes, budget)])}{ELLIPSIS}{suffix}"
+
+
+def link_message(title: str, url: str) -> str:
+    """The message that posts an announcement as its title, linked to ``url``: the header and
+    :func:`title_line`."""
+    return f"{HEADER}\n{title_line(title, url)}"
 
 
 def announcement_messages(announcement: Announcement) -> list[str]:
-    """The messages that post ``announcement``: its rewrite under its title link, or the link."""
-    raise NotImplementedError
+    """The messages that post ``announcement``: its rewrite under its title link, or the link.
+
+    The rewrite is followed by its attachments, one ``- [name](url)`` line each, built as the title
+    link is: bulletin's rewrite leaves them out, since its pages list them beside the text.
+    """
+    rendition = announcement.rendition
+    markdown = trim(rendition.markdown or "") if rendition is not None else ""
+    if not markdown:
+        return [link_message(announcement.title, announcement.url)]
+    parts = [title_line(announcement.title, announcement.url), markdown]
+    if announcement.attachments:
+        parts.append(
+            "\n".join(
+                f"- [{''.join(_escaped(' '.join(file.name.split())))}]({_target(file.url)})"
+                for file in announcement.attachments
+            )
+        )
+    return content_messages("\n\n".join(parts))

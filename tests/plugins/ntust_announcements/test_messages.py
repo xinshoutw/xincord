@@ -221,7 +221,6 @@ def rewritten(markdown: str | None, *attachments: tuple[str, str]) -> Announceme
     )
 
 
-@pytest.mark.xfail(strict=True, reason="read-bulletin-feed")
 def test_rewrite() -> None:
     """Requirement: A rewritten announcement becomes its title link, its rewrite and its
     attachments."""
@@ -239,7 +238,6 @@ def test_rewrite() -> None:
     assert announcement_messages(announcement) == [expected]
 
 
-@pytest.mark.xfail(strict=True, reason="read-bulletin-feed")
 def test_long_rewrite() -> None:
     """Requirement: A rewritten announcement becomes its title link, its rewrite and its
     attachments."""
@@ -251,7 +249,6 @@ def test_long_rewrite() -> None:
     assert all(units(message) <= 2000 for message in messages)
 
 
-@pytest.mark.xfail(strict=True, reason="read-bulletin-feed")
 @pytest.mark.parametrize("markdown", [None, " \n"])
 def test_no_rewrite(markdown: str | None) -> None:
     """Requirement: A rewritten announcement becomes its title link, its rewrite and its
