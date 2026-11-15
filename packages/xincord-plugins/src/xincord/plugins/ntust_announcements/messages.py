@@ -15,6 +15,8 @@ from .strings import trim
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from .bulletin import Announcement
+
 HEADER = chr(0xFF3F) * 15  # 15 FULLWIDTH LOW LINEs before an announcement
 MESSAGE_LIMIT = 2000  # Discord's limit for a message's content
 SINGLE_LIMIT = 1990 - len(HEADER)  # content up to this length goes in one message
@@ -149,3 +151,8 @@ def link_message(title: str, url: str) -> str:
     if budget < 0:
         return clip(f"{HEADER}\n{target}", MESSAGE_LIMIT)
     return prefix + "".join(pieces[: _fitting(sizes, budget)]) + ELLIPSIS + suffix
+
+
+def announcement_messages(announcement: Announcement) -> list[str]:
+    """The messages that post ``announcement``: its rewrite under its title link, or the link."""
+    raise NotImplementedError

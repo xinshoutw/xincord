@@ -2,9 +2,11 @@
 
 import pytest
 
+from xincord.plugins.ntust_announcements.bulletin import Announcement, Attachment, Rendition
 from xincord.plugins.ntust_announcements.messages import (
     HEADER,
     MESSAGE_LIMIT,
+    announcement_messages,
     content_messages,
     link_message,
     split,
@@ -201,3 +203,59 @@ def test_consecutive_breaks() -> None:
 
     # The line breaks at a cut are left out.
     assert split(content, 1980) == ["a" * 1979, "b" * 1980, "b" * 520]
+
+
+REWRITE_URL = "https://student.ntust.edu.tw/p/406-1053-1,r1436.php"
+
+
+def rewritten(markdown: str | None, *attachments: tuple[str, str]) -> Announcement:
+    """An announcement on the dormitory board with ``markdown`` as its rewrite."""
+    return Announcement(
+        id=1,
+        url=REWRITE_URL,
+        link_item=False,
+        title="Dormitory [notice]",
+        boards=("1053-1436",),
+        rendition=None if markdown is None else Rendition(markdown=markdown),
+        attachments=tuple(Attachment(name=name, url=url) for name, url in attachments),
+    )
+
+
+@pytest.mark.xfail(strict=True, reason="read-bulletin-feed")
+def test_rewrite() -> None:
+    """Requirement: A rewritten announcement becomes its title link, its rewrite and its
+    attachments."""
+    announcement = rewritten(
+        "  ### Who\n\n- Every resident\n",
+        ("form [1].pdf", "https://student.ntust.edu.tw/a b.pdf"),
+        ("dates.xlsx", "https://student.ntust.edu.tw/b.xlsx"),
+    )
+
+    expected = (
+        f"{HEADER}\n# [Dormitory \\[notice\\]]({REWRITE_URL})\n\n### Who\n\n- Every resident\n\n"
+        "- [form \\[1\\].pdf](https://student.ntust.edu.tw/a%20b.pdf)\n"
+        "- [dates.xlsx](https://student.ntust.edu.tw/b.xlsx)"
+    )
+    assert announcement_messages(announcement) == [expected]
+
+
+@pytest.mark.xfail(strict=True, reason="read-bulletin-feed")
+def test_long_rewrite() -> None:
+    """Requirement: A rewritten announcement becomes its title link, its rewrite and its
+    attachments."""
+    paragraph = "x" * 900
+    messages = announcement_messages(rewritten(f"{paragraph}\n\n{paragraph}\n\n{paragraph}"))
+
+    assert len(messages) == 2
+    assert messages[0].startswith(f"{HEADER}\n# [Dormitory")
+    assert all(units(message) <= 2000 for message in messages)
+
+
+@pytest.mark.xfail(strict=True, reason="read-bulletin-feed")
+@pytest.mark.parametrize("markdown", [None, " \n"])
+def test_no_rewrite(markdown: str | None) -> None:
+    """Requirement: A rewritten announcement becomes its title link, its rewrite and its
+    attachments."""
+    assert announcement_messages(rewritten(markdown)) == [
+        link_message("Dormitory [notice]", REWRITE_URL)
+    ]
