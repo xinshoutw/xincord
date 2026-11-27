@@ -19,7 +19,7 @@ these first:
 uv sync                       # create or update .venv from uv.lock
 uv run prek install           # install the git hooks once per clone
 scripts/gate.sh               # the full gate: ruff, pyright, pytest + coverage, openspec
-npx --yes @fission-ai/openspec@1.16.1 <command>   # OpenSpec CLI (set OPENSPEC_TELEMETRY=0)
+npx --yes @fission-ai/openspec@2.1.1 <command>   # OpenSpec CLI (set OPENSPEC_TELEMETRY=0)
 ```
 
 If your global git config sets `core.hooksPath`, run `git config --local core.hooksPath
